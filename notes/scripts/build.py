@@ -105,24 +105,21 @@ class SiteGenerator:
     def _extract_metadata(self, file_path: Path) -> dict:
         """Extract metadata from markdown file"""
         content = file_path.read_text(encoding="utf-8")
-        self.markdown_converter.reset()
-        self.markdown_converter.convert(content)
+        # Create a new converter instance for metadata extraction
+        md = markdown.Markdown(extensions=self.MARKDOWN_EXTENSIONS)
+        md.convert(content)
 
         metadata = {}
-        if hasattr(self.markdown_converter, "Meta"):
+        if hasattr(md, "Meta"):
             metadata = {
-                "title": self.markdown_converter.Meta.get(
-                    "title", [file_path.stem.replace("-", " ").title()]
-                )[0],
-                "category": self.markdown_converter.Meta.get("category", [None])[0],
+                "title": md.Meta.get("title", [file_path.stem.replace("-", " ").title()])[0],
+                "category": md.Meta.get("category", [None])[0],
                 "tags": (
-                    self.markdown_converter.Meta.get("tags", [""])[0].split(",")
-                    if "tags" in self.markdown_converter.Meta
+                    md.Meta.get("tags", [""])[0].split(",")
+                    if "tags" in md.Meta
                     else []
                 ),
-                "description": self.markdown_converter.Meta.get("description", [None])[
-                    0
-                ],
+                "description": md.Meta.get("description", [None])[0],
             }
         else:
             metadata = {
@@ -140,9 +137,9 @@ class SiteGenerator:
             content = file_path.read_text(encoding="utf-8")
             metadata = self._extract_metadata(file_path)
 
-            # Convert content after metadata extraction
-            self.markdown_converter.reset()
-            html_content = self.markdown_converter.convert(content)
+            # Create a new converter instance for content conversion
+            md = markdown.Markdown(extensions=self.MARKDOWN_EXTENSIONS)
+            html_content = md.convert(content)
 
             relative_path = file_path.relative_to(self.input_dir)
             is_index = file_path.stem.lower() == "index"
