@@ -11,6 +11,18 @@ function getUserColor(id) {
   return `hsl(${hue}, 65%, 55%)`;
 }
 
+function getHumanReadableDateTimeString(timestamp) {
+  const date = new Date(timestamp);
+  return date.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+}
+
 const state = {
   connection: "closed",
   channel: "general",
@@ -82,9 +94,9 @@ function createMessageElement(msg) {
   if (isPresence) {
     const ip = msg.visitor?.ip || msg.ip || "unknown";
     const action = msg.type === "join" ? "connected" : "disconnected";
-    const time = new Date(
+    const time = getHumanReadableDateTimeString(
       msg.timestamp || msg.visitor?.connected_at || Date.now()
-    ).toLocaleTimeString();
+    );
     item.innerHTML = `<span style="color:${getUserColor(
       ip
     )}">${ip}</span> ${action} • ${time}`;
@@ -94,9 +106,9 @@ function createMessageElement(msg) {
     meta.className = "chat-meta";
     meta.innerHTML = `<span style="color:${getUserColor(
       sender
-    )}">${sender}</span> • ${new Date(
+    )}">${sender}</span> • ${getHumanReadableDateTimeString(
       msg.timestamp ?? Date.now()
-    ).toLocaleTimeString()}`;
+    )}`;
     const text = document.createElement("div");
     text.className = "chat-text";
     text.textContent = msg.text;
