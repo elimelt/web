@@ -1,4 +1,5 @@
-const BASE_URL = 'https://blink.tail8ab50a.ts.net:8443';
+import { BASE_URL } from './config.js';
+
 const PAGE_SIZE = 50;
 
 function getUserColor(id) {

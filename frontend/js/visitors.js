@@ -44,10 +44,6 @@ function initVisitors() {
     });
   }
 
-  function deriveCount(normalizedList) {
-    return normalizedList.length;
-  }
-
   function formatVisitor(visitor) {
     if (!visitor || typeof visitor !== "object") return "Unknown visitor";
     const ip = visitor.ip || visitor.address || visitor.id || "unknown";
@@ -97,8 +93,7 @@ function initVisitors() {
     try {
       const data = await getVisitors();
       const visitors = normalizeVisitors(data);
-      const count = deriveCount(visitors);
-      render(visitors, count);
+      render(visitors, visitors.length);
     } catch (err) {
       console.error("Failed to load visitors:", err);
       statsEl.textContent = "Failed to load visitors";

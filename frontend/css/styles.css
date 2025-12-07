@@ -8,11 +8,11 @@
   --accent-hover: #5493fe;
   --accent-subtle: #aeaeaeff;
   --border: #1a1a1a;
-  
+
   /* Typography */
   --font: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-accent: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  
+
   /* Spacing */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -22,7 +22,7 @@
   --space-8: 2rem;
   --space-12: 3rem;
   --space-16: 4rem;
-  
+
   /* Layout */
   --space: 1rem;
   --left-sidebar-width: 280px;
@@ -56,7 +56,7 @@ body {
 }
 
 /* Links */
-a  {
+a {
   color: var(--accent);
   text-decoration: underline;
   text-decoration-color: transparent;

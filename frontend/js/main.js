@@ -88,6 +88,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastEatAt = performance.now();
     const hungerDelayMs = 1200;
     const shrinkPerSecond = 10;
+    const eatRadius = 6;
+    const minGrowth = 3;
+    const growthRate = 0.06;
+    const boneDespawnMs = 5000;
 
     let debugSvg, debugLine, debugAnchorDot, debugTargetDot;
     if (config.debug) {
@@ -296,9 +300,8 @@ document.addEventListener('DOMContentLoaded', () => {
           // Collision: use anchor point vs meat center
           const dx = x - m.x;
           const dy = y - m.y;
-          const eatRadius = 6;
           if (dx * dx + dy * dy <= (m.r + eatRadius) * (m.r + eatRadius)) {
-            // Convert to bone and start 5s despawn timer
+            // Convert to bone and start despawn timer
             m.state = "bone";
             m.eatenAt = now;
             m.el.textContent = "🦴";
@@ -306,12 +309,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // Prevent re-eating by shrinking collision radius
             m.r = 0;
             // Grow follower when eating meat
-            const growth = Math.max(3, Math.round(currentSize * 0.06));
+            const growth = Math.max(minGrowth, Math.round(currentSize * growthRate));
             currentSize = currentSize + growth;
             lastEatAt = now;
           }
         } else if (m.state === "bone") {
-          if (now - m.eatenAt > 5000) {
+          if (now - m.eatenAt > boneDespawnMs) {
             m.el.remove();
             meats.splice(i, 1);
           }
@@ -545,15 +548,17 @@ document.addEventListener('DOMContentLoaded', () => {
       : "Enable rat meat game";
     meatToggle.classList.toggle("meat-active", !!enabled);
   }
+
+  const ratConfig = {
+    anchor: { x: 0.5, y: 0.0 },
+    size: 76,
+    angleOffset: Math.PI / 2,
+  };
+
   if (meatToggle) {
     const enabledByDefault = localStorage.getItem("meatGame") === "true";
     if (enabledByDefault) {
-      ratController =
-        initRatFollower({
-          anchor: { x: 0.5, y: 0.0 },
-          size: 76,
-          angleOffset: Math.PI / 2,
-        }) || null;
+      ratController = initRatFollower(ratConfig) || null;
     }
     updateMeatToggleUi(!!ratController);
     meatToggle.addEventListener("click", () => {
@@ -564,12 +569,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem("meatGame", "false");
         updateMeatToggleUi(false);
       } else {
-        ratController =
-          initRatFollower({
-            anchor: { x: 0.5, y: 0.0 },
-            size: 76,
-            angleOffset: Math.PI / 2,
-          }) || null;
+        ratController = initRatFollower(ratConfig) || null;
         localStorage.setItem("meatGame", "true");
         updateMeatToggleUi(!!ratController);
       }
