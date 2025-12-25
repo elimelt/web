@@ -8,6 +8,8 @@ function initVisitors() {
 
   const statsEl = document.getElementById("visitor-stats");
   const listEl = document.getElementById("visitor-list");
+  const recentTitleEl = document.getElementById("recent-visitors-title");
+  const recentListEl = document.getElementById("recent-visitor-list");
   if (!statsEl || !listEl) {
     visitorsInitialized = false;
     return;
@@ -61,6 +63,72 @@ function initVisitors() {
     return parts.join(" ");
   }
 
+  function formatRecentVisit(visit) {
+    if (!visit || typeof visit !== "object") return "Unknown visitor";
+    const base = formatVisitor(visit);
+    const ts = visit.timestamp || visit.connected_at;
+    if (!ts) return base;
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return base;
+    // Show a concise local timestamp
+    const when = d.toLocaleString(undefined, {
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+    return `${base} — ${when}`;
+  }
+
+  function getVisitorIp(visit) {
+    if (!visit || typeof visit !== "object") return null;
+    return visit.ip || visit.address || visit.id || null;
+  }
+
+  function toTimestampMs(value) {
+    if (value == null) return null;
+    if (typeof value === "number") {
+      // Handle seconds vs milliseconds
+      return value < 1e12 ? Math.round(value * 1000) : Math.round(value);
+    }
+    if (typeof value === "string") {
+      const num = Number(value);
+      if (!Number.isNaN(num)) {
+        return num < 1e12 ? Math.round(num * 1000) : Math.round(num);
+      }
+      const parsed = Date.parse(value);
+      return Number.isNaN(parsed) ? null : parsed;
+    }
+    if (value instanceof Date) {
+      const ms = value.getTime();
+      return Number.isNaN(ms) ? null : ms;
+    }
+    return null;
+  }
+
+  function dedupeRecentVisitsByTenMinutes(recentVisits) {
+    if (!Array.isArray(recentVisits) || recentVisits.length === 0) return [];
+    const TEN_MIN_MS = 10 * 60 * 1000;
+    // Sort newest first to keep the most recent within each bucket
+    const sorted = [...recentVisits].sort((a, b) => {
+      const ta = toTimestampMs(a?.timestamp ?? a?.connected_at) ?? 0;
+      const tb = toTimestampMs(b?.timestamp ?? b?.connected_at) ?? 0;
+      return tb - ta;
+    });
+    const seen = new Set();
+    const result = [];
+    for (const visit of sorted) {
+      const ip = getVisitorIp(visit) || "unknown";
+      const tsMs = toTimestampMs(visit?.timestamp ?? visit?.connected_at);
+      const bucket = tsMs == null ? "unknown" : Math.floor(tsMs / TEN_MIN_MS);
+      const key = `${ip}:${bucket}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push(visit);
+    }
+    return result;
+  }
+
   function render(visitors, countOverride) {
     const count =
       typeof countOverride === "number" ? countOverride : visitors.length;
@@ -89,11 +157,40 @@ function initVisitors() {
     });
   }
 
+  function renderRecent(recentVisits) {
+    if (!recentListEl) return;
+    if (recentTitleEl) {
+      recentTitleEl.textContent = "Recent visitors";
+    }
+    recentListEl.innerHTML = "";
+    if (!Array.isArray(recentVisits) || recentVisits.length === 0) {
+      const li = document.createElement("li");
+      li.textContent = "No recent visitors.";
+      li.style.opacity = "0.8";
+      recentListEl.appendChild(li);
+      return;
+    }
+    // Deduplicate by 10-minute intervals per IP, then show up to the latest 20
+    const deduped = dedupeRecentVisitsByTenMinutes(recentVisits);
+    const items = deduped.slice(0, 20);
+    items.forEach((v) => {
+      const li = document.createElement("li");
+      li.textContent = formatRecentVisit(v);
+      recentListEl.appendChild(li);
+    });
+  }
+
   async function refreshVisitors() {
     try {
       const data = await getVisitors();
-      const visitors = normalizeVisitors(data);
-      render(visitors, visitors.length);
+      const activeVisitors = normalizeVisitors(data);
+      const activeCount =
+        typeof data?.active_count === "number"
+          ? data.active_count
+          : activeVisitors.length;
+      render(activeVisitors, activeCount);
+      const recent = Array.isArray(data?.recent_visits) ? data.recent_visits : [];
+      renderRecent(recent);
     } catch (err) {
       console.error("Failed to load visitors:", err);
       statsEl.textContent = "Failed to load visitors";

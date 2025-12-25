@@ -873,6 +873,15 @@ body:has(.right-sidebar.mobile-open) .main-content {
 
 }
 
+/* Visitors */
+#recent-visitor-list {
+  /* Approximately 5 lines based on body line-height (1.6) */
+  max-height: 8em;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
 @media (max-width: 640px) {
   .main-content {
     padding: 1rem;
