@@ -1,23 +1,19 @@
-import { BASE_URL } from './config.js';
+import { BASE_URL, WS_BASE_URL } from './config.js';
 
-const getSystem = () =>
-  fetch(`${BASE_URL}/system`)
+const fetchJson = (endpoint) =>
+  fetch(`${BASE_URL}${endpoint}`)
     .then((response) => response.json())
     .catch((error) => {
-      console.error('Error fetching api system:', error);
+      console.error(`Error fetching api ${endpoint}:`, error);
       return error;
     });
 
-const getVisitors = () =>
-  fetch(`${BASE_URL}/visitors`)
-    .then((response) => response.json())
-    .catch((error) => {
-      console.error('Error fetching api visitors:', error);
-      return error;
-    });
+const getSystem = () => fetchJson('/system');
+
+const getVisitors = () => fetchJson('/visitors');
 
 const getWsVisitors = (callbacks = {}) => {
-  const ws = new WebSocket(`wss://blink.tail8ab50a.ts.net:8443/ws/visitors`);
+  const ws = new WebSocket(`${WS_BASE_URL}/ws/visitors`);
 
   const {
     onConnect = () => console.log('Connected to visitor tracking'),

@@ -265,8 +265,6 @@ body:has(.right-sidebar.mobile-open) .main-content {
   transform: translateX(0);
 }
 
-
-
 .photo-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -320,6 +318,30 @@ body:has(.right-sidebar.mobile-open) .main-content {
   color: var(--text-secondary);
   margin-bottom: 1.5rem;
   font-size: 0.875rem;
+}
+
+.section-description-spaced {
+  margin-top: 0.75rem;
+}
+
+.hidden {
+  display: none;
+}
+
+.line-count-display {
+  display: inline-block;
+  font-family: monospace;
+  text-align: right;
+  margin: 0 50%;
+}
+
+.line-count-display > div:nth-child(2) {
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 0.2em;
+}
+
+.line-count-display > div:nth-child(3) {
+  padding-top: 0.2em;
 }
 
 .areas-of-study-title {
@@ -396,8 +418,6 @@ body:has(.right-sidebar.mobile-open) .main-content {
   font-size: 0.875rem;
   line-height: 1.7;
 }
-
-
 
 /* Areas of Study */
 .areas-list {
@@ -509,8 +529,6 @@ body:has(.right-sidebar.mobile-open) .main-content {
   border-radius: 4px;
 }
 
-
-
 /* Buttons */
 .theme-toggle,
 .mobile-menu-toggle,
@@ -561,8 +579,7 @@ body:has(.right-sidebar.mobile-open) .main-content {
   height: 20px;
 }
 
-
-
+/* Background Animation */
 #bg-animation {
   position: fixed;
   top: 0;
@@ -595,12 +612,12 @@ body:has(.right-sidebar.mobile-open) .main-content {
     display: none;
   }
 }
-/* Hidden */
+/* Utility Classes */
 .svg-sprite {
   display: none;
 }
 
-/* Easter egg meat toggle (rat icon) */
+/* Easter Egg - Rat Meat Toggle */
 #meat-toggle {
   display: inline-flex;
   align-items: center;
@@ -643,7 +660,9 @@ body:has(.right-sidebar.mobile-open) .main-content {
   }
 }
 
-/* Chat */
+/* ========================================
+   Chat Section
+   ======================================== */
 .chat-status {
   font-size: 0.75rem;
   color: var(--text-secondary);
@@ -944,10 +963,17 @@ body:has(.right-sidebar.mobile-open) .main-content {
 
 }
 
-/* Visitors */
+/* ========================================
+   Visitors Section
+   ======================================== */
+.visitor-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
 #recent-visitor-list {
-  /* Approximately 5 lines based on body line-height (1.6) */
-  max-height: 12em;
+  height: 12em;
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -966,6 +992,17 @@ body:has(.right-sidebar.mobile-open) .main-content {
 
 .dark-mode .visitor-list-clickable li:hover {
   background: rgba(77, 142, 255, 0.15);
+}
+
+.visitor-loader {
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  cursor: default !important;
+}
+
+.visitor-loader:hover {
+  background: transparent !important;
 }
 
 /* Visitor Filters */
@@ -1004,7 +1041,13 @@ body:has(.right-sidebar.mobile-open) .main-content {
 
 .visitor-filter-input {
   flex: 1;
-  min-width: 100px;
+  min-width: 180px;
+}
+
+.visitor-filter-input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.7;
+  font-size: 0.75rem;
 }
 
 .visitor-filter-select:focus,

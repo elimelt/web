@@ -1,7 +1,13 @@
-import { BASE_URL } from './config.js';
+// =============================================================================
+// Imports
+// =============================================================================
+import { BASE_URL, WS_BASE_URL, PAGE_SIZE, RECONNECT } from './config.js';
+import { getHumanReadableDateTimeString, getUserColor, parseWebSocketMessage } from './utils.js';
 import { marked } from 'https://cdn.jsdelivr.net/npm/marked@15.0.0/+esm';
 
-// Configure marked for safe, inline rendering
+// =============================================================================
+// Markdown Configuration
+// =============================================================================
 marked.setOptions({
   breaks: true,
   gfm: true,
@@ -14,9 +20,7 @@ function escapeHtml(text) {
 }
 
 function renderMarkdown(text) {
-  // Parse markdown and sanitize by escaping script-like patterns
   const escaped = escapeHtml(text);
-  // Re-add markdown syntax that was escaped (only safe characters)
   const restored = escaped
     .replace(/&gt;/g, '>')
     .replace(/&#39;/g, "'")
@@ -24,30 +28,60 @@ function renderMarkdown(text) {
   return marked.parse(restored);
 }
 
-const PAGE_SIZE = 50;
+// =============================================================================
+// Chat State Management
+// =============================================================================
 
-function getUserColor(id) {
-  if (!id) return "var(--text-secondary)";
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0;
+/**
+ * Centralized state for a WebSocket connection with reconnection logic.
+ */
+class ConnectionState {
+  constructor() {
+    this.ws = null;
+    this.retries = 0;
+    this.reconnectDelay = RECONNECT.minDelay;
+    this.reconnectTimer = null;
+    this.stopped = false;
   }
-  const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 65%, 55%)`;
+
+  reset() {
+    this.retries = 0;
+    this.reconnectDelay = RECONNECT.minDelay;
+  }
+
+  clearTimer() {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+  }
+
+  closeWebSocket() {
+    if (this.ws) {
+      this.ws.onopen = null;
+      this.ws.onmessage = null;
+      this.ws.onerror = null;
+      this.ws.onclose = null;
+      this.ws.close();
+      this.ws = null;
+    }
+  }
+
+  stop() {
+    this.stopped = true;
+    this.clearTimer();
+    this.closeWebSocket();
+  }
+
+  scheduleReconnect(connectFn) {
+    this.reconnectTimer = setTimeout(connectFn, this.reconnectDelay);
+    this.reconnectDelay = Math.min(this.reconnectDelay * 2, RECONNECT.maxDelay);
+  }
 }
 
-function getHumanReadableDateTimeString(timestamp) {
-  const date = new Date(timestamp);
-  return date.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
-}
-
+/**
+ * Application state for the chat UI.
+ */
 const state = {
   connection: "closed",
   channel: "general",
@@ -61,20 +95,19 @@ const state = {
   seenKeys: new Set(),
 };
 
-let ws = null;
-let visitorWs = null;
-const minDelay = 2000;
-const maxDelay = 10000;
-const maxRetries = 5;
+// Connection states for chat and visitor WebSockets
+const chatConn = new ConnectionState();
+const visitorConn = new ConnectionState();
 
-let chatReconnectDelay = minDelay;
-let chatRetries = 0;
-let visitorRetries = 0;
-let chatReconnectTimer = null;
-let visitorReconnectTimer = null;
-let chatStopped = false;
-let visitorStopped = false;
+// Track presence events to avoid redundant join/leave messages
+const lastPresenceByIp = new Map();
+
+// Initialization flag
 let chatInitialized = false;
+
+// =============================================================================
+// Message Deduplication & Presence Tracking
+// =============================================================================
 
 function getMessageKey(msg) {
   const id = msg.visitor?.ip || msg.ip || msg.sender || "";
@@ -89,10 +122,30 @@ function isDuplicate(msg) {
   return false;
 }
 
+function isRedundantPresence(event) {
+  const isPresence = event.type === "join" || event.type === "leave";
+  if (!isPresence) {
+    lastPresenceByIp.clear();
+    return false;
+  }
+
+  const ip = event.visitor?.ip || event.ip || "unknown";
+  const lastType = lastPresenceByIp.get(ip);
+
+  if (lastType === event.type) {
+    return true;
+  }
+
+  lastPresenceByIp.set(ip, event.type);
+  return false;
+}
+
+// =============================================================================
+// UI Helpers
+// =============================================================================
+
 function getWsUrl(channel) {
-  return `wss://blink.tail8ab50a.ts.net:8443/ws/chat/${encodeURIComponent(
-    channel
-  )}`;
+  return `${WS_BASE_URL}/ws/chat/${encodeURIComponent(channel)}`;
 }
 
 function setConnection(status, showRetry = false) {
@@ -161,6 +214,10 @@ function renderMessagesAtTop(messages) {
   msgsEl.scrollTop = msgsEl.scrollHeight - prevScrollHeight;
 }
 
+// =============================================================================
+// Data Fetching
+// =============================================================================
+
 async function fetchHistory(initial = false) {
   if (state.isLoadingHistory || (!initial && !state.hasMoreHistory)) return;
   setLoading(true);
@@ -197,26 +254,22 @@ async function fetchPresenceEvents(before) {
   });
   if (before) params.set("before", before);
 
-  const results = [];
-  for (const type of ["join", "leave"]) {
-    params.set("type", type);
-    try {
-      const res = await fetch(`${BASE_URL}/events?${params}`);
-      const body = await res.json();
-      const events = (body.events || body.messages || []).map((e) => ({
-        ...e,
-        type,
-        ip: e.visitor?.ip || e.ip,
-        timestamp: e.timestamp || e.visitor?.connected_at,
-      }));
-      results.push(...events);
-    } catch (err) {
-      console.error(`Failed to fetch ${type} events:`, err);
-    }
+  try {
+    const res = await fetch(`${BASE_URL}/events?${params}`);
+    const body = await res.json();
+    const events = (body.events || []).map((e) => ({
+      ...e,
+      type: e.type,
+      ip: e.payload?.visitor?.ip || e.payload?.ip || e.visitor?.ip || e.ip,
+      timestamp: e.timestamp || e.payload?.visitor?.connected_at || e.visitor?.connected_at,
+    }));
+    return events
+      .filter((e) => !isDuplicate(e))
+      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  } catch (err) {
+    console.error("Failed to fetch presence events:", err);
+    return [];
   }
-  return results
-    .filter((e) => !isDuplicate(e))
-    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 }
 
 function handleScroll() {
@@ -231,203 +284,145 @@ function handleScroll() {
   }
 }
 
+// =============================================================================
+// WebSocket Connection Management
+// =============================================================================
+
 function stopChat() {
-  chatStopped = true;
-  if (chatReconnectTimer) {
-    clearTimeout(chatReconnectTimer);
-    chatReconnectTimer = null;
-  }
-  if (ws) {
-    ws.onopen = null;
-    ws.onmessage = null;
-    ws.onerror = null;
-    ws.onclose = null;
-    ws.close();
-    ws = null;
-  }
+  chatConn.stop();
   setConnection("failed - click retry", true);
 }
 
+function stopVisitors() {
+  visitorConn.stop();
+}
+
 function connectChat() {
-  if (chatStopped) return;
+  if (chatConn.stopped) return;
 
-  if (chatReconnectTimer) {
-    clearTimeout(chatReconnectTimer);
-    chatReconnectTimer = null;
-  }
+  chatConn.clearTimer();
+  chatConn.closeWebSocket();
 
-  if (ws) {
-    ws.onopen = null;
-    ws.onmessage = null;
-    ws.onerror = null;
-    ws.onclose = null;
-    ws.close();
-    ws = null;
-  }
-
-  if (chatRetries >= maxRetries) {
+  if (chatConn.retries >= RECONNECT.maxRetries) {
     stopChat();
     return;
   }
 
   const url = getWsUrl(state.channel);
   setConnection("connecting");
-  ws = new WebSocket(url);
+  chatConn.ws = new WebSocket(url);
 
-  ws.onopen = () => {
-    if (chatStopped) return;
+  chatConn.ws.onopen = () => {
+    if (chatConn.stopped) return;
     setConnection("open");
-    chatRetries = 0;
-    chatReconnectDelay = minDelay;
+    chatConn.reset();
     while (state.unsentQueue.length > 0) {
-      ws.send(JSON.stringify({ text: state.unsentQueue.shift() }));
+      chatConn.ws.send(JSON.stringify({ text: state.unsentQueue.shift() }));
     }
   };
 
-  ws.onmessage = async (evt) => {
-    if (chatStopped) return;
-    let data;
-    try {
-      let text = evt.data;
-      if (evt.data instanceof Blob) {
-        text = await evt.data.text();
-      }
-      data = JSON.parse(text);
-    } catch {
-      return;
-    }
-    if (data.type === "ping") return;
+  chatConn.ws.onmessage = async (evt) => {
+    if (chatConn.stopped) return;
+    const data = await parseWebSocketMessage(evt.data);
+    if (!data || data.type === "ping") return;
     if (data.type === "chat_message" && data.channel === state.channel) {
       if (!isDuplicate(data)) {
+        lastPresenceByIp.clear();
         state.messages.push(data);
         renderMessageAtBottom(data);
       }
     }
   };
 
-  ws.onerror = () => {
-    if (chatStopped) return;
+  chatConn.ws.onerror = () => {
+    if (chatConn.stopped) return;
     setConnection("error");
   };
 
-  ws.onclose = () => {
-    if (chatStopped) return;
-    chatRetries++;
-    if (chatRetries >= maxRetries) {
+  chatConn.ws.onclose = () => {
+    if (chatConn.stopped) return;
+    chatConn.retries++;
+    if (chatConn.retries >= RECONNECT.maxRetries) {
       stopChat();
       return;
     }
-    setConnection(`closed (retry ${chatRetries}/${maxRetries})`);
-    chatReconnectTimer = setTimeout(connectChat, chatReconnectDelay);
-    chatReconnectDelay = Math.min(chatReconnectDelay * 2, maxDelay);
+    setConnection(`closed (retry ${chatConn.retries}/${RECONNECT.maxRetries})`);
+    chatConn.scheduleReconnect(connectChat);
   };
 }
 
-function stopVisitors() {
-  visitorStopped = true;
-  if (visitorReconnectTimer) {
-    clearTimeout(visitorReconnectTimer);
-    visitorReconnectTimer = null;
-  }
-  if (visitorWs) {
-    visitorWs.onopen = null;
-    visitorWs.onmessage = null;
-    visitorWs.onerror = null;
-    visitorWs.onclose = null;
-    visitorWs.close();
-    visitorWs = null;
-  }
-}
-
 function connectVisitors() {
-  if (visitorStopped) return;
+  if (visitorConn.stopped) return;
 
-  if (visitorReconnectTimer) {
-    clearTimeout(visitorReconnectTimer);
-    visitorReconnectTimer = null;
-  }
+  visitorConn.clearTimer();
+  visitorConn.closeWebSocket();
 
-  if (visitorWs) {
-    visitorWs.onopen = null;
-    visitorWs.onmessage = null;
-    visitorWs.onerror = null;
-    visitorWs.onclose = null;
-    visitorWs.close();
-    visitorWs = null;
-  }
-
-  if (visitorRetries >= maxRetries) {
+  if (visitorConn.retries >= RECONNECT.maxRetries) {
     stopVisitors();
     return;
   }
 
-  visitorWs = new WebSocket("wss://blink.tail8ab50a.ts.net:8443/ws/visitors");
+  visitorConn.ws = new WebSocket(`${WS_BASE_URL}/ws/visitors`);
 
-  visitorWs.onopen = () => {
-    if (visitorStopped) return;
-    visitorRetries = 0;
+  visitorConn.ws.onopen = () => {
+    if (visitorConn.stopped) return;
+    visitorConn.reset();
   };
 
-  visitorWs.onmessage = async (evt) => {
-    if (visitorStopped) return;
-    let data;
-    try {
-      let text = evt.data;
-      if (evt.data instanceof Blob) {
-        text = await evt.data.text();
-      }
-      data = JSON.parse(text);
-    } catch {
-      return;
-    }
-    if (data.type === "ping") return;
+  visitorConn.ws.onmessage = async (evt) => {
+    if (visitorConn.stopped) return;
+    const data = await parseWebSocketMessage(evt.data);
+    if (!data || data.type === "ping") return;
     if (data.type === "join" || data.type === "leave") {
       const event = {
         ...data,
-        ip: data.visitor?.ip || data.ip,
+        ip: data.payload?.visitor?.ip || data.payload?.ip || data.visitor?.ip || data.ip,
         timestamp:
           data.timestamp ||
           data.visitor?.connected_at ||
           new Date().toISOString(),
       };
-      if (!isDuplicate(event)) {
+      if (!isDuplicate(event) && !isRedundantPresence(event)) {
         state.messages.push(event);
         renderMessageAtBottom(event);
       }
     }
   };
 
-  visitorWs.onerror = () => {
-    if (visitorStopped) return;
+  visitorConn.ws.onerror = () => {
+    if (visitorConn.stopped) return;
   };
 
-  visitorWs.onclose = () => {
-    if (visitorStopped) return;
-    visitorRetries++;
-    if (visitorRetries >= maxRetries) {
+  visitorConn.ws.onclose = () => {
+    if (visitorConn.stopped) return;
+    visitorConn.retries++;
+    if (visitorConn.retries >= RECONNECT.maxRetries) {
       stopVisitors();
       return;
     }
-    visitorReconnectTimer = setTimeout(connectVisitors, minDelay);
+    visitorConn.scheduleReconnect(connectVisitors);
   };
 }
+
+// =============================================================================
+// Message Sending & Connection Control
+// =============================================================================
 
 function sendMessage(text) {
   const trimmed = (text || "").trim();
   if (!trimmed) return;
-  if (state.connection === "open" && ws?.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ text: trimmed }));
+  if (state.connection === "open" && chatConn.ws?.readyState === WebSocket.OPEN) {
+    chatConn.ws.send(JSON.stringify({ text: trimmed }));
   } else {
     state.unsentQueue.push(trimmed);
   }
 }
 
 function retryConnections() {
-  chatStopped = false;
-  visitorStopped = false;
-  chatRetries = 0;
-  chatReconnectDelay = minDelay;
-  visitorRetries = 0;
+  chatConn.stopped = false;
+  visitorConn.stopped = false;
+  chatConn.reset();
+  visitorConn.reset();
   connectChat();
   connectVisitors();
 }
@@ -436,6 +431,10 @@ function cleanup() {
   stopChat();
   stopVisitors();
 }
+
+// =============================================================================
+// Initialization
+// =============================================================================
 
 async function initChat() {
   if (chatInitialized) return;
@@ -473,7 +472,17 @@ async function initChat() {
 
   await fetchHistory(true);
   const presenceEvents = await fetchPresenceEvents();
-  presenceEvents.forEach((e) => renderMessageAtBottom(e, false));
+
+  const allItems = [...state.messages, ...presenceEvents];
+  allItems.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+  msgsEl.innerHTML = "";
+  lastPresenceByIp.clear();
+  for (const item of allItems) {
+    if (!isRedundantPresence(item)) {
+      msgsEl.appendChild(createMessageElement(item));
+    }
+  }
   msgsEl.scrollTop = msgsEl.scrollHeight;
 
   connectChat();
@@ -487,4 +496,3 @@ if (document.readyState === "loading") {
 }
 
 export { state, sendMessage, connectChat as connect };
-

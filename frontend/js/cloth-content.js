@@ -1,22 +1,68 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 import html2canvas from "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/+esm";
 
+// ============================================================================
+// Physics Configuration Constants
+// ============================================================================
+const PHYSICS_CONFIG = {
+  // Simulation parameters
+  DAMPING: 0.97,
+  GRAVITY: 0.0004,
+  TIMESTEP_SQ: 0.5,
+  CONSTRAINT_ITERATIONS: 4,
+
+  // Restoration forces
+  REST_FORCE_XY: 0.02,
+  REST_FORCE_Z: 0.9,
+
+  // Ceiling roll effect
+  ROLL_RADIUS: 40,
+  ROLL_Y_SCALE: 0.2,
+  ROLL_Z_SCALE: 0.3,
+  ROLL_Z_OFFSET: 10,
+  ROLL_MAX_ANGLE: Math.PI * 0.8,
+
+  // Interaction
+  FIND_NEAREST_MAX_DIST: 100,
+};
+
+const CLOTH_CONTENT_CONFIG = {
+  RECAPTURE_DELAY_MS: 2000,
+  DEFAULT_WIDTH: 720,
+  RESIZE_THRESHOLD: 10,
+  DRAG_THRESHOLD: 10,
+};
+
 class ClothPhysics {
+  /**
+   * Creates a new cloth physics simulation.
+   * @param {number} width - The width of the cloth
+   * @param {number} height - The height of the cloth
+   * @param {number} [segmentsX=20] - Number of horizontal segments
+   */
   constructor(width, height, segmentsX = 20) {
     this.width = width;
     this.height = height;
     this.segmentsX = segmentsX;
     this.segmentsY = Math.round(segmentsX * (height / width));
-    this.damping = 0.97;
-    this.gravity = 0.0004;
-    this.timestepSq = 0.5;
+
     this.particles = [];
     this.constraints = [];
-    this.initParticles();
-    this.initConstraints();
+
+    // Pre-allocate reusable vectors to avoid garbage collection
+    this._tempVel = new THREE.Vector3();
+    this._tempDiff = new THREE.Vector3();
+    this._tempCorrection = new THREE.Vector3();
+
+    this._initParticles();
+    this._initConstraints();
   }
 
-  initParticles() {
+  /**
+   * Initializes particles in a grid formation.
+   * @private
+   */
+  _initParticles() {
     const startX = -this.width / 2;
     const startY = this.height / 2;
     const segW = this.width / this.segmentsX;
@@ -38,7 +84,11 @@ class ClothPhysics {
     }
   }
 
-  initConstraints() {
+  /**
+   * Creates structural, shear, and bend constraints between particles.
+   * @private
+   */
+  _initConstraints() {
     const cols = this.segmentsX + 1;
     const segW = this.width / this.segmentsX;
     const segH = this.height / this.segmentsY;
@@ -59,69 +109,126 @@ class ClothPhysics {
     }
   }
 
+  /**
+   * Runs one simulation step: Verlet integration, boundary handling, and constraint solving.
+   */
   simulate() {
     const ceilingY = this.height / 2;
     const floorY = -this.height / 2;
-    const rollRadius = 40;
+
+    // Verlet integration with forces
+    this._integrateParticles(ceilingY, floorY);
+
+    // Solve constraints iteratively
+    this._solveConstraints();
+  }
+
+  /**
+   * Applies Verlet integration and boundary handling to all particles.
+   * @private
+   * @param {number} ceilingY - Upper boundary Y coordinate
+   * @param {number} floorY - Lower boundary Y coordinate
+   */
+  _integrateParticles(ceilingY, floorY) {
+    const { DAMPING, GRAVITY, TIMESTEP_SQ, REST_FORCE_XY, REST_FORCE_Z } =
+      PHYSICS_CONFIG;
+    const { ROLL_RADIUS, ROLL_Y_SCALE, ROLL_Z_SCALE, ROLL_Z_OFFSET, ROLL_MAX_ANGLE } =
+      PHYSICS_CONFIG;
 
     for (const p of this.particles) {
       if (p.pinned || p.dragging) continue;
 
-      const vel = p.pos.clone().sub(p.prev).multiplyScalar(this.damping);
+      // Calculate velocity using pre-allocated vector (avoid GC)
+      this._tempVel.copy(p.pos).sub(p.prev).multiplyScalar(DAMPING);
       p.prev.copy(p.pos);
-      p.pos.add(vel);
+      p.pos.add(this._tempVel);
 
-      p.pos.y -= this.gravity * this.timestepSq;
-      p.pos.y += (p.restY - p.pos.y) * 0.02;
-      p.pos.x += (p.restX - p.pos.x) * 0.02;
-      p.pos.z *= 0.9;
+      // Apply gravity and restoration forces
+      p.pos.y -= GRAVITY * TIMESTEP_SQ;
+      p.pos.y += (p.restY - p.pos.y) * REST_FORCE_XY;
+      p.pos.x += (p.restX - p.pos.x) * REST_FORCE_XY;
+      p.pos.z *= REST_FORCE_Z;
 
+      // Ceiling roll effect
       if (p.pos.y > ceilingY) {
         const excess = p.pos.y - ceilingY;
-        const angle = Math.min(excess / rollRadius, Math.PI * 0.8);
-        p.pos.y = ceilingY + Math.sin(angle) * rollRadius * 0.2;
-        p.pos.z = -Math.cos(angle) * rollRadius * 0.3 - 10;
+        const angle = Math.min(excess / ROLL_RADIUS, ROLL_MAX_ANGLE);
+        p.pos.y = ceilingY + Math.sin(angle) * ROLL_RADIUS * ROLL_Y_SCALE;
+        p.pos.z = -Math.cos(angle) * ROLL_RADIUS * ROLL_Z_SCALE - ROLL_Z_OFFSET;
       }
 
+      // Floor collision
       if (p.pos.y < floorY) {
         p.pos.y = floorY;
         p.prev.y = floorY;
       }
     }
+  }
 
-    for (let iter = 0; iter < 4; iter++) {
+  /**
+   * Iteratively solves distance constraints to maintain cloth structure.
+   * Uses pre-allocated vectors to minimize garbage collection.
+   * @private
+   */
+  _solveConstraints() {
+    const iterations = PHYSICS_CONFIG.CONSTRAINT_ITERATIONS;
+
+    for (let iter = 0; iter < iterations; iter++) {
       for (const c of this.constraints) {
         const p1 = this.particles[c.p1];
         const p2 = this.particles[c.p2];
         if (p1.dragging && p2.dragging) continue;
 
-        const diff = p2.pos.clone().sub(p1.pos);
-        const dist = diff.length();
+        // Use pre-allocated vector for difference calculation
+        this._tempDiff.copy(p2.pos).sub(p1.pos);
+        const dist = this._tempDiff.length();
         if (dist === 0) continue;
 
-        const correction = diff.multiplyScalar((dist - c.rest) / dist / 2);
-        if (!p1.pinned && !p1.dragging) p1.pos.add(correction);
-        if (!p2.pinned && !p2.dragging) p2.pos.sub(correction);
+        // Calculate correction using pre-allocated vector
+        const correctionFactor = (dist - c.rest) / dist / 2;
+        this._tempCorrection.copy(this._tempDiff).multiplyScalar(correctionFactor);
+
+        if (!p1.pinned && !p1.dragging) p1.pos.add(this._tempCorrection);
+        if (!p2.pinned && !p2.dragging) p2.pos.sub(this._tempCorrection);
       }
     }
   }
 
-  findNearest(x, y, maxDist = 100) {
+  /**
+   * Finds the nearest non-pinned particle to a given point.
+   * @param {number} x - X coordinate in world space
+   * @param {number} y - Y coordinate in world space
+   * @param {number} [maxDist] - Maximum distance to search (uses config default)
+   * @returns {Object|null} The nearest particle, or null if none found within maxDist
+   */
+  findNearest(x, y, maxDist = PHYSICS_CONFIG.FIND_NEAREST_MAX_DIST) {
     let nearest = null;
-    let minDist = maxDist * maxDist;
+    let minDistSq = maxDist * maxDist;
+
     for (const p of this.particles) {
       if (p.pinned) continue;
-      const dist = (p.pos.x - x) ** 2 + (p.pos.y - y) ** 2;
-      if (dist < minDist) {
-        minDist = dist;
+      const distSq = (p.pos.x - x) ** 2 + (p.pos.y - y) ** 2;
+      if (distSq < minDistSq) {
+        minDistSq = distSq;
         nearest = p;
       }
     }
+
     return nearest;
   }
 }
 
+/**
+ * Handles Three.js rendering of the cloth simulation.
+ * Creates and manages the WebGL renderer, scene, camera, and mesh.
+ */
 class ClothRenderer {
+  /**
+   * Creates a new cloth renderer.
+   * @param {ShadowRoot} shadowRoot - The shadow DOM root to attach the canvas to
+   * @param {HTMLCanvasElement} texture - The canvas to use as cloth texture
+   * @param {ClothPhysics} physics - The physics simulation to render
+   */
   constructor(shadowRoot, texture, physics) {
     this.shadowRoot = shadowRoot;
     this.physics = physics;
@@ -170,6 +277,9 @@ class ClothRenderer {
     this.scene.add(this.mesh);
   }
 
+  /**
+   * Updates the mesh geometry from physics particles and renders the scene.
+   */
   update() {
     const positions = this.geometry.attributes.position.array;
     for (let i = 0; i < this.physics.particles.length; i++) {
@@ -182,11 +292,18 @@ class ClothRenderer {
     this.renderer.render(this.scene, this.camera);
   }
 
+  /**
+   * Updates the cloth texture with a new canvas.
+   * @param {HTMLCanvasElement} canvas - The new texture canvas
+   */
   updateTexture(canvas) {
     this.texture.image = canvas;
     this.texture.needsUpdate = true;
   }
 
+  /**
+   * Disposes of all Three.js resources.
+   */
   dispose() {
     this.renderer.dispose();
     this.geometry.dispose();
@@ -194,6 +311,19 @@ class ClothRenderer {
   }
 }
 
+// ============================================================================
+// ClothContent Web Component
+// ============================================================================
+
+/**
+ * A custom element that renders its content as an interactive cloth simulation.
+ * Supports dragging, theme changes, and responsive resizing.
+ *
+ * @example
+ * <cloth-content wiggle="true">
+ *   <p>Content to render as cloth</p>
+ * </cloth-content>
+ */
 class ClothContent extends HTMLElement {
   static get observedAttributes() {
     return ["wiggle"];
@@ -205,9 +335,13 @@ class ClothContent extends HTMLElement {
     this.initialized = false;
   }
 
+  // --------------------------------------------------------------------------
+  // Lifecycle Methods
+  // --------------------------------------------------------------------------
+
   connectedCallback() {
     this.wiggleEnabled = this.getAttribute("wiggle") === "true";
-    this.init();
+    this._init();
   }
 
   attributeChangedCallback(name, _old, val) {
@@ -215,30 +349,42 @@ class ClothContent extends HTMLElement {
   }
 
   disconnectedCallback() {
-    this.cleanup();
+    this._cleanup();
     if (this.liveContent?.parentNode)
       this.liveContent.parentNode.removeChild(this.liveContent);
   }
 
-  async init() {
-    this.width = this.offsetWidth || 720;
+  // --------------------------------------------------------------------------
+  // Initialization
+  // --------------------------------------------------------------------------
+
+  /**
+   * Initializes the component, setting up content and styles.
+   * @private
+   */
+  async _init() {
+    this.width = this.offsetWidth || CLOTH_CONTENT_CONFIG.DEFAULT_WIDTH;
     this.liveContent = document.createElement("div");
     while (this.firstChild) this.liveContent.appendChild(this.firstChild);
 
-    this.setupStyles();
-    this.setupToggle();
+    this._setupStyles();
+    this._setupToggle();
 
     if (!this.wiggleEnabled) {
-      this.showHTML();
+      this._showHTML();
       this.initialized = true;
       return;
     }
 
-    await this.showCloth();
+    await this._showCloth();
     this.initialized = true;
   }
 
-  setupStyles() {
+  /**
+   * Copies document stylesheets into the shadow DOM for proper rendering.
+   * @private
+   */
+  _setupStyles() {
     for (const sheet of document.styleSheets) {
       try {
         if (sheet.href) {
@@ -253,11 +399,17 @@ class ClothContent extends HTMLElement {
             .join("\n");
           this.shadowRoot.appendChild(style);
         }
-      } catch (e) {}
+      } catch (e) {
+        // CORS or other security restrictions may prevent accessing some stylesheets
+      }
     }
   }
 
-  setupToggle() {
+  /**
+   * Creates the wiggle toggle checkbox for desktop users.
+   * @private
+   */
+  _setupToggle() {
     const isMobile =
       /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
       (navigator.maxTouchPoints > 1 &&
@@ -276,14 +428,30 @@ class ClothContent extends HTMLElement {
     this.shadowRoot.appendChild(label);
   }
 
+  // --------------------------------------------------------------------------
+  // Public API
+  // --------------------------------------------------------------------------
+
+  /**
+   * Enables or disables the cloth simulation.
+   * @param {boolean} enabled - Whether to enable the cloth effect
+   */
   setWiggle(enabled) {
     this.wiggleEnabled = enabled;
     if (this.checkbox) this.checkbox.checked = enabled;
-    enabled ? this.showCloth() : this.showHTML();
+    enabled ? this._showCloth() : this._showHTML();
   }
 
-  showHTML() {
-    this.cleanup();
+  // --------------------------------------------------------------------------
+  // Display Mode Switching
+  // --------------------------------------------------------------------------
+
+  /**
+   * Switches to showing normal HTML content (no cloth simulation).
+   * @private
+   */
+  _showHTML() {
+    this._cleanup();
     this.shadowRoot.querySelector("canvas")?.remove();
     this.liveContent.style.cssText = "";
     this.liveContent.className = "content";
@@ -292,39 +460,51 @@ class ClothContent extends HTMLElement {
     this.shadowRoot.appendChild(this.liveContent);
   }
 
-  async showCloth() {
+  /**
+   * Switches to cloth simulation mode with full initialization.
+   * @private
+   */
+  async _showCloth() {
     if (this.liveContent.parentNode === this.shadowRoot)
       this.shadowRoot.removeChild(this.liveContent);
-    this.captureComputedColors();
-    this.moveLiveContentOffscreen();
+    this._captureComputedColors();
+    this._moveLiveContentOffscreen();
 
     await new Promise((r) => requestAnimationFrame(r));
     await document.fonts.ready;
 
     try {
-      const canvas = await this.capture();
+      const canvas = await this._capture();
       this.physics = new ClothPhysics(this.contentWidth, this.contentHeight);
       this.clothRenderer = new ClothRenderer(
         this.shadowRoot,
         canvas,
         this.physics
       );
-      this.setupInteraction();
-      this.setupResizeObserver();
-      this.setupThemeObserver();
-      this.animate();
-      setTimeout(() => this.recapture(), 2000);
+      this._setupInteraction();
+      this._setupResizeObserver();
+      this._setupThemeObserver();
+      this._animate();
+      setTimeout(() => this._recapture(), CLOTH_CONTENT_CONFIG.RECAPTURE_DELAY_MS);
     } catch (e) {
       console.error("Cloth failed:", e, {
         width: this.width,
         contentWidth: this.contentWidth,
         contentHeight: this.contentHeight,
       });
-      this.showHTML();
+      this._showHTML();
     }
   }
 
-  captureComputedColors() {
+  // --------------------------------------------------------------------------
+  // Content Capture
+  // --------------------------------------------------------------------------
+
+  /**
+   * Captures computed styles for proper color rendering in the texture.
+   * @private
+   */
+  _captureComputedColors() {
     const self = getComputedStyle(this);
     this.computedColors = {
       text: self.color,
@@ -341,7 +521,11 @@ class ClothContent extends HTMLElement {
     });
   }
 
-  moveLiveContentOffscreen() {
+  /**
+   * Moves the live content offscreen for capture without affecting layout.
+   * @private
+   */
+  _moveLiveContentOffscreen() {
     this.liveContent.style.cssText = `
       position: fixed; left: -9999px; top: 0; width: ${
         this.width
@@ -360,7 +544,13 @@ class ClothContent extends HTMLElement {
       document.body.appendChild(this.liveContent);
   }
 
-  async capture() {
+  /**
+   * Captures the live content to a canvas for use as cloth texture.
+   * @private
+   * @returns {Promise<HTMLCanvasElement>} The captured canvas
+   * @throws {Error} If the captured dimensions are zero
+   */
+  async _capture() {
     const canvas = await html2canvas(this.liveContent, {
       backgroundColor: null,
       scale: window.devicePixelRatio || 2,
@@ -374,17 +564,32 @@ class ClothContent extends HTMLElement {
     return canvas;
   }
 
-  async recapture() {
+  /**
+   * Re-captures the content to update the cloth texture.
+   * Prevents concurrent recaptures with a guard flag.
+   * @private
+   */
+  async _recapture() {
     if (this.isRecapturing || !this.clothRenderer) return;
     this.isRecapturing = true;
     try {
-      const canvas = await this.capture();
+      const canvas = await this._capture();
       this.clothRenderer.updateTexture(canvas);
-    } catch (e) {}
+    } catch (e) {
+      // Silently fail on recapture errors - the cloth continues with existing texture
+    }
     this.isRecapturing = false;
   }
 
-  setupInteraction() {
+  // --------------------------------------------------------------------------
+  // User Interaction
+  // --------------------------------------------------------------------------
+
+  /**
+   * Sets up mouse and touch event handlers for cloth dragging.
+   * @private
+   */
+  _setupInteraction() {
     const toWorld = (e) => {
       const rect = this.getBoundingClientRect();
       const cx = e.clientX ?? e.touches?.[0]?.clientX ?? 0;
@@ -432,7 +637,7 @@ class ClothContent extends HTMLElement {
         if (!touchP) return;
         const dx = Math.abs(e.touches[0].clientX - touchStart.x),
           dy = Math.abs(e.touches[0].clientY - touchStart.y);
-        if (!isTouchDrag && dx > 10 && dx > dy) {
+        if (!isTouchDrag && dx > CLOTH_CONTENT_CONFIG.DRAG_THRESHOLD && dx > dy) {
           isTouchDrag = true;
           touchP.dragging = true;
         }
@@ -452,21 +657,35 @@ class ClothContent extends HTMLElement {
     });
   }
 
-  setupResizeObserver() {
+  // --------------------------------------------------------------------------
+  // Observers and Event Handlers
+  // --------------------------------------------------------------------------
+
+  /**
+   * Sets up a ResizeObserver to handle window/container resizing.
+   * @private
+   */
+  _setupResizeObserver() {
     const target =
       document.querySelector(".main-content") || this.parentElement || this;
     this.resizeObserver = new ResizeObserver(() => {
       const newW = this.offsetWidth;
-      if (newW > 0 && Math.abs(newW - this.width) > 10) this.handleResize();
+      if (newW > 0 && Math.abs(newW - this.width) > CLOTH_CONTENT_CONFIG.RESIZE_THRESHOLD) {
+        this._handleResize();
+      }
     });
     this.resizeObserver.observe(target);
   }
 
-  setupThemeObserver() {
+  /**
+   * Sets up a MutationObserver to detect theme changes.
+   * @private
+   */
+  _setupThemeObserver() {
     this.themeObserver = new MutationObserver((mutations) => {
       for (const m of mutations) {
         if (m.attributeName === "class" && this.wiggleEnabled) {
-          this.handleThemeChange();
+          this._handleThemeChange();
           break;
         }
       }
@@ -474,7 +693,11 @@ class ClothContent extends HTMLElement {
     this.themeObserver.observe(document.body, { attributes: true });
   }
 
-  async handleThemeChange() {
+  /**
+   * Handles theme changes by recapturing the content with new styles.
+   * @private
+   */
+  async _handleThemeChange() {
     if (this.isChangingTheme || !this.clothRenderer) return;
     this.isChangingTheme = true;
 
@@ -485,46 +708,70 @@ class ClothContent extends HTMLElement {
     this.liveContent.style.cssText = "";
 
     await new Promise((r) => requestAnimationFrame(r));
-    this.captureComputedColors();
-    this.moveLiveContentOffscreen();
+    this._captureComputedColors();
+    this._moveLiveContentOffscreen();
 
     await new Promise((r) => requestAnimationFrame(r));
     try {
-      const canvas = await this.capture();
+      const canvas = await this._capture();
       this.clothRenderer.updateTexture(canvas);
-    } catch (e) {}
+    } catch (e) {
+      // Silently fail on theme change errors - the cloth continues with existing texture
+    }
     this.isChangingTheme = false;
   }
 
-  async handleResize() {
+  /**
+   * Handles window/container resize by recreating the cloth simulation.
+   * @private
+   */
+  async _handleResize() {
     if (this.isResizing) return;
     this.isResizing = true;
-    this.cleanup();
-    this.width = this.offsetWidth || 720;
+    this._cleanup();
+    this.width = this.offsetWidth || CLOTH_CONTENT_CONFIG.DEFAULT_WIDTH;
     this.liveContent.style.width = this.width + "px";
     await new Promise((r) => requestAnimationFrame(r));
     try {
-      const canvas = await this.capture();
+      const canvas = await this._capture();
       this.physics = new ClothPhysics(this.contentWidth, this.contentHeight);
       this.clothRenderer = new ClothRenderer(
         this.shadowRoot,
         canvas,
         this.physics
       );
-      this.setupInteraction();
-      this.animate();
-    } catch (e) {}
+      this._setupInteraction();
+      this._animate();
+    } catch (e) {
+      // Silently fail on resize errors - component will remain in previous state
+    }
     this.isResizing = false;
   }
 
-  animate() {
+  // --------------------------------------------------------------------------
+  // Animation Loop
+  // --------------------------------------------------------------------------
+
+  /**
+   * Main animation loop that runs the physics simulation and renders the cloth.
+   * @private
+   */
+  _animate() {
     if (!this.isConnected || !this.physics) return;
-    this.animationId = requestAnimationFrame(() => this.animate());
+    this.animationId = requestAnimationFrame(() => this._animate());
     this.physics.simulate();
     this.clothRenderer.update();
   }
 
-  cleanup() {
+  // --------------------------------------------------------------------------
+  // Cleanup
+  // --------------------------------------------------------------------------
+
+  /**
+   * Cleans up all resources, observers, and animation frames.
+   * @private
+   */
+  _cleanup() {
     if (this.animationId) {
       cancelAnimationFrame(this.animationId);
       this.animationId = null;

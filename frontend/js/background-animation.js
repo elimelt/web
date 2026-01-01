@@ -2,6 +2,9 @@ import * as THREE from 'three';
 
 class BackgroundAnimation {
   constructor() {
+    this.animationFrameId = null;
+    this.boundAnimate = this.animate.bind(this);
+    this.boundResize = this.onResize.bind(this);
     this.init();
   }
 
@@ -27,9 +30,9 @@ class BackgroundAnimation {
     this.renderer.domElement.style.opacity = '0.03';
     document.body.insertBefore(this.renderer.domElement, document.body.firstChild);
 
-    const geometry = new THREE.TorusKnotGeometry(10, 3, 100, 16);
-    const material = new THREE.MeshPhongMaterial({ color: 0x0062ff });
-    this.mesh = new THREE.Mesh(geometry, material);
+    this.geometry = new THREE.TorusKnotGeometry(10, 3, 100, 16);
+    this.material = new THREE.MeshPhongMaterial({ color: 0x0062ff });
+    this.mesh = new THREE.Mesh(this.geometry, this.material);
     this.scene.add(this.mesh);
 
     const light1 = new THREE.PointLight(0xffffff, 1, 100);
@@ -40,18 +43,20 @@ class BackgroundAnimation {
     light2.position.set(-20, -20, -20);
     this.scene.add(light2);
 
-    window.addEventListener('resize', () => {
-      this.camera.aspect = window.innerWidth / window.innerHeight;
-      this.camera.updateProjectionMatrix();
-      this.renderer.setSize(window.innerWidth, window.innerHeight);
-    });
+    window.addEventListener('resize', this.boundResize);
 
     this.time = 0;
     this.animate();
   }
 
+  onResize() {
+    this.camera.aspect = window.innerWidth / window.innerHeight;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+
   animate() {
-    requestAnimationFrame(() => this.animate());
+    this.animationFrameId = requestAnimationFrame(this.boundAnimate);
 
     this.time += 0.005;
 
@@ -64,9 +69,25 @@ class BackgroundAnimation {
 
     this.renderer.render(this.scene, this.camera);
   }
+
+  destroy() {
+    if (this.animationFrameId !== null) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+
+    window.removeEventListener('resize', this.boundResize);
+
+    if (this.renderer.domElement.parentNode) {
+      this.renderer.domElement.parentNode.removeChild(this.renderer.domElement);
+    }
+
+    this.geometry.dispose();
+    this.material.dispose();
+    this.renderer.dispose();
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   new BackgroundAnimation();
 });
-

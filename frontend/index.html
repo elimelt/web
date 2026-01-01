@@ -27,9 +27,9 @@
         }
       }
     </script>
-    <script type="module" src="js/background-animation.js"></script>
+    <script type="module" src="js/background-animation.js?v=2"></script>
     <!-- SVG Sprite -->
-    <div class="svg-sprite">
+    <div class="svg-sprite" aria-hidden="true">
       <svg xmlns="http://www.w3.org/2000/svg">
         <!-- Menu Icon -->
         <symbol
@@ -236,7 +236,7 @@
           <h2 class="section-title">Visitors</h2>
           <div id="visitor-stats">Connecting…</div>
           <ul id="visitor-list" class="visitor-list"></ul>
-          <div id="recent-visitors-title" class="section-description" style="margin-top: 0.75rem;">Recent visitors</div>
+          <div id="recent-visitors-title" class="section-description section-description-spaced">Recent visitors</div>
 
           <!-- Visitor Filters -->
           <div class="visitor-filters" id="visitor-filters">
@@ -249,9 +249,9 @@
               </select>
               <input
                 type="text"
-                id="visitor-filter-ip"
+                id="visitor-filter-search"
                 class="visitor-filter-input"
-                placeholder="Search IP…"
+                placeholder="Regex search (IP, location)… prefix ! to invert"
                 autocomplete="off"
               />
             </div>
@@ -277,7 +277,7 @@
         <section id="chat" class="section">
           <h2 class="section-title">Chat</h2>
           <div class="chat-status" id="chat-status">connecting…</div>
-          <button class="chat-retry-btn" id="chat-retry-btn" style="display:none">Retry</button>
+          <button class="chat-retry-btn hidden" id="chat-retry-btn">Retry</button>
           <div class="chat-messages" id="chat-messages">
             <div class="chat-loader" id="chat-loader">Loading...</div>
           </div>
@@ -319,10 +319,10 @@
             years, committing everything from experimental data to node_modules,
             so my line count (below) is grossly inflated.
           </p>
-          <div style="display: inline-block; font-family: monospace; text-align: right; margin: 0 50%;">
+          <div class="line-count-display">
             <div>4,905,731</div>
-            <div style="border-bottom: 1px solid currentColor; padding-bottom: 0.2em;">-1,349,198</div>
-            <div style="padding-top: 0.2em;">3,556,533</div>
+            <div>-1,349,198</div>
+            <div>3,556,533</div>
           </div>
 
           <p class="about-text">
@@ -747,7 +747,7 @@
           <figure class="photo-item">
             <img src="assets/rats/IMG_8784.jpg" alt="" loading="lazy" />
           </figure>
-                    <figure class="photo-item">
+          <figure class="photo-item">
             <div
               data-live-photo
               data-photo-src="assets/rats/IMG_8875.jpg"
@@ -768,10 +768,10 @@
     </div>
 
     <script src="https://cdn.apple-livephotoskit.com/lpk/1/livephotoskit.js"></script>
-    <script type="module" src="js/cloth-content.js"></script>
-    <script type="module" src="js/services.js"></script>
-    <script type="module" src="js/visitors.js"></script>
-    <script type="module" src="js/chat.js"></script>
-    <script src="js/main.js"></script>
+    <script type="module" src="js/cloth-content.js?v=2"></script>
+    <script type="module" src="js/services.js?v=2"></script>
+    <script type="module" src="js/visitors.js?v=2"></script>
+    <script type="module" src="js/chat.js?v=2"></script>
+    <script src="js/main.js?v=2"></script>
   </body>
 </html>
