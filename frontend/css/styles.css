@@ -972,6 +972,36 @@ body:has(.right-sidebar.mobile-open) .main-content {
   margin: 0;
 }
 
+#visitors .visitor-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0.25rem 0 0.5rem 0;
+}
+
+.visitor-analytics-btn {
+  padding: 0.375rem 0.6rem;
+  font-size: 0.8125rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.03);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.visitor-analytics-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: var(--accent);
+}
+
+.dark-mode .visitor-analytics-btn {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dark-mode .visitor-analytics-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
 #recent-visitor-list {
   height: 12em;
   overflow-y: auto;
@@ -1016,6 +1046,54 @@ body:has(.right-sidebar.mobile-open) .main-content {
 
 .dark-mode .visitor-filters {
   background: rgba(255, 255, 255, 0.03);
+}
+
+.visitor-analytics-table-scroll {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: auto;
+  max-height: 60vh;
+}
+
+.visitor-analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.visitor-analytics-table th,
+.visitor-analytics-table td {
+  padding: 0.375rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.visitor-analytics-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 1;
+}
+
+.visitor-analytics-table tbody tr:hover {
+  background: rgba(0, 98, 255, 0.06);
+}
+
+.dark-mode .visitor-analytics-table tbody tr:hover {
+  background: rgba(77, 142, 255, 0.08);
+}
+
+.visitor-analytics-meta {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.visitor-modal-loading,
+.visitor-modal-error {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
 }
 
 .visitor-filter-row {

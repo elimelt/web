@@ -12,6 +12,12 @@ const getSystem = () => fetchJson('/system');
 
 const getVisitors = () => fetchJson('/visitors');
 
+const getEvents = (params) => fetchJson(`/events?${params}`);
+
+const getVisitorsAnalytics = () => fetchJson('/visitor-analytics');
+
+const getChatHistory = (channel, params) => fetchJson(`/chat/${encodeURIComponent(channel)}/history?${params}`);
+
 const getWsVisitors = (callbacks = {}) => {
   const ws = new WebSocket(`${WS_BASE_URL}/ws/visitors`);
 
@@ -60,4 +66,4 @@ const getWsVisitors = (callbacks = {}) => {
     send: (data) => ws.send(JSON.stringify(data)),
   };
 };
-export { getSystem, getVisitors, getWsVisitors };
+export { getSystem, getVisitors, getEvents, getVisitorsAnalytics, getChatHistory, getWsVisitors };

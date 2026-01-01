@@ -1,7 +1,8 @@
 // =============================================================================
 // Imports
 // =============================================================================
-import { BASE_URL, WS_BASE_URL, PAGE_SIZE, RECONNECT } from './config.js';
+import { getEvents, getChatHistory } from './api.js';
+import { WS_BASE_URL, PAGE_SIZE, RECONNECT } from './config.js';
 import { getHumanReadableDateTimeString, getUserColor, parseWebSocketMessage } from './utils.js';
 import { marked } from 'https://cdn.jsdelivr.net/npm/marked@15.0.0/+esm';
 
@@ -226,18 +227,16 @@ async function fetchHistory(initial = false) {
   if (state.nextBefore && !initial) params.set("before", state.nextBefore);
 
   try {
-    const res = await fetch(
-      `${BASE_URL}/chat/${encodeURIComponent(state.channel)}/history?${params}`
-    );
-    const body = await res.json();
-    const msgs = (body.messages || []).filter((m) => !isDuplicate(m));
+    const res = await getChatHistory(state.channel, params);
+
+    const msgs = (res.messages || []).filter((m) => !isDuplicate(m));
 
     if (msgs.length === 0) {
       state.hasMoreHistory = false;
     } else {
       msgs.reverse();
       state.messages = [...msgs, ...state.messages];
-      state.nextBefore = body.next_before || state.nextBefore;
+      state.nextBefore = res.next_before || state.nextBefore;
       renderMessagesAtTop(msgs);
     }
   } catch (err) {
@@ -255,9 +254,7 @@ async function fetchPresenceEvents(before) {
   if (before) params.set("before", before);
 
   try {
-    const res = await fetch(`${BASE_URL}/events?${params}`);
-    const body = await res.json();
-    const events = (body.events || []).map((e) => ({
+    const events = (await getEvents(params)).events.map((e) => ({
       ...e,
       type: e.type,
       ip: e.payload?.visitor?.ip || e.payload?.ip || e.visitor?.ip || e.ip,

@@ -1,7 +1,7 @@
 // =============================================================================
 // Imports
 // =============================================================================
-import { getVisitors, getWsVisitors } from './api.js';
+import { getVisitors, getVisitorsAnalytics, getWsVisitors } from './api.js';
 import { BASE_URL, PAGE_SIZE, RECONNECT } from './config.js';
 import { toTimestampMs, debounce, getHumanReadableDateTimeString } from './utils.js';
 
@@ -27,7 +27,8 @@ const filterState = {
 const paginationState = {
   isLoadingMore: false,
   hasMoreEvents: true,
-  nextBefore: null
+    nextBefore: null,
+    totalEvents: null
 };
 
 // =============================================================================
@@ -47,6 +48,7 @@ function initVisitors() {
   // DOM Elements
   // ---------------------------------------------------------------------------
   const statsEl = document.getElementById("visitor-stats");
+  const analyticsEl = document.getElementById("visitor-analytics");
   const listEl = document.getElementById("visitor-list");
   const recentTitleEl = document.getElementById("recent-visitors-title");
   const recentListEl = document.getElementById("recent-visitor-list");
@@ -57,6 +59,7 @@ function initVisitors() {
   const modalTitle = document.getElementById("visitor-modal-title");
   const modalContent = document.getElementById("visitor-modal-content");
   const modalClose = document.getElementById("visitor-modal-close");
+  // analytics button removed
 
   if (!statsEl || !listEl) {
     visitorsInitialized = false;
@@ -268,6 +271,33 @@ function initVisitors() {
     return getHumanReadableDateTimeString(ms);
   }
 
+  // Cached analytics data
+  let analyticsCache = null;
+  let analyticsFetchedAt = 0;
+  const ANALYTICS_TTL_MS = 60 * 1000;
+
+  async function getAnalyticsCached() {
+    const now = Date.now();
+    if (analyticsCache && (now - analyticsFetchedAt) < ANALYTICS_TTL_MS) {
+      return analyticsCache;
+    }
+    const analytics = await getVisitorAnalytics();
+    analyticsCache = analytics || null;
+    analyticsFetchedAt = Date.now();
+    return analyticsCache;
+  }
+
+  function formatDuration(seconds) {
+    if (typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds < 0) return '—';
+    const s = Math.round(seconds);
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const rem = s % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m ${rem}s`;
+    return `${rem}s`;
+  }
+
   // ---------------------------------------------------------------------------
   // Modal Functions
   // ---------------------------------------------------------------------------
@@ -280,22 +310,14 @@ function initVisitors() {
     }
 
     if (modalContent) {
+      // Render analytics placeholder and event history (no non-analytics summary)
       modalContent.innerHTML = `
-        <div class="visitor-modal-summary">
-          <div class="visitor-modal-stat">
-            <div class="visitor-modal-stat-label">Total Visits</div>
-            <div class="visitor-modal-stat-value">${activity.totalVisits || activity.events.filter(e => e.type === 'join').length}</div>
-          </div>
-          <div class="visitor-modal-stat">
-            <div class="visitor-modal-stat-label">First Seen</div>
-            <div class="visitor-modal-stat-value">${formatTimestamp(activity.firstSeen)}</div>
-          </div>
-          <div class="visitor-modal-stat">
-            <div class="visitor-modal-stat-label">Last Activity</div>
-            <div class="visitor-modal-stat-value">${formatTimestamp(activity.lastSeen)}</div>
+        <div class="visitor-modal-summary" id="visitor-analytics-summary">
+          <div class="visitor-modal-stat" style="grid-column: 1 / -1;">
+            <div class="visitor-modal-loading">Loading analytics…</div>
           </div>
         </div>
-        <h4 class="visitor-modal-events-title">Event History (${activity.events.length} events)</h4>
+        <h4 class="visitor-modal-events-title">Event History</h4>
         <ul class="visitor-modal-events">
           ${activity.events.slice().reverse().map(event => `
             <li class="visitor-modal-event">
@@ -310,6 +332,66 @@ function initVisitors() {
     if (modalOverlay) {
       modalOverlay.classList.add('active');
     }
+
+    // Fetch analytics asynchronously and enrich the modal
+    getAnalyticsCached()
+      .then((analytics) => {
+        const container = modalContent?.querySelector('#visitor-analytics-summary');
+        if (!container) return;
+        const perIp = (analytics?.visitors || []).find(v => v.visitor_ip === ip);
+        if (!perIp) {
+          container.innerHTML = `
+            <div class="visitor-modal-stat" style="grid-column: 1 / -1;">
+              <div class="visitor-modal-error">No analytics available for this visitor.</div>
+            </div>
+          `;
+          return;
+        }
+
+        const totalTime = formatDuration(perIp.total_time_seconds);
+        const avgSession = formatDuration(perIp.avg_session_duration_seconds);
+        const recurring = perIp.is_recurring ? 'Yes' : 'No';
+        const freq = perIp.visit_frequency_per_day != null ? String(perIp.visit_frequency_per_day) : '—';
+        const city = perIp.location_city || 'Unknown';
+        const country = perIp.location_country || 'Unknown';
+
+        container.innerHTML = `
+          <div class="visitor-modal-stat">
+            <div class="visitor-modal-stat-label">Analytics Visits</div>
+            <div class="visitor-modal-stat-value">${perIp.total_visits ?? '—'}</div>
+          </div>
+          <div class="visitor-modal-stat">
+            <div class="visitor-modal-stat-label">Total Time</div>
+            <div class="visitor-modal-stat-value">${totalTime}</div>
+          </div>
+          <div class="visitor-modal-stat">
+            <div class="visitor-modal-stat-label">Avg Session</div>
+            <div class="visitor-modal-stat-value">${avgSession}</div>
+          </div>
+          <div class="visitor-modal-stat">
+            <div class="visitor-modal-stat-label">Recurring</div>
+            <div class="visitor-modal-stat-value">${recurring}</div>
+          </div>
+          <div class="visitor-modal-stat">
+            <div class="visitor-modal-stat-label">Visits/Day</div>
+            <div class="visitor-modal-stat-value">${freq}</div>
+          </div>
+          <div class="visitor-modal-stat">
+            <div class="visitor-modal-stat-label">Location</div>
+            <div class="visitor-modal-stat-value">${city}, ${country}</div>
+          </div>
+        `;
+      })
+      .catch(() => {
+        const container = modalContent?.querySelector('#visitor-analytics-summary');
+        if (container) {
+          container.innerHTML = `
+            <div class="visitor-modal-stat" style="grid-column: 1 / -1;">
+              <div class="visitor-modal-error">Failed to load analytics.</div>
+            </div>
+          `;
+        }
+      });
   }
 
   function closeModal() {
@@ -337,13 +419,18 @@ function initVisitors() {
   // ---------------------------------------------------------------------------
   // Filtering Functions
   // ---------------------------------------------------------------------------
+  function updateFilterStats() {
+    if (!filterStatsEl) return;
+    const loaded = allVisitorEvents.length;
+    const total = paginationState.totalEvents != null ? paginationState.totalEvents : loaded;
+    filterStatsEl.textContent = `Showing ${loaded} of ${total} events`;
+  }
+
   function applyFilters() {
     const filtered = filterEvents(allVisitorEvents);
     renderRecentWithFilters(filtered);
 
-    if (filterStatsEl) {
-      filterStatsEl.textContent = `Showing ${filtered.length} of ${allVisitorEvents.length} events`;
-    }
+    updateFilterStats();
 
     ensureScrollable();
   }
@@ -457,9 +544,7 @@ function initVisitors() {
     const filtered = filterEvents(allVisitorEvents);
     renderRecentWithFilters(filtered);
 
-    if (filterStatsEl) {
-      filterStatsEl.textContent = `Showing ${filtered.length} of ${allVisitorEvents.length} events`;
-    }
+    updateFilterStats();
   }
 
   function render(visitors, countOverride) {
@@ -505,14 +590,134 @@ function initVisitors() {
     const filtered = filterEvents(allVisitorEvents);
     renderRecentWithFilters(filtered);
 
-    if (filterStatsEl) {
-      filterStatsEl.textContent = `Showing ${filtered.length} of ${allVisitorEvents.length} events`;
-    }
+    updateFilterStats();
   }
 
   // ---------------------------------------------------------------------------
   // Network/API Functions
   // ---------------------------------------------------------------------------
+
+  async function getVisitorAnalytics() {
+    const analytics = await getVisitorsAnalytics();
+
+    /**
+     * {
+      "visitors": [
+          {
+              "visitor_ip": "100.71.111.68",
+              "computed_at": "2026-01-01T21:09:42.544536+00:00",
+              "period_start": "2026-01-01T00:00:00+00:00",
+              "period_end": "2026-01-02T00:00:00+00:00",
+              "total_visits": 6,
+              "total_time_seconds": 11649.626308,
+              "avg_session_duration_seconds": 1941.6043846666669,
+              "is_recurring": true,
+              "first_visit_at": "2026-01-01T20:41:05.231055+00:00",
+              "last_visit_at": "2026-01-01T21:06:42.120291+00:00",
+              "visit_frequency_per_day": 6,
+              "location_country": "Unknown",
+              "location_city": "Unknown"
+          },
+          {
+              "visitor_ip": "202.8.40.181",
+              "computed_at": "2026-01-01T21:09:42.535864+00:00",
+              "period_start": "2026-01-01T00:00:00+00:00",
+              "period_end": "2026-01-02T00:00:00+00:00",
+              "total_visits": 2,
+              "total_time_seconds": 3.8441989999999997,
+              "avg_session_duration_seconds": 1.9220994999999998,
+              "is_recurring": true,
+              "first_visit_at": "2026-01-01T04:46:35.140874+00:00",
+              "last_visit_at": "2026-01-01T15:54:37.306162+00:00",
+              "visit_frequency_per_day": 2,
+              "location_country": "United States",
+              "location_city": "Ashburn"
+          },
+          {
+              "visitor_ip": "100.79.135.19",
+              "computed_at": "2026-01-01T21:09:42.526011+00:00",
+              "period_start": "2026-01-01T00:00:00+00:00",
+              "period_end": "2026-01-02T00:00:00+00:00",
+              "total_visits": 84,
+              "total_time_seconds": 14658.645890999998,
+              "avg_session_duration_seconds": 174.5076891785714,
+              "is_recurring": true,
+              "first_visit_at": "2026-01-01T03:39:23.982034+00:00",
+              "last_visit_at": "2026-01-01T20:57:42.847240+00:00",
+              "visit_frequency_per_day": 84,
+              "location_country": "Unknown",
+              "location_city": "Unknown"
+          },
+          {
+              "visitor_ip": "100.89.233.21",
+              "computed_at": "2026-01-01T21:09:35.991505+00:00",
+              "period_start": "2025-12-31T00:00:00+00:00",
+              "period_end": "2026-01-01T00:00:00+00:00",
+              "total_visits": 1,
+              "total_time_seconds": 2058.363283,
+              "avg_session_duration_seconds": 2058.363283,
+              "is_recurring": false,
+              "first_visit_at": "2025-12-31T23:25:41.636717+00:00",
+              "last_visit_at": "2025-12-31T23:25:41.636717+00:00",
+              "visit_frequency_per_day": 1,
+              "location_country": "Unknown",
+              "location_city": "Unknown"
+          },
+          {
+              "visitor_ip": "100.79.135.19",
+              "computed_at": "2026-01-01T21:09:35.982509+00:00",
+              "period_start": "2025-12-31T00:00:00+00:00",
+              "period_end": "2026-01-01T00:00:00+00:00",
+              "total_visits": 1,
+              "total_time_seconds": 529.112429,
+              "avg_session_duration_seconds": 529.112429,
+              "is_recurring": false,
+              "first_visit_at": "2025-12-31T23:51:10.887571+00:00",
+              "last_visit_at": "2025-12-31T23:51:10.887571+00:00",
+              "visit_frequency_per_day": 1,
+              "location_country": "Unknown",
+              "location_city": "Unknown"
+          }
+      ],
+      "count": 5,
+      "filters": {
+          "visitor_id": null,
+          "start_date": null,
+          "end_date": null,
+          "segment": null,
+          "limit": 100
+      }
+  }
+     */
+
+    return analytics;
+  }
+
+  function renderVisitorAnalytics(analytics) {
+    if (!analyticsEl) return;
+    analyticsEl.innerHTML = `
+      <h2>Visitor Analytics</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>IP</th>
+            <th>Total Visits</th>
+            <th>Total Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${analytics.visitors.map(visitor => `
+            <tr>
+              <td>${visitor.visitor_ip}</td>
+              <td>${visitor.total_visits}</td>
+              <td>${visitor.total_time_seconds}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
   async function fetchPresenceEvents(before = null) {
     const params = new URLSearchParams({
       topic: "visitor_updates",
@@ -541,10 +746,17 @@ function initVisitors() {
         return tb - ta;
       });
 
-      return { events: sortedEvents, nextBefore: body.next_before || null };
+      const total =
+        typeof body.total === 'number' ? body.total
+        : typeof body.total_count === 'number' ? body.total_count
+        : typeof body.count === 'number' ? body.count
+        : typeof body.events_total === 'number' ? body.events_total
+        : null;
+
+      return { events: sortedEvents, nextBefore: body.next_before || null, total };
     } catch (err) {
       console.error("Failed to fetch presence events:", err);
-      return { events: [], nextBefore: null };
+      return { events: [], nextBefore: null, total: null };
     }
   }
 
@@ -554,7 +766,11 @@ function initVisitors() {
     setLoading(true);
 
     try {
-      const { events, nextBefore } = await fetchPresenceEvents(paginationState.nextBefore);
+      const { events, nextBefore, total } = await fetchPresenceEvents(paginationState.nextBefore);
+
+      if (total != null) {
+        paginationState.totalEvents = total;
+      }
 
       if (events.length === 0 || !nextBefore) {
         paginationState.hasMoreEvents = false;
@@ -740,6 +956,8 @@ function initVisitors() {
   refreshVisitors();
   initRealtime();
 }
+
+
 
 // =============================================================================
 // Module Bootstrap
