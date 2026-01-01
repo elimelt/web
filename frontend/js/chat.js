@@ -1,4 +1,28 @@
 import { BASE_URL } from './config.js';
+import { marked } from 'https://cdn.jsdelivr.net/npm/marked@15.0.0/+esm';
+
+// Configure marked for safe, inline rendering
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+});
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function renderMarkdown(text) {
+  // Parse markdown and sanitize by escaping script-like patterns
+  const escaped = escapeHtml(text);
+  // Re-add markdown syntax that was escaped (only safe characters)
+  const restored = escaped
+    .replace(/&gt;/g, '>')
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"');
+  return marked.parse(restored);
+}
 
 const PAGE_SIZE = 50;
 
@@ -112,7 +136,7 @@ function createMessageElement(msg) {
     )}`;
     const text = document.createElement("div");
     text.className = "chat-text";
-    text.textContent = msg.text;
+    text.innerHTML = renderMarkdown(msg.text || '');
     item.appendChild(meta);
     item.appendChild(text);
   }

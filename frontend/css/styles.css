@@ -686,6 +686,77 @@ body:has(.right-sidebar.mobile-open) .main-content {
   word-break: break-word;
 }
 
+.chat-text p {
+  margin: 0 0 0.25rem 0;
+}
+
+.chat-text p:last-child {
+  margin-bottom: 0;
+}
+
+.chat-text code {
+  background: rgba(0, 0, 0, 0.08);
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: 0.8em;
+}
+
+.dark-mode .chat-text code {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.chat-text pre {
+  background: rgba(0, 0, 0, 0.08);
+  padding: 0.5rem;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 0.25rem 0;
+}
+
+.dark-mode .chat-text pre {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.chat-text pre code {
+  background: none;
+  padding: 0;
+}
+
+.chat-text a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.chat-text a:hover {
+  text-decoration: none;
+}
+
+.chat-text strong {
+  font-weight: 600;
+}
+
+.chat-text em {
+  font-style: italic;
+}
+
+.chat-text ul,
+.chat-text ol {
+  margin: 0.25rem 0;
+  padding-left: 1.25rem;
+}
+
+.chat-text li {
+  margin: 0.125rem 0;
+}
+
+.chat-text blockquote {
+  border-left: 2px solid var(--accent);
+  margin: 0.25rem 0;
+  padding-left: 0.5rem;
+  color: var(--text-secondary);
+}
+
 .chat-form {
   display: flex;
   gap: 0.5rem;
