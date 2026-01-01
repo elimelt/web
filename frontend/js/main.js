@@ -6,6 +6,8 @@
 (function () {
   "use strict";
 
+  console.info("hi");
+
   /* ==========================================================================
    * THEME MANAGEMENT
    * Handles dark/light mode toggle and logo updates

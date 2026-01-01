@@ -322,7 +322,6 @@ export function initAnalyticsDelivery() {
 
 export function recordClickEvent(clickPayload) {
   // clickPayload is expected to have { viewport, pointer, element } etc.
-  console.log('recordClickEvent', clickPayload);
   AnalyticsDelivery.enqueueClick(clickPayload);
 }
 
@@ -333,12 +332,12 @@ const getWsVisitors = (callbacks = {}) => {
   const ws = new WebSocket(`${WS_BASE_URL}/ws/visitors`);
 
   const {
-    onConnect = () => console.log('Connected to visitor tracking'),
-    onVisitorJoin = (visitor) => console.log('Visitor joined:', visitor),
-    onVisitorLeave = (ip) => console.log('Visitor left:', ip),
-    onUpdate = (data) => console.log('Update:', data),
+    onConnect = () => {},
+    onVisitorJoin = (_visitor) => {},
+    onVisitorLeave = (_ip) => {},
+    onUpdate = (_data) => {},
     onError = (error) => console.error('WebSocket error:', error),
-    onDisconnect = () => console.log('Disconnected from visitor tracking'),
+    onDisconnect = () => {},
   } = callbacks;
 
   ws.onopen = onConnect;
