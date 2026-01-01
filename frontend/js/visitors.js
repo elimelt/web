@@ -421,9 +421,7 @@ function initVisitors() {
   // ---------------------------------------------------------------------------
   function updateFilterStats() {
     if (!filterStatsEl) return;
-    const loaded = allVisitorEvents.length;
-    const total = paginationState.totalEvents != null ? paginationState.totalEvents : loaded;
-    filterStatsEl.textContent = `Showing ${loaded} of ${total} events`;
+    filterStatsEl.textContent = "";
   }
 
   function applyFilters() {
