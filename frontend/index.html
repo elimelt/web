@@ -237,8 +237,42 @@
           <div id="visitor-stats">Connecting…</div>
           <ul id="visitor-list" class="visitor-list"></ul>
           <div id="recent-visitors-title" class="section-description" style="margin-top: 0.75rem;">Recent visitors</div>
-          <ul id="recent-visitor-list" class="visitor-list"></ul>
+
+          <!-- Visitor Filters -->
+          <div class="visitor-filters" id="visitor-filters">
+            <div class="visitor-filter-row">
+              <select id="visitor-filter-time" class="visitor-filter-select">
+                <option value="all">All Time</option>
+                <option value="1h">Last Hour</option>
+                <option value="24h">Last 24 Hours</option>
+                <option value="7d">Last 7 Days</option>
+              </select>
+              <input
+                type="text"
+                id="visitor-filter-ip"
+                class="visitor-filter-input"
+                placeholder="Search IP…"
+                autocomplete="off"
+              />
+            </div>
+            <div class="visitor-filter-stats" id="visitor-filter-stats"></div>
+          </div>
+
+          <ul id="recent-visitor-list" class="visitor-list visitor-list-clickable"></ul>
         </section>
+
+        <!-- IP Activity Modal -->
+        <div class="visitor-modal-overlay" id="visitor-modal-overlay">
+          <div class="visitor-modal" id="visitor-modal">
+            <div class="visitor-modal-header">
+              <h3 class="visitor-modal-title" id="visitor-modal-title">IP Activity</h3>
+              <button class="visitor-modal-close" id="visitor-modal-close" aria-label="Close">&times;</button>
+            </div>
+            <div class="visitor-modal-content" id="visitor-modal-content">
+              <!-- Dynamic content -->
+            </div>
+          </div>
+        </div>
 
         <section id="chat" class="section">
           <h2 class="section-title">Chat</h2>

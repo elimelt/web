@@ -1,6 +1,17 @@
 import { getVisitors, getWsVisitors } from './api.js';
+import { BASE_URL } from './config.js';
 
 let visitorsInitialized = false;
+
+// Store all visitor events for filtering
+let allVisitorEvents = [];
+let ipActivityMap = new Map();
+
+// Filter state
+const filterState = {
+  time: 'all',
+  ip: ''
+};
 
 function initVisitors() {
   if (visitorsInitialized) return;
@@ -10,6 +21,14 @@ function initVisitors() {
   const listEl = document.getElementById("visitor-list");
   const recentTitleEl = document.getElementById("recent-visitors-title");
   const recentListEl = document.getElementById("recent-visitor-list");
+  const filterTimeEl = document.getElementById("visitor-filter-time");
+  const filterIpEl = document.getElementById("visitor-filter-ip");
+  const filterStatsEl = document.getElementById("visitor-filter-stats");
+  const modalOverlay = document.getElementById("visitor-modal-overlay");
+  const modalTitle = document.getElementById("visitor-modal-title");
+  const modalContent = document.getElementById("visitor-modal-content");
+  const modalClose = document.getElementById("visitor-modal-close");
+
   if (!statsEl || !listEl) {
     visitorsInitialized = false;
     return;
@@ -129,6 +148,225 @@ function initVisitors() {
     return result;
   }
 
+  // Filter visitor events based on current filter state
+  function filterEvents(events) {
+    const now = Date.now();
+    const timeRanges = {
+      '1h': 60 * 60 * 1000,
+      '24h': 24 * 60 * 60 * 1000,
+      '7d': 7 * 24 * 60 * 60 * 1000,
+      'all': Infinity
+    };
+    const timeLimit = timeRanges[filterState.time] || Infinity;
+    const cutoff = now - timeLimit;
+
+    return events.filter(event => {
+      // Filter by time
+      const eventTime = toTimestampMs(event.timestamp || event.connected_at);
+      if (eventTime && eventTime < cutoff) {
+        return false;
+      }
+
+      // Filter by IP
+      if (filterState.ip) {
+        const ip = getVisitorIp(event) || '';
+        if (!ip.toLowerCase().includes(filterState.ip.toLowerCase())) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }
+
+  // Build IP activity map from events
+  function buildIpActivityMap(events) {
+    ipActivityMap.clear();
+
+    for (const event of events) {
+      const ip = getVisitorIp(event);
+      if (!ip) continue;
+
+      if (!ipActivityMap.has(ip)) {
+        ipActivityMap.set(ip, {
+          ip,
+          events: [],
+          firstSeen: null,
+          lastSeen: null,
+          totalVisits: 0,
+          location: event.location || { city: event.city, country: event.country },
+          userAgent: event.userAgent || event.ua
+        });
+      }
+
+      const activity = ipActivityMap.get(ip);
+      const eventTime = toTimestampMs(event.timestamp || event.connected_at);
+
+      activity.events.push({
+        type: event.type || 'join',
+        timestamp: eventTime,
+        raw: event
+      });
+
+      if (event.type === 'join') {
+        activity.totalVisits++;
+      }
+
+      if (eventTime) {
+        if (!activity.firstSeen || eventTime < activity.firstSeen) {
+          activity.firstSeen = eventTime;
+        }
+        if (!activity.lastSeen || eventTime > activity.lastSeen) {
+          activity.lastSeen = eventTime;
+        }
+      }
+    }
+
+    // Sort events within each IP by timestamp
+    for (const activity of ipActivityMap.values()) {
+      activity.events.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+    }
+  }
+
+  // Format timestamp for display
+  function formatTimestamp(ms) {
+    if (!ms) return 'Unknown';
+    const d = new Date(ms);
+    return d.toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  }
+
+  // Show modal with IP activity details
+  function showIpActivityModal(ip) {
+    const activity = ipActivityMap.get(ip);
+    if (!activity) return;
+
+    if (modalTitle) {
+      modalTitle.textContent = `Activity for ${ip}`;
+    }
+
+    if (modalContent) {
+      modalContent.innerHTML = `
+        <div class="visitor-modal-summary">
+          <div class="visitor-modal-stat">
+            <div class="visitor-modal-stat-label">Total Visits</div>
+            <div class="visitor-modal-stat-value">${activity.totalVisits || activity.events.filter(e => e.type === 'join').length}</div>
+          </div>
+          <div class="visitor-modal-stat">
+            <div class="visitor-modal-stat-label">First Seen</div>
+            <div class="visitor-modal-stat-value">${formatTimestamp(activity.firstSeen)}</div>
+          </div>
+          <div class="visitor-modal-stat">
+            <div class="visitor-modal-stat-label">Last Activity</div>
+            <div class="visitor-modal-stat-value">${formatTimestamp(activity.lastSeen)}</div>
+          </div>
+        </div>
+        <h4 class="visitor-modal-events-title">Event History (${activity.events.length} events)</h4>
+        <ul class="visitor-modal-events">
+          ${activity.events.slice().reverse().map(event => `
+            <li class="visitor-modal-event">
+              <span class="visitor-modal-event-type ${event.type}">${event.type}</span>
+              <span class="visitor-modal-event-time">${formatTimestamp(event.timestamp)}</span>
+            </li>
+          `).join('')}
+        </ul>
+      `;
+    }
+
+    if (modalOverlay) {
+      modalOverlay.classList.add('active');
+    }
+  }
+
+  // Close modal
+  function closeModal() {
+    if (modalOverlay) {
+      modalOverlay.classList.remove('active');
+    }
+  }
+
+  // Setup modal event listeners
+  if (modalClose) {
+    modalClose.addEventListener('click', closeModal);
+  }
+  if (modalOverlay) {
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) {
+        closeModal();
+      }
+    });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeModal();
+    }
+  });
+
+  // Setup filter event listeners
+  function applyFilters() {
+    const filtered = filterEvents(allVisitorEvents);
+    renderRecentWithFilters(filtered);
+
+    if (filterStatsEl) {
+      filterStatsEl.textContent = `Showing ${filtered.length} of ${allVisitorEvents.length} events`;
+    }
+  }
+
+  if (filterTimeEl) {
+    filterTimeEl.addEventListener('change', (e) => {
+      filterState.time = e.target.value;
+      applyFilters();
+    });
+  }
+
+  if (filterIpEl) {
+    let debounceTimer;
+    filterIpEl.addEventListener('input', (e) => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        filterState.ip = e.target.value;
+        applyFilters();
+      }, 150);
+    });
+  }
+
+  // Render recent visitors with click handlers for IP lookup
+  function renderRecentWithFilters(visits) {
+    if (!recentListEl) return;
+    recentListEl.innerHTML = "";
+
+    if (!Array.isArray(visits) || visits.length === 0) {
+      const li = document.createElement("li");
+      li.textContent = "No matching visitors.";
+      li.style.opacity = "0.8";
+      recentListEl.appendChild(li);
+      return;
+    }
+
+    // Show up to 50 items
+    const items = visits.slice(0, 50);
+    items.forEach((v) => {
+      const li = document.createElement("li");
+      const ip = getVisitorIp(v);
+      const eventType = v.type || 'join';
+      const typeIndicator = eventType === 'join' ? '→' : '←';
+      li.textContent = `${typeIndicator} ${formatRecentVisit(v)}`;
+      li.dataset.ip = ip;
+      li.addEventListener('click', () => {
+        if (ip) {
+          showIpActivityModal(ip);
+        }
+      });
+      recentListEl.appendChild(li);
+    });
+  }
+
   function render(visitors, countOverride) {
     const count =
       typeof countOverride === "number" ? countOverride : visitors.length;
@@ -162,21 +400,54 @@ function initVisitors() {
     if (recentTitleEl) {
       recentTitleEl.textContent = "Recent visitors";
     }
-    recentListEl.innerHTML = "";
-    if (!Array.isArray(recentVisits) || recentVisits.length === 0) {
-      const li = document.createElement("li");
-      li.textContent = "No recent visitors.";
-      li.style.opacity = "0.8";
-      recentListEl.appendChild(li);
-      return;
+
+    // Store all events and build activity map
+    allVisitorEvents = (recentVisits || []).map(v => ({
+      ...v,
+      type: v.type || 'join'
+    }));
+    buildIpActivityMap(allVisitorEvents);
+
+    // Apply current filters
+    const filtered = filterEvents(allVisitorEvents);
+    renderRecentWithFilters(filtered);
+
+    if (filterStatsEl) {
+      filterStatsEl.textContent = `Showing ${filtered.length} of ${allVisitorEvents.length} events`;
     }
-    // Deduplicate by 10-minute intervals per IP, then show up to the latest 20
-    const deduped = dedupeRecentVisitsByTenMinutes(recentVisits);
-    const items = deduped.slice(0, 20);
-    items.forEach((v) => {
-      const li = document.createElement("li");
-      li.textContent = formatRecentVisit(v);
-      recentListEl.appendChild(li);
+  }
+
+  // Fetch presence events (join/leave) from the events API
+  async function fetchPresenceEvents() {
+    const results = [];
+    const params = new URLSearchParams({
+      topic: "visitor_updates",
+      limit: "200",
+    });
+
+    for (const type of ["join", "leave"]) {
+      params.set("type", type);
+      try {
+        const res = await fetch(`${BASE_URL}/events?${params}`);
+        const body = await res.json();
+        const events = (body.events || body.messages || []).map((e) => ({
+          ...e,
+          type,
+          ip: e.visitor?.ip || e.ip,
+          timestamp: e.timestamp || e.visitor?.connected_at,
+          location: e.visitor?.location || e.location,
+          userAgent: e.visitor?.userAgent || e.userAgent || e.ua,
+        }));
+        results.push(...events);
+      } catch (err) {
+        console.error(`Failed to fetch ${type} events:`, err);
+      }
+    }
+
+    return results.sort((a, b) => {
+      const ta = toTimestampMs(a.timestamp) || 0;
+      const tb = toTimestampMs(b.timestamp) || 0;
+      return tb - ta;
     });
   }
 
@@ -189,8 +460,32 @@ function initVisitors() {
           ? data.active_count
           : activeVisitors.length;
       render(activeVisitors, activeCount);
-      const recent = Array.isArray(data?.recent_visits) ? data.recent_visits : [];
-      renderRecent(recent);
+
+      // Combine recent_visits with presence events
+      const recentVisits = Array.isArray(data?.recent_visits) ? data.recent_visits : [];
+      const presenceEvents = await fetchPresenceEvents();
+
+      // Merge and deduplicate
+      const allEvents = [...recentVisits, ...presenceEvents];
+      const seenKeys = new Set();
+      const uniqueEvents = allEvents.filter(e => {
+        const ip = getVisitorIp(e) || 'unknown';
+        const ts = toTimestampMs(e.timestamp || e.connected_at) || 0;
+        const type = e.type || 'join';
+        const key = `${ip}:${ts}:${type}`;
+        if (seenKeys.has(key)) return false;
+        seenKeys.add(key);
+        return true;
+      });
+
+      // Sort by timestamp descending
+      uniqueEvents.sort((a, b) => {
+        const ta = toTimestampMs(a.timestamp || a.connected_at) || 0;
+        const tb = toTimestampMs(b.timestamp || b.connected_at) || 0;
+        return tb - ta;
+      });
+
+      renderRecent(uniqueEvents);
     } catch (err) {
       console.error("Failed to load visitors:", err);
       statsEl.textContent = "Failed to load visitors";
