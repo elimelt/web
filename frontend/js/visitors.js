@@ -468,6 +468,12 @@ function initVisitors() {
     const typeIndicator = eventType === 'join' ? '→' : '←';
     li.textContent = `${typeIndicator} ${formatRecentVisit(v)}`;
     li.dataset.ip = ip;
+    // Analytics metadata to improve identifiability
+    li.setAttribute('data-analytics', 'visitors.recent_item');
+    if (ip) {
+      li.setAttribute('data-analytics-id', `visitor:${ip}`);
+      li.setAttribute('data-analytics-label', `Recent visitor ${ip}`);
+    }
     li.addEventListener('click', () => {
       if (ip) {
         showIpActivityModal(ip);

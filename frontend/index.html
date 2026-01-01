@@ -126,6 +126,9 @@
       <button
         id="mobile-menu-toggle"
         class="mobile-menu-toggle"
+        data-analytics="button"
+        data-analytics-id="btn:mobile-menu-toggle"
+        data-analytics-label="Mobile menu toggle"
         aria-label="Toggle navigation menu"
       >
         <svg class="menu-icon">
@@ -141,6 +144,9 @@
             Software Engineer
             <span
               id="meat-toggle"
+              data-analytics="toggle"
+              data-analytics-id="toggle:meat-game"
+              data-analytics-label="Rat meat game toggle"
               aria-label="Toggle rat meat game"
               title="Enable rat meat game"
               ><img src="assets/grep.png" alt="" class="meat-toggle-icon"
@@ -151,25 +157,25 @@
         <nav class="main-nav">
           <ul class="nav-list">
             <li class="nav-item">
-              <a href="#visitors" class="nav-link">Visitors</a>
+              <a href="#visitors" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:visitors" data-analytics-label="Visitors">Visitors</a>
             </li>
             <li class="nav-item">
-              <a href="#chat" class="nav-link">Chat</a>
+              <a href="#chat" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:chat" data-analytics-label="Chat">Chat</a>
             </li>
             <li class="nav-item">
-              <a href="#about" class="nav-link">About</a>
+              <a href="#about" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:about" data-analytics-label="About">About</a>
             </li>
             <li class="nav-item">
-              <a href="#experience" class="nav-link">Experience</a>
+              <a href="#experience" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:experience" data-analytics-label="Experience">Experience</a>
             </li>
             <li class="nav-item">
-              <a href="#education" class="nav-link">Education</a>
+              <a href="#education" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:education" data-analytics-label="Education">Education</a>
             </li>
             <li class="nav-item">
-              <a href="#notes-preview" class="nav-link">Recent Notes</a>
+              <a href="#notes-preview" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:notes" data-analytics-label="Recent Notes">Recent Notes</a>
             </li>
             <li class="nav-item">
-              <a href="#services" class="nav-link">Services</a>
+              <a href="#services" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:services" data-analytics-label="Services">Services</a>
             </li>
             <!-- <li class="nav-item"><a href="#github-stats" class="nav-link">GitHub</a></li> -->
           </ul>
@@ -177,7 +183,7 @@
 
         <div class="contact-links">
           <h2 class="contact-links-title">Connect</h2>
-          <a href="mailto:elijah.m.melton@gmail.com" class="contact-link">
+          <a href="mailto:elijah.m.melton@gmail.com" class="contact-link" data-analytics="contact.link" data-analytics-id="contact:email" data-analytics-label="Email">
             <svg class="contact-icon">
               <use href="#icon-email"></use>
             </svg>
@@ -188,6 +194,9 @@
             target="_blank"
             rel="noopener"
             class="contact-link"
+            data-analytics="contact.link"
+            data-analytics-id="contact:github"
+            data-analytics-label="GitHub"
           >
             <svg class="contact-icon">
               <use href="#icon-github"></use>
@@ -199,6 +208,9 @@
             target="_blank"
             rel="noopener"
             class="contact-link"
+            data-analytics="contact.link"
+            data-analytics-id="contact:linkedin"
+            data-analytics-label="LinkedIn"
           >
             <svg class="contact-icon">
               <use href="#icon-linkedin"></use>
@@ -211,6 +223,9 @@
             target="_blank"
             rel="noopener"
             class="contact-link"
+            data-analytics="contact.link"
+            data-analytics-id="contact:notes"
+            data-analytics-label="Notes"
           >
             <svg class="contact-icon">
               <use href="#icon-document"></use>
@@ -225,6 +240,9 @@
         <button
           id="theme-toggle"
           class="theme-toggle"
+          data-analytics="button"
+          data-analytics-id="btn:theme-toggle"
+          data-analytics-label="Toggle theme"
           aria-label="Toggle dark/light mode"
         >
           <svg id="theme-icon" class="theme-icon">
@@ -266,7 +284,7 @@
           <div class="visitor-modal" id="visitor-modal">
             <div class="visitor-modal-header">
               <h3 class="visitor-modal-title" id="visitor-modal-title">IP Activity</h3>
-              <button class="visitor-modal-close" id="visitor-modal-close" aria-label="Close">&times;</button>
+              <button class="visitor-modal-close" id="visitor-modal-close" data-analytics="button" data-analytics-id="btn:visitor-modal-close" data-analytics-label="Close visitor modal" aria-label="Close">&times;</button>
             </div>
             <div class="visitor-modal-content" id="visitor-modal-content">
               <!-- Dynamic content -->
@@ -277,7 +295,7 @@
         <section id="chat" class="section">
           <h2 class="section-title">Chat</h2>
           <div class="chat-status" id="chat-status">connecting…</div>
-          <button class="chat-retry-btn hidden" id="chat-retry-btn">Retry</button>
+          <button class="chat-retry-btn hidden" id="chat-retry-btn" data-analytics="button" data-analytics-id="btn:chat-retry" data-analytics-label="Chat retry">Retry</button>
           <div class="chat-messages" id="chat-messages">
             <div class="chat-loader" id="chat-loader">Loading...</div>
           </div>
@@ -289,7 +307,7 @@
               placeholder="Say something…"
               autocomplete="off"
             />
-            <button class="chat-send-btn" id="chat-send-btn" type="submit" disabled>
+            <button class="chat-send-btn" id="chat-send-btn" type="submit" disabled data-analytics="button" data-analytics-id="btn:chat-send" data-analytics-label="Chat send">
               Send
             </button>
           </form>
@@ -717,6 +735,9 @@
       <button
         id="right-menu-toggle"
         class="right-menu-toggle"
+        data-analytics="button"
+        data-analytics-id="btn:right-menu-toggle"
+        data-analytics-label="Right menu toggle"
         aria-label="Toggle photo sidebar"
       >
         <svg class="menu-icon">
@@ -770,6 +791,7 @@
     <script src="https://cdn.apple-livephotoskit.com/lpk/1/livephotoskit.js"></script>
     <script type="module" src="js/cloth-content.js?v=2"></script>
     <script type="module" src="js/services.js?v=2"></script>
+    <script type="module" src="js/click-tracking.js?v=2"></script>
     <script type="module" src="js/visitors.js?v=2"></script>
     <script type="module" src="js/chat.js?v=2"></script>
     <script src="js/main.js?v=2"></script>

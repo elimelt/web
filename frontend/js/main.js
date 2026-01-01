@@ -744,7 +744,18 @@
         item.classList.add("note-item");
 
         const link = item.querySelector("a");
-        if (link) link.classList.add("note-link");
+        if (link) {
+          link.classList.add("note-link");
+          // Add analytics metadata for notes links
+          try {
+            const href = link.getAttribute("href") || "";
+            const text = (link.textContent || "").trim();
+            link.setAttribute("data-analytics", "notes.link");
+            if (href) link.setAttribute("data-analytics-id", `note:${href}`);
+            if (text) link.setAttribute("data-analytics-label", text);
+            link.setAttribute("data-analytics-group", "notes");
+          } catch {}
+        }
 
         const date = item.querySelector(".date");
         if (date) date.classList.add("note-date");
