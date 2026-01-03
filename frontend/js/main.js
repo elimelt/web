@@ -637,15 +637,21 @@
           return;
         }
 
-        container.innerHTML = results.map((note) => `
+        container.innerHTML = results.map((note) => {
+          // Convert file_path like "content/foo/bar.md" to URL path "foo/bar.html"
+          const urlPath = note.file_path
+            ? note.file_path.replace(/^content\//, '').replace(/\.md$/, '.html')
+            : note.id;
+          return `
           <li class="note-item">
-            <a href="${this.SOURCE_URL}/${note.slug || note.id}" target="_blank" rel="noopener" class="note-link">${note.title}</a>
+            <a href="${this.SOURCE_URL}/${urlPath}" target="_blank" rel="noopener" class="note-link">${note.title}</a>
             <div class="note-meta">
-              <span class="note-date">${note.created_at ? new Date(note.created_at).toLocaleDateString() : ""}</span>
+              <span class="note-date">${note.last_modified ? new Date(note.last_modified).toLocaleDateString() : ""}</span>
               ${note.category ? `<span class="note-category">${note.category}</span>` : ""}
             </div>
           </li>
-        `).join("");
+        `;
+        }).join("");
       } catch (error) {
         console.error("Error searching notes:", error);
         container.innerHTML = '<li class="note-item"><p class="notes-error">Search failed. Please try again.</p></li>';
