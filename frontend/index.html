@@ -1,25 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Elijah Melton | Software Engineer</title>
-    <meta
-      name="description"
-      content="Elijah Melton - Software Engineer specializing in distributed systems, backend development, and cloud infrastructure"
-    />
-    <link rel="stylesheet" href="css/styles.css" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Crimson+Pro:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="icon" type="image/svg+xml" href="assets/apple-touch.png" />
-  </head>
 
-  <body>
-    <script type="importmap">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Elijah Melton | Software Engineer</title>
+  <meta name="description"
+    content="Elijah Melton - Software Engineer specializing in distributed systems, backend development, and cloud infrastructure" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Crimson+Pro:wght@400;500;600&display=swap"
+    rel="stylesheet" />
+  <link rel="icon" type="image/svg+xml" href="assets/apple-touch.png" />
+</head>
+
+<body>
+  <script type="importmap">
       {
         "imports": {
           "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -27,331 +25,242 @@
         }
       }
     </script>
-    <script type="module" src="js/background-animation.js?v=2"></script>
-    <!-- SVG Sprite -->
-    <div class="svg-sprite" aria-hidden="true">
-      <svg xmlns="http://www.w3.org/2000/svg">
-        <!-- Menu Icon -->
-        <symbol
-          id="icon-menu"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M4 6h16M4 12h16M4 18h16"
-          ></path>
-        </symbol>
+  <script type="module" src="js/background-animation.js?v=2"></script>
+  <!-- SVG Sprite -->
+  <div class="svg-sprite" aria-hidden="true">
+    <svg xmlns="http://www.w3.org/2000/svg">
+      <!-- Menu Icon -->
+      <symbol id="icon-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+      </symbol>
 
-        <!-- Email Icon -->
-        <symbol
-          id="icon-email"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-          ></path>
-        </symbol>
+      <!-- Email Icon -->
+      <symbol id="icon-email" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+        </path>
+      </symbol>
 
-        <!-- GitHub Icon -->
-        <symbol id="icon-github" viewBox="0 0 24 24" fill="currentColor">
-          <path
-            d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
-          />
-        </symbol>
+      <!-- GitHub Icon -->
+      <symbol id="icon-github" viewBox="0 0 24 24" fill="currentColor">
+        <path
+          d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+      </symbol>
 
-        <!-- LinkedIn Icon -->
-        <symbol id="icon-linkedin" viewBox="0 0 24 24" fill="currentColor">
-          <path
-            d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"
-          />
-        </symbol>
+      <!-- LinkedIn Icon -->
+      <symbol id="icon-linkedin" viewBox="0 0 24 24" fill="currentColor">
+        <path
+          d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+      </symbol>
 
-        <!-- Document Icon -->
-        <symbol
-          id="icon-document"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-          ></path>
-        </symbol>
+      <!-- Document Icon -->
+      <symbol id="icon-document" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+        </path>
+      </symbol>
 
-        <!-- Sun Icon (for light mode) -->
-        <symbol
-          id="icon-sun"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-          ></path>
-        </symbol>
+      <!-- Sun Icon (for light mode) -->
+      <symbol id="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z">
+        </path>
+      </symbol>
 
-        <!-- Moon Icon (for dark mode) -->
-        <symbol
-          id="icon-moon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-          ></path>
-        </symbol>
+      <!-- Moon Icon (for dark mode) -->
+      <symbol id="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+      </symbol>
+    </svg>
+  </div>
+  <div class="site-container">
+    <!-- Mobile Menu Toggle -->
+    <button id="mobile-menu-toggle" class="mobile-menu-toggle" data-analytics="button"
+      data-analytics-id="btn:mobile-menu-toggle" data-analytics-label="Mobile menu toggle"
+      aria-label="Toggle navigation menu">
+      <svg class="menu-icon">
+        <use href="#icon-menu"></use>
       </svg>
-    </div>
-    <div class="site-container">
-      <!-- Mobile Menu Toggle -->
-      <button
-        id="mobile-menu-toggle"
-        class="mobile-menu-toggle"
-        data-analytics="button"
-        data-analytics-id="btn:mobile-menu-toggle"
-        data-analytics-label="Mobile menu toggle"
-        aria-label="Toggle navigation menu"
-      >
-        <svg class="menu-icon">
-          <use href="#icon-menu"></use>
-        </svg>
-      </button>
+    </button>
 
-      <!-- left-sidebar -->
-      <aside class="left-sidebar" id="left-sidebar">
-        <div class="left-sidebar-header">
-          <h1 class="left-sidebar-name">Elijah Melton</h1>
-          <p class="left-sidebar-tagline">
-            Software Engineer
-            <span
-              id="meat-toggle"
-              data-analytics="toggle"
-              data-analytics-id="toggle:meat-game"
-              data-analytics-label="Rat meat game toggle"
-              aria-label="Toggle rat meat game"
-              title="Enable rat meat game"
-              ><img src="assets/grep.png" alt="" class="meat-toggle-icon"
-            /></span>
-          </p>
+    <!-- left-sidebar -->
+    <aside class="left-sidebar" id="left-sidebar">
+      <div class="left-sidebar-header">
+        <h1 class="left-sidebar-name">Elijah Melton</h1>
+        <p class="left-sidebar-tagline">
+          Software Engineer
+          <span id="meat-toggle" data-analytics="toggle" data-analytics-id="toggle:meat-game"
+            data-analytics-label="Rat meat game toggle" aria-label="Toggle rat meat game"
+            title="Enable rat meat game"><img src="assets/grep.png" alt="" class="meat-toggle-icon" /></span>
+        </p>
+      </div>
+
+      <nav class="main-nav">
+        <ul class="nav-list">
+          <li class="nav-item">
+            <a href="#visitors" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:visitors"
+              data-analytics-label="Visitors">Visitors</a>
+          </li>
+          <li class="nav-item">
+            <a href="#chat" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:chat"
+              data-analytics-label="Chat">Chat</a>
+          </li>
+          <li class="nav-item">
+            <a href="#about" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:about"
+              data-analytics-label="About">About</a>
+          </li>
+          <li class="nav-item">
+            <a href="#experience" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:experience"
+              data-analytics-label="Experience">Experience</a>
+          </li>
+          <li class="nav-item">
+            <a href="#education" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:education"
+              data-analytics-label="Education">Education</a>
+          </li>
+          <li class="nav-item">
+            <a href="#notes-preview" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:notes"
+              data-analytics-label="Recent Notes">Recent Notes</a>
+          </li>
+          <li class="nav-item">
+            <a href="#services" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:services"
+              data-analytics-label="Services">Services</a>
+          </li>
+          <!-- <li class="nav-item"><a href="#github-stats" class="nav-link">GitHub</a></li> -->
+        </ul>
+      </nav>
+
+      <div class="contact-links">
+        <h2 class="contact-links-title">Connect</h2>
+        <a href="mailto:elijah.m.melton@gmail.com" class="contact-link" data-analytics="contact.link"
+          data-analytics-id="contact:email" data-analytics-label="Email">
+          <svg class="contact-icon">
+            <use href="#icon-email"></use>
+          </svg>
+          <span>elijah.m.melton@gmail.com</span>
+        </a>
+        <a href="https://github.com/elimelt" target="_blank" rel="noopener" class="contact-link"
+          data-analytics="contact.link" data-analytics-id="contact:github" data-analytics-label="GitHub">
+          <svg class="contact-icon">
+            <use href="#icon-github"></use>
+          </svg>
+          <span>github.com/elimelt</span>
+        </a>
+        <a href="https://linkedin.com/in/elimelt" target="_blank" rel="noopener" class="contact-link"
+          data-analytics="contact.link" data-analytics-id="contact:linkedin" data-analytics-label="LinkedIn">
+          <svg class="contact-icon">
+            <use href="#icon-linkedin"></use>
+          </svg>
+          <span>linkedin.com/in/elimelt</span>
+        </a>
+
+        <a href="https://notes.elimelt.com" target="_blank" rel="noopener" class="contact-link"
+          data-analytics="contact.link" data-analytics-id="contact:notes" data-analytics-label="Notes">
+          <svg class="contact-icon">
+            <use href="#icon-document"></use>
+          </svg>
+          <span>notes.elimelt.com</span>
+        </a>
+      </div>
+    </aside>
+
+    <button id="theme-toggle" class="theme-toggle" data-analytics="button" data-analytics-id="btn:theme-toggle"
+      data-analytics-label="Toggle theme" aria-label="Toggle dark/light mode">
+      <svg id="theme-icon" class="theme-icon">
+        <use href="#icon-moon"></use>
+      </svg>
+    </button>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Row 1: Chat (full width) -->
+      <section id="chat" class="section">
+        <h2 class="section-title">Chat</h2>
+        <div class="chat-status" id="chat-status">connecting…</div>
+        <button class="chat-retry-btn hidden" id="chat-retry-btn" data-analytics="button"
+          data-analytics-id="btn:chat-retry" data-analytics-label="Chat retry">Retry</button>
+        <div class="chat-messages" id="chat-messages">
+          <div class="chat-loader" id="chat-loader">Loading...</div>
         </div>
+        <form class="chat-form" id="chat-form">
+          <input class="chat-input" id="chat-input" type="text" placeholder="Say something…" autocomplete="off" />
+          <button class="chat-send-btn" id="chat-send-btn" type="submit" disabled data-analytics="button"
+            data-analytics-id="btn:chat-send" data-analytics-label="Chat send">
+            Send
+          </button>
+        </form>
+      </section>
 
-        <nav class="main-nav">
-          <ul class="nav-list">
-            <li class="nav-item">
-              <a href="#visitors" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:visitors" data-analytics-label="Visitors">Visitors</a>
-            </li>
-            <li class="nav-item">
-              <a href="#chat" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:chat" data-analytics-label="Chat">Chat</a>
-            </li>
-            <li class="nav-item">
-              <a href="#about" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:about" data-analytics-label="About">About</a>
-            </li>
-            <li class="nav-item">
-              <a href="#experience" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:experience" data-analytics-label="Experience">Experience</a>
-            </li>
-            <li class="nav-item">
-              <a href="#education" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:education" data-analytics-label="Education">Education</a>
-            </li>
-            <li class="nav-item">
-              <a href="#notes-preview" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:notes" data-analytics-label="Recent Notes">Recent Notes</a>
-            </li>
-            <li class="nav-item">
-              <a href="#services" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:services" data-analytics-label="Services">Services</a>
-            </li>
-            <!-- <li class="nav-item"><a href="#github-stats" class="nav-link">GitHub</a></li> -->
-          </ul>
-        </nav>
+      <!-- Row 2: Visitors | Services (50/50) -->
+      <div class="grid-row">
+        <section id="visitors" class="section">
+          <h2 class="section-title">Visitors</h2>
+          <div id="visitor-stats">Connecting…</div>
+          <ul id="visitor-list" class="visitor-list"></ul>
 
-        <div class="contact-links">
-          <h2 class="contact-links-title">Connect</h2>
-          <a href="mailto:elijah.m.melton@gmail.com" class="contact-link" data-analytics="contact.link" data-analytics-id="contact:email" data-analytics-label="Email">
-            <svg class="contact-icon">
-              <use href="#icon-email"></use>
-            </svg>
-            <span>elijah.m.melton@gmail.com</span>
-          </a>
-          <a
-            href="https://github.com/elimelt"
-            target="_blank"
-            rel="noopener"
-            class="contact-link"
-            data-analytics="contact.link"
-            data-analytics-id="contact:github"
-            data-analytics-label="GitHub"
-          >
-            <svg class="contact-icon">
-              <use href="#icon-github"></use>
-            </svg>
-            <span>github.com/elimelt</span>
-          </a>
-          <a
-            href="https://linkedin.com/in/elimelt"
-            target="_blank"
-            rel="noopener"
-            class="contact-link"
-            data-analytics="contact.link"
-            data-analytics-id="contact:linkedin"
-            data-analytics-label="LinkedIn"
-          >
-            <svg class="contact-icon">
-              <use href="#icon-linkedin"></use>
-            </svg>
-            <span>linkedin.com/in/elimelt</span>
-          </a>
-
-          <a
-            href="https://notes.elimelt.com"
-            target="_blank"
-            rel="noopener"
-            class="contact-link"
-            data-analytics="contact.link"
-            data-analytics-id="contact:notes"
-            data-analytics-label="Notes"
-          >
-            <svg class="contact-icon">
-              <use href="#icon-document"></use>
-            </svg>
-            <span>notes.elimelt.com</span>
-          </a>
-        </div>
-      </aside>
-
-      <button
-        id="theme-toggle"
-        class="theme-toggle"
-        data-analytics="button"
-        data-analytics-id="btn:theme-toggle"
-        data-analytics-label="Toggle theme"
-        aria-label="Toggle dark/light mode"
-      >
-        <svg id="theme-icon" class="theme-icon">
-          <use href="#icon-moon"></use>
-        </svg>
-      </button>
-
-      <!-- Main Content -->
-      <main class="main-content">
-        <!-- Row 1: Chat (full width) -->
-        <section id="chat" class="section">
-          <h2 class="section-title">Chat</h2>
-          <div class="chat-status" id="chat-status">connecting…</div>
-          <button class="chat-retry-btn hidden" id="chat-retry-btn" data-analytics="button" data-analytics-id="btn:chat-retry" data-analytics-label="Chat retry">Retry</button>
-          <div class="chat-messages" id="chat-messages">
-            <div class="chat-loader" id="chat-loader">Loading...</div>
+          <!-- Visitor Filters -->
+          <div class="visitor-filters" id="visitor-filters">
+            <div class="visitor-filter-row">
+              <select id="visitor-filter-time" class="visitor-filter-select" aria-label="Filter by time range">
+                <option value="all">All Time</option>
+                <option value="1h">Last Hour</option>
+                <option value="24h">Last 24 Hours</option>
+                <option value="7d">Last 7 Days</option>
+              </select>
+              <input type="text" id="visitor-filter-search" class="visitor-filter-input"
+                placeholder="Regex search (IP, location)… prefix ! to invert" autocomplete="off" />
+            </div>
+            <div class="visitor-filter-stats" id="visitor-filter-stats"></div>
           </div>
-          <form class="chat-form" id="chat-form">
-            <input
-              class="chat-input"
-              id="chat-input"
-              type="text"
-              placeholder="Say something…"
-              autocomplete="off"
-            />
-            <button class="chat-send-btn" id="chat-send-btn" type="submit" disabled data-analytics="button" data-analytics-id="btn:chat-send" data-analytics-label="Chat send">
-              Send
-            </button>
-          </form>
+
+          <ul id="recent-visitor-list" class="visitor-list visitor-list-clickable"></ul>
         </section>
 
-        <!-- Row 2: Visitors | Services (50/50) -->
-        <div class="grid-row">
-          <section id="visitors" class="section">
-            <h2 class="section-title">Visitors</h2>
-            <div id="visitor-stats">Connecting…</div>
-            <ul id="visitor-list" class="visitor-list"></ul>
-            <div id="recent-visitors-title" class="section-description section-description-spaced">Recent visitors</div>
+        <section id="services" class="section">
+          <h2 class="section-title">Services</h2>
+          <div id="services-stats">Loading...</div>
+          <div id="services-content"></div>
+        </section>
+      </div>
 
-            <!-- Visitor Filters -->
-            <div class="visitor-filters" id="visitor-filters">
-              <div class="visitor-filter-row">
-                <select id="visitor-filter-time" class="visitor-filter-select" aria-label="Filter by time range">
-                  <option value="all">All Time</option>
-                  <option value="1h">Last Hour</option>
-                  <option value="24h">Last 24 Hours</option>
-                  <option value="7d">Last 7 Days</option>
-                </select>
-                <input
-                  type="text"
-                  id="visitor-filter-search"
-                  class="visitor-filter-input"
-                  placeholder="Regex search (IP, location)… prefix ! to invert"
-                  autocomplete="off"
-                />
-              </div>
-              <div class="visitor-filter-stats" id="visitor-filter-stats"></div>
-            </div>
+      <!-- Row 3: Notes | About + Areas of Study + Education (50/50) -->
+      <div class="grid-row-equal">
+        <!-- Left column: Notes -->
+        <section id="notes-preview" class="section">
+          <h2 class="section-title">Recent Notes</h2>
+          <div class="notes-search">
+            <input type="text" id="notes-search-input" class="notes-search-input" placeholder="Search notes...">
+            <button id="notes-search-btn" class="notes-search-btn" aria-label="Search">
+              <svg class="notes-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </button>
+          </div>
+          <ul id="notes-content" class="notes-list">
+            <li class="note-item">
+              <p class="notes-placeholder">Loading...</p>
+            </li>
+          </ul>
+        </section>
 
-            <ul id="recent-visitor-list" class="visitor-list visitor-list-clickable"></ul>
-          </section>
-
-          <section id="services" class="section">
-            <h2 class="section-title">Services</h2>
-            <div id="services-stats">Loading...</div>
-            <div id="services-content"></div>
-          </section>
-        </div>
-
-        <!-- Row 3: Notes | About + Areas of Study + Education (50/50) -->
-        <div class="grid-row-equal">
-          <!-- Left column: Notes -->
-          <section id="notes-preview" class="section">
-            <h2 class="section-title">Recent Notes</h2>
-            <div class="notes-search">
-              <input type="text" id="notes-search-input" class="notes-search-input" placeholder="Search notes...">
-              <button id="notes-search-btn" class="notes-search-btn" aria-label="Search">
-                <svg class="notes-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
-              </button>
-            </div>
-            <ul id="notes-content" class="notes-list">
-              <li class="note-item">
-                <p class="notes-placeholder">Loading...</p>
-              </li>
-            </ul>
-          </section>
-
-          <!-- Right column: stacked sections -->
-          <div class="grid-col-stack">
-            <section id="about" class="section">
-              <h2 class="section-title">About</h2>
-              <cloth-content>
+        <!-- Right column: stacked sections -->
+        <div class="grid-col-stack">
+          <section id="about" class="section">
+            <h2 class="section-title">About</h2>
+            <cloth-content>
               <p class="about-text">
                 I studied computer engineering at the University of Washington,
                 graduating in 2025. I focused on a few topics, which you can read
                 more about in my
-                <a href="https://notes.elimelt.com" target="_blank" rel="noopener"
-                  >notes</a
-                >.
+                <a href="https://notes.elimelt.com" target="_blank" rel="noopener">notes</a>.
               </p>
               <p class="about-text">
                 I've written a lot of code, both for fun and as part of my
                 professional life. Unfortunately, much of my best work is forever
                 lost in private repositories at various companies 😔. Nonetheless,
                 you can check out my
-                <a href="https://github.com/elimelt" target="_blank" rel="noopener"
-                  >GitHub</a
-                >
+                <a href="https://github.com/elimelt" target="_blank" rel="noopener">GitHub</a>
                 if you're curious about my work. I've really abused GitHub over the
                 years, committing everything from experimental data to node_modules,
                 so my line count (below) is grossly inflated.
@@ -368,249 +277,218 @@
                 companies. However, every once in a while I contribute (mostly when
                 tools break, or if I read an interesting paper). In the past, this
                 has included
-                <a
-                  href="https://github.com/ray-project/ray"
-                  target="_blank"
-                  rel="noopener"
-                  >Ray</a
-                >, a distributed computing framework, and
-                <a
-                  href="https://www.npmjs.com/package/mysql2"
-                  target="_blank"
-                  rel="noopener"
-                  >mysql2</a
-                >, a MySQL client for Node.js. I also started
-                <a href="https://labs.swecc.org" target="_blank" rel="noopener"
-                  >a program at UWs</a
-                >
+                <a href="https://github.com/ray-project/ray" target="_blank" rel="noopener">Ray</a>, a distributed
+                computing framework, and
+                <a href="https://www.npmjs.com/package/mysql2" target="_blank" rel="noopener">mysql2</a>, a MySQL client
+                for Node.js. I also started
+                <a href="https://labs.swecc.org" target="_blank" rel="noopener">a program at UWs</a>
                 to help students get involved in open source.
               </p>
               <p class="about-text">
                 I'm currently working at
-                <a href="https://shv.com" target="_blank" rel="noopener"
-                  >Sutter Hill Ventures</a
-                >
+                <a href="https://shv.com" target="_blank" rel="noopener">Sutter Hill Ventures</a>
                 as a Codepoint Fellow, where I'll spend 6 months working in SHV labs
                 with early-stage startups, and then another 6 months at
                 <a href="https://reve.com" target="_blank" rel="noopener">Reve</a>,
                 a small startup training its own diffusion models from the ground
                 up.
               </p>
-              </cloth-content>
-            </section>
+            </cloth-content>
+          </section>
 
-            <section id="areas-of-study" class="section">
-              <h2 class="section-title">Areas of Study</h2>
-              <p class="section-description">
-                Topics I write about and explore in my
-                <a href="https://notes.elimelt.com" target="_blank" rel="noopener"
-                  >notes</a
-                >:
+          <section id="areas-of-study" class="section">
+            <h2 class="section-title">Areas of Study</h2>
+            <p class="section-description">
+              Topics I write about and explore in my
+              <a href="https://notes.elimelt.com" target="_blank" rel="noopener">notes</a>:
+            </p>
+            <ul class="areas-list">
+              <li><a href="https://notes.elimelt.com/categories/networks.html" target="_blank"
+                  rel="noopener">Networks</a></li>
+              <li><a href="https://notes.elimelt.com/categories/operating%20systems.html" target="_blank"
+                  rel="noopener">Operating Systems</a></li>
+              <li><a href="https://notes.elimelt.com/categories/distributed%20systems.html" target="_blank"
+                  rel="noopener">Distributed Systems</a></li>
+              <li><a href="https://notes.elimelt.com/tags/systems.html" target="_blank" rel="noopener">Systems</a></li>
+              <li><a href="https://notes.elimelt.com/tags/performance.html" target="_blank" rel="noopener">Performance
+                  Engineering</a></li>
+              <li><a href="https://notes.elimelt.com/categories/algorithms.html" target="_blank"
+                  rel="noopener">Algorithms</a></li>
+              <li><a href="https://notes.elimelt.com/categories/algorithm%20analysis.html" target="_blank"
+                  rel="noopener">Algorithm Analysis</a></li>
+              <li><a href="https://notes.elimelt.com/categories/linear%20algebra.html" target="_blank"
+                  rel="noopener">Linear Algebra</a></li>
+              <li><a href="https://notes.elimelt.com/categories/computer%20science.html" target="_blank"
+                  rel="noopener">Computer Science</a></li>
+              <li><a href="https://notes.elimelt.com/categories/machine%20learning%20systems.html" target="_blank"
+                  rel="noopener">Machine Learning Systems</a></li>
+              <li><a href="https://notes.elimelt.com/categories/natural%20language%20processing.html" target="_blank"
+                  rel="noopener">Natural Language Processing</a></li>
+              <li><a href="https://notes.elimelt.com/categories/database%20systems.html" target="_blank"
+                  rel="noopener">Database Systems</a></li>
+              <li><a href="https://notes.elimelt.com/categories/hardware.html" target="_blank"
+                  rel="noopener">Hardware</a></li>
+              <li><a href="https://notes.elimelt.com/categories/software%20engineering.html" target="_blank"
+                  rel="noopener">Software Engineering</a></li>
+              <li><a href="https://notes.elimelt.com/categories/research.html" target="_blank"
+                  rel="noopener">Research</a></li>
+            </ul>
+          </section>
+
+          <section id="education" class="section">
+            <h2 class="section-title">Education</h2>
+            <article class="education-item">
+              <h3 class="education-degree">B.S. in Computer Engineering</h3>
+              <p class="education-school">
+                University of Washington, Seattle, WA
               </p>
-              <ul class="areas-list">
-                <li><a href="https://notes.elimelt.com/categories/networks.html" target="_blank" rel="noopener">Networks</a></li>
-                <li><a href="https://notes.elimelt.com/categories/operating%20systems.html" target="_blank" rel="noopener">Operating Systems</a></li>
-                <li><a href="https://notes.elimelt.com/categories/distributed%20systems.html" target="_blank" rel="noopener">Distributed Systems</a></li>
-                <li><a href="https://notes.elimelt.com/tags/systems.html" target="_blank" rel="noopener">Systems</a></li>
-                <li><a href="https://notes.elimelt.com/tags/performance.html" target="_blank" rel="noopener">Performance Engineering</a></li>
-                <li><a href="https://notes.elimelt.com/categories/algorithms.html" target="_blank" rel="noopener">Algorithms</a></li>
-                <li><a href="https://notes.elimelt.com/categories/algorithm%20analysis.html" target="_blank" rel="noopener">Algorithm Analysis</a></li>
-                <li><a href="https://notes.elimelt.com/categories/linear%20algebra.html" target="_blank" rel="noopener">Linear Algebra</a></li>
-                <li><a href="https://notes.elimelt.com/categories/computer%20science.html" target="_blank" rel="noopener">Computer Science</a></li>
-                <li><a href="https://notes.elimelt.com/categories/machine%20learning%20systems.html" target="_blank" rel="noopener">Machine Learning Systems</a></li>
-                <li><a href="https://notes.elimelt.com/categories/natural%20language%20processing.html" target="_blank" rel="noopener">Natural Language Processing</a></li>
-                <li><a href="https://notes.elimelt.com/categories/database%20systems.html" target="_blank" rel="noopener">Database Systems</a></li>
-                <li><a href="https://notes.elimelt.com/categories/hardware.html" target="_blank" rel="noopener">Hardware</a></li>
-                <li><a href="https://notes.elimelt.com/categories/software%20engineering.html" target="_blank" rel="noopener">Software Engineering</a></li>
-                <li><a href="https://notes.elimelt.com/categories/research.html" target="_blank" rel="noopener">Research</a></li>
-              </ul>
-            </section>
-
-            <section id="education" class="section">
-              <h2 class="section-title">Education</h2>
-              <article class="education-item">
-                <h3 class="education-degree">B.S. in Computer Engineering</h3>
-                <p class="education-school">
-                  University of Washington, Seattle, WA
-                </p>
-                <p class="education-gpa">GPA: 3.9, Graduated Magna Cum Laude</p>
-                <p class="education-dates">Sept 2021 - Spring 2025 (June 2025)</p>
-                <p class="education-focus">Focus: Distributed Systems</p>
-                <p class="education-courses">
-                  Relevant Coursework: Distributed Systems, Operating Systems,
-                  Computer Networks, Systems Programming, Database Systems, Data
-                  Structures & Algorithms, Advanced Algorithms, Security, System
-                  Design, Natural Language Processing
-                </p>
-              </article>
-            </section>
-          </div>
+              <p class="education-gpa">GPA: 3.9, Graduated Magna Cum Laude</p>
+              <p class="education-dates">Sept 2021 - Spring 2025 (June 2025)</p>
+              <p class="education-focus">Focus: Distributed Systems</p>
+              <p class="education-courses">
+                Relevant Coursework: Distributed Systems, Operating Systems,
+                Computer Networks, Systems Programming, Database Systems, Data
+                Structures & Algorithms, Advanced Algorithms, Security, System
+                Design, Natural Language Processing
+              </p>
+            </article>
+          </section>
         </div>
+      </div>
 
-        <!-- Row 4: Experience (full width) -->
-        <section id="experience" class="section">
-          <h2 class="section-title">Experience</h2>
+      <!-- Row 4: Experience (full width) -->
+      <section id="experience" class="section">
+        <h2 class="section-title">Experience</h2>
 
-          <div class="timeline">
-            <article class="timeline-item">
-              <div class="timeline-header">
-                <img
-                  src="assets/logos/reve.svg"
-                  alt="Reve Image logo"
-                  class="timeline-logo"
-                />
-                <div class="timeline-details">
-                  <h3 class="timeline-position">Software Engineer</h3>
-                  <p class="timeline-company">Reve Image</p>
-                  <p class="timeline-location">Palo Alto, CA</p>
-                  <p class="timeline-period">Nov 2025 - Present</p>
-                  <p class="timeline-description">Platform engineering stuff</p>
-                </div>
+        <div class="timeline">
+          <article class="timeline-item">
+            <div class="timeline-header">
+              <img src="assets/logos/reve.svg" alt="Reve Image logo" class="timeline-logo" />
+              <div class="timeline-details">
+                <h3 class="timeline-position">Software Engineer</h3>
+                <p class="timeline-company">Reve Image</p>
+                <p class="timeline-location">Palo Alto, CA</p>
+                <p class="timeline-period">Nov 2025 - Present</p>
+                <p class="timeline-description">Platform engineering stuff</p>
               </div>
-            </article>
+            </div>
+          </article>
 
-            <article class="timeline-item">
-              <div class="timeline-header">
-                <img
-                  src="assets/logos/shv.png"
-                  alt="Sutter Hill Ventures logo"
-                  class="timeline-logo"
-                />
-                <div class="timeline-details">
-                  <h3 class="timeline-position">Software Engineer</h3>
-                  <p class="timeline-company">Sutter Hill Ventures</p>
-                  <p class="timeline-location">Palo Alto, CA</p>
-                  <p class="timeline-period">Aug 2025 - Present</p>
-                  <p class="timeline-description">
-                    Working with founders and early-stage startups at SHV Labs
-                  </p>
-                </div>
+          <article class="timeline-item">
+            <div class="timeline-header">
+              <img src="assets/logos/shv.png" alt="Sutter Hill Ventures logo" class="timeline-logo" />
+              <div class="timeline-details">
+                <h3 class="timeline-position">Software Engineer</h3>
+                <p class="timeline-company">Sutter Hill Ventures</p>
+                <p class="timeline-location">Palo Alto, CA</p>
+                <p class="timeline-period">Aug 2025 - Present</p>
+                <p class="timeline-description">
+                  Working with founders and early-stage startups at SHV Labs
+                </p>
               </div>
-            </article>
+            </div>
+          </article>
 
-            <article class="timeline-item">
-              <div class="timeline-header">
-                <img
-                  src="assets/logos/meta.png"
-                  alt="Meta logo"
-                  class="timeline-logo"
-                />
-                <div class="timeline-details">
-                  <h3 class="timeline-position">Software Engineer Intern</h3>
-                  <p class="timeline-company">Meta</p>
-                  <p class="timeline-location">Menlo Park, CA</p>
-                  <p class="timeline-period">May 2025 -July 2025</p>
-                  <p class="timeline-description">
-                    ML models for ads ranking and fairness
-                  </p>
-                </div>
+          <article class="timeline-item">
+            <div class="timeline-header">
+              <img src="assets/logos/meta.png" alt="Meta logo" class="timeline-logo" />
+              <div class="timeline-details">
+                <h3 class="timeline-position">Software Engineer Intern</h3>
+                <p class="timeline-company">Meta</p>
+                <p class="timeline-location">Menlo Park, CA</p>
+                <p class="timeline-period">May 2025 -July 2025</p>
+                <p class="timeline-description">
+                  ML models for ads ranking and fairness
+                </p>
               </div>
-            </article>
+            </div>
+          </article>
 
-            <article class="timeline-item">
-              <div class="timeline-header">
-                <img
-                  src="assets/logos/aws.png"
-                  alt="AWS logo"
-                  class="timeline-logo"
-                />
-                <div class="timeline-details">
-                  <h3 class="timeline-position">
-                    Software Development Engineer Intern
-                  </h3>
-                  <p class="timeline-company">
-                    Amazon Web Services - Firewall Manager
-                  </p>
-                  <p class="timeline-location">Seattle, WA</p>
-                  <p class="timeline-period">Sept 2024 - Dec 2024</p>
-                  <p class="timeline-description">
-                    Improving customer experiences with AWS service quotas
-                  </p>
-                </div>
+          <article class="timeline-item">
+            <div class="timeline-header">
+              <img src="assets/logos/aws.png" alt="AWS logo" class="timeline-logo" />
+              <div class="timeline-details">
+                <h3 class="timeline-position">
+                  Software Development Engineer Intern
+                </h3>
+                <p class="timeline-company">
+                  Amazon Web Services - Firewall Manager
+                </p>
+                <p class="timeline-location">Seattle, WA</p>
+                <p class="timeline-period">Sept 2024 - Dec 2024</p>
+                <p class="timeline-description">
+                  Improving customer experiences with AWS service quotas
+                </p>
               </div>
-            </article>
+            </div>
+          </article>
 
-            <article class="timeline-item">
-              <div class="timeline-header">
-                <img
-                  src="assets/logos/doordash.png"
-                  alt="DoorDash logo"
-                  class="timeline-logo"
-                />
-                <div class="timeline-details">
-                  <h3 class="timeline-position">Software Engineer Intern</h3>
-                  <p class="timeline-company">
-                    DoorDash - Dasher Engagement Team
-                  </p>
-                  <p class="timeline-location">Seattle, WA</p>
-                  <p class="timeline-period">June 2024 - Sept 2024</p>
-                  <p class="timeline-description">
-                    Real-time systems for dasher engagement and retention
-                  </p>
-                </div>
+          <article class="timeline-item">
+            <div class="timeline-header">
+              <img src="assets/logos/doordash.png" alt="DoorDash logo" class="timeline-logo" />
+              <div class="timeline-details">
+                <h3 class="timeline-position">Software Engineer Intern</h3>
+                <p class="timeline-company">
+                  DoorDash - Dasher Engagement Team
+                </p>
+                <p class="timeline-location">Seattle, WA</p>
+                <p class="timeline-period">June 2024 - Sept 2024</p>
+                <p class="timeline-description">
+                  Real-time systems for dasher engagement and retention
+                </p>
               </div>
-            </article>
+            </div>
+          </article>
 
-            <article class="timeline-item">
-              <div class="timeline-header">
-                <img
-                  src="assets/logos/stockcharts.png"
-                  alt="StockCharts.com logo"
-                  class="timeline-logo"
-                />
-                <div class="timeline-details">
-                  <h3 class="timeline-position">Software Engineer Intern</h3>
-                  <p class="timeline-company">StockCharts.com</p>
-                  <p class="timeline-location">Redmond, WA</p>
-                  <p class="timeline-period">June 2023 - Sept 2023</p>
-                  <p class="timeline-description">
-                    Enabling content creation partners to publish on
-                    StockCharts.com
-                  </p>
-                </div>
+          <article class="timeline-item">
+            <div class="timeline-header">
+              <img src="assets/logos/stockcharts.png" alt="StockCharts.com logo" class="timeline-logo" />
+              <div class="timeline-details">
+                <h3 class="timeline-position">Software Engineer Intern</h3>
+                <p class="timeline-company">StockCharts.com</p>
+                <p class="timeline-location">Redmond, WA</p>
+                <p class="timeline-period">June 2023 - Sept 2023</p>
+                <p class="timeline-description">
+                  Enabling content creation partners to publish on
+                  StockCharts.com
+                </p>
               </div>
-            </article>
-            <article class="timeline-item">
-              <div class="timeline-header">
-                <img
-                  src="assets/logos/allen.png"
-                  alt="Paul G. Allen School of Computer Science and Engineering logo"
-                  class="timeline-logo"
-                />
-                <div class="timeline-details">
-                  <h3 class="timeline-position">Helpdesk</h3>
-                  <p class="timeline-company">
-                    Paul G. Allen School of Computer Science and Engineering
-                  </p>
-                  <p class="timeline-location">Seattle, WA</p>
-                  <p class="timeline-period">Sept 2021 - Jan 2023</p>
-                  <p class="timeline-description">
-                    Boring IT stuff, but for a cutting-edge research institution
-                  </p>
-                </div>
+            </div>
+          </article>
+          <article class="timeline-item">
+            <div class="timeline-header">
+              <img src="assets/logos/allen.png" alt="Paul G. Allen School of Computer Science and Engineering logo"
+                class="timeline-logo" />
+              <div class="timeline-details">
+                <h3 class="timeline-position">Helpdesk</h3>
+                <p class="timeline-company">
+                  Paul G. Allen School of Computer Science and Engineering
+                </p>
+                <p class="timeline-location">Seattle, WA</p>
+                <p class="timeline-period">Sept 2021 - Jan 2023</p>
+                <p class="timeline-description">
+                  Boring IT stuff, but for a cutting-edge research institution
+                </p>
               </div>
-            </article>
-            <article class="timeline-item">
-              <div class="timeline-header">
-                <img
-                  src="assets/logos/pizzahut.png"
-                  alt="Pizza Hut logo"
-                  class="timeline-logo"
-                />
-                <div class="timeline-details">
-                  <h3 class="timeline-position">Pizza Chef</h3>
-                  <p class="timeline-company">Pizza Hut</p>
-                  <p class="timeline-location">Puyallup, WA</p>
-                  <p class="timeline-period">June 2019 - Sept 2021</p>
-                  <p class="timeline-description">Making pizza</p>
-                </div>
+            </div>
+          </article>
+          <article class="timeline-item">
+            <div class="timeline-header">
+              <img src="assets/logos/pizzahut.png" alt="Pizza Hut logo" class="timeline-logo" />
+              <div class="timeline-details">
+                <h3 class="timeline-position">Pizza Chef</h3>
+                <p class="timeline-company">Pizza Hut</p>
+                <p class="timeline-location">Puyallup, WA</p>
+                <p class="timeline-period">June 2019 - Sept 2021</p>
+                <p class="timeline-description">Making pizza</p>
               </div>
-            </article>
-          </div>
-        </section>
+            </div>
+          </article>
+        </div>
+      </section>
 
-        <!-- GitHub Stats Section -->
-        <!-- <section id="github-stats" class="section">
+      <!-- GitHub Stats Section -->
+      <!-- <section id="github-stats" class="section">
                 <h2 class="section-title">GitHub Stats</h2>
                 <div class="github-stats-grid">
                     <div class="github-card">
@@ -623,83 +501,75 @@
                     </div>
                 </div>
             </section> -->
-      </main>
-      
-      <button
-        id="right-menu-toggle"
-        class="right-menu-toggle"
-        data-analytics="button"
-        data-analytics-id="btn:right-menu-toggle"
-        data-analytics-label="Right menu toggle"
-        aria-label="Toggle photo sidebar"
-      >
-        <svg class="menu-icon">
-            <use href="#icon-menu"></use>
-        </svg>
-      </button>
+    </main>
 
-      <aside class="right-sidebar" id="right-sidebar">
-        <div class="photo-grid">
-          <figure class="photo-item">
-            <img src="assets/rats/IMG_8179.jpg" alt="" loading="lazy" />
-          </figure>
-          <figure class="photo-item">
-            <img src="assets/rats/IMG_8228.jpg" alt="" loading="lazy" />
-          </figure>
-          <figure class="photo-item">
-            <img src="assets/rats/IMG_8322.jpg" alt="" loading="lazy" />
-          </figure>
-          <figure class="photo-item">
-            <img src="assets/rats/IMG_8653.jpg" alt="" loading="lazy" />
-          </figure>
-          <figure class="photo-item">
-            <img src="assets/rats/IMG_8762.jpg" alt="" loading="lazy" />
-          </figure>
-          <figure class="photo-item">
-            <img src="assets/rats/IMG_8783.jpg" alt="" loading="lazy" />
-          </figure>
-          <figure class="photo-item">
-            <img src="assets/rats/IMG_8784.jpg" alt="" loading="lazy" />
-          </figure>
-          <figure class="photo-item">
-            <div
-              data-live-photo
-              data-photo-src="assets/rats/IMG_8875.jpg"
-              data-video-src="assets/rats/IMG_8875.MOV"
-            ></div>
-          </figure>
-          <figure class="photo-item">
-            <div
-              data-live-photo
-              data-photo-src="assets/rats/IMG_8913.jpg"
-              data-video-src="assets/rats/IMG_8913.MOV"
-            ></div>
-          </figure>
-        </div>
-      </aside>
-      <div class="sidebar-resize-handle" id="left-resize-handle"></div>
-      <div class="sidebar-resize-handle" id="right-resize-handle"></div>
-    </div>
+    <button id="right-menu-toggle" class="right-menu-toggle" data-analytics="button"
+      data-analytics-id="btn:right-menu-toggle" data-analytics-label="Right menu toggle"
+      aria-label="Toggle photo sidebar">
+      <svg class="menu-icon">
+        <use href="#icon-menu"></use>
+      </svg>
+    </button>
 
-    <!-- IP Activity Modal -->
-    <div class="visitor-modal-overlay" id="visitor-modal-overlay">
-      <div class="visitor-modal" id="visitor-modal">
-        <div class="visitor-modal-header">
-          <h3 class="visitor-modal-title" id="visitor-modal-title">IP Activity</h3>
-          <button class="visitor-modal-close" id="visitor-modal-close" data-analytics="button" data-analytics-id="btn:visitor-modal-close" data-analytics-label="Close visitor modal" aria-label="Close">&times;</button>
-        </div>
-        <div class="visitor-modal-content" id="visitor-modal-content">
-          <!-- Dynamic content -->
-        </div>
+    <aside class="right-sidebar" id="right-sidebar">
+      <div class="photo-grid">
+        <figure class="photo-item">
+          <img src="assets/rats/IMG_8179.jpg" alt="" loading="lazy" />
+        </figure>
+        <figure class="photo-item">
+          <img src="assets/rats/IMG_8228.jpg" alt="" loading="lazy" />
+        </figure>
+        <figure class="photo-item">
+          <img src="assets/rats/IMG_8322.jpg" alt="" loading="lazy" />
+        </figure>
+        <figure class="photo-item">
+          <img src="assets/rats/IMG_8653.jpg" alt="" loading="lazy" />
+        </figure>
+        <figure class="photo-item">
+          <img src="assets/rats/IMG_8762.jpg" alt="" loading="lazy" />
+        </figure>
+        <figure class="photo-item">
+          <img src="assets/rats/IMG_8783.jpg" alt="" loading="lazy" />
+        </figure>
+        <figure class="photo-item">
+          <img src="assets/rats/IMG_8784.jpg" alt="" loading="lazy" />
+        </figure>
+        <figure class="photo-item">
+          <div data-live-photo data-photo-src="assets/rats/IMG_8875.jpg" data-video-src="assets/rats/IMG_8875.MOV">
+          </div>
+        </figure>
+        <figure class="photo-item">
+          <div data-live-photo data-photo-src="assets/rats/IMG_8913.jpg" data-video-src="assets/rats/IMG_8913.MOV">
+          </div>
+        </figure>
+      </div>
+    </aside>
+    <div class="sidebar-resize-handle" id="left-resize-handle"></div>
+    <div class="sidebar-resize-handle" id="right-resize-handle"></div>
+  </div>
+
+  <!-- IP Activity Modal -->
+  <div class="visitor-modal-overlay" id="visitor-modal-overlay">
+    <div class="visitor-modal" id="visitor-modal">
+      <div class="visitor-modal-header">
+        <h3 class="visitor-modal-title" id="visitor-modal-title">IP Activity</h3>
+        <button class="visitor-modal-close" id="visitor-modal-close" data-analytics="button"
+          data-analytics-id="btn:visitor-modal-close" data-analytics-label="Close visitor modal"
+          aria-label="Close">&times;</button>
+      </div>
+      <div class="visitor-modal-content" id="visitor-modal-content">
+        <!-- Dynamic content -->
       </div>
     </div>
+  </div>
 
-    <script src="https://cdn.apple-livephotoskit.com/lpk/1/livephotoskit.js"></script>
-    <script type="module" src="js/cloth-content.js?v=2"></script>
-    <script type="module" src="js/services.js?v=2"></script>
-    <script type="module" src="js/click-tracking.js?v=2"></script>
-    <script type="module" src="js/visitors.js?v=2"></script>
-    <script type="module" src="js/chat.js?v=2"></script>
-    <script src="js/main.js?v=2"></script>
-  </body>
+  <script src="https://cdn.apple-livephotoskit.com/lpk/1/livephotoskit.js"></script>
+  <script type="module" src="js/cloth-content.js?v=2"></script>
+  <script type="module" src="js/services.js?v=2"></script>
+  <script type="module" src="js/click-tracking.js?v=2"></script>
+  <script type="module" src="js/visitors.js?v=2"></script>
+  <script type="module" src="js/chat.js?v=2"></script>
+  <script src="js/main.js?v=2"></script>
+</body>
+
 </html>

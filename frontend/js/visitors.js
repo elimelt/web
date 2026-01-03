@@ -17,8 +17,8 @@ const filterState = {
 const paginationState = {
   isLoadingMore: false,
   hasMoreEvents: true,
-    nextBefore: null,
-    totalEvents: null
+  nextBefore: null,
+  totalEvents: null
 };
 
 const DEDUP_BUCKET_MS = 60 * 60 * 1000;
@@ -511,9 +511,8 @@ function initVisitors() {
   function render(visitors, countOverride) {
     const count =
       typeof countOverride === "number" ? countOverride : visitors.length;
-    statsEl.textContent = `${count} active ${
-      count === 1 ? "visitor" : "visitors"
-    }`;
+    statsEl.textContent = `${count} active ${count === 1 ? "visitor" : "visitors"
+      }`;
     listEl.innerHTML = "";
     if (count === 0) {
       const li = document.createElement("li");
@@ -615,10 +614,10 @@ function initVisitors() {
 
       const total =
         typeof body.total === 'number' ? body.total
-        : typeof body.total_count === 'number' ? body.total_count
-        : typeof body.count === 'number' ? body.count
-        : typeof body.events_total === 'number' ? body.events_total
-        : null;
+          : typeof body.total_count === 'number' ? body.total_count
+            : typeof body.count === 'number' ? body.count
+              : typeof body.events_total === 'number' ? body.events_total
+                : null;
 
       return { events: sortedEvents, nextBefore: body.next_before || null, total };
     } catch (err) {
