@@ -1,7 +1,7 @@
 :root {
   --text: #1a1a1a;
   --text-secondary: #666;
-  --bg: #00ffff;
+  --bg: #ffffff;
   --accent: #0062ff;
   --accent-hover: #5493fe;
   --accent-subtle: #aeaeaeff;
@@ -27,7 +27,7 @@
 .dark-mode {
   --text: #f1f1f1;
   --text-secondary: #b3b3b3;
-  --bg: #004242;
+  --bg: #000000;
   --accent: #4d8eff;
   --accent-subtle: #1a2840;
   --border: #f1f1f1;
