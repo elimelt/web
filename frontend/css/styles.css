@@ -335,7 +335,36 @@ body:has(.right-sidebar.mobile-open) .main-content {
   overflow: hidden;
 }
 
+/* Align header areas */
+#visitors .section-title,
+#chat .section-title {
+  flex-shrink: 0;
+}
+
 #visitor-stats,
+.chat-status {
+  flex-shrink: 0;
+  height: 1.5rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.chat-status {
+  font-size: 0.75rem;
+}
+
+/* Hide empty visitor-list, align filters with chat form */
+#visitor-list {
+  display: none;
+}
+
+.visitor-filters,
+.chat-form {
+  flex-shrink: 0;
+  margin-top: 0.5rem;
+}
+
 #services-stats {
   font-size: 0.875rem;
   color: var(--text-secondary);
@@ -741,12 +770,6 @@ body:has(.right-sidebar.mobile-open) .main-content {
   100% {
     filter: drop-shadow(0 0 2px rgba(255, 120, 180, 0.4)) drop-shadow(0 0 6px rgba(240, 80, 160, 0.35));
   }
-}
-
-.chat-status {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  margin-bottom: 0.5rem;
 }
 
 .chat-messages {
