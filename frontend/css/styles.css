@@ -332,6 +332,13 @@ body:has(.right-sidebar.mobile-open) .main-content {
   overflow: hidden;
 }
 
+#visitor-stats,
+#services-stats {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
 #services-content,
 #recent-visitor-list {
   flex: 1;

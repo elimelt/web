@@ -60,48 +60,44 @@ function renderTable(services) {
   `;
 }
 
-function renderDescription(totalContainers) {
-  return `<div class="section-description">Total containers: ${totalContainers}</div>`;
-}
-
-function renderLoading() {
-  return '<div class="section-description">Loading services...</div>';
-}
-
-function renderEmpty(totalContainers) {
-  return `${renderDescription(totalContainers)}<div>No services reported.</div>`;
+function renderStats(totalContainers) {
+  return `${totalContainers} ${totalContainers === 1 ? 'container' : 'containers'}`;
 }
 
 function renderServices(data) {
   const services = Array.isArray(data.services) ? data.services : [];
-  const totalContainers = typeof data.total_containers === 'number'
-    ? data.total_containers
-    : (services.length || '—');
 
   if (!services.length) {
-    return renderEmpty(totalContainers);
+    return '<div>No services reported.</div>';
   }
 
-  return renderDescription(totalContainers) + renderTable(services);
+  return renderTable(services);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  const statsEl = document.getElementById('services-stats');
   const container = document.getElementById('services-content');
-  if (!container) return;
-
-  container.innerHTML = renderLoading();
+  if (!container || !statsEl) return;
 
   async function load() {
     try {
       const data = await getSystem();
       if (!data || typeof data !== 'object') {
-        container.textContent = 'No data';
+        statsEl.textContent = 'No data';
+        container.innerHTML = '';
         return;
       }
+      const services = Array.isArray(data.services) ? data.services : [];
+      const totalContainers = typeof data.total_containers === 'number'
+        ? data.total_containers
+        : (services.length || 0);
+
+      statsEl.textContent = renderStats(totalContainers);
       container.innerHTML = renderServices(data);
     } catch (e) {
       console.error('Failed to load system services:', e);
-      container.textContent = 'Failed to load services';
+      statsEl.textContent = 'Failed to load';
+      container.innerHTML = '';
     }
   }
 
