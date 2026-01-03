@@ -235,22 +235,22 @@
         </div>
       </aside>
 
+      <button
+        id="theme-toggle"
+        class="theme-toggle"
+        data-analytics="button"
+        data-analytics-id="btn:theme-toggle"
+        data-analytics-label="Toggle theme"
+        aria-label="Toggle dark/light mode"
+      >
+        <svg id="theme-icon" class="theme-icon">
+          <use href="#icon-moon"></use>
+        </svg>
+      </button>
+
       <!-- Main Content -->
       <main class="main-content">
-        <button
-          id="theme-toggle"
-          class="theme-toggle"
-          data-analytics="button"
-          data-analytics-id="btn:theme-toggle"
-          data-analytics-label="Toggle theme"
-          aria-label="Toggle dark/light mode"
-        >
-          <svg id="theme-icon" class="theme-icon">
-            <use href="#icon-moon"></use>
-          </svg>
-        </button>
-
-        <section id="visitors" class="section">
+        <section id="visitors" class="section section-full">
           <h2 class="section-title">Visitors</h2>
           <div id="visitor-stats">Connecting…</div>
           <ul id="visitor-list" class="visitor-list"></ul>
@@ -278,19 +278,6 @@
 
           <ul id="recent-visitor-list" class="visitor-list visitor-list-clickable"></ul>
         </section>
-
-        <!-- IP Activity Modal -->
-        <div class="visitor-modal-overlay" id="visitor-modal-overlay">
-          <div class="visitor-modal" id="visitor-modal">
-            <div class="visitor-modal-header">
-              <h3 class="visitor-modal-title" id="visitor-modal-title">IP Activity</h3>
-              <button class="visitor-modal-close" id="visitor-modal-close" data-analytics="button" data-analytics-id="btn:visitor-modal-close" data-analytics-label="Close visitor modal" aria-label="Close">&times;</button>
-            </div>
-            <div class="visitor-modal-content" id="visitor-modal-content">
-              <!-- Dynamic content -->
-            </div>
-          </div>
-        </div>
 
         <section id="chat" class="section">
           <h2 class="section-title">Chat</h2>
@@ -381,7 +368,7 @@
         </section>
 
         <!-- Experience Section -->
-        <section id="experience" class="section">
+        <section id="experience" class="section section-full">
           <h2 class="section-title">Experience</h2>
 
           <div class="timeline">
@@ -543,7 +530,7 @@
         </section>
 
         <!-- Education Section -->
-        <section id="education" class="section">
+        <section id="education" class="section section-full">
           <h2 class="section-title">Education</h2>
 
           <!-- <article class="education-item">
@@ -795,6 +782,19 @@
       </aside>
       <div class="sidebar-resize-handle" id="left-resize-handle"></div>
       <div class="sidebar-resize-handle" id="right-resize-handle"></div>
+    </div>
+
+    <!-- IP Activity Modal -->
+    <div class="visitor-modal-overlay" id="visitor-modal-overlay">
+      <div class="visitor-modal" id="visitor-modal">
+        <div class="visitor-modal-header">
+          <h3 class="visitor-modal-title" id="visitor-modal-title">IP Activity</h3>
+          <button class="visitor-modal-close" id="visitor-modal-close" data-analytics="button" data-analytics-id="btn:visitor-modal-close" data-analytics-label="Close visitor modal" aria-label="Close">&times;</button>
+        </div>
+        <div class="visitor-modal-content" id="visitor-modal-content">
+          <!-- Dynamic content -->
+        </div>
+      </div>
     </div>
 
     <script src="https://cdn.apple-livephotoskit.com/lpk/1/livephotoskit.js"></script>

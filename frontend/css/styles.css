@@ -206,9 +206,13 @@ body:has(.right-sidebar.mobile-open) #right-resize-handle {
   margin-left: 0;
   margin-right: 0;
   padding: 2rem;
-  max-width: 720px;
+  max-width: 900px;
   min-height: 100vh;
   transition: margin 0.3s;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  align-content: start;
 }
 
 cloth-content {
@@ -281,23 +285,20 @@ body:has(.right-sidebar.mobile-open) .main-content {
 }
 
 .section {
-  margin-bottom: 3rem;
+  margin-bottom: 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.section-full {
+  grid-column: 1 / -1;
 }
 
 .section-title {
   font-size: 1.25rem;
   font-weight: 600;
-  margin-bottom: 1.5rem;
-  display: flex;
-  align-items: center;
-}
-
-.section-title::after {
-  content: "";
-  height: 1px;
-  background: var(--border);
-  flex-grow: 1;
-  margin-left: 1rem;
+  margin-bottom: 1rem;
 }
 
 .section-description {
@@ -979,6 +980,7 @@ body:has(.right-sidebar.mobile-open) .main-content {
 
   .main-content {
     padding: 1.5rem;
+    grid-template-columns: 1fr;
   }
 
   .timeline-logo {
@@ -1333,15 +1335,16 @@ body:has(.right-sidebar.mobile-open) .main-content {
   .main-content {
     padding: 1rem;
     padding-bottom: calc(1rem + 60px);
+    grid-template-columns: 1fr;
   }
 
   .section-title {
     font-size: 1.125rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
   }
 
   .section {
-    margin-bottom: 3rem;
+    padding: 0.75rem;
   }
 
   .timeline-logo {
