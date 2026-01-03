@@ -99,6 +99,10 @@
       <nav class="main-nav">
         <ul class="nav-list">
           <li class="nav-item">
+            <a href="#services" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:services"
+              data-analytics-label="Services">Services</a>
+          </li>
+          <li class="nav-item">
             <a href="#visitors" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:visitors"
               data-analytics-label="Visitors">Visitors</a>
           </li>
@@ -121,10 +125,6 @@
           <li class="nav-item">
             <a href="#notes-preview" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:notes"
               data-analytics-label="Recent Notes">Recent Notes</a>
-          </li>
-          <li class="nav-item">
-            <a href="#services" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:services"
-              data-analytics-label="Services">Services</a>
           </li>
           <!-- <li class="nav-item"><a href="#github-stats" class="nav-link">GitHub</a></li> -->
         </ul>
@@ -173,25 +173,14 @@
 
     <!-- Main Content -->
     <main class="main-content">
-      <!-- Row 1: Chat (full width) -->
-      <section id="chat" class="section">
-        <h2 class="section-title">Chat</h2>
-        <div class="chat-status" id="chat-status">connecting…</div>
-        <button class="chat-retry-btn hidden" id="chat-retry-btn" data-analytics="button"
-          data-analytics-id="btn:chat-retry" data-analytics-label="Chat retry">Retry</button>
-        <div class="chat-messages" id="chat-messages">
-          <div class="chat-loader" id="chat-loader">Loading...</div>
-        </div>
-        <form class="chat-form" id="chat-form">
-          <input class="chat-input" id="chat-input" type="text" placeholder="Say something…" autocomplete="off" />
-          <button class="chat-send-btn" id="chat-send-btn" type="submit" disabled data-analytics="button"
-            data-analytics-id="btn:chat-send" data-analytics-label="Chat send">
-            Send
-          </button>
-        </form>
+      <!-- Row 1: Services (full width) -->
+      <section id="services" class="section">
+        <h2 class="section-title">Services</h2>
+        <div id="services-stats">Loading...</div>
+        <div id="services-content"></div>
       </section>
 
-      <!-- Row 2: Visitors | Services (50/50) -->
+      <!-- Row 2: Visitors | Chat (50/50) -->
       <div class="grid-row">
         <section id="visitors" class="section">
           <h2 class="section-title">Visitors</h2>
@@ -216,10 +205,21 @@
           <ul id="recent-visitor-list" class="visitor-list visitor-list-clickable"></ul>
         </section>
 
-        <section id="services" class="section">
-          <h2 class="section-title">Services</h2>
-          <div id="services-stats">Loading...</div>
-          <div id="services-content"></div>
+        <section id="chat" class="section">
+          <h2 class="section-title">Chat</h2>
+          <div class="chat-status" id="chat-status">connecting…</div>
+          <button class="chat-retry-btn hidden" id="chat-retry-btn" data-analytics="button"
+            data-analytics-id="btn:chat-retry" data-analytics-label="Chat retry">Retry</button>
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-loader" id="chat-loader">Loading...</div>
+          </div>
+          <form class="chat-form" id="chat-form">
+            <input class="chat-input" id="chat-input" type="text" placeholder="Say something…" autocomplete="off" />
+            <button class="chat-send-btn" id="chat-send-btn" type="submit" disabled data-analytics="button"
+              data-analytics-id="btn:chat-send" data-analytics-label="Chat send">
+              Send
+            </button>
+          </form>
         </section>
       </div>
 

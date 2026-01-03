@@ -321,9 +321,9 @@ body:has(.right-sidebar.mobile-open) .main-content {
   flex: 1;
 }
 
-/* Visitors and Services sections - same max-height, scrollable content */
+/* Visitors and Chat sections - same max-height, scrollable content */
 #visitors,
-#services {
+#chat {
   display: flex;
   flex-direction: column;
   max-height: 30rem;
@@ -745,7 +745,8 @@ body:has(.right-sidebar.mobile-open) .main-content {
 }
 
 .chat-messages {
-  height: 200px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 0.5rem;
   background: rgba(0, 0, 0, 0.1);
