@@ -298,6 +298,11 @@ body:has(.right-sidebar.mobile-open) .main-content {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+  align-items: stretch;
+}
+
+.grid-row > .section {
+  height: 100%;
 }
 
 .grid-row-equal {
@@ -321,12 +326,12 @@ body:has(.right-sidebar.mobile-open) .main-content {
   flex: 1;
 }
 
-/* Visitors and Chat sections - same max-height, scrollable content */
+/* Visitors and Chat sections - same height, scrollable content */
 #visitors,
 #chat {
   display: flex;
   flex-direction: column;
-  max-height: 30rem;
+  height: 30rem;
   overflow: hidden;
 }
 
