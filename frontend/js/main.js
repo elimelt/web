@@ -683,22 +683,18 @@
    * ========================================================================== */
 
   const NotesFetcher = {
-    /** @type {string} */
     SOURCE_URL: "https://notes.elimelt.com",
+    SEARCH_API: "https://blink.tail8ab50a.ts.net:8443/notes/search",
+    originalNotesHTML: "",
 
-    /**
-     * Initialize notes fetching if container exists
-     */
     init() {
       const container = document.getElementById("notes-content");
       if (container) {
         this.fetchAndDisplay();
+        this._initSearch();
       }
     },
 
-    /**
-     * Fetch notes from source and display them
-     */
     async fetchAndDisplay() {
       try {
         const response = await fetch(this.SOURCE_URL);
@@ -715,7 +711,6 @@
           throw new Error("Notes container not found in fetched HTML");
         }
 
-        // Update relative links to absolute
         const links = notesContainer.querySelectorAll("a");
         links.forEach((link) => {
           const href = link.getAttribute("href");
@@ -724,11 +719,10 @@
           }
         });
 
-        document.getElementById("notes-content").innerHTML =
-          notesContainer.innerHTML;
-
-        // Apply styling classes to note items
+        const container = document.getElementById("notes-content");
+        container.innerHTML = notesContainer.innerHTML;
         this._styleNoteItems();
+        this.originalNotesHTML = container.innerHTML;
       } catch (error) {
         console.error("Error fetching notes:", error);
         document.getElementById("notes-content").innerHTML =
@@ -736,10 +730,62 @@
       }
     },
 
-    /**
-     * Apply styling classes to note items
-     * @private
-     */
+    _initSearch() {
+      const input = document.getElementById("notes-search-input");
+      const btn = document.getElementById("notes-search-btn");
+
+      if (!input || !btn) return;
+
+      const doSearch = () => this._search(input.value);
+
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") doSearch();
+      });
+      btn.addEventListener("click", doSearch);
+    },
+
+    async _search(query) {
+      const container = document.getElementById("notes-content");
+      if (!query.trim()) {
+        if (this.originalNotesHTML) {
+          container.innerHTML = this.originalNotesHTML;
+        }
+        return;
+      }
+
+      container.innerHTML = '<li class="note-item"><p class="notes-placeholder">Searching...</p></li>';
+
+      try {
+        const params = new URLSearchParams({ q: query, mode: "hybrid", limit: "20" });
+        const response = await fetch(`${this.SEARCH_API}?${params}`);
+
+        if (!response.ok) {
+          throw new Error(`Search failed: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const results = data.results || [];
+
+        if (results.length === 0) {
+          container.innerHTML = '<li class="note-item"><p class="notes-error">No results found.</p></li>';
+          return;
+        }
+
+        container.innerHTML = results.map((note) => `
+          <li class="note-item">
+            <a href="${this.SOURCE_URL}/notes/${note.slug || note.id}" target="_blank" rel="noopener" class="note-link">${note.title}</a>
+            <div class="note-meta">
+              <span class="note-date">${note.created_at ? new Date(note.created_at).toLocaleDateString() : ""}</span>
+              ${note.category ? `<span class="note-category">${note.category}</span>` : ""}
+            </div>
+          </li>
+        `).join("");
+      } catch (error) {
+        console.error("Error searching notes:", error);
+        container.innerHTML = '<li class="note-item"><p class="notes-error">Search failed. Please try again.</p></li>';
+      }
+    },
+
     _styleNoteItems() {
       const noteItems = document.querySelectorAll("#notes-content li");
       noteItems.forEach((item) => {
@@ -748,7 +794,6 @@
         const link = item.querySelector("a");
         if (link) {
           link.classList.add("note-link");
-          // Add analytics metadata for notes links
           try {
             const href = link.getAttribute("href") || "";
             const text = (link.textContent || "").trim();
@@ -765,7 +810,6 @@
         const category = item.querySelector(".category");
         if (category) category.classList.add("note-category");
 
-        // Wrap date and category in meta div
         if (date && category) {
           const metaDiv = document.createElement("div");
           metaDiv.classList.add("note-meta");
