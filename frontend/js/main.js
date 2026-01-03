@@ -639,7 +639,7 @@
 
         container.innerHTML = results.map((note) => `
           <li class="note-item">
-            <a href="${this.SOURCE_URL}/notes/${note.slug || note.id}" target="_blank" rel="noopener" class="note-link">${note.title}</a>
+            <a href="${this.SOURCE_URL}/${note.slug || note.id}" target="_blank" rel="noopener" class="note-link">${note.title}</a>
             <div class="note-meta">
               <span class="note-date">${note.created_at ? new Date(note.created_at).toLocaleDateString() : ""}</span>
               ${note.category ? `<span class="note-category">${note.category}</span>` : ""}
