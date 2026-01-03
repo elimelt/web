@@ -223,26 +223,47 @@
         </section>
       </div>
 
-      <!-- Row 3: Notes | About + Areas of Study + Education (50/50) -->
+      <!-- Row 3: Notes + Education | About + Areas of Study (50/50) -->
       <div class="grid-row-equal">
-        <!-- Left column: Notes -->
-        <section id="notes-preview" class="section">
-          <h2 class="section-title">Recent Notes</h2>
-          <div class="notes-search">
-            <input type="text" id="notes-search-input" class="notes-search-input" placeholder="Search notes...">
-            <button id="notes-search-btn" class="notes-search-btn" aria-label="Search">
-              <svg class="notes-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-            </button>
-          </div>
-          <ul id="notes-content" class="notes-list">
-            <li class="note-item">
-              <p class="notes-placeholder">Loading...</p>
-            </li>
-          </ul>
-        </section>
+        <!-- Left column: Notes + Education stacked -->
+        <div class="grid-col-stack">
+          <section id="notes-preview" class="section">
+            <h2 class="section-title">Recent Notes</h2>
+            <div class="notes-search">
+              <input type="text" id="notes-search-input" class="notes-search-input" placeholder="Search notes...">
+              <button id="notes-search-btn" class="notes-search-btn" aria-label="Search">
+                <svg class="notes-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+              </button>
+            </div>
+            <ul id="notes-content" class="notes-list">
+              <li class="note-item">
+                <p class="notes-placeholder">Loading...</p>
+              </li>
+            </ul>
+          </section>
+
+          <section id="education" class="section">
+            <h2 class="section-title">Education</h2>
+            <article class="education-item">
+              <h3 class="education-degree">B.S. in Computer Engineering</h3>
+              <p class="education-school">
+                University of Washington, Seattle, WA
+              </p>
+              <p class="education-gpa">GPA: 3.9, Graduated Magna Cum Laude</p>
+              <p class="education-dates">Sept 2021 - Spring 2025 (June 2025)</p>
+              <p class="education-focus">Focus: Distributed Systems</p>
+              <p class="education-courses">
+                Relevant Coursework: Distributed Systems, Operating Systems,
+                Computer Networks, Systems Programming, Database Systems, Data
+                Structures & Algorithms, Advanced Algorithms, Security, System
+                Design, Natural Language Processing
+              </p>
+            </article>
+          </section>
+        </div>
 
         <!-- Right column: stacked sections -->
         <div class="grid-col-stack">
@@ -333,25 +354,6 @@
               <li><a href="https://notes.elimelt.com/categories/research.html" target="_blank"
                   rel="noopener">Research</a></li>
             </ul>
-          </section>
-
-          <section id="education" class="section">
-            <h2 class="section-title">Education</h2>
-            <article class="education-item">
-              <h3 class="education-degree">B.S. in Computer Engineering</h3>
-              <p class="education-school">
-                University of Washington, Seattle, WA
-              </p>
-              <p class="education-gpa">GPA: 3.9, Graduated Magna Cum Laude</p>
-              <p class="education-dates">Sept 2021 - Spring 2025 (June 2025)</p>
-              <p class="education-focus">Focus: Distributed Systems</p>
-              <p class="education-courses">
-                Relevant Coursework: Distributed Systems, Operating Systems,
-                Computer Networks, Systems Programming, Database Systems, Data
-                Structures & Algorithms, Advanced Algorithms, Security, System
-                Design, Natural Language Processing
-              </p>
-            </article>
           </section>
         </div>
       </div>
