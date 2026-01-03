@@ -250,35 +250,7 @@
 
       <!-- Main Content -->
       <main class="main-content">
-        <section id="visitors" class="section section-full">
-          <h2 class="section-title">Visitors</h2>
-          <div id="visitor-stats">Connecting…</div>
-          <ul id="visitor-list" class="visitor-list"></ul>
-          <div id="recent-visitors-title" class="section-description section-description-spaced">Recent visitors</div>
-
-          <!-- Visitor Filters -->
-          <div class="visitor-filters" id="visitor-filters">
-            <div class="visitor-filter-row">
-              <select id="visitor-filter-time" class="visitor-filter-select" aria-label="Filter by time range">
-                <option value="all">All Time</option>
-                <option value="1h">Last Hour</option>
-                <option value="24h">Last 24 Hours</option>
-                <option value="7d">Last 7 Days</option>
-              </select>
-              <input
-                type="text"
-                id="visitor-filter-search"
-                class="visitor-filter-input"
-                placeholder="Regex search (IP, location)… prefix ! to invert"
-                autocomplete="off"
-              />
-            </div>
-            <div class="visitor-filter-stats" id="visitor-filter-stats"></div>
-          </div>
-
-          <ul id="recent-visitor-list" class="visitor-list visitor-list-clickable"></ul>
-        </section>
-
+        <!-- Row 1: Chat (full width) -->
         <section id="chat" class="section">
           <h2 class="section-title">Chat</h2>
           <div class="chat-status" id="chat-status">connecting…</div>
@@ -300,75 +272,182 @@
           </form>
         </section>
 
-        <!-- About Section -->
-        <section id="about" class="section">
-          <h2 class="section-title">About</h2>
-          <cloth-content>
-          <p class="about-text">
-            I studied computer engineering at the University of Washington,
-            graduating in 2025. I focused on a few topics, which you can read
-            more about in my
-            <a href="https://notes.elimelt.com" target="_blank" rel="noopener"
-              >notes</a
-            >.
-          </p>
-          <p class="about-text">
-            I've written a lot of code, both for fun and as part of my
-            professional life. Unfortunately, much of my best work is forever
-            lost in private repositories at various companies 😔. Nonetheless,
-            you can check out my
-            <a href="https://github.com/elimelt" target="_blank" rel="noopener"
-              >GitHub</a
-            >
-            if you're curious about my work. I've really abused GitHub over the
-            years, committing everything from experimental data to node_modules,
-            so my line count (below) is grossly inflated.
-          </p>
-          <div class="line-count-display">
-            <div>4,905,731</div>
-            <div>-1,349,198</div>
-            <div>3,556,533</div>
+        <!-- Row 2: Visitors | Services (50/50) -->
+        <div class="grid-row">
+          <section id="visitors" class="section">
+            <h2 class="section-title">Visitors</h2>
+            <div id="visitor-stats">Connecting…</div>
+            <ul id="visitor-list" class="visitor-list"></ul>
+            <div id="recent-visitors-title" class="section-description section-description-spaced">Recent visitors</div>
+
+            <!-- Visitor Filters -->
+            <div class="visitor-filters" id="visitor-filters">
+              <div class="visitor-filter-row">
+                <select id="visitor-filter-time" class="visitor-filter-select" aria-label="Filter by time range">
+                  <option value="all">All Time</option>
+                  <option value="1h">Last Hour</option>
+                  <option value="24h">Last 24 Hours</option>
+                  <option value="7d">Last 7 Days</option>
+                </select>
+                <input
+                  type="text"
+                  id="visitor-filter-search"
+                  class="visitor-filter-input"
+                  placeholder="Regex search (IP, location)… prefix ! to invert"
+                  autocomplete="off"
+                />
+              </div>
+              <div class="visitor-filter-stats" id="visitor-filter-stats"></div>
+            </div>
+
+            <ul id="recent-visitor-list" class="visitor-list visitor-list-clickable"></ul>
+          </section>
+
+          <section id="services" class="section">
+            <h2 class="section-title">Services</h2>
+            <div id="services-content">Loading...</div>
+          </section>
+        </div>
+
+        <!-- Row 3: Notes | About + Areas of Study + Education (50/50) -->
+        <div class="grid-row-equal">
+          <!-- Left column: Notes -->
+          <section id="notes-preview" class="section">
+            <h2 class="section-title">Recent Notes</h2>
+            <div class="notes-search">
+              <input type="text" id="notes-search-input" class="notes-search-input" placeholder="Search notes...">
+              <button id="notes-search-btn" class="notes-search-btn" aria-label="Search">
+                <svg class="notes-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+              </button>
+            </div>
+            <ul id="notes-content" class="notes-list">
+              <li class="note-item">
+                <p class="notes-placeholder">Loading...</p>
+              </li>
+            </ul>
+          </section>
+
+          <!-- Right column: stacked sections -->
+          <div class="grid-col-stack">
+            <section id="about" class="section">
+              <h2 class="section-title">About</h2>
+              <cloth-content>
+              <p class="about-text">
+                I studied computer engineering at the University of Washington,
+                graduating in 2025. I focused on a few topics, which you can read
+                more about in my
+                <a href="https://notes.elimelt.com" target="_blank" rel="noopener"
+                  >notes</a
+                >.
+              </p>
+              <p class="about-text">
+                I've written a lot of code, both for fun and as part of my
+                professional life. Unfortunately, much of my best work is forever
+                lost in private repositories at various companies 😔. Nonetheless,
+                you can check out my
+                <a href="https://github.com/elimelt" target="_blank" rel="noopener"
+                  >GitHub</a
+                >
+                if you're curious about my work. I've really abused GitHub over the
+                years, committing everything from experimental data to node_modules,
+                so my line count (below) is grossly inflated.
+              </p>
+              <div class="line-count-display">
+                <div>4,905,731</div>
+                <div>-1,349,198</div>
+                <div>3,556,533</div>
+              </div>
+
+              <p class="about-text">
+                I love open source. Admittedly, I've taken a lot more than I've
+                given by relying on OSS in closed source projects for large
+                companies. However, every once in a while I contribute (mostly when
+                tools break, or if I read an interesting paper). In the past, this
+                has included
+                <a
+                  href="https://github.com/ray-project/ray"
+                  target="_blank"
+                  rel="noopener"
+                  >Ray</a
+                >, a distributed computing framework, and
+                <a
+                  href="https://www.npmjs.com/package/mysql2"
+                  target="_blank"
+                  rel="noopener"
+                  >mysql2</a
+                >, a MySQL client for Node.js. I also started
+                <a href="https://labs.swecc.org" target="_blank" rel="noopener"
+                  >a program at UWs</a
+                >
+                to help students get involved in open source.
+              </p>
+              <p class="about-text">
+                I'm currently working at
+                <a href="https://shv.com" target="_blank" rel="noopener"
+                  >Sutter Hill Ventures</a
+                >
+                as a Codepoint Fellow, where I'll spend 6 months working in SHV labs
+                with early-stage startups, and then another 6 months at
+                <a href="https://reve.com" target="_blank" rel="noopener">Reve</a>,
+                a small startup training its own diffusion models from the ground
+                up.
+              </p>
+              </cloth-content>
+            </section>
+
+            <section id="areas-of-study" class="section">
+              <h2 class="section-title">Areas of Study</h2>
+              <p class="section-description">
+                Topics I write about and explore in my
+                <a href="https://notes.elimelt.com" target="_blank" rel="noopener"
+                  >notes</a
+                >:
+              </p>
+              <ul class="areas-list">
+                <li><a href="https://notes.elimelt.com/categories/networks.html" target="_blank" rel="noopener">Networks</a></li>
+                <li><a href="https://notes.elimelt.com/categories/operating%20systems.html" target="_blank" rel="noopener">Operating Systems</a></li>
+                <li><a href="https://notes.elimelt.com/categories/distributed%20systems.html" target="_blank" rel="noopener">Distributed Systems</a></li>
+                <li><a href="https://notes.elimelt.com/tags/systems.html" target="_blank" rel="noopener">Systems</a></li>
+                <li><a href="https://notes.elimelt.com/tags/performance.html" target="_blank" rel="noopener">Performance Engineering</a></li>
+                <li><a href="https://notes.elimelt.com/categories/algorithms.html" target="_blank" rel="noopener">Algorithms</a></li>
+                <li><a href="https://notes.elimelt.com/categories/algorithm%20analysis.html" target="_blank" rel="noopener">Algorithm Analysis</a></li>
+                <li><a href="https://notes.elimelt.com/categories/linear%20algebra.html" target="_blank" rel="noopener">Linear Algebra</a></li>
+                <li><a href="https://notes.elimelt.com/categories/computer%20science.html" target="_blank" rel="noopener">Computer Science</a></li>
+                <li><a href="https://notes.elimelt.com/categories/machine%20learning%20systems.html" target="_blank" rel="noopener">Machine Learning Systems</a></li>
+                <li><a href="https://notes.elimelt.com/categories/natural%20language%20processing.html" target="_blank" rel="noopener">Natural Language Processing</a></li>
+                <li><a href="https://notes.elimelt.com/categories/database%20systems.html" target="_blank" rel="noopener">Database Systems</a></li>
+                <li><a href="https://notes.elimelt.com/categories/hardware.html" target="_blank" rel="noopener">Hardware</a></li>
+                <li><a href="https://notes.elimelt.com/categories/software%20engineering.html" target="_blank" rel="noopener">Software Engineering</a></li>
+                <li><a href="https://notes.elimelt.com/categories/research.html" target="_blank" rel="noopener">Research</a></li>
+              </ul>
+            </section>
+
+            <section id="education" class="section">
+              <h2 class="section-title">Education</h2>
+              <article class="education-item">
+                <h3 class="education-degree">B.S. in Computer Engineering</h3>
+                <p class="education-school">
+                  University of Washington, Seattle, WA
+                </p>
+                <p class="education-gpa">GPA: 3.9, Graduated Magna Cum Laude</p>
+                <p class="education-dates">Sept 2021 - Spring 2025 (June 2025)</p>
+                <p class="education-focus">Focus: Distributed Systems</p>
+                <p class="education-courses">
+                  Relevant Coursework: Distributed Systems, Operating Systems,
+                  Computer Networks, Systems Programming, Database Systems, Data
+                  Structures & Algorithms, Advanced Algorithms, Security, System
+                  Design, Natural Language Processing
+                </p>
+              </article>
+            </section>
           </div>
+        </div>
 
-          <p class="about-text">
-            I love open source. Admittedly, I've taken a lot more than I've
-            given by relying on OSS in closed source projects for large
-            companies. However, every once in a while I contribute (mostly when
-            tools break, or if I read an interesting paper). In the past, this
-            has included
-            <a
-              href="https://github.com/ray-project/ray"
-              target="_blank"
-              rel="noopener"
-              >Ray</a
-            >, a distributed computing framework, and
-            <a
-              href="https://www.npmjs.com/package/mysql2"
-              target="_blank"
-              rel="noopener"
-              >mysql2</a
-            >, a MySQL client for Node.js. I also started
-            <a href="https://labs.swecc.org" target="_blank" rel="noopener"
-              >a program at UWs</a
-            >
-            to help students get involved in open source.
-          </p>
-          <p class="about-text">
-            I'm currently working at
-            <a href="https://shv.com" target="_blank" rel="noopener"
-              >Sutter Hill Ventures</a
-            >
-            as a Codepoint Fellow, where I'll spend 6 months working in SHV labs
-            with early-stage startups, and then another 6 months at
-            <a href="https://reve.com" target="_blank" rel="noopener">Reve</a>,
-            a small startup training its own diffusion models from the ground
-            up.
-          </p>
-          </cloth-content>
-        </section>
-
-        <!-- Experience Section -->
-        <section id="experience" class="section section-full">
+        <!-- Row 4: Experience (full width) -->
+        <section id="experience" class="section">
           <h2 class="section-title">Experience</h2>
 
           <div class="timeline">
@@ -527,189 +606,6 @@
               </div>
             </article>
           </div>
-        </section>
-
-        <!-- Education Section -->
-        <section id="education" class="section section-full">
-          <h2 class="section-title">Education</h2>
-
-          <!-- <article class="education-item">
-    <h3 class="education-degree">M.S. in Computer Science and Engineering</h3>
-    <p class="education-school">University of Washington, Seattle, WA</p>
-    <p class="education-dates">Sept 2026 - June 2027</p>
-    <p class="education-focus">Focus: Systems for Machine Learning</p>
-    <p class="education-courses">Relevant Coursework: System Design, LLM Serving Systems</p>
-</article> -->
-          <article class="education-item">
-            <h3 class="education-degree">B.S. in Computer Engineering</h3>
-            <p class="education-school">
-              University of Washington, Seattle, WA
-            </p>
-            <p class="education-gpa">GPA: 3.9, Graduated Magna Cum Laude</p>
-            <p class="education-dates">Sept 2021 - Spring 2025 (June 2025)</p>
-            <p class="education-focus">Focus: Distributed Systems</p>
-            <p class="education-courses">
-              Relevant Coursework: Distributed Systems, Operating Systems,
-              Computer Networks, Systems Programming, Database Systems, Data
-              Structures & Algorithms, Advanced Algorithms, Security, System
-              Design, Natural Language Processing
-            </p>
-          </article>
-
-          <h3 class="areas-of-study-title">Areas of Study</h3>
-          <p class="section-description">
-            Topics I write about and explore in my
-            <a href="https://notes.elimelt.com" target="_blank" rel="noopener"
-              >notes</a
-            >:
-          </p>
-
-          <ul class="areas-list">
-            <li>
-              <a
-                href="https://notes.elimelt.com/categories/networks.html"
-                target="_blank"
-                rel="noopener"
-                >Networks</a
-              >
-            </li>
-            <li>
-              <a
-                href="https://notes.elimelt.com/categories/operating%20systems.html"
-                target="_blank"
-                rel="noopener"
-                >Operating Systems</a
-              >
-            </li>
-            <li>
-              <a
-                href="https://notes.elimelt.com/categories/distributed%20systems.html"
-                target="_blank"
-                rel="noopener"
-                >Distributed Systems</a
-              >
-            </li>
-            <li>
-              <a
-                href="https://notes.elimelt.com/tags/systems.html"
-                target="_blank"
-                rel="noopener"
-                >Systems</a
-              >
-            </li>
-            <li>
-              <a
-                href="https://notes.elimelt.com/tags/performance.html"
-                target="_blank"
-                rel="noopener"
-                >Performance Engineering</a
-              >
-            </li>
-            <li>
-              <a
-                href="https://notes.elimelt.com/categories/algorithms.html"
-                target="_blank"
-                rel="noopener"
-                >Algorithms</a
-              >
-            </li>
-            <li>
-              <a
-                href="https://notes.elimelt.com/categories/algorithm%20analysis.html"
-                target="_blank"
-                rel="noopener"
-                >Algorithm Analysis</a
-              >
-            </li>
-            <li>
-              <a
-                href="https://notes.elimelt.com/categories/linear%20algebra.html"
-                target="_blank"
-                rel="noopener"
-                >Linear Algebra</a
-              >
-            </li>
-            <li>
-              <a
-                href="https://notes.elimelt.com/categories/computer%20science.html"
-                target="_blank"
-                rel="noopener"
-                >Computer Science</a
-              >
-            </li>
-            <li>
-              <a
-                href="https://notes.elimelt.com/categories/machine%20learning%20systems.html"
-                target="_blank"
-                rel="noopener"
-                >Machine Learning Systems</a
-              >
-            </li>
-            <li>
-              <a
-                href="https://notes.elimelt.com/categories/natural%20language%20processing.html"
-                target="_blank"
-                rel="noopener"
-                >Natural Language Processing</a
-              >
-            </li>
-            <li>
-              <a
-                href="https://notes.elimelt.com/categories/database%20systems.html"
-                target="_blank"
-                rel="noopener"
-                >Database Systems</a
-              >
-            </li>
-            <li>
-              <a
-                href="https://notes.elimelt.com/categories/hardware.html"
-                target="_blank"
-                rel="noopener"
-                >Hardware</a
-              >
-            </li>
-            <li>
-              <a
-                href="https://notes.elimelt.com/categories/software%20engineering.html"
-                target="_blank"
-                rel="noopener"
-                >Software Engineering</a
-              >
-            </li>
-            <li>
-              <a
-                href="https://notes.elimelt.com/categories/research.html"
-                target="_blank"
-                rel="noopener"
-                >Research</a
-              >
-            </li>
-          </ul>
-        </section>
-
-        <!-- Notes Section -->
-        <section id="notes-preview" class="section">
-          <h2 class="section-title">Recent Notes</h2>
-          <div class="notes-search">
-            <input type="text" id="notes-search-input" class="notes-search-input" placeholder="Search notes...">
-            <button id="notes-search-btn" class="notes-search-btn" aria-label="Search">
-              <svg class="notes-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-            </button>
-          </div>
-          <ul id="notes-content" class="notes-list">
-            <li class="note-item">
-              <p class="notes-placeholder">Loading...</p>
-            </li>
-          </ul>
-        </section>
-
-        <section id="services" class="section">
-          <h2 class="section-title">Services</h2>
-          <div id="services-content">Loading...</div>
         </section>
 
         <!-- GitHub Stats Section -->

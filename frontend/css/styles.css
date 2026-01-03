@@ -206,13 +206,11 @@ body:has(.right-sidebar.mobile-open) #right-resize-handle {
   margin-left: 0;
   margin-right: 0;
   padding: 2rem;
-  max-width: 900px;
   min-height: 100vh;
   transition: margin 0.3s;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
-  align-content: start;
 }
 
 cloth-content {
@@ -291,14 +289,52 @@ body:has(.right-sidebar.mobile-open) .main-content {
   border-radius: 8px;
 }
 
-.section-full {
-  grid-column: 1 / -1;
-}
-
 .section-title {
   font-size: 1.25rem;
   font-weight: 600;
   margin-bottom: 1rem;
+}
+
+/* Grid row containers */
+.grid-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.grid-row-equal {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.grid-row-equal > .section {
+  min-height: 0;
+}
+
+/* Right column stack for notes row */
+.grid-col-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.grid-col-stack > .section {
+  flex: 1;
+}
+
+/* Services section scrollable */
+#services {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+#services .section-title {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .section-description {
@@ -980,7 +1016,20 @@ body:has(.right-sidebar.mobile-open) .main-content {
 
   .main-content {
     padding: 1.5rem;
+  }
+
+  .grid-row,
+  .grid-row-equal {
     grid-template-columns: 1fr;
+  }
+
+  .grid-col-stack {
+    gap: 1rem;
+  }
+
+  #services {
+    max-height: none;
+    overflow-y: visible;
   }
 
   .timeline-logo {
@@ -1335,6 +1384,10 @@ body:has(.right-sidebar.mobile-open) .main-content {
   .main-content {
     padding: 1rem;
     padding-bottom: calc(1rem + 60px);
+  }
+
+  .grid-row,
+  .grid-row-equal {
     grid-template-columns: 1fr;
   }
 
