@@ -323,17 +323,23 @@ body:has(.right-sidebar.mobile-open) .main-content {
   flex: 1;
 }
 
-/* Services section - match height of visitors, scroll content */
+/* Visitors and Services sections - same max-height, scrollable content */
+#visitors,
 #services {
   display: flex;
   flex-direction: column;
+  max-height: 30rem;
   overflow: hidden;
 }
 
-#services-content {
+#services-content,
+#recent-visitor-list {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.5rem;
 }
 
 .section-description {
@@ -1026,11 +1032,14 @@ body:has(.right-sidebar.mobile-open) .main-content {
     gap: 1rem;
   }
 
+  #visitors,
   #services {
+    max-height: none;
     overflow: visible;
   }
 
-  #services-content {
+  #services-content,
+  #recent-visitor-list {
     overflow-y: visible;
   }
 
@@ -1393,11 +1402,14 @@ body:has(.right-sidebar.mobile-open) .main-content {
     grid-template-columns: 1fr;
   }
 
+  #visitors,
   #services {
+    max-height: none;
     overflow: visible;
   }
 
-  #services-content {
+  #services-content,
+  #recent-visitor-list {
     overflow-y: visible;
   }
 
