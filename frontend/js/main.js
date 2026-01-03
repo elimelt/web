@@ -1,41 +1,24 @@
-/**
- * Main JavaScript entry point
- * Organized into self-contained modules for maintainability
- */
-
 (function () {
   "use strict";
 
   console.info("hi");
 
-  /* ==========================================================================
-   * THEME MANAGEMENT
-   * Handles dark/light mode toggle and logo updates
-   * ========================================================================== */
-
   const ThemeManager = {
-    /** @type {HTMLElement|null} */
     toggle: null,
-    /** @type {HTMLElement|null} */
     icon: null,
 
-    /**
-     * Initialize theme management
-     */
     init() {
       this.toggle = document.getElementById("theme-toggle");
       this.icon = document.getElementById("theme-icon");
 
       if (!this.toggle || !this.icon) return;
 
-      // Load saved theme
       if (localStorage.getItem("theme") === "dark") {
         document.body.classList.add("dark-mode");
         this.icon.querySelector("use").setAttribute("href", "#icon-sun");
         this.updateLogos();
       }
 
-      // Toggle theme on click
       this.toggle.addEventListener("click", () => {
         const isDark = document.body.classList.toggle("dark-mode");
         localStorage.setItem("theme", isDark ? "dark" : "light");
@@ -46,9 +29,6 @@
       });
     },
 
-    /**
-     * Update timeline logos to match current theme
-     */
     updateLogos() {
       const isDark = document.body.classList.contains("dark-mode");
       const toDark = (src) =>
@@ -62,13 +42,7 @@
     },
   };
 
-  /* ==========================================================================
-   * RAT FOLLOWER GAME
-   * An interactive cursor-following rat that eats meat and grows
-   * ========================================================================== */
-
   const RatFollower = {
-    /* ------ Configuration Constants ------ */
     DEFAULTS: {
       imgSrc: "assets/grep-top.png",
       size: 100,
@@ -81,25 +55,17 @@
       angleOffset: 0,
     },
 
-    /* ------ Timing Constants ------ */
     IDLE_THRESHOLD_MS: 3000,
     HUNGER_DELAY_MS: 1200,
     SHRINK_PER_SECOND: 10,
     BONE_DESPAWN_MS: 5000,
 
-    /* ------ Meat/Eating Constants ------ */
     EAT_RADIUS: 6,
     MIN_GROWTH: 3,
     GROWTH_RATE: 0.06,
     MAX_MEATS: 8,
 
-    /**
-     * Create and initialize a new rat follower instance
-     * @param {Object} options - Configuration options
-     * @returns {Object|undefined} Controller with destroy method, or undefined if motion is reduced
-     */
     create(options = {}) {
-      // Respect reduced motion preference
       const prefersReduced =
         window.matchMedia &&
         window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -107,9 +73,7 @@
 
       const config = Object.assign({}, this.DEFAULTS, options);
 
-      /* ------ State Variables ------ */
       const state = {
-        // Position and physics
         targetX: window.innerWidth / 2,
         targetY: window.innerHeight / 2,
         x: window.innerWidth / 2,
@@ -117,33 +81,21 @@
         vx: 0,
         vy: 0,
         lastTime: performance.now(),
-
-        // Size management
         currentSize: config.size,
         baseSize: config.size,
-
-        // Idle detection
         lastMoveAt: performance.now(),
         isIdle: false,
-        currentSprite: "top", // 'top' -> grep-top.png, 'full' -> grep.png
-
-        // Eating
+        currentSprite: "top",
         lastEatAt: performance.now(),
-
-        // Lifecycle
         destroyed: false,
         spawnTimerId: null,
         rafId: null,
-
-        // Meat collection
         meats: [],
       };
 
-      /* ------ DOM Element Creation ------ */
       const img = this._createRatElement(config);
       const debug = config.debug ? this._createDebugOverlay() : null;
 
-      /* ------ Event Handlers ------ */
       const setTarget = (clientX, clientY) => {
         state.targetX = clientX;
         state.targetY = clientY;
@@ -168,13 +120,11 @@
         state.vy = 0;
       };
 
-      // Attach event listeners
       this._attachEventListeners(updateTargetFromEvent, onBlur);
 
-      /* ------ Meat Spawning ------ */
       const spawnMeat = () => {
         if (state.destroyed) return;
-        const size = 22 + Math.random() * 22; // 22..44
+        const size = 22 + Math.random() * 22;
         const radius = size / 2;
         const margin = 20 + radius;
         const posX = margin + Math.random() * (window.innerWidth - margin * 2);
@@ -206,14 +156,14 @@
           y: posY,
           r: radius,
           createdAt: performance.now(),
-          ttl: 15000 + Math.random() * 15000, // 15-30s before uneaten despawn
+          ttl: 15000 + Math.random() * 15000,
           state: "meat",
           eatenAt: 0,
         });
       };
 
       const scheduleNextSpawn = () => {
-        const delay = 600 + Math.random() * 1400; // 0.6..2.0s
+        const delay = 600 + Math.random() * 1400;
         state.spawnTimerId = setTimeout(() => {
           if (state.destroyed) return;
           if (state.meats.length < this.MAX_MEATS) spawnMeat();
@@ -223,13 +173,11 @@
 
       scheduleNextSpawn();
 
-      /* ------ Animation/Physics Loop ------ */
       const tick = (now) => {
         if (state.destroyed) return;
         const dt = Math.min((now - state.lastTime) / 1000, 0.032);
         state.lastTime = now;
 
-        // Spring physics
         const k = config.stiffness;
         const c = config.damping;
         const m = config.mass;
@@ -245,7 +193,6 @@
         state.x += state.vx * dt;
         state.y += state.vy * dt;
 
-        // Shrink over time if not eating (not below base size)
         if (
           state.currentSize > state.baseSize &&
           now - state.lastEatAt > this.HUNGER_DELAY_MS
@@ -261,7 +208,6 @@
         const left = state.x - anchorOffsetX;
         const top = state.y - anchorOffsetY;
 
-        // Handle idle state and sprite switching
         const nowIdle = now - state.lastMoveAt > this.IDLE_THRESHOLD_MS;
         if (nowIdle !== state.isIdle) {
           state.isIdle = nowIdle;
@@ -274,7 +220,6 @@
           }
         }
 
-        // Calculate rotation angle
         let angle = 0;
         if (config.rotate && !state.isIdle) {
           angle =
@@ -282,16 +227,13 @@
             config.angleOffset;
         }
 
-        // Update rat position and size
         img.style.width = `${state.currentSize}px`;
         img.style.transform = `translate(${left}px, ${top}px) rotate(${angle}rad)`;
 
-        // Update debug overlay if enabled
         if (config.debug && debug) {
           this._updateDebugOverlay(debug, state);
         }
 
-        // Process meat eating and expiration
         this._processMeats(state, now);
 
         state.rafId = requestAnimationFrame(tick);
@@ -299,7 +241,6 @@
 
       state.rafId = requestAnimationFrame(tick);
 
-      /* ------ Cleanup Function ------ */
       const destroy = () => {
         state.destroyed = true;
 
@@ -312,10 +253,8 @@
           state.rafId = null;
         }
 
-        // Remove event listeners
         this._detachEventListeners(updateTargetFromEvent, onBlur);
 
-        // Remove DOM elements
         state.meats.forEach((m) => {
           if (m.el && m.el.parentNode) m.el.parentNode.removeChild(m.el);
         });
@@ -330,10 +269,6 @@
       return { destroy };
     },
 
-    /**
-     * Create the rat image element
-     * @private
-     */
     _createRatElement(config) {
       const img = document.createElement("img");
       img.src = config.imgSrc;
@@ -349,10 +284,6 @@
       return img;
     },
 
-    /**
-     * Create debug overlay for development
-     * @private
-     */
     _createDebugOverlay() {
       const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       svg.classList.add("rat-debug-overlay");
@@ -401,10 +332,6 @@
       return { svg, line, anchorDot, targetDot };
     },
 
-    /**
-     * Attach pointer/mouse/touch event listeners
-     * @private
-     */
     _attachEventListeners(updateTargetFromEvent, onBlur) {
       if ("onpointermove" in window) {
         window.addEventListener("pointerdown", updateTargetFromEvent, {
@@ -427,10 +354,6 @@
       window.addEventListener("blur", onBlur);
     },
 
-    /**
-     * Detach pointer/mouse/touch event listeners
-     * @private
-     */
     _detachEventListeners(updateTargetFromEvent, onBlur) {
       if ("onpointermove" in window) {
         window.removeEventListener("pointerdown", updateTargetFromEvent);
@@ -443,10 +366,6 @@
       window.removeEventListener("blur", onBlur);
     },
 
-    /**
-     * Update debug overlay positions
-     * @private
-     */
     _updateDebugOverlay(debug, state) {
       debug.line.setAttribute("x1", String(state.x));
       debug.line.setAttribute("y1", String(state.y));
@@ -458,37 +377,29 @@
       debug.targetDot.setAttribute("cy", String(state.targetY));
     },
 
-    /**
-     * Process meat eating and expiration
-     * @private
-     */
     _processMeats(state, now) {
       for (let i = state.meats.length - 1; i >= 0; i--) {
         const m = state.meats[i];
 
         if (m.state === "meat") {
-          // Despawn if TTL expired
           if (now - m.createdAt > m.ttl) {
             m.el.remove();
             state.meats.splice(i, 1);
             continue;
           }
 
-          // Check collision: anchor point vs meat center
           const dx = state.x - m.x;
           const dy = state.y - m.y;
           if (
             dx * dx + dy * dy <=
             (m.r + this.EAT_RADIUS) * (m.r + this.EAT_RADIUS)
           ) {
-            // Convert to bone
             m.state = "bone";
             m.eatenAt = now;
             m.el.textContent = "🦴";
             m.el.style.opacity = "0.95";
-            m.r = 0; // Prevent re-eating
+            m.r = 0;
 
-            // Grow follower
             const growth = Math.max(
               this.MIN_GROWTH,
               Math.round(state.currentSize * this.GROWTH_RATE)
@@ -497,7 +408,6 @@
             state.lastEatAt = now;
           }
         } else if (m.state === "bone") {
-          // Remove bone after despawn time
           if (now - m.eatenAt > this.BONE_DESPAWN_MS) {
             m.el.remove();
             state.meats.splice(i, 1);
@@ -507,24 +417,12 @@
     },
   };
 
-  /* ==========================================================================
-   * SIDEBAR MANAGEMENT
-   * Handles mobile toggle, responsive behavior, and resize functionality
-   * ========================================================================== */
-
   const SidebarManager = {
-    /** @type {HTMLElement|null} */
     leftSidebar: null,
-    /** @type {HTMLElement|null} */
     rightSidebar: null,
-    /** @type {HTMLElement|null} */
     mobileToggle: null,
-    /** @type {HTMLElement|null} */
     rightMenuToggle: null,
 
-    /**
-     * Initialize sidebar management
-     */
     init() {
       this.mobileToggle = document.getElementById("mobile-menu-toggle");
       this.leftSidebar = document.getElementById("left-sidebar");
@@ -536,9 +434,6 @@
       this.updateForScreenSize();
     },
 
-    /**
-     * Update sidebar visibility based on screen size
-     */
     updateForScreenSize() {
       if (this.leftSidebar && this.mobileToggle) {
         if (window.innerWidth > 1024) {
@@ -560,9 +455,6 @@
       }
     },
 
-    /**
-     * Close all mobile menus
-     */
     closeMobileMenus() {
       if (this.leftSidebar) {
         this.leftSidebar.classList.remove("mobile-open");
@@ -574,10 +466,6 @@
       }
     },
 
-    /**
-     * Initialize mobile toggle buttons
-     * @private
-     */
     _initMobileToggles() {
       if (this.mobileToggle && this.leftSidebar) {
         this.mobileToggle.addEventListener("click", () => {
@@ -594,10 +482,6 @@
       }
     },
 
-    /**
-     * Initialize sidebar resize handles
-     * @private
-     */
     _initResizeHandles() {
       const leftHandle = document.getElementById("left-resize-handle");
       const rightHandle = document.getElementById("right-resize-handle");
@@ -606,10 +490,6 @@
       this._initResize(rightHandle, this.rightSidebar, false);
     },
 
-    /**
-     * Initialize a single resize handle
-     * @private
-     */
     _initResize(handle, sidebar, isLeft) {
       if (!handle || !sidebar) return;
 
@@ -648,15 +528,7 @@
     },
   };
 
-  /* ==========================================================================
-   * SMOOTH SCROLLING
-   * Handles anchor link navigation with smooth scrolling
-   * ========================================================================== */
-
   const SmoothScrolling = {
-    /**
-     * Initialize smooth scrolling for anchor links
-     */
     init() {
       document.querySelectorAll('a[href^="#"]').forEach((link) => {
         link.addEventListener("click", (e) => {
@@ -666,7 +538,6 @@
             history.pushState(null, null, link.getAttribute("href"));
             target.scrollIntoView({ behavior: "smooth", block: "start" });
 
-            // Close mobile menu if open after navigation
             const leftSidebar = document.getElementById("left-sidebar");
             if (leftSidebar && leftSidebar.classList.contains("mobile-open")) {
               SidebarManager.closeMobileMenus();
@@ -676,11 +547,6 @@
       });
     },
   };
-
-  /* ==========================================================================
-   * NOTES FETCHING
-   * Fetches and displays notes from external source
-   * ========================================================================== */
 
   const NotesFetcher = {
     SOURCE_URL: "https://notes.elimelt.com",
@@ -756,7 +622,7 @@
       container.innerHTML = '<li class="note-item"><p class="notes-placeholder">Searching...</p></li>';
 
       try {
-        const params = new URLSearchParams({ q: query, mode: "hybrid", limit: "20" });
+        const params = new URLSearchParams({ q: query, mode: "fulltext", limit: "20" });
         const response = await fetch(`${this.SEARCH_API}?${params}`);
 
         if (!response.ok) {
@@ -822,33 +688,20 @@
     },
   };
 
-  /* ==========================================================================
-   * RAT MEAT GAME TOGGLE (Easter Egg)
-   * Button to enable/disable the rat follower game
-   * Persists preference in localStorage
-   * ========================================================================== */
-
   const MeatGameToggle = {
-    /** @type {HTMLElement|null} */
     toggle: null,
-    /** @type {Object|null} */
     ratController: null,
 
-    /** Game configuration */
     RAT_CONFIG: {
       anchor: { x: 0.5, y: 0.0 },
       size: 76,
       angleOffset: Math.PI / 2,
     },
 
-    /**
-     * Initialize the meat game toggle
-     */
     init() {
       this.toggle = document.getElementById("meat-toggle");
       if (!this.toggle) return;
 
-      // Check if game was enabled in previous session
       const enabledByDefault = localStorage.getItem("meatGame") === "true";
       if (enabledByDefault) {
         this.ratController = RatFollower.create(this.RAT_CONFIG) || null;
@@ -856,7 +709,6 @@
 
       this._updateUI(!!this.ratController);
 
-      // Toggle game on button click
       this.toggle.addEventListener("click", () => {
         const isEnabled = !!this.ratController;
         if (isEnabled) {
@@ -872,10 +724,6 @@
       });
     },
 
-    /**
-     * Update toggle button UI state
-     * @private
-     */
     _updateUI(enabled) {
       if (!this.toggle) return;
       this.toggle.setAttribute("aria-pressed", enabled ? "true" : "false");
@@ -885,11 +733,6 @@
       this.toggle.classList.toggle("meat-active", !!enabled);
     },
   };
-
-  /* ==========================================================================
-   * INITIALIZATION
-   * Bootstrap all modules when DOM is ready
-   * ========================================================================== */
 
   document.addEventListener("DOMContentLoaded", () => {
     ThemeManager.init();

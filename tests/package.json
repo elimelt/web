@@ -1,0 +1,16 @@
+{
+  "name": "devstack-api-tests",
+  "version": "1.0.0",
+  "description": "Integration tests for DevStack Public API",
+  "type": "module",
+  "scripts": {
+    "test": "node api.test.js",
+    "test:verbose": "VERBOSE=1 node api.test.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
+  }
+}

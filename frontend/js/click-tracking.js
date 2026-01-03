@@ -22,7 +22,6 @@ import { recordClickEvent, initAnalyticsDelivery } from './api.js';
     const role = el.getAttribute && el.getAttribute('role');
     const name = el.getAttribute && el.getAttribute('name');
     const ariaLabel = el.getAttribute && el.getAttribute('aria-label');
-    // Closest analytics-labeled ancestor for stable identification
     const labeled = el.closest('[data-analytics],[data-analytics-id],[data-analytics-label]');
     const analytics = labeled
       ? {
@@ -32,7 +31,6 @@ import { recordClickEvent, initAnalyticsDelivery } from './api.js';
           type: labeled.getAttribute('data-analytics') || ""
         }
       : { id: "", label: "", group: "", type: "" };
-    // Short DOM path for disambiguation
     const domPath = (() => {
       try {
         const parts = [];
@@ -98,18 +96,14 @@ import { recordClickEvent, initAnalyticsDelivery } from './api.js';
         },
         element: getElementInfo(e.target)
       };
-      // Non-blocking enqueue
       recordClickEvent(payload);
     } catch (err) {
-      // Best-effort only; never block UI
-      // eslint-disable-next-line no-console
       console.warn('click tracking failed:', err);
     }
   }
 
   function init() {
     initAnalyticsDelivery();
-    // Capture phase to intercept early; passive for performance (we do not call preventDefault)
     document.addEventListener('click', onClick, { capture: true, passive: true });
   }
 
@@ -119,5 +113,3 @@ import { recordClickEvent, initAnalyticsDelivery } from './api.js';
     init();
   }
 })();
-
-

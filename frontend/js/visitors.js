@@ -1,29 +1,19 @@
-// =============================================================================
-// Imports
-// =============================================================================
 import { getVisitors, getVisitorsAnalytics, getWsVisitors } from './api.js';
 import { BASE_URL, PAGE_SIZE, RECONNECT } from './config.js';
 import { toTimestampMs, debounce, getHumanReadableDateTimeString } from './utils.js';
 
-// =============================================================================
-// Module State
-// =============================================================================
 let visitorsInitialized = false;
 
-/** All visitor events collected from API and WebSocket */
 let allVisitorEvents = [];
 
-/** Map of IP addresses to their activity data */
 let ipActivityMap = new Map();
 
-/** Filter state for visitor list */
 const filterState = {
   time: 'all',
   search: '',
   searchInvert: false
 };
 
-/** Pagination state for infinite scroll */
 const paginationState = {
   isLoadingMore: false,
   hasMoreEvents: true,
@@ -31,22 +21,12 @@ const paginationState = {
     totalEvents: null
 };
 
-// =============================================================================
-// Constants
-// =============================================================================
-/** Time bucket size for event deduplication (1 hour) */
 const DEDUP_BUCKET_MS = 60 * 60 * 1000;
 
-// =============================================================================
-// Main Initialization
-// =============================================================================
 function initVisitors() {
   if (visitorsInitialized) return;
   visitorsInitialized = true;
 
-  // ---------------------------------------------------------------------------
-  // DOM Elements
-  // ---------------------------------------------------------------------------
   const statsEl = document.getElementById("visitor-stats");
   const analyticsEl = document.getElementById("visitor-analytics");
   const listEl = document.getElementById("visitor-list");
@@ -59,24 +39,17 @@ function initVisitors() {
   const modalTitle = document.getElementById("visitor-modal-title");
   const modalContent = document.getElementById("visitor-modal-content");
   const modalClose = document.getElementById("visitor-modal-close");
-  // analytics button removed
 
   if (!statsEl || !listEl) {
     visitorsInitialized = false;
     return;
   }
 
-  // ---------------------------------------------------------------------------
-  // WebSocket Connection State
-  // ---------------------------------------------------------------------------
   let reconnectTimer = null;
   let currentWs = null;
   let retries = 0;
   let stopped = false;
 
-  // ---------------------------------------------------------------------------
-  // Utility Functions
-  // ---------------------------------------------------------------------------
   function normalizeVisitors(data) {
     if (!data) return [];
     let visitors = [];
@@ -271,7 +244,6 @@ function initVisitors() {
     return getHumanReadableDateTimeString(ms);
   }
 
-  // Cached analytics data
   let analyticsCache = null;
   let analyticsFetchedAt = 0;
   const ANALYTICS_TTL_MS = 60 * 1000;
@@ -298,9 +270,6 @@ function initVisitors() {
     return `${rem}s`;
   }
 
-  // ---------------------------------------------------------------------------
-  // Modal Functions
-  // ---------------------------------------------------------------------------
   function showIpActivityModal(ip) {
     const activity = ipActivityMap.get(ip);
     if (!activity) return;
@@ -310,7 +279,6 @@ function initVisitors() {
     }
 
     if (modalContent) {
-      // Render analytics placeholder and event history (no non-analytics summary)
       modalContent.innerHTML = `
         <div class="visitor-modal-summary" id="visitor-analytics-summary">
           <div class="visitor-modal-stat" style="grid-column: 1 / -1;">
@@ -333,7 +301,6 @@ function initVisitors() {
       modalOverlay.classList.add('active');
     }
 
-    // Fetch analytics asynchronously and enrich the modal
     getAnalyticsCached()
       .then((analytics) => {
         const container = modalContent?.querySelector('#visitor-analytics-summary');
@@ -416,9 +383,6 @@ function initVisitors() {
     }
   });
 
-  // ---------------------------------------------------------------------------
-  // Filtering Functions
-  // ---------------------------------------------------------------------------
   function updateFilterStats() {
     if (!filterStatsEl) return;
     filterStatsEl.textContent = "";
@@ -433,9 +397,6 @@ function initVisitors() {
     ensureScrollable();
   }
 
-  // ---------------------------------------------------------------------------
-  // Filter Event Handlers
-  // ---------------------------------------------------------------------------
   if (filterTimeEl) {
     filterTimeEl.addEventListener('change', (e) => {
       filterState.time = e.target.value;
@@ -458,9 +419,6 @@ function initVisitors() {
     filterSearchEl.addEventListener('input', handleSearchInput);
   }
 
-  // ---------------------------------------------------------------------------
-  // Rendering Functions
-  // ---------------------------------------------------------------------------
   function createVisitorListItem(v) {
     const li = document.createElement("li");
     const ip = getVisitorIp(v);
@@ -468,7 +426,6 @@ function initVisitors() {
     const typeIndicator = eventType === 'join' ? '→' : '←';
     li.textContent = `${typeIndicator} ${formatRecentVisit(v)}`;
     li.dataset.ip = ip;
-    // Analytics metadata to improve identifiability
     li.setAttribute('data-analytics', 'visitors.recent_item');
     if (ip) {
       li.setAttribute('data-analytics-id', `visitor:${ip}`);
@@ -597,102 +554,8 @@ function initVisitors() {
     updateFilterStats();
   }
 
-  // ---------------------------------------------------------------------------
-  // Network/API Functions
-  // ---------------------------------------------------------------------------
-
   async function getVisitorAnalytics() {
     const analytics = await getVisitorsAnalytics();
-
-    /**
-     * {
-      "visitors": [
-          {
-              "visitor_ip": "100.71.111.68",
-              "computed_at": "2026-01-01T21:09:42.544536+00:00",
-              "period_start": "2026-01-01T00:00:00+00:00",
-              "period_end": "2026-01-02T00:00:00+00:00",
-              "total_visits": 6,
-              "total_time_seconds": 11649.626308,
-              "avg_session_duration_seconds": 1941.6043846666669,
-              "is_recurring": true,
-              "first_visit_at": "2026-01-01T20:41:05.231055+00:00",
-              "last_visit_at": "2026-01-01T21:06:42.120291+00:00",
-              "visit_frequency_per_day": 6,
-              "location_country": "Unknown",
-              "location_city": "Unknown"
-          },
-          {
-              "visitor_ip": "202.8.40.181",
-              "computed_at": "2026-01-01T21:09:42.535864+00:00",
-              "period_start": "2026-01-01T00:00:00+00:00",
-              "period_end": "2026-01-02T00:00:00+00:00",
-              "total_visits": 2,
-              "total_time_seconds": 3.8441989999999997,
-              "avg_session_duration_seconds": 1.9220994999999998,
-              "is_recurring": true,
-              "first_visit_at": "2026-01-01T04:46:35.140874+00:00",
-              "last_visit_at": "2026-01-01T15:54:37.306162+00:00",
-              "visit_frequency_per_day": 2,
-              "location_country": "United States",
-              "location_city": "Ashburn"
-          },
-          {
-              "visitor_ip": "100.79.135.19",
-              "computed_at": "2026-01-01T21:09:42.526011+00:00",
-              "period_start": "2026-01-01T00:00:00+00:00",
-              "period_end": "2026-01-02T00:00:00+00:00",
-              "total_visits": 84,
-              "total_time_seconds": 14658.645890999998,
-              "avg_session_duration_seconds": 174.5076891785714,
-              "is_recurring": true,
-              "first_visit_at": "2026-01-01T03:39:23.982034+00:00",
-              "last_visit_at": "2026-01-01T20:57:42.847240+00:00",
-              "visit_frequency_per_day": 84,
-              "location_country": "Unknown",
-              "location_city": "Unknown"
-          },
-          {
-              "visitor_ip": "100.89.233.21",
-              "computed_at": "2026-01-01T21:09:35.991505+00:00",
-              "period_start": "2025-12-31T00:00:00+00:00",
-              "period_end": "2026-01-01T00:00:00+00:00",
-              "total_visits": 1,
-              "total_time_seconds": 2058.363283,
-              "avg_session_duration_seconds": 2058.363283,
-              "is_recurring": false,
-              "first_visit_at": "2025-12-31T23:25:41.636717+00:00",
-              "last_visit_at": "2025-12-31T23:25:41.636717+00:00",
-              "visit_frequency_per_day": 1,
-              "location_country": "Unknown",
-              "location_city": "Unknown"
-          },
-          {
-              "visitor_ip": "100.79.135.19",
-              "computed_at": "2026-01-01T21:09:35.982509+00:00",
-              "period_start": "2025-12-31T00:00:00+00:00",
-              "period_end": "2026-01-01T00:00:00+00:00",
-              "total_visits": 1,
-              "total_time_seconds": 529.112429,
-              "avg_session_duration_seconds": 529.112429,
-              "is_recurring": false,
-              "first_visit_at": "2025-12-31T23:51:10.887571+00:00",
-              "last_visit_at": "2025-12-31T23:51:10.887571+00:00",
-              "visit_frequency_per_day": 1,
-              "location_country": "Unknown",
-              "location_city": "Unknown"
-          }
-      ],
-      "count": 5,
-      "filters": {
-          "visitor_id": null,
-          "start_date": null,
-          "end_date": null,
-          "segment": null,
-          "limit": 100
-      }
-  }
-     */
 
     return analytics;
   }
@@ -862,9 +725,6 @@ function initVisitors() {
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // WebSocket Functions
-  // ---------------------------------------------------------------------------
   function stopRetrying() {
     stopped = true;
     if (reconnectTimer) {
@@ -942,9 +802,6 @@ function initVisitors() {
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Cleanup & Initialization
-  // ---------------------------------------------------------------------------
   function cleanup() {
     stopRetrying();
   }
@@ -956,16 +813,12 @@ function initVisitors() {
     recentListEl.addEventListener("scroll", handleRecentListScroll);
   }
 
-  // Start the visitor tracking
   refreshVisitors();
   initRealtime();
 }
 
 
 
-// =============================================================================
-// Module Bootstrap
-// =============================================================================
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initVisitors);
 } else {

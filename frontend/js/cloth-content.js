@@ -1,28 +1,18 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 import html2canvas from "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/+esm";
 
-// ============================================================================
-// Physics Configuration Constants
-// ============================================================================
 const PHYSICS_CONFIG = {
-  // Simulation parameters
   DAMPING: 0.97,
   GRAVITY: 0.0004,
   TIMESTEP_SQ: 0.5,
   CONSTRAINT_ITERATIONS: 4,
-
-  // Restoration forces
   REST_FORCE_XY: 0.02,
   REST_FORCE_Z: 0.9,
-
-  // Ceiling roll effect
   ROLL_RADIUS: 40,
   ROLL_Y_SCALE: 0.2,
   ROLL_Z_SCALE: 0.3,
   ROLL_Z_OFFSET: 10,
   ROLL_MAX_ANGLE: Math.PI * 0.8,
-
-  // Interaction
   FIND_NEAREST_MAX_DIST: 100,
 };
 
@@ -34,12 +24,6 @@ const CLOTH_CONTENT_CONFIG = {
 };
 
 class ClothPhysics {
-  /**
-   * Creates a new cloth physics simulation.
-   * @param {number} width - The width of the cloth
-   * @param {number} height - The height of the cloth
-   * @param {number} [segmentsX=20] - Number of horizontal segments
-   */
   constructor(width, height, segmentsX = 20) {
     this.width = width;
     this.height = height;
@@ -49,7 +33,6 @@ class ClothPhysics {
     this.particles = [];
     this.constraints = [];
 
-    // Pre-allocate reusable vectors to avoid garbage collection
     this._tempVel = new THREE.Vector3();
     this._tempDiff = new THREE.Vector3();
     this._tempCorrection = new THREE.Vector3();
@@ -58,10 +41,6 @@ class ClothPhysics {
     this._initConstraints();
   }
 
-  /**
-   * Initializes particles in a grid formation.
-   * @private
-   */
   _initParticles() {
     const startX = -this.width / 2;
     const startY = this.height / 2;
@@ -84,10 +63,6 @@ class ClothPhysics {
     }
   }
 
-  /**
-   * Creates structural, shear, and bend constraints between particles.
-   * @private
-   */
   _initConstraints() {
     const cols = this.segmentsX + 1;
     const segW = this.width / this.segmentsX;
@@ -109,26 +84,15 @@ class ClothPhysics {
     }
   }
 
-  /**
-   * Runs one simulation step: Verlet integration, boundary handling, and constraint solving.
-   */
   simulate() {
     const ceilingY = this.height / 2;
     const floorY = -this.height / 2;
 
-    // Verlet integration with forces
     this._integrateParticles(ceilingY, floorY);
 
-    // Solve constraints iteratively
     this._solveConstraints();
   }
 
-  /**
-   * Applies Verlet integration and boundary handling to all particles.
-   * @private
-   * @param {number} ceilingY - Upper boundary Y coordinate
-   * @param {number} floorY - Lower boundary Y coordinate
-   */
   _integrateParticles(ceilingY, floorY) {
     const { DAMPING, GRAVITY, TIMESTEP_SQ, REST_FORCE_XY, REST_FORCE_Z } =
       PHYSICS_CONFIG;
@@ -138,18 +102,15 @@ class ClothPhysics {
     for (const p of this.particles) {
       if (p.pinned || p.dragging) continue;
 
-      // Calculate velocity using pre-allocated vector (avoid GC)
       this._tempVel.copy(p.pos).sub(p.prev).multiplyScalar(DAMPING);
       p.prev.copy(p.pos);
       p.pos.add(this._tempVel);
 
-      // Apply gravity and restoration forces
       p.pos.y -= GRAVITY * TIMESTEP_SQ;
       p.pos.y += (p.restY - p.pos.y) * REST_FORCE_XY;
       p.pos.x += (p.restX - p.pos.x) * REST_FORCE_XY;
       p.pos.z *= REST_FORCE_Z;
 
-      // Ceiling roll effect
       if (p.pos.y > ceilingY) {
         const excess = p.pos.y - ceilingY;
         const angle = Math.min(excess / ROLL_RADIUS, ROLL_MAX_ANGLE);
@@ -157,7 +118,6 @@ class ClothPhysics {
         p.pos.z = -Math.cos(angle) * ROLL_RADIUS * ROLL_Z_SCALE - ROLL_Z_OFFSET;
       }
 
-      // Floor collision
       if (p.pos.y < floorY) {
         p.pos.y = floorY;
         p.prev.y = floorY;
@@ -165,11 +125,6 @@ class ClothPhysics {
     }
   }
 
-  /**
-   * Iteratively solves distance constraints to maintain cloth structure.
-   * Uses pre-allocated vectors to minimize garbage collection.
-   * @private
-   */
   _solveConstraints() {
     const iterations = PHYSICS_CONFIG.CONSTRAINT_ITERATIONS;
 
@@ -179,12 +134,10 @@ class ClothPhysics {
         const p2 = this.particles[c.p2];
         if (p1.dragging && p2.dragging) continue;
 
-        // Use pre-allocated vector for difference calculation
         this._tempDiff.copy(p2.pos).sub(p1.pos);
         const dist = this._tempDiff.length();
         if (dist === 0) continue;
 
-        // Calculate correction using pre-allocated vector
         const correctionFactor = (dist - c.rest) / dist / 2;
         this._tempCorrection.copy(this._tempDiff).multiplyScalar(correctionFactor);
 
@@ -194,13 +147,6 @@ class ClothPhysics {
     }
   }
 
-  /**
-   * Finds the nearest non-pinned particle to a given point.
-   * @param {number} x - X coordinate in world space
-   * @param {number} y - Y coordinate in world space
-   * @param {number} [maxDist] - Maximum distance to search (uses config default)
-   * @returns {Object|null} The nearest particle, or null if none found within maxDist
-   */
   findNearest(x, y, maxDist = PHYSICS_CONFIG.FIND_NEAREST_MAX_DIST) {
     let nearest = null;
     let minDistSq = maxDist * maxDist;
@@ -218,17 +164,7 @@ class ClothPhysics {
   }
 }
 
-/**
- * Handles Three.js rendering of the cloth simulation.
- * Creates and manages the WebGL renderer, scene, camera, and mesh.
- */
 class ClothRenderer {
-  /**
-   * Creates a new cloth renderer.
-   * @param {ShadowRoot} shadowRoot - The shadow DOM root to attach the canvas to
-   * @param {HTMLCanvasElement} texture - The canvas to use as cloth texture
-   * @param {ClothPhysics} physics - The physics simulation to render
-   */
   constructor(shadowRoot, texture, physics) {
     this.shadowRoot = shadowRoot;
     this.physics = physics;
@@ -277,9 +213,6 @@ class ClothRenderer {
     this.scene.add(this.mesh);
   }
 
-  /**
-   * Updates the mesh geometry from physics particles and renders the scene.
-   */
   update() {
     const positions = this.geometry.attributes.position.array;
     for (let i = 0; i < this.physics.particles.length; i++) {
@@ -292,18 +225,11 @@ class ClothRenderer {
     this.renderer.render(this.scene, this.camera);
   }
 
-  /**
-   * Updates the cloth texture with a new canvas.
-   * @param {HTMLCanvasElement} canvas - The new texture canvas
-   */
   updateTexture(canvas) {
     this.texture.image = canvas;
     this.texture.needsUpdate = true;
   }
 
-  /**
-   * Disposes of all Three.js resources.
-   */
   dispose() {
     this.renderer.dispose();
     this.geometry.dispose();
@@ -311,19 +237,6 @@ class ClothRenderer {
   }
 }
 
-// ============================================================================
-// ClothContent Web Component
-// ============================================================================
-
-/**
- * A custom element that renders its content as an interactive cloth simulation.
- * Supports dragging, theme changes, and responsive resizing.
- *
- * @example
- * <cloth-content wiggle="true">
- *   <p>Content to render as cloth</p>
- * </cloth-content>
- */
 class ClothContent extends HTMLElement {
   static get observedAttributes() {
     return ["wiggle"];
@@ -334,10 +247,6 @@ class ClothContent extends HTMLElement {
     this.attachShadow({ mode: "open" });
     this.initialized = false;
   }
-
-  // --------------------------------------------------------------------------
-  // Lifecycle Methods
-  // --------------------------------------------------------------------------
 
   connectedCallback() {
     this.wiggleEnabled = this.getAttribute("wiggle") === "true";
@@ -354,14 +263,6 @@ class ClothContent extends HTMLElement {
       this.liveContent.parentNode.removeChild(this.liveContent);
   }
 
-  // --------------------------------------------------------------------------
-  // Initialization
-  // --------------------------------------------------------------------------
-
-  /**
-   * Initializes the component, setting up content and styles.
-   * @private
-   */
   async _init() {
     this.width = this.offsetWidth || CLOTH_CONTENT_CONFIG.DEFAULT_WIDTH;
     this.liveContent = document.createElement("div");
@@ -380,10 +281,6 @@ class ClothContent extends HTMLElement {
     this.initialized = true;
   }
 
-  /**
-   * Copies document stylesheets into the shadow DOM for proper rendering.
-   * @private
-   */
   _setupStyles() {
     for (const sheet of document.styleSheets) {
       try {
@@ -400,15 +297,10 @@ class ClothContent extends HTMLElement {
           this.shadowRoot.appendChild(style);
         }
       } catch (e) {
-        // CORS or other security restrictions may prevent accessing some stylesheets
       }
     }
   }
 
-  /**
-   * Creates the wiggle toggle checkbox for desktop users.
-   * @private
-   */
   _setupToggle() {
     const isMobile =
       /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
@@ -428,28 +320,12 @@ class ClothContent extends HTMLElement {
     this.shadowRoot.appendChild(label);
   }
 
-  // --------------------------------------------------------------------------
-  // Public API
-  // --------------------------------------------------------------------------
-
-  /**
-   * Enables or disables the cloth simulation.
-   * @param {boolean} enabled - Whether to enable the cloth effect
-   */
   setWiggle(enabled) {
     this.wiggleEnabled = enabled;
     if (this.checkbox) this.checkbox.checked = enabled;
     enabled ? this._showCloth() : this._showHTML();
   }
 
-  // --------------------------------------------------------------------------
-  // Display Mode Switching
-  // --------------------------------------------------------------------------
-
-  /**
-   * Switches to showing normal HTML content (no cloth simulation).
-   * @private
-   */
   _showHTML() {
     this._cleanup();
     this.shadowRoot.querySelector("canvas")?.remove();
@@ -460,10 +336,6 @@ class ClothContent extends HTMLElement {
     this.shadowRoot.appendChild(this.liveContent);
   }
 
-  /**
-   * Switches to cloth simulation mode with full initialization.
-   * @private
-   */
   async _showCloth() {
     if (this.liveContent.parentNode === this.shadowRoot)
       this.shadowRoot.removeChild(this.liveContent);
@@ -496,14 +368,6 @@ class ClothContent extends HTMLElement {
     }
   }
 
-  // --------------------------------------------------------------------------
-  // Content Capture
-  // --------------------------------------------------------------------------
-
-  /**
-   * Captures computed styles for proper color rendering in the texture.
-   * @private
-   */
   _captureComputedColors() {
     const self = getComputedStyle(this);
     this.computedColors = {
@@ -521,10 +385,6 @@ class ClothContent extends HTMLElement {
     });
   }
 
-  /**
-   * Moves the live content offscreen for capture without affecting layout.
-   * @private
-   */
   _moveLiveContentOffscreen() {
     this.liveContent.style.cssText = `
       position: fixed; left: -9999px; top: 0; width: ${
@@ -544,12 +404,6 @@ class ClothContent extends HTMLElement {
       document.body.appendChild(this.liveContent);
   }
 
-  /**
-   * Captures the live content to a canvas for use as cloth texture.
-   * @private
-   * @returns {Promise<HTMLCanvasElement>} The captured canvas
-   * @throws {Error} If the captured dimensions are zero
-   */
   async _capture() {
     const canvas = await html2canvas(this.liveContent, {
       backgroundColor: null,
@@ -564,11 +418,6 @@ class ClothContent extends HTMLElement {
     return canvas;
   }
 
-  /**
-   * Re-captures the content to update the cloth texture.
-   * Prevents concurrent recaptures with a guard flag.
-   * @private
-   */
   async _recapture() {
     if (this.isRecapturing || !this.clothRenderer) return;
     this.isRecapturing = true;
@@ -576,19 +425,10 @@ class ClothContent extends HTMLElement {
       const canvas = await this._capture();
       this.clothRenderer.updateTexture(canvas);
     } catch (e) {
-      // Silently fail on recapture errors - the cloth continues with existing texture
     }
     this.isRecapturing = false;
   }
 
-  // --------------------------------------------------------------------------
-  // User Interaction
-  // --------------------------------------------------------------------------
-
-  /**
-   * Sets up mouse and touch event handlers for cloth dragging.
-   * @private
-   */
   _setupInteraction() {
     const toWorld = (e) => {
       const rect = this.getBoundingClientRect();
@@ -657,14 +497,6 @@ class ClothContent extends HTMLElement {
     });
   }
 
-  // --------------------------------------------------------------------------
-  // Observers and Event Handlers
-  // --------------------------------------------------------------------------
-
-  /**
-   * Sets up a ResizeObserver to handle window/container resizing.
-   * @private
-   */
   _setupResizeObserver() {
     const target =
       document.querySelector(".main-content") || this.parentElement || this;
@@ -677,10 +509,6 @@ class ClothContent extends HTMLElement {
     this.resizeObserver.observe(target);
   }
 
-  /**
-   * Sets up a MutationObserver to detect theme changes.
-   * @private
-   */
   _setupThemeObserver() {
     this.themeObserver = new MutationObserver((mutations) => {
       for (const m of mutations) {
@@ -693,10 +521,6 @@ class ClothContent extends HTMLElement {
     this.themeObserver.observe(document.body, { attributes: true });
   }
 
-  /**
-   * Handles theme changes by recapturing the content with new styles.
-   * @private
-   */
   async _handleThemeChange() {
     if (this.isChangingTheme || !this.clothRenderer) return;
     this.isChangingTheme = true;
@@ -716,15 +540,10 @@ class ClothContent extends HTMLElement {
       const canvas = await this._capture();
       this.clothRenderer.updateTexture(canvas);
     } catch (e) {
-      // Silently fail on theme change errors - the cloth continues with existing texture
     }
     this.isChangingTheme = false;
   }
 
-  /**
-   * Handles window/container resize by recreating the cloth simulation.
-   * @private
-   */
   async _handleResize() {
     if (this.isResizing) return;
     this.isResizing = true;
@@ -743,19 +562,10 @@ class ClothContent extends HTMLElement {
       this._setupInteraction();
       this._animate();
     } catch (e) {
-      // Silently fail on resize errors - component will remain in previous state
     }
     this.isResizing = false;
   }
 
-  // --------------------------------------------------------------------------
-  // Animation Loop
-  // --------------------------------------------------------------------------
-
-  /**
-   * Main animation loop that runs the physics simulation and renders the cloth.
-   * @private
-   */
   _animate() {
     if (!this.isConnected || !this.physics) return;
     this.animationId = requestAnimationFrame(() => this._animate());
@@ -763,14 +573,6 @@ class ClothContent extends HTMLElement {
     this.clothRenderer.update();
   }
 
-  // --------------------------------------------------------------------------
-  // Cleanup
-  // --------------------------------------------------------------------------
-
-  /**
-   * Cleans up all resources, observers, and animation frames.
-   * @private
-   */
   _cleanup() {
     if (this.animationId) {
       cancelAnimationFrame(this.animationId);

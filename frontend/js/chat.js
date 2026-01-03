@@ -1,14 +1,8 @@
-// =============================================================================
-// Imports
-// =============================================================================
 import { getEvents, getChatHistory } from './api.js';
 import { WS_BASE_URL, PAGE_SIZE, RECONNECT } from './config.js';
 import { getHumanReadableDateTimeString, getUserColor, parseWebSocketMessage } from './utils.js';
 import { marked } from 'https://cdn.jsdelivr.net/npm/marked@15.0.0/+esm';
 
-// =============================================================================
-// Markdown Configuration
-// =============================================================================
 marked.setOptions({
   breaks: true,
   gfm: true,
@@ -29,13 +23,6 @@ function renderMarkdown(text) {
   return marked.parse(restored);
 }
 
-// =============================================================================
-// Chat State Management
-// =============================================================================
-
-/**
- * Centralized state for a WebSocket connection with reconnection logic.
- */
 class ConnectionState {
   constructor() {
     this.ws = null;
@@ -80,9 +67,6 @@ class ConnectionState {
   }
 }
 
-/**
- * Application state for the chat UI.
- */
 const state = {
   connection: "closed",
   channel: "general",
@@ -96,19 +80,12 @@ const state = {
   seenKeys: new Set(),
 };
 
-// Connection states for chat and visitor WebSockets
 const chatConn = new ConnectionState();
 const visitorConn = new ConnectionState();
 
-// Track presence events to avoid redundant join/leave messages
 const lastPresenceByIp = new Map();
 
-// Initialization flag
 let chatInitialized = false;
-
-// =============================================================================
-// Message Deduplication & Presence Tracking
-// =============================================================================
 
 function getMessageKey(msg) {
   const id = msg.visitor?.ip || msg.ip || msg.sender || "";
@@ -140,10 +117,6 @@ function isRedundantPresence(event) {
   lastPresenceByIp.set(ip, event.type);
   return false;
 }
-
-// =============================================================================
-// UI Helpers
-// =============================================================================
 
 function getWsUrl(channel) {
   return `${WS_BASE_URL}/ws/chat/${encodeURIComponent(channel)}`;
@@ -215,10 +188,6 @@ function renderMessagesAtTop(messages) {
   msgsEl.scrollTop = msgsEl.scrollHeight - prevScrollHeight;
 }
 
-// =============================================================================
-// Data Fetching
-// =============================================================================
-
 async function fetchHistory(initial = false) {
   if (state.isLoadingHistory || (!initial && !state.hasMoreHistory)) return;
   setLoading(true);
@@ -280,10 +249,6 @@ function handleScroll() {
     fetchHistory();
   }
 }
-
-// =============================================================================
-// WebSocket Connection Management
-// =============================================================================
 
 function stopChat() {
   chatConn.stop();
@@ -401,10 +366,6 @@ function connectVisitors() {
   };
 }
 
-// =============================================================================
-// Message Sending & Connection Control
-// =============================================================================
-
 function sendMessage(text) {
   const trimmed = (text || "").trim();
   if (!trimmed) return;
@@ -428,10 +389,6 @@ function cleanup() {
   stopChat();
   stopVisitors();
 }
-
-// =============================================================================
-// Initialization
-// =============================================================================
 
 async function initChat() {
   if (chatInitialized) return;
