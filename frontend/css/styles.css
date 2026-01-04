@@ -28,7 +28,7 @@
   --text: #f1f1f1;
   --text-secondary: #b3b3b3;
   --bg: #000000;
-  --accent: #4d8eff;
+  --accent: #00ff08;
   --accent-subtle: #1a2840;
   --border: #f1f1f1;
 }
@@ -326,7 +326,7 @@ body:has(.right-sidebar.mobile-open) .main-content {
   align-items: stretch;
 }
 
-.grid-row > .section {
+.grid-row>.section {
   height: 100%;
 }
 
