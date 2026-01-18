@@ -422,16 +422,41 @@
     rightSidebar: null,
     mobileToggle: null,
     rightMenuToggle: null,
+    mobileMenuIcon: null,
+    rightMenuIcon: null,
 
     init() {
       this.mobileToggle = document.getElementById("mobile-menu-toggle");
       this.leftSidebar = document.getElementById("left-sidebar");
       this.rightMenuToggle = document.getElementById("right-menu-toggle");
       this.rightSidebar = document.getElementById("right-sidebar");
+      this.mobileMenuIcon = document.getElementById("mobile-menu-icon");
+      this.rightMenuIcon = document.getElementById("right-menu-icon");
 
       this._initMobileToggles();
       this._initResizeHandles();
       this.updateForScreenSize();
+    },
+
+    _updateToggleIcons() {
+      if (this.mobileMenuIcon) {
+        const leftOpen = this.leftSidebar?.classList.contains("mobile-open");
+        this.mobileMenuIcon
+          .querySelector("use")
+          .setAttribute(
+            "href",
+            leftOpen ? "#icon-chevron-left" : "#icon-chevron-right",
+          );
+      }
+      if (this.rightMenuIcon) {
+        const rightOpen = this.rightSidebar?.classList.contains("mobile-open");
+        this.rightMenuIcon
+          .querySelector("use")
+          .setAttribute(
+            "href",
+            rightOpen ? "#icon-chevron-right" : "#icon-chevron-left",
+          );
+      }
     },
 
     updateForScreenSize() {
@@ -453,6 +478,7 @@
           this.rightMenuToggle.classList.remove("active");
         }
       }
+      this._updateToggleIcons();
     },
 
     closeMobileMenus() {
@@ -464,6 +490,7 @@
         this.rightSidebar.classList.remove("mobile-open");
         this.rightMenuToggle.classList.remove("active");
       }
+      this._updateToggleIcons();
     },
 
     _initMobileToggles() {
@@ -471,6 +498,7 @@
         this.mobileToggle.addEventListener("click", () => {
           this.leftSidebar.classList.toggle("mobile-open");
           this.mobileToggle.classList.toggle("active");
+          this._updateToggleIcons();
         });
       }
 
@@ -478,6 +506,7 @@
         this.rightMenuToggle.addEventListener("click", () => {
           this.rightSidebar.classList.toggle("mobile-open");
           this.rightMenuToggle.classList.toggle("active");
+          this._updateToggleIcons();
         });
       }
     },

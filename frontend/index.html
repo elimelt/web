@@ -80,6 +80,16 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
       </symbol>
+
+      <!-- Chevron Left Icon -->
+      <symbol id="icon-chevron-left" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+      </symbol>
+
+      <!-- Chevron Right Icon -->
+      <symbol id="icon-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+      </symbol>
     </svg>
   </div>
   <div class="site-container">
@@ -87,8 +97,8 @@
     <button id="mobile-menu-toggle" class="mobile-menu-toggle" data-analytics="button"
       data-analytics-id="btn:mobile-menu-toggle" data-analytics-label="Mobile menu toggle"
       aria-label="Toggle navigation menu">
-      <svg class="menu-icon">
-        <use href="#icon-menu"></use>
+      <svg class="menu-icon" id="mobile-menu-icon">
+        <use href="#icon-chevron-right"></use>
       </svg>
     </button>
 
@@ -524,8 +534,8 @@
     <button id="right-menu-toggle" class="right-menu-toggle" data-analytics="button"
       data-analytics-id="btn:right-menu-toggle" data-analytics-label="Right menu toggle"
       aria-label="Toggle photo sidebar">
-      <svg class="menu-icon">
-        <use href="#icon-menu"></use>
+      <svg class="menu-icon" id="right-menu-icon">
+        <use href="#icon-chevron-left"></use>
       </svg>
     </button>
 
