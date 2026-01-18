@@ -191,12 +191,20 @@
 
     <!-- Main Content -->
     <main class="main-content">
-      <!-- Row 1: Services (full width) -->
-      <section id="services" class="section">
-        <h2 class="section-title">Services</h2>
-        <div id="services-stats">Loading...</div>
-        <div id="services-content"></div>
-      </section>
+      <!-- Row 1: Services | Public API (50/50) -->
+      <div class="grid-row">
+        <section id="services" class="section">
+          <h2 class="section-title">Services</h2>
+          <div id="services-stats">Loading...</div>
+          <div id="services-content"></div>
+        </section>
+
+        <section id="public-api" class="section">
+          <h2 class="section-title">Public API</h2>
+          <div id="public-api-stats">Loading...</div>
+          <iframe id="public-api-content" src="https://blink.tail8ab50a.ts.net:8443/docs" class="api-docs-iframe"></iframe>
+        </section>
+      </div>
 
       <!-- Row 2: Visitors | Chat (50/50) -->
       <div class="grid-row">
@@ -594,6 +602,7 @@
   <script src="https://cdn.apple-livephotoskit.com/lpk/1/livephotoskit.js"></script>
   <script type="module" src="js/cloth-content.js?v=2"></script>
   <script type="module" src="js/services.js?v=2"></script>
+  <script type="module" src="js/public-api.js?v=2"></script>
   <script type="module" src="js/click-tracking.js?v=2"></script>
   <script type="module" src="js/visitors.js?v=2"></script>
   <script type="module" src="js/chat.js?v=2"></script>

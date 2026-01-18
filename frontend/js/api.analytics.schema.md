@@ -6,7 +6,7 @@ Endpoints:
     - `type`: `analytics.batch`
     - `payload.topic`: `clicks`
     - `payload.events`: `ClickEvent[]`
-- HTTP beacon fallback: `POST ${BASE_URL}/analytics/clicks`
+- HTTP beacon fallback: `POST ${BASE_URL}/clicks/analytics`
   - Body: `{ topic: "clicks", events: ClickEvent[] }`
 
 ClickEvent:

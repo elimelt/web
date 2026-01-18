@@ -1,7 +1,11 @@
-import { getEvents, getChatHistory } from './api.js';
-import { WS_BASE_URL, PAGE_SIZE, RECONNECT } from './config.js';
-import { getHumanReadableDateTimeString, getUserColor, parseWebSocketMessage } from './utils.js';
-import { marked } from 'https://cdn.jsdelivr.net/npm/marked@15.0.0/+esm';
+import { getEvents, getChatHistory, getChatAnalytics } from "./api.js";
+import { WS_BASE_URL, PAGE_SIZE, RECONNECT } from "./config.js";
+import {
+  getHumanReadableDateTimeString,
+  getUserColor,
+  parseWebSocketMessage,
+} from "./utils.js";
+import { marked } from "https://cdn.jsdelivr.net/npm/marked@15.0.0/+esm";
 
 marked.setOptions({
   breaks: true,
@@ -9,7 +13,7 @@ marked.setOptions({
 });
 
 function escapeHtml(text) {
-  const div = document.createElement('div');
+  const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
 }
@@ -17,7 +21,7 @@ function escapeHtml(text) {
 function renderMarkdown(text) {
   const escaped = escapeHtml(text);
   const restored = escaped
-    .replace(/&gt;/g, '>')
+    .replace(/&gt;/g, ">")
     .replace(/&#39;/g, "'")
     .replace(/&quot;/g, '"');
   return marked.parse(restored);
@@ -129,7 +133,9 @@ function checkPresenceDebounce(event) {
   if (!isPresence) return { suppress: false, updateExisting: null };
 
   const ip = event.visitor?.ip || event.ip || "unknown";
-  const eventTime = new Date(event.timestamp || event.visitor?.connected_at || Date.now()).getTime();
+  const eventTime = new Date(
+    event.timestamp || event.visitor?.connected_at || Date.now(),
+  ).getTime();
   const existing = presenceDebounce.get(ip);
 
   if (!existing) {
@@ -142,7 +148,11 @@ function checkPresenceDebounce(event) {
   if (timeDiff >= 0 && timeDiff < PRESENCE_DEBOUNCE_MS) {
     // If it's a disconnect after a connect, or vice versa, update the existing element
     if (existing.type !== event.type && existing.element) {
-      return { suppress: true, updateExisting: existing.element, replaceWith: event };
+      return {
+        suppress: true,
+        updateExisting: existing.element,
+        replaceWith: event,
+      };
     }
     // Same type within window - suppress completely
     return { suppress: true, updateExisting: null };
@@ -157,7 +167,9 @@ function registerPresenceEvent(event, element) {
   if (!isPresence) return;
 
   const ip = event.visitor?.ip || event.ip || "unknown";
-  const eventTime = new Date(event.timestamp || event.visitor?.connected_at || Date.now()).getTime();
+  const eventTime = new Date(
+    event.timestamp || event.visitor?.connected_at || Date.now(),
+  ).getTime();
 
   // Clear any existing debounce timer for this IP
   const existing = presenceDebounce.get(ip);
@@ -174,7 +186,7 @@ function registerPresenceEvent(event, element) {
     type: event.type,
     timestamp: eventTime,
     element,
-    debounceTimer
+    debounceTimer,
   });
 }
 
@@ -193,7 +205,9 @@ function dedupePresenceEvents(items) {
     }
 
     const ip = item.visitor?.ip || item.ip || "unknown";
-    const itemTime = new Date(item.timestamp || item.visitor?.connected_at || Date.now()).getTime();
+    const itemTime = new Date(
+      item.timestamp || item.visitor?.connected_at || Date.now(),
+    ).getTime();
     const last = lastPresencePerIp.get(ip);
 
     if (last) {
@@ -202,7 +216,11 @@ function dedupePresenceEvents(items) {
       if (timeDiff >= 0 && timeDiff < PRESENCE_DEBOUNCE_MS) {
         // Within debounce window - update the existing entry instead of adding new one
         result[last.index] = item;
-        lastPresencePerIp.set(ip, { index: last.index, item, timestamp: itemTime });
+        lastPresencePerIp.set(ip, {
+          index: last.index,
+          item,
+          timestamp: itemTime,
+        });
         continue;
       }
     }
@@ -222,12 +240,25 @@ function getWsUrl(channel) {
 
 function setConnection(status, showRetry = false) {
   state.connection = status;
-  const statusEl = document.getElementById("chat-status");
   const sendBtn = document.getElementById("chat-send-btn");
   const retryBtn = document.getElementById("chat-retry-btn");
-  if (statusEl) statusEl.textContent = status;
   if (sendBtn) sendBtn.disabled = status !== "open";
   if (retryBtn) retryBtn.style.display = showRetry ? "inline-block" : "none";
+}
+
+async function updateChatStats() {
+  const statusEl = document.getElementById("chat-status");
+  if (!statusEl) return;
+
+  try {
+    const data = await getChatAnalytics(state.channel);
+    const messages = data.messages || 0;
+    const senders = data.senders || 0;
+    statusEl.textContent = `${messages} ${messages === 1 ? "message" : "messages"} from ${senders} ${senders === 1 ? "user" : "users"}`;
+  } catch (e) {
+    console.error("Failed to fetch chat analytics:", e);
+    statusEl.textContent = "Chat";
+  }
 }
 
 function setLoading(loading) {
@@ -245,23 +276,23 @@ function createMessageElement(msg) {
     const ip = msg.visitor?.ip || msg.ip || "unknown";
     const action = msg.type === "join" ? "connected" : "disconnected";
     const time = getHumanReadableDateTimeString(
-      msg.timestamp || msg.visitor?.connected_at || Date.now()
+      msg.timestamp || msg.visitor?.connected_at || Date.now(),
     );
     item.innerHTML = `<span style="color:${getUserColor(
-      ip
+      ip,
     )}">${ip}</span> ${action} • ${time}`;
   } else {
     const sender = msg.sender ?? "unknown";
     const meta = document.createElement("div");
     meta.className = "chat-meta";
     meta.innerHTML = `<span style="color:${getUserColor(
-      sender
+      sender,
     )}">${sender}</span> • ${getHumanReadableDateTimeString(
-      msg.timestamp ?? Date.now()
+      msg.timestamp ?? Date.now(),
     )}`;
     const text = document.createElement("div");
     text.className = "chat-text";
-    text.innerHTML = renderMarkdown(msg.text || '');
+    text.innerHTML = renderMarkdown(msg.text || "");
     item.appendChild(meta);
     item.appendChild(text);
   }
@@ -269,7 +300,9 @@ function createMessageElement(msg) {
 }
 
 function getMessageTimestamp(msg) {
-  return new Date(msg.timestamp || msg.visitor?.connected_at || Date.now()).getTime();
+  return new Date(
+    msg.timestamp || msg.visitor?.connected_at || Date.now(),
+  ).getTime();
 }
 
 function findInsertionIndex(messages, newMsg) {
@@ -301,7 +334,7 @@ function insertMessageSorted(msg, autoScroll = true) {
         const ip = msg.visitor?.ip || msg.ip || "unknown";
         const action = msg.type === "join" ? "connected" : "disconnected";
         const time = getHumanReadableDateTimeString(
-          msg.timestamp || msg.visitor?.connected_at || Date.now()
+          msg.timestamp || msg.visitor?.connected_at || Date.now(),
         );
         debounceResult.updateExisting.innerHTML = `<span style="color:${getUserColor(ip)}">${ip}</span> ${action} • ${time}`;
         // Update the debounce tracking
@@ -329,7 +362,8 @@ function insertMessageSorted(msg, autoScroll = true) {
   }
 
   if (autoScroll) {
-    const isNearBottom = msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight < 100;
+    const isNearBottom =
+      msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight < 100;
     if (isNearBottom) {
       msgsEl.scrollTop = msgsEl.scrollHeight;
     }
@@ -342,13 +376,15 @@ function renderMessagesAtTop(messages) {
   const prevScrollHeight = msgsEl.scrollHeight;
 
   const sortedMessages = [...messages].sort(
-    (a, b) => getMessageTimestamp(a) - getMessageTimestamp(b)
+    (a, b) => getMessageTimestamp(a) - getMessageTimestamp(b),
   );
 
   state.messages = [...sortedMessages, ...state.messages];
 
   const fragment = document.createDocumentFragment();
-  sortedMessages.forEach((msg) => fragment.appendChild(createMessageElement(msg)));
+  sortedMessages.forEach((msg) =>
+    fragment.appendChild(createMessageElement(msg)),
+  );
   msgsEl.insertBefore(fragment, msgsEl.firstChild);
   msgsEl.scrollTop = msgsEl.scrollHeight - prevScrollHeight;
 }
@@ -391,7 +427,10 @@ async function fetchPresenceEvents(before) {
       ...e,
       type: e.type,
       ip: e.payload?.visitor?.ip || e.payload?.ip || e.visitor?.ip || e.ip,
-      timestamp: e.timestamp || e.payload?.visitor?.connected_at || e.visitor?.connected_at,
+      timestamp:
+        e.timestamp ||
+        e.payload?.visitor?.connected_at ||
+        e.visitor?.connected_at,
     }));
     return events
       .filter((e) => !isDuplicate(e))
@@ -501,7 +540,11 @@ function connectVisitors() {
     if (data.type === "join" || data.type === "leave") {
       const event = {
         ...data,
-        ip: data.payload?.visitor?.ip || data.payload?.ip || data.visitor?.ip || data.ip,
+        ip:
+          data.payload?.visitor?.ip ||
+          data.payload?.ip ||
+          data.visitor?.ip ||
+          data.ip,
         timestamp:
           data.timestamp ||
           data.visitor?.connected_at ||
@@ -531,7 +574,10 @@ function connectVisitors() {
 function sendMessage(text) {
   const trimmed = (text || "").trim();
   if (!trimmed) return;
-  if (state.connection === "open" && chatConn.ws?.readyState === WebSocket.OPEN) {
+  if (
+    state.connection === "open" &&
+    chatConn.ws?.readyState === WebSocket.OPEN
+  ) {
     chatConn.ws.send(JSON.stringify({ text: trimmed }));
   } else {
     state.unsentQueue.push(trimmed);
@@ -615,6 +661,9 @@ async function initChat() {
 
   connectChat();
   connectVisitors();
+
+  updateChatStats();
+  setInterval(updateChatStats, 30000);
 }
 
 if (document.readyState === "loading") {

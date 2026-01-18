@@ -18,6 +18,9 @@ const getVisitorsAnalytics = () => fetchJson('/visitor-analytics');
 
 const getChatHistory = (channel, params) => fetchJson(`/chat/${encodeURIComponent(channel)}/history?${params}`);
 
+const getChatAnalytics = (channel) =>
+  fetchJson(`/chat/${encodeURIComponent(channel)}/analytics`);
+
 let __sharedVisitorsWs = null;
 function __setSharedVisitorsWs(ws) {
   __sharedVisitorsWs = ws;
@@ -199,7 +202,7 @@ const AnalyticsDelivery = (() => {
       const blob = new Blob([JSON.stringify(payload)], {
         type: 'application/json'
       });
-      const ok = navigator.sendBeacon(`${BASE_URL}/analytics/clicks`, blob);
+      const ok = navigator.sendBeacon(`${BASE_URL}/clicks/analytics`, blob);
       if (ok) {
         inMemoryQueue = [];
         persist();
@@ -289,4 +292,12 @@ const getWsVisitors = (callbacks = {}) => {
     send: (data) => ws.send(JSON.stringify(data)),
   };
 };
-export { getSystem, getVisitors, getEvents, getVisitorsAnalytics, getChatHistory, getWsVisitors };
+export {
+  getSystem,
+  getVisitors,
+  getEvents,
+  getVisitorsAnalytics,
+  getChatHistory,
+  getChatAnalytics,
+  getWsVisitors,
+};
