@@ -2,12 +2,12 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 import html2canvas from "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/+esm";
 
 const PHYSICS_CONFIG = {
-  DAMPING: 0.97,
-  GRAVITY: 0.0004,
+  DAMPING: 0.87,
+  GRAVITY: 0.00001,
   TIMESTEP_SQ: 0.5,
   CONSTRAINT_ITERATIONS: 4,
   REST_FORCE_XY: 0.02,
-  REST_FORCE_Z: 0.9,
+  REST_FORCE_Z: 0.5,
   ROLL_RADIUS: 40,
   ROLL_Y_SCALE: 0.2,
   ROLL_Z_SCALE: 0.3,
@@ -21,6 +21,7 @@ const CLOTH_CONTENT_CONFIG = {
   DEFAULT_WIDTH: 720,
   RESIZE_THRESHOLD: 10,
   DRAG_THRESHOLD: 10,
+  CAPTURE_SCALE: 3,
 };
 
 class ClothPhysics {
@@ -183,16 +184,18 @@ class ClothRenderer {
 
     this.renderer = new THREE.WebGLRenderer({
       alpha: true,
-      antialias: true,
+      antialias: false,
       premultipliedAlpha: false,
     });
     this.renderer.setClearColor(0x000000, 0);
     this.renderer.setPixelRatio(this.scale);
     this.renderer.setSize(physics.width, physics.height);
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.domElement.style.pointerEvents = "auto";
     shadowRoot.appendChild(this.renderer.domElement);
 
     this.texture = new THREE.CanvasTexture(texture);
+    this.texture.colorSpace = THREE.SRGBColorSpace;
     this.texture.minFilter = THREE.LinearFilter;
     this.texture.magFilter = THREE.LinearFilter;
     this.texture.generateMipmaps = false;
@@ -264,8 +267,8 @@ class ClothContent extends HTMLElement {
   }
 
   async _init() {
-    this.width = this.offsetWidth || CLOTH_CONTENT_CONFIG.DEFAULT_WIDTH;
     this.liveContent = document.createElement("div");
+    this.liveContent.className = "content";
     while (this.firstChild) this.liveContent.appendChild(this.firstChild);
 
     this._setupStyles();
@@ -296,8 +299,7 @@ class ClothContent extends HTMLElement {
             .join("\n");
           this.shadowRoot.appendChild(style);
         }
-      } catch (e) {
-      }
+      } catch (e) {}
     }
   }
 
@@ -315,7 +317,7 @@ class ClothContent extends HTMLElement {
     }/> wiggle`;
     this.checkbox = label.querySelector("input");
     this.checkbox.addEventListener("change", () =>
-      this.setWiggle(this.checkbox.checked)
+      this.setWiggle(this.checkbox.checked),
     );
     this.shadowRoot.appendChild(label);
   }
@@ -337,9 +339,33 @@ class ClothContent extends HTMLElement {
   }
 
   async _showCloth() {
-    if (this.liveContent.parentNode === this.shadowRoot)
-      this.shadowRoot.removeChild(this.liveContent);
-    this._captureComputedColors();
+    // Ensure liveContent is in shadow DOM to measure its natural dimensions
+    if (this.liveContent.parentNode !== this.shadowRoot) {
+      if (this.liveContent.parentNode) {
+        this.liveContent.parentNode.removeChild(this.liveContent);
+      }
+      this.liveContent.style.cssText = "";
+      this.liveContent.className = "content";
+      this.shadowRoot.appendChild(this.liveContent);
+    }
+
+    await new Promise((r) => requestAnimationFrame(r));
+
+    // Measure natural dimensions while in shadow DOM
+    const contentRect = this.liveContent.getBoundingClientRect();
+    this.width = contentRect.width || CLOTH_CONTENT_CONFIG.DEFAULT_WIDTH;
+    this.contentWidth = contentRect.width;
+    this.contentHeight = contentRect.height;
+
+    this._captureComputedStyles();
+
+    // Create a temporary placeholder to prevent flash
+    const placeholder = this.liveContent.cloneNode(true);
+    placeholder.className = "content cloth-placeholder";
+    this.shadowRoot.insertBefore(placeholder, this.liveContent);
+
+    // Move original to body offscreen for capture
+    this.shadowRoot.removeChild(this.liveContent);
     this._moveLiveContentOffscreen();
 
     await new Promise((r) => requestAnimationFrame(r));
@@ -351,53 +377,42 @@ class ClothContent extends HTMLElement {
       this.clothRenderer = new ClothRenderer(
         this.shadowRoot,
         canvas,
-        this.physics
+        this.physics,
       );
+
+      // Remove placeholder now that canvas is ready
+      placeholder.remove();
+
       this._setupInteraction();
       this._setupResizeObserver();
       this._setupThemeObserver();
       this._animate();
-      setTimeout(() => this._recapture(), CLOTH_CONTENT_CONFIG.RECAPTURE_DELAY_MS);
+      setTimeout(
+        () => this._recapture(),
+        CLOTH_CONTENT_CONFIG.RECAPTURE_DELAY_MS,
+      );
     } catch (e) {
-      console.error("Cloth failed:", e, {
-        width: this.width,
-        contentWidth: this.contentWidth,
-        contentHeight: this.contentHeight,
-      });
+      console.error("Cloth failed:", e);
+      placeholder.remove();
       this._showHTML();
     }
   }
 
-  _captureComputedColors() {
-    const self = getComputedStyle(this);
-    this.computedColors = {
-      text: self.color,
-      font: self.fontFamily,
-      fontSize: self.fontSize,
-      lineHeight: self.lineHeight,
-      links: [],
-    };
-    this.liveContent.querySelectorAll("a").forEach((a) => {
-      this.computedColors.links.push({
-        el: a,
-        color: getComputedStyle(a).color,
-      });
-    });
-  }
-
   _moveLiveContentOffscreen() {
+    const s = this.computedStyles;
     this.liveContent.style.cssText = `
-      position: fixed; left: -9999px; top: 0; width: ${
-        this.width
-      }px; padding: 0;
-      background: transparent; color: ${this.computedColors.text};
-      font-family: ${this.computedColors.font || "system-ui"};
-      font-size: ${this.computedColors.fontSize || "16px"};
-      line-height: ${this.computedColors.lineHeight || "1.5"};
+      position: fixed; left: -9999px; top: 0; width: ${this.width}px;
+      box-sizing: border-box;
+      background: transparent; color: ${s.text};
+      font-family: ${s.font};
+      font-size: ${s.fontSize};
+      line-height: ${s.lineHeight};
+      letter-spacing: ${s.letterSpacing};
     `;
 
-    this.computedColors.links.forEach(({ el, color }) => {
+    s.links.forEach(({ el, color, textDecoration }) => {
       el.style.color = color;
+      el.style.textDecoration = textDecoration;
     });
 
     if (!this.liveContent.parentNode)
@@ -405,16 +420,24 @@ class ClothContent extends HTMLElement {
   }
 
   async _capture() {
+    const rect = this.liveContent.getBoundingClientRect();
+    this.contentWidth = rect.width;
+    this.contentHeight = rect.height;
+    if (!this.contentWidth || !this.contentHeight)
+      throw new Error("Zero dimensions");
+
+    const scale = Math.max(
+      window.devicePixelRatio || 2,
+      CLOTH_CONTENT_CONFIG.CAPTURE_SCALE,
+    );
     const canvas = await html2canvas(this.liveContent, {
       backgroundColor: null,
-      scale: window.devicePixelRatio || 2,
+      scale,
+      width: this.contentWidth,
+      height: this.contentHeight,
       useCORS: true,
       logging: false,
     });
-    this.contentWidth = this.liveContent.offsetWidth;
-    this.contentHeight = this.liveContent.offsetHeight;
-    if (!this.contentWidth || !this.contentHeight)
-      throw new Error("Zero dimensions");
     return canvas;
   }
 
@@ -424,9 +447,34 @@ class ClothContent extends HTMLElement {
     try {
       const canvas = await this._capture();
       this.clothRenderer.updateTexture(canvas);
-    } catch (e) {
-    }
+    } catch (e) {}
     this.isRecapturing = false;
+  }
+
+  _captureComputedStyles() {
+    const contentStyle = getComputedStyle(this.liveContent);
+    this.computedStyles = {
+      text: contentStyle.color,
+      font: contentStyle.fontFamily,
+      fontSize: contentStyle.fontSize,
+      lineHeight: contentStyle.lineHeight,
+      letterSpacing: contentStyle.letterSpacing,
+      links: [],
+    };
+    this.liveContent.querySelectorAll("a").forEach((a) => {
+      const style = getComputedStyle(a);
+      // Check if underline is effectively invisible (transparent or same as background)
+      const decoColor = style.textDecorationColor;
+      const isTransparent =
+        decoColor === "transparent" ||
+        decoColor === "rgba(0, 0, 0, 0)" ||
+        decoColor.includes(", 0)");
+      this.computedStyles.links.push({
+        el: a,
+        color: style.color,
+        textDecoration: isTransparent ? "none" : style.textDecorationLine,
+      });
+    });
   }
 
   _setupInteraction() {
@@ -469,7 +517,7 @@ class ClothContent extends HTMLElement {
         touchP = this.physics.findNearest(toWorld(e).x, toWorld(e).y);
         isTouchDrag = false;
       },
-      { passive: true }
+      { passive: true },
     );
     this.addEventListener(
       "touchmove",
@@ -477,7 +525,11 @@ class ClothContent extends HTMLElement {
         if (!touchP) return;
         const dx = Math.abs(e.touches[0].clientX - touchStart.x),
           dy = Math.abs(e.touches[0].clientY - touchStart.y);
-        if (!isTouchDrag && dx > CLOTH_CONTENT_CONFIG.DRAG_THRESHOLD && dx > dy) {
+        if (
+          !isTouchDrag &&
+          dx > CLOTH_CONTENT_CONFIG.DRAG_THRESHOLD &&
+          dx > dy
+        ) {
           isTouchDrag = true;
           touchP.dragging = true;
         }
@@ -488,7 +540,7 @@ class ClothContent extends HTMLElement {
           touchP.pos.y = touchP.prev.y = p.y;
         }
       },
-      { passive: false }
+      { passive: false },
     );
     this.addEventListener("touchend", () => {
       if (touchP) touchP.dragging = false;
@@ -498,11 +550,15 @@ class ClothContent extends HTMLElement {
   }
 
   _setupResizeObserver() {
+    if (this.resizeObserver) return;
     const target =
       document.querySelector(".main-content") || this.parentElement || this;
     this.resizeObserver = new ResizeObserver(() => {
-      const newW = this.offsetWidth;
-      if (newW > 0 && Math.abs(newW - this.width) > CLOTH_CONTENT_CONFIG.RESIZE_THRESHOLD) {
+      const newW = this.getBoundingClientRect().width;
+      if (
+        newW > 0 &&
+        Math.abs(newW - this.width) > CLOTH_CONTENT_CONFIG.RESIZE_THRESHOLD
+      ) {
         this._handleResize();
       }
     });
@@ -510,6 +566,7 @@ class ClothContent extends HTMLElement {
   }
 
   _setupThemeObserver() {
+    if (this.themeObserver) return;
     this.themeObserver = new MutationObserver((mutations) => {
       for (const m of mutations) {
         if (m.attributeName === "class" && this.wiggleEnabled) {
@@ -532,15 +589,14 @@ class ClothContent extends HTMLElement {
     this.liveContent.style.cssText = "";
 
     await new Promise((r) => requestAnimationFrame(r));
-    this._captureComputedColors();
+    this._captureComputedStyles();
     this._moveLiveContentOffscreen();
 
     await new Promise((r) => requestAnimationFrame(r));
     try {
       const canvas = await this._capture();
       this.clothRenderer.updateTexture(canvas);
-    } catch (e) {
-    }
+    } catch (e) {}
     this.isChangingTheme = false;
   }
 
@@ -548,7 +604,8 @@ class ClothContent extends HTMLElement {
     if (this.isResizing) return;
     this.isResizing = true;
     this._cleanup();
-    this.width = this.offsetWidth || CLOTH_CONTENT_CONFIG.DEFAULT_WIDTH;
+    const rect = this.getBoundingClientRect();
+    this.width = rect.width || CLOTH_CONTENT_CONFIG.DEFAULT_WIDTH;
     this.liveContent.style.width = this.width + "px";
     await new Promise((r) => requestAnimationFrame(r));
     try {
@@ -557,12 +614,11 @@ class ClothContent extends HTMLElement {
       this.clothRenderer = new ClothRenderer(
         this.shadowRoot,
         canvas,
-        this.physics
+        this.physics,
       );
       this._setupInteraction();
       this._animate();
-    } catch (e) {
-    }
+    } catch (e) {}
     this.isResizing = false;
   }
 

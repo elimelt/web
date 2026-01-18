@@ -247,6 +247,7 @@ cloth-content {
   cursor: grab;
   touch-action: pan-y pinch-zoom;
   pointer-events: auto;
+  font-size: 1.5rem;
 }
 
 cloth-content:active {
