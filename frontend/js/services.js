@@ -7,6 +7,33 @@ const TABLE_STYLES = {
 
 const TABLE_COLUMNS = ['Service', 'Status', 'CPU', 'Memory'];
 
+const SKELETON_ROW_COUNT = 10;
+
+function renderSkeletonLoading() {
+  const headerCells = TABLE_COLUMNS
+    .map(col => `<th style="${TABLE_STYLES.th}">${col}</th>`)
+    .join('');
+  const skeletonRows = Array(SKELETON_ROW_COUNT)
+    .fill('')
+    .map(() => `
+      <div class="services-skeleton-row">
+        <div class="services-skeleton-cell"></div>
+        <div class="services-skeleton-cell"></div>
+        <div class="services-skeleton-cell"></div>
+        <div class="services-skeleton-cell"></div>
+      </div>
+    `)
+    .join('');
+  return `
+    <div class="services-table-wrap">
+      <table class="services-table" style="${TABLE_STYLES.table}">
+        <thead><tr>${headerCells}</tr></thead>
+      </table>
+      <div class="services-skeleton">${skeletonRows}</div>
+    </div>
+  `;
+}
+
 function formatPercent(value) {
   if (typeof value !== 'number' || isNaN(value)) return '—';
   const pct = value <= 1 ? value * 100 : value;
@@ -78,6 +105,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const statsEl = document.getElementById('services-stats');
   const container = document.getElementById('services-content');
   if (!container || !statsEl) return;
+
+  // Show skeleton loading state immediately
+  statsEl.textContent = 'Loading...';
+  container.innerHTML = renderSkeletonLoading();
 
   async function load() {
     try {

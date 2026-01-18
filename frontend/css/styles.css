@@ -396,7 +396,14 @@ body:has(.right-sidebar.mobile-open) .main-content {
   margin-bottom: 0.5rem;
 }
 
-#services-content,
+#services-content {
+  height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.5rem;
+}
+
 #recent-visitor-list {
   flex: 1;
   overflow-y: auto;
@@ -404,6 +411,36 @@ body:has(.right-sidebar.mobile-open) .main-content {
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 0.5rem;
+}
+
+/* Services table skeleton loading styles */
+.services-skeleton-row {
+  display: flex;
+  gap: 8px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.services-skeleton-row:last-child {
+  border-bottom: none;
+}
+
+.services-skeleton-cell {
+  height: 16px;
+  background: linear-gradient(90deg, var(--border) 25%, var(--bg-secondary) 50%, var(--border) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.services-skeleton-cell:nth-child(1) { flex: 2; }
+.services-skeleton-cell:nth-child(2) { flex: 1.5; }
+.services-skeleton-cell:nth-child(3) { flex: 1; }
+.services-skeleton-cell:nth-child(4) { flex: 1.5; }
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .section-description {
