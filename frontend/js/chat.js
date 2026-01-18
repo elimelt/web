@@ -85,6 +85,10 @@ const visitorConn = new ConnectionState();
 
 const lastPresenceByIp = new Map();
 
+// Track recent presence events for deduplication: ip -> { type, timestamp, element, debounceTimer }
+const presenceDebounce = new Map();
+const PRESENCE_DEBOUNCE_MS = 20 * 60 * 1000; // 20 minutes - collapse rapid connect/disconnect within this window
+
 let chatInitialized = false;
 
 function getMessageKey(msg) {
@@ -116,6 +120,100 @@ function isRedundantPresence(event) {
 
   lastPresenceByIp.set(ip, event.type);
   return false;
+}
+
+// Check if this presence event should be suppressed due to rapid reconnection
+// Returns: { suppress: boolean, updateExisting: element | null }
+function checkPresenceDebounce(event) {
+  const isPresence = event.type === "join" || event.type === "leave";
+  if (!isPresence) return { suppress: false, updateExisting: null };
+
+  const ip = event.visitor?.ip || event.ip || "unknown";
+  const eventTime = new Date(event.timestamp || event.visitor?.connected_at || Date.now()).getTime();
+  const existing = presenceDebounce.get(ip);
+
+  if (!existing) {
+    return { suppress: false, updateExisting: null };
+  }
+
+  const timeDiff = eventTime - existing.timestamp;
+
+  // If this event is within the debounce window
+  if (timeDiff >= 0 && timeDiff < PRESENCE_DEBOUNCE_MS) {
+    // If it's a disconnect after a connect, or vice versa, update the existing element
+    if (existing.type !== event.type && existing.element) {
+      return { suppress: true, updateExisting: existing.element, replaceWith: event };
+    }
+    // Same type within window - suppress completely
+    return { suppress: true, updateExisting: null };
+  }
+
+  return { suppress: false, updateExisting: null };
+}
+
+// Register a presence event for debouncing
+function registerPresenceEvent(event, element) {
+  const isPresence = event.type === "join" || event.type === "leave";
+  if (!isPresence) return;
+
+  const ip = event.visitor?.ip || event.ip || "unknown";
+  const eventTime = new Date(event.timestamp || event.visitor?.connected_at || Date.now()).getTime();
+
+  // Clear any existing debounce timer for this IP
+  const existing = presenceDebounce.get(ip);
+  if (existing && existing.debounceTimer) {
+    clearTimeout(existing.debounceTimer);
+  }
+
+  // Set up cleanup after debounce window
+  const debounceTimer = setTimeout(() => {
+    presenceDebounce.delete(ip);
+  }, PRESENCE_DEBOUNCE_MS);
+
+  presenceDebounce.set(ip, {
+    type: event.type,
+    timestamp: eventTime,
+    element,
+    debounceTimer
+  });
+}
+
+// Dedupe presence events for historical data - collapse rapid connect/disconnect pairs
+function dedupePresenceEvents(items) {
+  const result = [];
+  // Track last presence per IP: ip -> { index in result, item, timestamp }
+  const lastPresencePerIp = new Map();
+
+  for (const item of items) {
+    const isPresence = item.type === "join" || item.type === "leave";
+
+    if (!isPresence) {
+      result.push(item);
+      continue;
+    }
+
+    const ip = item.visitor?.ip || item.ip || "unknown";
+    const itemTime = new Date(item.timestamp || item.visitor?.connected_at || Date.now()).getTime();
+    const last = lastPresencePerIp.get(ip);
+
+    if (last) {
+      const timeDiff = itemTime - last.timestamp;
+
+      if (timeDiff >= 0 && timeDiff < PRESENCE_DEBOUNCE_MS) {
+        // Within debounce window - update the existing entry instead of adding new one
+        result[last.index] = item;
+        lastPresencePerIp.set(ip, { index: last.index, item, timestamp: itemTime });
+        continue;
+      }
+    }
+
+    // Outside debounce window or first occurrence - add new entry
+    const newIndex = result.length;
+    result.push(item);
+    lastPresencePerIp.set(ip, { index: newIndex, item, timestamp: itemTime });
+  }
+
+  return result;
 }
 
 function getWsUrl(channel) {
@@ -193,10 +291,35 @@ function insertMessageSorted(msg, autoScroll = true) {
   const msgsEl = document.getElementById("chat-messages");
   if (!msgsEl) return;
 
+  // Check if this presence event should be debounced
+  const isPresence = msg.type === "join" || msg.type === "leave";
+  if (isPresence) {
+    const debounceResult = checkPresenceDebounce(msg);
+    if (debounceResult.suppress) {
+      if (debounceResult.updateExisting && debounceResult.replaceWith) {
+        // Update the existing element with the new state
+        const ip = msg.visitor?.ip || msg.ip || "unknown";
+        const action = msg.type === "join" ? "connected" : "disconnected";
+        const time = getHumanReadableDateTimeString(
+          msg.timestamp || msg.visitor?.connected_at || Date.now()
+        );
+        debounceResult.updateExisting.innerHTML = `<span style="color:${getUserColor(ip)}">${ip}</span> ${action} • ${time}`;
+        // Update the debounce tracking
+        registerPresenceEvent(msg, debounceResult.updateExisting);
+      }
+      return; // Suppress this event
+    }
+  }
+
   const insertIndex = findInsertionIndex(state.messages, msg);
   state.messages.splice(insertIndex, 0, msg);
 
   const item = createMessageElement(msg);
+
+  // Register presence events for future debouncing
+  if (isPresence) {
+    registerPresenceEvent(msg, item);
+  }
 
   const children = msgsEl.children;
   if (insertIndex >= children.length) {
@@ -471,11 +594,21 @@ async function initChat() {
 
   msgsEl.innerHTML = "";
   lastPresenceByIp.clear();
+  presenceDebounce.clear();
   state.messages = [];
-  for (const item of allItems) {
+
+  // Dedupe rapid connect/disconnect sequences in historical data
+  const dedupedItems = dedupePresenceEvents(allItems);
+
+  for (const item of dedupedItems) {
     if (!isRedundantPresence(item)) {
       state.messages.push(item);
-      msgsEl.appendChild(createMessageElement(item));
+      const el = createMessageElement(item);
+      msgsEl.appendChild(el);
+      // Register the last presence event per IP for real-time debouncing
+      if (item.type === "join" || item.type === "leave") {
+        registerPresenceEvent(item, el);
+      }
     }
   }
   msgsEl.scrollTop = msgsEl.scrollHeight;
