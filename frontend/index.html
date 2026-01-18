@@ -72,6 +72,14 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
       </symbol>
+
+      <!-- Eye Icon (for preview) -->
+      <symbol id="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+      </symbol>
     </svg>
   </div>
   <div class="site-container">
@@ -266,7 +274,16 @@
         </div>
 
         <!-- Right column: stacked sections -->
-        <div class="grid-col-stack">
+        <div class="grid-col-stack" id="right-col-stack">
+          <section id="note-inline-preview" class="section note-inline-preview" style="display: none;">
+            <div class="note-inline-header">
+              <h2 class="section-title note-inline-title">Preview</h2>
+              <button class="note-inline-close" aria-label="Close preview">&times;</button>
+            </div>
+            <div class="note-inline-content">
+              <div class="note-inline-loading">Loading...</div>
+            </div>
+          </section>
           <section id="about" class="section">
             <h2 class="section-title">About</h2>
             <cloth-content>
@@ -300,13 +317,6 @@
                 <a href="https://reve.com" target="_blank" rel="noopener">Reve</a>,
                 a small startup training its own diffusion models from the ground
                 up.
-              </p>
-              <p class="about-text">
-                I graduated from the Paul G. Allen School of Computer Science and
-                Engineering at the University of Washington in 2025. I studied computer 
-                engineering, and focused on a few topics, which you can read
-                more about in my
-                <a href="https://notes.elimelt.com" target="_blank" rel="noopener">notes</a>.
               </p>
             </cloth-content>
           </section>
@@ -356,7 +366,13 @@
       <section id="experience" class="section">
         <h2 class="section-title">Experience</h2>
 
-        <div class="timeline">
+        <div class="timeline-container">
+          <button class="timeline-nav timeline-nav-prev" aria-label="Previous" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <div class="timeline">
           <article class="timeline-item">
             <div class="timeline-header">
               <img src="assets/logos/reve.svg" alt="Reve Image logo" class="timeline-logo" />
@@ -480,6 +496,12 @@
               </div>
             </div>
           </article>
+          </div>
+          <button class="timeline-nav timeline-nav-next" aria-label="Next">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
         </div>
       </section>
 

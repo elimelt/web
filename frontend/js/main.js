@@ -577,6 +577,7 @@
           throw new Error("Notes container not found in fetched HTML");
         }
 
+        const notesList = notesContainer.querySelector("ul");
         const links = notesContainer.querySelectorAll("a");
         links.forEach((link) => {
           const href = link.getAttribute("href");
@@ -585,8 +586,18 @@
           }
         });
 
+        const noteItems = notesContainer.querySelectorAll("li");
+        noteItems.forEach((item) => {
+          const previewBtn = document.createElement("button");
+          previewBtn.classList.add("preview-btn");
+          previewBtn.setAttribute("aria-label", "Preview note");
+          previewBtn.innerHTML =
+            '<svg class="preview-icon"><use href="#icon-eye"></use></svg>';
+          item.appendChild(previewBtn);
+        });
+
         const container = document.getElementById("notes-content");
-        container.innerHTML = notesContainer.innerHTML;
+        container.innerHTML = notesList.innerHTML;
         this._styleNoteItems();
         this.originalNotesHTML = container.innerHTML;
       } catch (error) {
@@ -619,10 +630,15 @@
         return;
       }
 
-      container.innerHTML = '<li class="note-item"><p class="notes-placeholder">Searching...</p></li>';
+      container.innerHTML =
+        '<li class="note-item"><p class="notes-placeholder">Searching...</p></li>';
 
       try {
-        const params = new URLSearchParams({ q: query, mode: "fulltext", limit: "20" });
+        const params = new URLSearchParams({
+          q: query,
+          mode: "fulltext",
+          limit: "20",
+        });
         const response = await fetch(`${this.SEARCH_API}?${params}`);
 
         if (!response.ok) {
@@ -633,28 +649,37 @@
         const results = data.results || [];
 
         if (results.length === 0) {
-          container.innerHTML = '<li class="note-item"><p class="notes-error">No results found.</p></li>';
+          container.innerHTML =
+            '<li class="note-item"><p class="notes-error">No results found.</p></li>';
           return;
         }
 
-        container.innerHTML = results.map((note) => {
-          // Convert file_path like "content/foo/bar.md" to URL path "foo/bar.html"
-          const urlPath = note.file_path
-            ? note.file_path.replace(/^content\//, '').replace(/\.md$/, '.html')
-            : note.id;
-          return `
+        container.innerHTML = results
+          .map((note) => {
+            const urlPath = note.file_path
+              ? note.file_path
+                  .replace(/^content\//, "")
+                  .replace(/\.md$/, ".html")
+              : note.id;
+            return `
           <li class="note-item">
             <a href="${this.SOURCE_URL}/${urlPath}" target="_blank" rel="noopener" class="note-link">${note.title}</a>
             <div class="note-meta">
               <span class="note-date">${note.last_modified ? new Date(note.last_modified).toLocaleDateString() : ""}</span>
               ${note.category ? `<span class="note-category">${note.category}</span>` : ""}
+              <button class="preview-btn" aria-label="Preview note">
+                <svg class="preview-icon"><use href="#icon-eye"></use></svg>
+              </button>
             </div>
           </li>
         `;
-        }).join("");
+          })
+          .join("");
+        this._attachPreviewListeners(container);
       } catch (error) {
         console.error("Error searching notes:", error);
-        container.innerHTML = '<li class="note-item"><p class="notes-error">Search failed. Please try again.</p></li>';
+        container.innerHTML =
+          '<li class="note-item"><p class="notes-error">Search failed. Please try again.</p></li>';
       }
     },
 
@@ -682,6 +707,13 @@
         const category = item.querySelector(".category");
         if (category) category.classList.add("note-category");
 
+        const previewBtn = item.querySelector(".preview-btn");
+        if (previewBtn) {
+          previewBtn.addEventListener("click", () => {
+            this._previewNote(item);
+          });
+        }
+
         if (date && category) {
           const metaDiv = document.createElement("div");
           metaDiv.classList.add("note-meta");
@@ -689,8 +721,56 @@
           date.parentNode.insertBefore(metaDiv, date);
           metaDiv.appendChild(date);
           metaDiv.appendChild(category);
+          metaDiv.appendChild(previewBtn);
         }
       });
+    },
+
+    _attachPreviewListeners(container) {
+      container.querySelectorAll(".preview-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          this._previewNote(btn.closest(".note-item"));
+        });
+      });
+    },
+
+    _previewNote(item) {
+      const link = item.querySelector("a");
+      if (!link) return;
+
+      const href = link.getAttribute("href");
+      if (!href) return;
+
+      const previewSection = document.getElementById("note-inline-preview");
+      if (!previewSection) return;
+
+      const titleEl = previewSection.querySelector(".note-inline-title");
+      const contentEl = previewSection.querySelector(".note-inline-content");
+      const closeBtn = previewSection.querySelector(".note-inline-close");
+
+      titleEl.textContent = link.textContent || "Preview";
+      contentEl.innerHTML = '<div class="note-inline-loading">Loading...</div>';
+      previewSection.style.display = "";
+
+      const closePreview = () => {
+        previewSection.style.display = "none";
+        contentEl.innerHTML =
+          '<div class="note-inline-loading">Loading...</div>';
+      };
+
+      closeBtn.onclick = closePreview;
+
+      contentEl.innerHTML = "";
+      const iframe = document.createElement("iframe");
+      iframe.classList.add("note-inline-iframe");
+
+      const url = new URL(href);
+      url.searchParams.set("embed", "true");
+      if (document.body.classList.contains("dark-mode")) {
+        url.searchParams.set("theme", "dark");
+      }
+      iframe.src = url.toString();
+      contentEl.appendChild(iframe);
     },
   };
 
@@ -740,11 +820,46 @@
     },
   };
 
+  const ExperienceCarousel = {
+    timeline: null,
+    prevBtn: null,
+    nextBtn: null,
+
+    init() {
+      this.timeline = document.querySelector("#experience .timeline");
+      this.prevBtn = document.querySelector(".timeline-nav-prev");
+      this.nextBtn = document.querySelector(".timeline-nav-next");
+
+      if (!this.timeline || !this.prevBtn || !this.nextBtn) return;
+
+      this.prevBtn.addEventListener("click", () => this._scroll(-1));
+      this.nextBtn.addEventListener("click", () => this._scroll(1));
+      this.timeline.addEventListener("scroll", () => this._updateButtons());
+
+      this._updateButtons();
+    },
+
+    _scroll(direction) {
+      const scrollAmount = this.timeline.clientWidth;
+      this.timeline.scrollBy({
+        left: direction * scrollAmount,
+        behavior: "smooth",
+      });
+    },
+
+    _updateButtons() {
+      const { scrollLeft, scrollWidth, clientWidth } = this.timeline;
+      this.prevBtn.disabled = scrollLeft <= 0;
+      this.nextBtn.disabled = scrollLeft + clientWidth >= scrollWidth - 1;
+    },
+  };
+
   document.addEventListener("DOMContentLoaded", () => {
     ThemeManager.init();
     SidebarManager.init();
     SmoothScrolling.init();
     NotesFetcher.init();
     MeatGameToggle.init();
+    ExperienceCarousel.init();
   });
 })();
