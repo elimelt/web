@@ -96,6 +96,7 @@ import { recordClickEvent, initAnalyticsDelivery } from './api.js';
         },
         element: getElementInfo(e.target)
       };
+      console.debug('[click-tracking] Click captured on:', payload.element.tag, payload.element.id || payload.element.classes);
       recordClickEvent(payload);
     } catch (err) {
       console.warn('click tracking failed:', err);
@@ -103,8 +104,10 @@ import { recordClickEvent, initAnalyticsDelivery } from './api.js';
   }
 
   function init() {
+    console.debug('[click-tracking] Initializing click tracking');
     initAnalyticsDelivery();
     document.addEventListener('click', onClick, { capture: true, passive: true });
+    console.debug('[click-tracking] Click listener registered');
   }
 
   if (document.readyState === "loading") {

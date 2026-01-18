@@ -21,9 +21,11 @@ const getChatHistory = (channel, params) => fetchJson(`/chat/${encodeURIComponen
 let __sharedVisitorsWs = null;
 function __setSharedVisitorsWs(ws) {
   __sharedVisitorsWs = ws;
+  console.debug('[analytics] Setting shared visitors WS');
   try {
     AnalyticsDelivery.attachWebSocket(ws);
   } catch (err) {
+    console.warn('[analytics] Failed to attach WebSocket:', err);
   }
 }
 export function getSharedVisitorsWebSocket() {
@@ -78,7 +80,10 @@ const AnalyticsDelivery = (() => {
   }
 
   function trySendBatchOverWs(events) {
-    if (!isWsOpen()) return false;
+    if (!isWsOpen()) {
+      console.debug('[analytics] WS not open, skipping batch send');
+      return false;
+    }
     try {
       const msg = {
         type: 'analytics.batch',
@@ -88,9 +93,10 @@ const AnalyticsDelivery = (() => {
         }
       };
       wsRef.send(JSON.stringify(msg));
+      console.debug('[analytics] Sent batch of', events.length, 'click events');
       return true;
     } catch (err) {
-      console.warn('WS send failed, will retry later:', err);
+      console.warn('[analytics] WS send failed, will retry later:', err);
       return false;
     }
   }
@@ -158,20 +164,28 @@ const AnalyticsDelivery = (() => {
     const queue = getQueue();
     queue.push(ev);
     persist();
+    console.debug('[analytics] Click enqueued, queue size:', queue.length, 'wsOpen:', isWsOpen());
     flushIfPossible();
   }
 
   function attachWebSocket(ws) {
     if (!ws) return;
+    console.debug('[analytics] Attaching WebSocket, readyState:', ws.readyState);
     wsRef = ws;
     if (isWsOpen()) {
+      console.debug('[analytics] WS already open, flushing immediately');
       flushIfPossible();
     }
     try {
-      ws.addEventListener('open', flushIfPossible, { once: true });
+      ws.addEventListener('open', () => {
+        console.debug('[analytics] WS opened, flushing');
+        flushIfPossible();
+      }, { once: true });
       ws.addEventListener('close', () => {
+        console.debug('[analytics] WS closed');
       });
-      ws.addEventListener('error', () => {
+      ws.addEventListener('error', (e) => {
+        console.debug('[analytics] WS error:', e);
       });
     } catch {}
     scheduleFlush();
