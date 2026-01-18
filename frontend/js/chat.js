@@ -170,20 +170,62 @@ function createMessageElement(msg) {
   return item;
 }
 
-function renderMessageAtBottom(msg, autoScroll = true) {
+function getMessageTimestamp(msg) {
+  return new Date(msg.timestamp || msg.visitor?.connected_at || Date.now()).getTime();
+}
+
+function findInsertionIndex(messages, newMsg) {
+  const newTimestamp = getMessageTimestamp(newMsg);
+  let low = 0;
+  let high = messages.length;
+  while (low < high) {
+    const mid = Math.floor((low + high) / 2);
+    if (getMessageTimestamp(messages[mid]) <= newTimestamp) {
+      low = mid + 1;
+    } else {
+      high = mid;
+    }
+  }
+  return low;
+}
+
+function insertMessageSorted(msg, autoScroll = true) {
   const msgsEl = document.getElementById("chat-messages");
   if (!msgsEl) return;
+
+  const insertIndex = findInsertionIndex(state.messages, msg);
+  state.messages.splice(insertIndex, 0, msg);
+
   const item = createMessageElement(msg);
-  msgsEl.appendChild(item);
-  if (autoScroll) msgsEl.scrollTop = msgsEl.scrollHeight;
+
+  const children = msgsEl.children;
+  if (insertIndex >= children.length) {
+    msgsEl.appendChild(item);
+  } else {
+    msgsEl.insertBefore(item, children[insertIndex]);
+  }
+
+  if (autoScroll) {
+    const isNearBottom = msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight < 100;
+    if (isNearBottom) {
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+    }
+  }
 }
 
 function renderMessagesAtTop(messages) {
   const msgsEl = document.getElementById("chat-messages");
   if (!msgsEl) return;
   const prevScrollHeight = msgsEl.scrollHeight;
+
+  const sortedMessages = [...messages].sort(
+    (a, b) => getMessageTimestamp(a) - getMessageTimestamp(b)
+  );
+
+  state.messages = [...sortedMessages, ...state.messages];
+
   const fragment = document.createDocumentFragment();
-  messages.forEach((msg) => fragment.appendChild(createMessageElement(msg)));
+  sortedMessages.forEach((msg) => fragment.appendChild(createMessageElement(msg)));
   msgsEl.insertBefore(fragment, msgsEl.firstChild);
   msgsEl.scrollTop = msgsEl.scrollHeight - prevScrollHeight;
 }
@@ -204,7 +246,6 @@ async function fetchHistory(initial = false) {
       state.hasMoreHistory = false;
     } else {
       msgs.reverse();
-      state.messages = [...msgs, ...state.messages];
       state.nextBefore = res.next_before || state.nextBefore;
       renderMessagesAtTop(msgs);
     }
@@ -290,8 +331,7 @@ function connectChat() {
     if (data.type === "chat_message" && data.channel === state.channel) {
       if (!isDuplicate(data)) {
         lastPresenceByIp.clear();
-        state.messages.push(data);
-        renderMessageAtBottom(data);
+        insertMessageSorted(data);
       }
     }
   };
@@ -345,8 +385,7 @@ function connectVisitors() {
           new Date().toISOString(),
       };
       if (!isDuplicate(event) && !isRedundantPresence(event)) {
-        state.messages.push(event);
-        renderMessageAtBottom(event);
+        insertMessageSorted(event);
       }
     }
   };
@@ -428,12 +467,14 @@ async function initChat() {
   const presenceEvents = await fetchPresenceEvents();
 
   const allItems = [...state.messages, ...presenceEvents];
-  allItems.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  allItems.sort((a, b) => getMessageTimestamp(a) - getMessageTimestamp(b));
 
   msgsEl.innerHTML = "";
   lastPresenceByIp.clear();
+  state.messages = [];
   for (const item of allItems) {
     if (!isRedundantPresence(item)) {
+      state.messages.push(item);
       msgsEl.appendChild(createMessageElement(item));
     }
   }
