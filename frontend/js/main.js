@@ -781,10 +781,26 @@
       contentEl.innerHTML = '<div class="note-inline-loading">Loading...</div>';
       previewSection.style.display = "";
 
+      // On mobile, move preview to appear after the notes section
+      const isMobile = window.innerWidth <= 768;
+      const notesSection = document.getElementById("notes-preview");
+      const originalParent = document.getElementById("right-col-stack");
+      if (
+        isMobile &&
+        notesSection &&
+        previewSection.parentElement !== notesSection.parentElement
+      ) {
+        notesSection.after(previewSection);
+      }
+
       const closePreview = () => {
         previewSection.style.display = "none";
         contentEl.innerHTML =
           '<div class="note-inline-loading">Loading...</div>';
+        // Move preview back to original location
+        if (originalParent && previewSection.parentElement !== originalParent) {
+          originalParent.prepend(previewSection);
+        }
       };
 
       closeBtn.onclick = closePreview;
@@ -795,9 +811,10 @@
 
       const url = new URL(href);
       url.searchParams.set("embed", "true");
-      if (document.body.classList.contains("dark-mode")) {
-        url.searchParams.set("theme", "dark");
-      }
+      url.searchParams.set(
+        "theme",
+        document.body.classList.contains("dark-mode") ? "dark" : "light",
+      );
       iframe.src = url.toString();
       contentEl.appendChild(iframe);
     },
@@ -846,6 +863,7 @@
         ? "Disable rat meat game"
         : "Enable rat meat game";
       this.toggle.classList.toggle("meat-active", !!enabled);
+      document.body.classList.toggle("meat-game-active", !!enabled);
     },
   };
 

@@ -31,13 +31,18 @@
   --bg: #000000;
   --bg-secondary: #1a1a1a;
   --accent: #00ff08;
-  --accent-hover: #00cc06;
-  --accent-subtle: #1a2840;
+  --accent-hover: #00ff0886;
+  --accent-subtle: #007104;
   --border: #f1f1f1;
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* Disable pointer events on iframes when meat game is active */
+body.meat-game-active iframe {
+  pointer-events: none;
 }
 
 /* Custom scrollbars */
@@ -175,7 +180,7 @@ body:has(.right-sidebar.mobile-open) #right-resize-handle {
 .nav-link {
   display: block;
   padding: 0.5rem 0;
-  color: var(--text);
+  color: var(--accent);
   text-decoration: none;
   transition: color 0.2s;
 }
@@ -184,7 +189,7 @@ body:has(.right-sidebar.mobile-open) #right-resize-handle {
 .nav-link:focus,
 .nav-link.active,
 .nav-link:target {
-  color: var(--accent);
+  color: var(--accent-hover);
 }
 
 .nav-link.active,
@@ -208,13 +213,13 @@ body:has(.right-sidebar.mobile-open) #right-resize-handle {
   display: flex;
   align-items: center;
   margin-bottom: 0.75rem;
-  color: var(--text);
+  color: var(--accent);
   text-decoration: none;
   transition: color 0.2s;
 }
 
 .contact-link:hover {
-  color: var(--accent);
+  color: var(--accent-hover);
 }
 
 .contact-icon {
@@ -530,13 +535,13 @@ body:has(.right-sidebar.mobile-open) .main-content {
   width: 36px;
   height: 36px;
   border: none;
-  background: var(--bg-secondary);
+  background: var(--accent);
   border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text);
+  color: var(--bg);
   transition: opacity 0.2s, background 0.2s;
 }
 
@@ -867,13 +872,13 @@ body:has(.right-sidebar.mobile-open) .main-content {
 .mobile-menu-toggle,
 .right-menu-toggle {
   background: var(--accent);
+  color: var(--bg);
   position: fixed;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background-color 0.2s;
   z-index: 1001;
-  color: white;
   width: 40px;
   height: 40px;
   border-radius: 8px;
@@ -903,6 +908,11 @@ body:has(.right-sidebar.mobile-open) .main-content {
 .mobile-menu-toggle.active,
 .right-menu-toggle.active {
   background: var(--accent-subtle);
+}
+
+.mobile-menu-toggle.active:hover,
+.right-menu-toggle.active:hover {
+  background: var(--accent-hover);
 }
 
 .theme-icon,
@@ -1678,6 +1688,7 @@ body:has(.right-sidebar.mobile-open) .main-content {
   }
 
   .mobile-menu-toggle,
+  .right-menu-toggle,
   .theme-toggle {
     width: 48px;
     height: 48px;
