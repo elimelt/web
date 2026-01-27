@@ -1,0 +1,39 @@
+/* CSS Custom Properties (Variables) */
+:root {
+  --text: #1a1a1a;
+  --text-secondary: #666;
+  --bg: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --accent: #0062ff;
+  --accent-hover: #5493fe;
+  --accent-subtle: #aeaeaeff;
+  --border: #1a1a1a;
+
+  --font: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-accent: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  --space: 1rem;
+  --left-sidebar-width: 280px;
+  --right-sidebar-width: 280px;
+}
+
+.dark-mode {
+  --text: #f1f1f1;
+  --text-secondary: #b3b3b3;
+  --bg: #000000;
+  --bg-secondary: #1a1a1a;
+  --accent: #00ff08;
+  --accent-hover: #00ff0886;
+  --accent-subtle: #007104;
+  --border: #f1f1f1;
+}
+

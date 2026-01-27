@@ -1,0 +1,170 @@
+/* Experience Timeline and Education */
+#experience {
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.timeline-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.timeline-nav {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: var(--accent);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bg);
+  transition: opacity 0.2s, background 0.2s;
+}
+
+.timeline-nav:hover:not(:disabled) {
+  background: var(--border);
+}
+
+.timeline-nav:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.timeline-nav svg {
+  width: 20px;
+  height: 20px;
+}
+
+.timeline {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 1.5rem;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 0.5rem 0;
+}
+
+.timeline::-webkit-scrollbar {
+  display: none;
+}
+
+.timeline-item {
+  flex: 0 0 calc((100% - 3rem) / 3);
+  scroll-snap-align: start;
+  padding: 1rem;
+}
+
+.timeline-header {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.timeline-logo {
+  width: 70px;
+  object-fit: contain;
+  margin-right: 1rem;
+}
+
+.timeline-details {
+  flex: 1;
+}
+
+.timeline-position {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.timeline-company {
+  font-family: var(--font-accent);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.timeline-period,
+.timeline-location {
+  font-family: var(--font-accent);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  display: inline;
+  margin: 0;
+}
+
+.timeline-period {
+  margin-right: var(--space-2);
+}
+
+.timeline-period::before {
+  content: "•";
+  margin: 0 var(--space-2);
+  opacity: 0.6;
+}
+
+.timeline-description {
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+.areas-list {
+  list-style: none;
+  padding: 0;
+}
+
+.education-item {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.education-item:last-child {
+  border-bottom: none;
+}
+
+.education-degree {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.education-school {
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.education-dates {
+  font-family: var(--font-accent);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+.education-gpa {
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+}
+
+.education-focus {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+  font-style: italic;
+}
+
+.education-courses {
+  font-size: 0.75rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
