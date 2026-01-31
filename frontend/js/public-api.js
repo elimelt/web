@@ -1,4 +1,4 @@
-const API_DOCS_URL = 'https://blink.tail8ab50a.ts.net:443';
+const API_DOCS_URL = 'https://blink.tail8ab50a.ts.net:443/api';
 
 function countEndpoints(openApiSpec) {
   const paths = openApiSpec.paths || {};
