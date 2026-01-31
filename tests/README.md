@@ -1,6 +1,6 @@
 # DevStack Public API Integration Tests
 
-Integration tests for the DevStack Public API at `https://blink.tail8ab50a.ts.net:8443`.
+Integration tests for the DevStack Public API at `https://blink.tail8ab50a.ts.net:443`.
 
 ## Requirements
 

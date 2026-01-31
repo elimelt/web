@@ -1,5 +1,5 @@
-const BASE_URL = 'https://blink.tail8ab50a.ts.net:8443';
-const WS_BASE_URL = 'wss://blink.tail8ab50a.ts.net:8443';
+const BASE_URL = 'https://blink.tail8ab50a.ts.net:443';
+const WS_BASE_URL = 'wss://blink.tail8ab50a.ts.net:443';
 
 const results = { passed: 0, failed: 0, skipped: 0, tests: [] };
 
