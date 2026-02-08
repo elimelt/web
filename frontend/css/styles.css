@@ -28,6 +28,7 @@
 
 /* Feature styles */
 @import url('./features/meat-game.css');
+@import url('./features/dice-game.css');
 
 /* Responsive styles (must be last) */
 @import url('./responsive.css');

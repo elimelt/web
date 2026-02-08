@@ -2,7 +2,7 @@
 
 export const RatFollower = {
   DEFAULTS: {
-    imgSrc: "assets/grep-top.png",
+    imgSrc: "assets/grep/grep-top.png",
     size: 100,
     anchor: { x: 0, y: 0 },
     stiffness: 50,
@@ -170,7 +170,7 @@ export const RatFollower = {
       if (nowIdle !== state.isIdle) {
         state.isIdle = nowIdle;
         if (state.isIdle && state.currentSprite !== "full") {
-          img.src = "assets/grep.png";
+          img.src = "assets/grep/grep.png";
           state.currentSprite = "full";
         } else if (!state.isIdle && state.currentSprite !== "top") {
           img.src = config.imgSrc;

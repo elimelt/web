@@ -11,6 +11,7 @@ import { SmoothScrolling } from './managers/smooth-scroll.js';
 import { NotesFetcher } from './managers/notes.js';
 import { MeatGameToggle } from './managers/meat-game.js';
 import { ExperienceCarousel } from './managers/carousel.js';
+import { DiceGame } from './background-animation.js';
 
 console.info("hi");
 
@@ -21,4 +22,5 @@ document.addEventListener("DOMContentLoaded", () => {
   NotesFetcher.init();
   MeatGameToggle.init();
   ExperienceCarousel.init();
+  DiceGame.init();
 });

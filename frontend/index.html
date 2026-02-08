@@ -25,7 +25,6 @@
         }
       }
     </script>
-  <script type="module" src="js/background-animation.js?v=2"></script>
   <!-- SVG Sprite -->
   <div class="svg-sprite" aria-hidden="true">
     <svg xmlns="http://www.w3.org/2000/svg">
@@ -110,7 +109,9 @@
           Software Engineer
           <span id="meat-toggle" role="button" tabindex="0" data-analytics="toggle" data-analytics-id="toggle:meat-game"
             data-analytics-label="Rat meat game toggle" aria-label="Toggle rat meat game"
-            title="Enable rat meat game"><img src="assets/grep.png" alt="" class="meat-toggle-icon" /></span>
+            title="Enable rat meat game"><img src="assets/grep/grep.png" alt="" class="meat-toggle-icon" /></span>
+          <span id="dice-toggle" role="button" tabindex="0" class="dice-toggle" aria-label="Roll the dice"
+            title="Roll the dice" style="display:none;">🎲</span>
         </p>
       </div>
 
@@ -558,32 +559,32 @@
     <aside class="right-sidebar" id="right-sidebar">
       <div class="photo-grid">
         <figure class="photo-item">
-          <img src="assets/rats/IMG_8179.jpg" alt="" loading="lazy" />
+          <img src="assets/album/IMG_8179.jpg" alt="" loading="lazy" />
         </figure>
         <figure class="photo-item">
-          <img src="assets/rats/IMG_8228.jpg" alt="" loading="lazy" />
+          <img src="assets/album/IMG_8228.jpg" alt="" loading="lazy" />
         </figure>
         <figure class="photo-item">
-          <img src="assets/rats/IMG_8322.jpg" alt="" loading="lazy" />
+          <img src="assets/album/IMG_8322.jpg" alt="" loading="lazy" />
         </figure>
         <figure class="photo-item">
-          <img src="assets/rats/IMG_8653.jpg" alt="" loading="lazy" />
+          <img src="assets/album/IMG_8653.jpg" alt="" loading="lazy" />
         </figure>
         <figure class="photo-item">
-          <img src="assets/rats/IMG_8762.jpg" alt="" loading="lazy" />
+          <img src="assets/album/IMG_8762.jpg" alt="" loading="lazy" />
         </figure>
         <figure class="photo-item">
-          <img src="assets/rats/IMG_8783.jpg" alt="" loading="lazy" />
+          <img src="assets/album/IMG_8783.jpg" alt="" loading="lazy" />
         </figure>
         <figure class="photo-item">
-          <img src="assets/rats/IMG_8784.jpg" alt="" loading="lazy" />
+          <img src="assets/album/IMG_8784.jpg" alt="" loading="lazy" />
         </figure>
         <figure class="photo-item">
-          <div data-live-photo data-photo-src="assets/rats/IMG_8875.jpg" data-video-src="assets/rats/IMG_8875.MOV">
+          <div data-live-photo data-photo-src="assets/album/IMG_8875.jpg" data-video-src="assets/album/IMG_8875.MOV">
           </div>
         </figure>
         <figure class="photo-item">
-          <div data-live-photo data-photo-src="assets/rats/IMG_8913.jpg" data-video-src="assets/rats/IMG_8913.MOV">
+          <div data-live-photo data-photo-src="assets/album/IMG_8913.jpg" data-video-src="assets/album/IMG_8913.MOV">
           </div>
         </figure>
       </div>
@@ -605,6 +606,16 @@
         <!-- Dynamic content -->
       </div>
     </div>
+  </div>
+
+  <!-- Dice Game Overlay -->
+  <div class="dice-overlay" id="dice-overlay">
+    <div class="dice-popup" id="dice-popup">
+      <div class="dice-popup-arrow">&#9660;</div>
+      <p class="dice-popup-text">Try your luck for a spin</p>
+      <button class="dice-popup-btn" id="dice-popup-btn">ROLL!</button>
+    </div>
+    <canvas id="dice-canvas"></canvas>
   </div>
 
   <script src="https://cdn.apple-livephotoskit.com/lpk/1/livephotoskit.js"></script>
