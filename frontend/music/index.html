@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice Leading Synth</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.3/build/cjs/vexflow.js"></script>
+</head>
+<body>
+  <div class="app">
+    <div class="transport">
+      <div class="transport-section">
+        <button id="start-btn" title="Play/Stop (Space)">▶</button>
+      </div>
+      <div class="transport-section">
+        <button id="bass-toggle" class="toggle-btn" title="Toggle bass">Bass</button>
+      </div>
+      <div class="transport-section">
+        <span class="param-label">Voice</span>
+        <button id="inversion-down" class="mini-btn" title="Voice down">◁</button>
+        <button id="inversion-up" class="mini-btn" title="Voice up">▷</button>
+      </div>
+      <div class="transport-section">
+        <span class="param-label">8va</span>
+        <button id="octave-down" class="mini-btn" title="Octave down">−</button>
+        <button id="octave-up" class="mini-btn" title="Octave up">+</button>
+      </div>
+      <div class="transport-section">
+        <select id="transpose-select" title="Transpose">
+          <option value="0">C (Concert)</option>
+          <option value="2">B♭</option>
+          <option value="9">E♭</option>
+          <option value="7">F</option>
+        </select>
+      </div>
+      <div class="transport-section grow">
+        <div class="mixer">
+          <div class="mixer-ch"><label>Ch</label><input type="range" id="vol-chord" min="0" max="100" value="70"></div>
+          <div class="mixer-ch"><label>Bs</label><input type="range" id="vol-bass" min="0" max="100" value="75"></div>
+          <div class="mixer-ch"><label>Pn</label><input type="range" id="vol-piano" min="0" max="100" value="70"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="display-panel">
+      <div class="chord-info inactive" id="chord-display-container">
+        <div class="chord-name" id="chord-name">—</div>
+        <div class="history-row" id="chord-history"></div>
+      </div>
+      <div class="sheet-music" id="sheet-music"></div>
+    </div>
+
+    <div class="keyboard-panel">
+      <button id="keyboard-left" class="keyboard-shift" title="Octave down">◀</button>
+      <div class="piano" id="piano"></div>
+      <button id="keyboard-right" class="keyboard-shift" title="Octave up">▶</button>
+    </div>
+
+    <div class="chord-browser" id="chord-buttons"></div>
+
+    <div class="hint-legend">
+      <span><span class="hint-dot classic"></span> Classic</span>
+      <span><span class="hint-dot safe"></span> Smooth</span>
+      <span><span class="hint-dot interesting"></span> Colorful</span>
+    </div>
+
+    <div class="status-bar">
+      <span><kbd>Space</kbd> play/stop</span>
+      <span>Drag notes to edit</span>
+      <span>Click piano to play</span>
+    </div>
+  </div>
+
+  <div class="history-modal" id="history-modal">
+    <div class="history-modal-content">
+      <h3>Chord History</h3>
+      <div class="history-modal-list" id="history-modal-list"></div>
+      <button class="history-modal-close" id="history-modal-close">Close</button>
+    </div>
+  </div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
+
