@@ -94,7 +94,7 @@ class AudioEngine {
     if (this.touchSynths.length > 0) return;
     await Tone.start();
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 16; i++) {
       const synth = new Tone.Synth({
         oscillator: { type: 'sine' },
         envelope: { attack: 0.01, decay: 0.1, sustain: 0.8, release: 0.15 }
@@ -1034,3 +1034,76 @@ document.addEventListener('keydown', (e) => {
     closeHistoryModal();
   }
 });
+
+// MIDI Support
+async function initMIDI() {
+  if (!navigator.requestMIDIAccess) {
+    console.log('Web MIDI API not supported');
+    return;
+  }
+
+  try {
+    const midiAccess = await navigator.requestMIDIAccess();
+
+    function onMIDIMessage(e) {
+      const [status, note, velocity] = e.data;
+      const command = status & 0xf0;
+
+      // Note On (0x90) with velocity > 0, or Note Off (0x80)
+      if (command === 0x90 && velocity > 0) {
+        midiNoteOn(note);
+      } else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
+        midiNoteOff(note);
+      }
+    }
+
+    function connectInputs(midiAccess) {
+      for (const input of midiAccess.inputs.values()) {
+        input.onmidimessage = onMIDIMessage;
+        console.log(`MIDI connected: ${input.name}`);
+      }
+    }
+
+    connectInputs(midiAccess);
+
+    midiAccess.onstatechange = (e) => {
+      if (e.port.type === 'input') {
+        if (e.port.state === 'connected') {
+          e.port.onmidimessage = onMIDIMessage;
+          console.log(`MIDI connected: ${e.port.name}`);
+        } else {
+          console.log(`MIDI disconnected: ${e.port.name}`);
+        }
+      }
+    };
+
+    console.log('MIDI initialized');
+  } catch (err) {
+    console.log('MIDI access denied:', err);
+  }
+}
+
+async function midiNoteOn(midi) {
+  const engine = getTouchEngine() || await ensureTouchAudio();
+  if (!engine) return;
+
+  if (engine.touchNoteOn(midi)) {
+    pressedKeys.add(midi);
+    const keyEl = pianoEl.querySelector(`[data-midi="${midi}"]`);
+    if (keyEl) keyEl.classList.add('playing');
+    updateSheetMusic();
+  }
+}
+
+function midiNoteOff(midi) {
+  if (!pressedKeys.has(midi)) return;
+
+  const engine = getTouchEngine();
+  if (engine) engine.touchNoteOff(midi);
+  pressedKeys.delete(midi);
+  const keyEl = pianoEl.querySelector(`[data-midi="${midi}"]`);
+  if (keyEl) keyEl.classList.remove('playing');
+  updateSheetMusic();
+}
+
+initMIDI();
