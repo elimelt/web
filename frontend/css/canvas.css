@@ -1,10 +1,5 @@
 /* Collaborative Canvas Styles */
 
-#canvas-section {
-  width: 100%;
-  height: 350px;
-}
-
 .canvas-wrapper {
   position: relative;
   width: 100%;
