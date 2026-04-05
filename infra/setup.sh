@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Change to script directory (allows running from anywhere)
+cd "$(dirname "$0")"
+
 echo "DevStack Setup"
 echo ""
 
