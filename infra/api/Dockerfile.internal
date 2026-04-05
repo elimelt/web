@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY main_internal.py .
 RUN mkdir -p /app/api
-COPY __init__.py bus.py events.py state.py middleware.py redis_debug.py notes_sync.py notes_embeddings.py config.py dependencies.py errors.py lifespan.py /app/api/
+COPY __init__.py bus.py events.py state.py middleware.py redis_debug.py redis_pubsub.py notes_sync.py notes_embeddings.py config.py dependencies.py errors.py lifespan.py /app/api/
 COPY controllers /app/api/controllers
 COPY agents /app/api/agents
 COPY producers /app/api/producers
