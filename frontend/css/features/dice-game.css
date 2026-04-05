@@ -1,0 +1,103 @@
+@import url('../base/variables.css');
+
+.dice-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.42);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.dice-overlay.dice-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#dice-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.dice-popup {
+  position: relative;
+  margin-top: 30%;
+  z-index: 1;
+  text-align: center;
+}
+
+.dice-popup-arrow {
+  font-size: 2rem;
+  color: var(--grift);
+  animation: dice-bounce 0.8s ease-in-out infinite;
+}
+
+.dice-popup-text {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--grift);
+  margin-top: 10rem;
+  text-shadow: 0 0 8px var(--grift), 0 0 20px var(--grift-dim);
+  animation: dice-flash 1s steps(2, start) infinite;
+  margin: 0.5rem 0 1rem;
+  letter-spacing: 0.05em;
+}
+
+.dice-popup-btn {
+  font-size: 1.3rem;
+  font-weight: bold;
+  padding: 0.6em 2em;
+  background: var(--grift);
+  color: #000;
+  border: 3px solid var(--grift-dim);
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 0 12px var(--grift-dim);
+}
+
+.dice-popup-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 24px var(--grift-dim);
+}
+
+/* Sidebar dice toggle */
+.dice-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-left: 4px;
+  vertical-align: middle;
+  font-size: 16px;
+  opacity: 0.5;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  animation: dice-glow 2s ease-in-out infinite;
+}
+
+.dice-toggle:hover {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+@keyframes dice-flash {
+  50% { opacity: 0.4; }
+}
+
+@keyframes dice-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(8px); }
+}
+
+@keyframes dice-glow {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(255, 200, 0, 0.3)); }
+  50% { filter: drop-shadow(0 0 8px var(--grift-dim)); opacity: 0.9; }
+}
+
