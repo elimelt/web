@@ -441,6 +441,30 @@ services:
     stdin_open: true
     tty: true
 
+  postgres-backup:
+    image: postgres:16-alpine
+    container_name: postgres-backup
+    restart: "no"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-devuser}
+      - POSTGRES_DB=${POSTGRES_DB:-devdb}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - ${BACKUP_PATH:-./backups}:/backups
+    entrypoint: /bin/sh
+    command: >
+      -c 'pg_dump -h postgres -U $${POSTGRES_USER} $${POSTGRES_DB} | gzip > /backups/backup_$$(date +%Y%m%d_%H%M%S).sql.gz &&
+          echo "Backup complete: $$(ls -lh /backups/*.sql.gz | tail -1)" &&
+          find /backups -name "backup_*.sql.gz" -mtime +7 -delete &&
+          echo "Rotated old backups. Current backups:" &&
+          ls -lh /backups/*.sql.gz'
+    depends_on:
+      - postgres
+    networks:
+      - dev_network
+    profiles:
+      - backup
+
 volumes:
   postgres_data:
   redis_data:

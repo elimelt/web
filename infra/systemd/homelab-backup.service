@@ -1,0 +1,11 @@
+[Unit]
+Description=Homelab PostgreSQL Backup
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/elimelt/repos/web/infra
+ExecStart=/home/elimelt/repos/web/infra/backup.sh
+StandardOutput=append:/home/elimelt/repos/web/infra/backups/backup.log
+StandardError=append:/home/elimelt/repos/web/infra/backups/backup.log

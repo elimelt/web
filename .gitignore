@@ -23,7 +23,8 @@ infra/api/venv/
 
 # ===== Database backups =====
 *.sql
-backup*
+backups/
+backup_*.sql*
 
 # ===== Docker =====
 *.tar.gz
