@@ -8,6 +8,7 @@
   <meta name="description"
     content="Elijah Melton - Software Engineer specializing in distributed systems, backend development, and cloud infrastructure" />
   <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/canvas.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -122,8 +123,8 @@
               data-analytics-label="Services">Services</a>
           </li>
           <li class="nav-item">
-            <a href="#public-api" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:public-api"
-              data-analytics-label="Public API">Public API</a>
+            <a href="#canvas" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:canvas"
+              data-analytics-label="Canvas">Canvas</a>
           </li>
           <li class="nav-item">
             <a href="#visitors" class="nav-link" data-analytics="nav.link" data-analytics-id="nav:visitors"
@@ -204,7 +205,7 @@
 
     <!-- Main Content -->
     <main class="main-content">
-      <!-- Row 1: Services | Public API (50/50) -->
+      <!-- Row 1: Services | Canvas (50/50) -->
       <div class="grid-row">
         <section id="services" class="section">
           <h2 class="section-title">Services</h2>
@@ -212,10 +213,9 @@
           <div id="services-content"></div>
         </section>
 
-        <section id="public-api" class="section">
-          <h2 class="section-title">Public API</h2>
-          <div id="public-api-stats">Loading...</div>
-          <iframe id="public-api-content" src="https://blink.tail8ab50a.ts.net:443/api/docs" class="api-docs-iframe"></iframe>
+        <section id="canvas" class="section">
+          <h2 class="section-title">Canvas</h2>
+          <div id="canvas-section"></div>
         </section>
       </div>
 
@@ -625,7 +625,7 @@
   <script src="https://cdn.apple-livephotoskit.com/lpk/1/livephotoskit.js"></script>
   <script type="module" src="js/cloth-content.js?v=2"></script>
   <script type="module" src="js/services.js?v=2"></script>
-  <script type="module" src="js/public-api.js?v=2"></script>
+  <script type="module" src="js/canvas.js?v=2"></script>
   <script type="module" src="js/click-tracking.js?v=2"></script>
   <script type="module" src="js/visitors.js?v=2"></script>
   <script type="module" src="js/chat.js?v=2"></script>

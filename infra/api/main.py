@@ -35,6 +35,7 @@ from api.controllers.visitors import router as visitors_router
 from api.controllers.when2meet import router as when2meet_router
 from api.controllers.ws_chat import router as ws_chat_router
 from api.controllers.ws_visitors import router as ws_visitors_router
+from api.controllers.ws_canvas import router as ws_canvas_router, load_canvas_state
 from api.errors import register_exception_handlers
 from api.middleware import HTTPLogMiddleware
 from api.redis_debug import wrap_redis_client
@@ -185,6 +186,9 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
     cleanup_task = asyncio.create_task(redis_pool_monitor())
 
+    # Load canvas state from Redis
+    await load_canvas_state()
+
     try:
         yield
     finally:
@@ -240,5 +244,6 @@ app.include_router(analytics_clicks_router)
 app.include_router(when2meet_router, prefix="/w2m")
 app.include_router(notes_router)
 app.include_router(notes_search_router)
+app.include_router(ws_canvas_router)
 
 Instrumentator().instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
