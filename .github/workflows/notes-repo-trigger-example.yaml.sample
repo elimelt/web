@@ -1,0 +1,32 @@
+# SAMPLE WORKFLOW - Add this to the elimelt/notes repository
+# This workflow triggers a sync in the devstack repository when notes are updated.
+#
+# Setup instructions:
+# 1. Copy this file to .github/workflows/trigger-sync.yaml in the notes repository
+# 2. Create a Personal Access Token (PAT) with 'repo' scope
+# 3. Add it as a secret named DEVSTACK_DISPATCH_TOKEN in the notes repository
+
+name: Trigger DevStack Sync
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'content/**'
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Trigger DevStack Notes Sync
+        run: |
+          curl -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: token ${DISPATCH_TOKEN}" \
+            https://api.github.com/repos/elimelt/devstack/dispatches \
+            -d '{"event_type": "notes-updated", "client_payload": {"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}}'
+        env:
+          DISPATCH_TOKEN: ${{ secrets.DEVSTACK_DISPATCH_TOKEN }}
+

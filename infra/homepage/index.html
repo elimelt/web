@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevStack</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: monospace;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            height: 100vh;
+            display: grid;
+            grid-template-rows: auto 1fr;
+        }
+
+        header {
+            background: #222;
+            border-bottom: 1px solid #333;
+            padding: 10px;
+        }
+
+        #service-list {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        #service-list button {
+            background: #2a2a2a;
+            color: #e0e0e0;
+            border: 1px solid #333;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-family: monospace;
+        }
+
+        #service-list button:hover {
+            background: #333;
+        }
+
+        #service-list button.external {
+            background: #1a1a1a;
+            border-color: #444;
+            color: #999;
+        }
+
+        #service-list button.external:hover {
+            background: #222;
+            color: #bbb;
+        }
+
+        #service-list button.external::after {
+            content: ' ↗';
+        }
+
+        #grid-container {
+            display: grid;
+            gap: 2px;
+            background: #111;
+            padding: 2px;
+            overflow: hidden;
+        }
+
+        .frame-container {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            background: #1a1a1a;
+            border: 1px solid #333;
+        }
+
+        .frame-container.active {
+            border-color: #666;
+        }
+
+        .frame-header {
+            background: #222;
+            padding: 5px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+            gap: 10px;
+        }
+
+        .frame-header span {
+            flex: 1;
+        }
+
+        .open-btn,
+        .close-btn {
+            background: none;
+            border: none;
+            color: #e0e0e0;
+            cursor: pointer;
+            padding: 0 5px;
+            font-family: monospace;
+        }
+
+        .open-btn:hover,
+        .close-btn:hover {
+            color: #fff;
+        }
+
+        .service-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        #help {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: #222;
+            border: 1px solid #333;
+            padding: 10px;
+            font-size: 0.8em;
+            opacity: 0.7;
+        }
+
+        #help:hover {
+            opacity: 1;
+        }
+
+        #health-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 10px;
+            background: #2a2a2a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #888;
+        }
+
+        #health-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #666;
+            transition: background-color 0.3s ease;
+        }
+
+        #health-dot.healthy {
+            background: #4ecdc4;
+            box-shadow: 0 0 6px #4ecdc4;
+        }
+
+        #health-dot.unhealthy {
+            background: #ff6b6b;
+            box-shadow: 0 0 6px #ff6b6b;
+        }
+
+        #health-dot.checking {
+            background: #f9ca24;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        #chat-panel {
+            position: fixed;
+            bottom: 50px;
+            right: 10px;
+            width: 400px;
+            max-height: 500px;
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 8px;
+            display: none;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        #chat-panel.open {
+            display: flex;
+        }
+
+        #chat-header {
+            background: #2a2a2a;
+            padding: 10px 15px;
+            border-bottom: 1px solid #444;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 8px 8px 0 0;
+        }
+
+        #chat-header h3 {
+            margin: 0;
+            font-size: 14px;
+            color: #4ecdc4;
+        }
+
+        #chat-close {
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0;
+        }
+
+        #chat-close:hover {
+            color: #fff;
+        }
+
+        #chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            max-height: 350px;
+            min-height: 200px;
+        }
+
+        .chat-message {
+            margin-bottom: 12px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            max-width: 90%;
+            word-wrap: break-word;
+        }
+
+        .chat-message.user {
+            background: #3a3a4a;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .chat-message.assistant {
+            background: #2a3a3a;
+            margin-right: auto;
+        }
+
+        .chat-message.error {
+            background: #4a2a2a;
+            color: #ff6b6b;
+        }
+
+        .chat-message.system {
+            background: #333;
+            color: #888;
+            font-style: italic;
+            text-align: center;
+            max-width: 100%;
+        }
+
+        .chat-message.streaming::after {
+            content: '▋';
+            animation: blink 0.7s infinite;
+            margin-left: 2px;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        #chat-input-area {
+            padding: 10px;
+            border-top: 1px solid #444;
+            display: flex;
+            gap: 8px;
+        }
+
+        #chat-input {
+            flex: 1;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            color: #e0e0e0;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: none;
+        }
+
+        #chat-input:focus {
+            outline: none;
+            border-color: #4ecdc4;
+        }
+
+        #chat-send {
+            background: #4ecdc4;
+            border: none;
+            color: #1a1a1a;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        #chat-send:hover {
+            background: #45b7aa;
+        }
+
+        #chat-send:disabled {
+            background: #444;
+            color: #888;
+            cursor: not-allowed;
+        }
+
+        #chat-toggle {
+            background: #4ecdc4;
+            color: #1a1a1a;
+            border: none;
+            font-weight: bold;
+        }
+
+        #chat-toggle:hover {
+            background: #45b7aa;
+        }
+
+    </style>
+</head>
+<body>
+    <header>
+        <div id="service-list">
+            <button data-name="Terminal" data-url="/terminal/" data-embeddable="true">terminal</button>
+            <button data-name="Grafana" data-url="/grafana/" data-embeddable="false" class="external">grafana</button>
+            <button data-name="Prometheus" data-url="/prometheus/" data-embeddable="true">prometheus</button>
+            <button data-name="Traefik" data-url="/dashboard/" data-embeddable="true">traefik</button>
+            <button id="clear-all">clear</button>
+            <button id="chat-toggle">chat</button>
+            <div id="health-indicator">
+                <span id="health-dot" class="checking"></span>
+                <span id="health-text">checking...</span>
+            </div>
+        </div>
+    </header>
+    <main id="grid-container"></main>
+
+    <div id="chat-panel">
+        <div id="chat-header">
+            <h3>🤖 Augment Chat</h3>
+            <button id="chat-close">×</button>
+        </div>
+        <div id="chat-messages">
+            <div class="chat-message system">Send a message to start chatting with the AI assistant.</div>
+        </div>
+        <div id="chat-input-area">
+            <textarea id="chat-input" placeholder="Type a message..." rows="1"></textarea>
+            <button id="chat-send">Send</button>
+        </div>
+    </div>
+
+    <div id="help">
+        ctrl+n: next | ctrl+p: prev | ctrl+w: close | ctrl+shift+c: clear | ctrl+/: chat | ↗: external
+    </div>
+    <script type="module" src="app.js"></script>
+</body>
+</html>

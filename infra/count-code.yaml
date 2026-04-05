@@ -1,0 +1,115 @@
+name: Count All Lines of Code
+
+on:
+  # manually trigger
+  workflow_dispatch:
+
+jobs:
+  count-lines:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout current repo
+        uses: actions/checkout@v4
+      
+      - name: Install cloc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cloc
+      
+      - name: Get all repositories
+        id: get-repos
+        run: |
+          # Get all repos for the authenticated user
+          gh repo list --limit 1000 --json nameWithOwner --jq '.[].nameWithOwner' > repos.txt
+          echo "Found $(wc -l < repos.txt) repositories"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Clone and count lines
+        run: |
+          mkdir -p cloned_repos
+          cd cloned_repos
+          
+          # Initialize counters
+          total_lines=0
+          total_code=0
+          total_comments=0
+          total_blanks=0
+          
+          echo "# Lines of Code Report" > ../report.md
+          echo "Generated: $(date)" >> ../report.md
+          echo "" >> ../report.md
+          echo "## Summary" >> ../report.md
+          echo "" >> ../report.md
+          
+          # Clone each repo and count lines
+          while IFS= read -r repo; do
+            echo "Processing $repo..."
+            
+            # Clone repo
+            if gh repo clone "$repo" "$repo" -- --depth 1 2>/dev/null; then
+              # Count lines using cloc
+              cloc_output=$(cloc "$repo" --json 2>/dev/null || echo "{}")
+              
+              # Extract totals from JSON
+              code=$(echo "$cloc_output" | jq -r '.SUM.code // 0' 2>/dev/null || echo 0)
+              comments=$(echo "$cloc_output" | jq -r '.SUM.comment // 0' 2>/dev/null || echo 0)
+              blanks=$(echo "$cloc_output" | jq -r '.SUM.blank // 0' 2>/dev/null || echo 0)
+              
+              total_code=$((total_code + code))
+              total_comments=$((total_comments + comments))
+              total_blanks=$((total_blanks + blanks))
+              
+              echo "- **$repo**: $code lines of code, $comments comments, $blanks blank lines" >> ../report.md
+              
+              # Clean up to save space
+              rm -rf "$repo"
+            else
+              echo "- **$repo**: Failed to clone" >> ../report.md
+            fi
+          done < ../repos.txt
+          
+          total_lines=$((total_code + total_comments + total_blanks))
+          
+          # Add summary to report
+          sed -i "/## Summary/a\\
+          \\
+          - **Total Lines**: $(printf "%'d" $total_lines)\\
+          - **Lines of Code**: $(printf "%'d" $total_code)\\
+          - **Comment Lines**: $(printf "%'d" $total_comments)\\
+          - **Blank Lines**: $(printf "%'d" $total_blanks)\\
+          \\
+          ## Repository Details\\
+          " ../report.md
+          
+          echo "TOTAL_LINES=$total_lines" >> $GITHUB_ENV
+          echo "TOTAL_CODE=$total_code" >> $GITHUB_ENV
+          echo "TOTAL_COMMENTS=$total_comments" >> $GITHUB_ENV
+          echo "TOTAL_BLANKS=$total_blanks" >> $GITHUB_ENV
+      
+      - name: Create summary
+        run: |
+          echo "## 📊 Total Lines of Code Written" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Total Lines | $(printf "%'d" $TOTAL_LINES) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lines of Code | $(printf "%'d" $TOTAL_CODE) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Comment Lines | $(printf "%'d" $TOTAL_COMMENTS) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Blank Lines | $(printf "%'d" $TOTAL_BLANKS) |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📄 Full report available in artifacts" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: loc-report
+          path: report.md
+          retention-days: 90
+      
+      - name: Comment on commit (optional)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "Total lines of code across all repositories: $(printf "%'d" $TOTAL_CODE)" 
+          echo "Report generated and uploaded to artifacts"

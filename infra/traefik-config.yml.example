@@ -1,0 +1,14 @@
+# Traefik Static Configuration
+# Copy this file to traefik-config.yml and update with your certificate paths
+
+tls:
+  certificates:
+    # Tailscale certificate (recommended)
+    - certFile: /certs/your-domain.tail12345.ts.net.crt
+      keyFile: /certs/your-domain.tail12345.ts.net.key
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /certs/your-domain.tail12345.ts.net.crt
+        keyFile: /certs/your-domain.tail12345.ts.net.key
+

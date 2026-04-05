@@ -1,0 +1,33 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y curl ca-certificates gnupg && \
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y nodejs && \
+    install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc && \
+    chmod a+r /etc/apt/keyrings/docker.asc && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list && \
+    apt-get update && \
+    apt-get install -y docker-ce-cli && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN npm install -g @augmentcode/auggie
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY main_internal.py .
+RUN mkdir -p /app/api
+COPY __init__.py bus.py events.py state.py middleware.py redis_debug.py notes_sync.py notes_embeddings.py config.py dependencies.py errors.py lifespan.py /app/api/
+COPY controllers /app/api/controllers
+COPY agents /app/api/agents
+COPY producers /app/api/producers
+COPY batch /app/api/batch
+COPY sandbox /app/api/sandbox
+COPY db /app/api/db
+COPY models /app/api/models
+
+CMD ["uvicorn", "main_internal:app", "--host", "0.0.0.0", "--port", "80", "--no-access-log", "--log-level", "info"]
+
