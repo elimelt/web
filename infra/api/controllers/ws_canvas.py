@@ -165,6 +165,18 @@ async def broadcast_cursor(cursor: dict, exclude: WebSocket | None = None) -> No
             pass
 
 
+async def broadcast_drawing(stroke: dict, exclude: WebSocket | None = None) -> None:
+    """Broadcast in-progress drawing to all connected clients."""
+    msg = json.dumps({"type": "drawing", "stroke": stroke})
+    for ws in _connected_clients:
+        if ws is exclude:
+            continue
+        try:
+            await ws.send_text(msg)
+        except Exception:
+            pass
+
+
 async def broadcast_user_count() -> None:
     """Broadcast current user count to all clients."""
     msg = json.dumps({"type": "user_count", "count": len(_connected_clients)})
@@ -255,6 +267,12 @@ async def websocket_canvas(websocket: WebSocket) -> None:
                         )
                     if removed_ids:
                         await persist_canvas_state()
+
+            elif op_type == "drawing":
+                # Real-time drawing progress - broadcast to other clients
+                stroke = msg.get("stroke")
+                if stroke:
+                    await broadcast_drawing(stroke, exclude=websocket)
 
             elif op_type == "cursor":
                 cursor = msg.get("cursor")

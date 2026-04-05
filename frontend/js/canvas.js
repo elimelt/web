@@ -21,6 +21,7 @@ class CollaborativeCanvas {
     this.removed = new Set();  // removed stroke ids
     this.myStrokes = [];       // stack for undo
     this.cursors = new Map();  // author_id -> {x, y, color}
+    this.remoteDrawing = new Map();  // id -> stroke (in-progress strokes from others)
 
     // Drawing state
     this.isDrawing = false;
@@ -31,6 +32,7 @@ class CollaborativeCanvas {
     // Performance
     this.needsRedraw = false;
     this.lastCursorBroadcast = 0;
+    this.lastDrawingBroadcast = 0;
 
     this.init();
   }
@@ -170,6 +172,7 @@ class CollaborativeCanvas {
         this.clientId = msg.client_id;
         this.strokes.clear();
         this.removed.clear();
+        this.remoteDrawing.clear();
         msg.state.strokes.forEach(s => this.strokes.set(s.id, s));
         msg.state.removed.forEach(id => this.removed.add(id));
         this.statusUsers.textContent = msg.user_count + ' online';
@@ -177,6 +180,13 @@ class CollaborativeCanvas {
         break;
       case 'op':
         this.applyOp(msg.op);
+        break;
+      case 'drawing':
+        // Real-time drawing from another user
+        if (msg.stroke && msg.stroke.author_id !== this.clientId) {
+          this.remoteDrawing.set(msg.stroke.id, msg.stroke);
+          this.needsRedraw = true;
+        }
         break;
       case 'cursor':
         this.updateCursor(msg.cursor);
@@ -192,11 +202,14 @@ class CollaborativeCanvas {
 
   applyOp(op) {
     if (op.type === 'add') {
+      // Remove from remote drawing since it's now committed
+      this.remoteDrawing.delete(op.stroke.id);
       if (!this.removed.has(op.stroke.id)) {
         this.strokes.set(op.stroke.id, op.stroke);
         this.needsRedraw = true;
       }
     } else if (op.type === 'remove') {
+      this.remoteDrawing.delete(op.stroke_id);
       this.removed.add(op.stroke_id);
       this.needsRedraw = true;
     }
@@ -227,9 +240,9 @@ class CollaborativeCanvas {
 
   onPointerMove(e) {
     const pt = this.getPoint(e);
-
-    // Broadcast cursor
     const now = Date.now();
+
+    // Broadcast cursor position
     if (now - this.lastCursorBroadcast > 50) {
       this.send({ type: 'cursor', cursor: { x: pt.x, y: pt.y, color: this.color } });
       this.lastCursorBroadcast = now;
@@ -238,6 +251,12 @@ class CollaborativeCanvas {
     if (!this.isDrawing || !this.currentStroke) return;
     this.currentStroke.points.push(pt);
     this.needsRedraw = true;
+
+    // Broadcast drawing progress every 50ms for real-time sync
+    if (!this.lastDrawingBroadcast || now - this.lastDrawingBroadcast > 50) {
+      this.send({ type: 'drawing', stroke: this.currentStroke });
+      this.lastDrawingBroadcast = now;
+    }
   }
 
   onPointerUp(e) {
@@ -250,6 +269,7 @@ class CollaborativeCanvas {
       this.send({ type: 'add', stroke: this.currentStroke });
     }
     this.currentStroke = null;
+    this.lastDrawingBroadcast = 0;
     this.needsRedraw = true;
   }
 
@@ -316,6 +336,11 @@ class CollaborativeCanvas {
       .sort((a, b) => a.timestamp - b.timestamp);
 
     for (const stroke of visible) {
+      this.drawStroke(stroke, w, h);
+    }
+
+    // Draw remote in-progress strokes
+    for (const stroke of this.remoteDrawing.values()) {
       this.drawStroke(stroke, w, h);
     }
 
