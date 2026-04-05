@@ -38,7 +38,7 @@ interface FetchOptions {
 
 const DEFAULT_TIMEOUT = 30000;
 
-export class ElimeltClient {
+export class Client {
   private readonly baseUrl: string;
   private readonly wsBaseUrl: string;
   private readonly timeout: number;

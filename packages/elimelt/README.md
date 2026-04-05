@@ -15,9 +15,9 @@ pnpm add elimelt
 ## Quick Start
 
 ```typescript
-import { ElimeltClient } from 'elimelt';
+import { Client } from 'elimelt';
 
-const client = new ElimeltClient('https://blink.tail8ab50a.ts.net');
+const client = new Client('https://blink.tail8ab50a.ts.net');
 
 // Check API health
 const health = await client.health();
@@ -34,10 +34,10 @@ console.log(system.uptime);
 
 ```typescript
 // Simple
-const client = new ElimeltClient('https://your-api-url.com');
+const client = new Client('https://your-api-url.com');
 
 // With options
-const client = new ElimeltClient({
+const client = new Client({
   baseUrl: 'https://your-api-url.com',
   wsBaseUrl: 'wss://your-api-url.com', // Optional, derived from baseUrl
   timeout: 30000, // Request timeout in ms
