@@ -60,7 +60,7 @@ TOOL_DEFINITIONS: list[ToolDefinition] = [
     ),
     ToolDefinition(
         name="run_python",
-        description="Execute Python in sandbox. Has numpy, pandas, scipy, matplotlib. 30s timeout.",
+        description="Execute Python in sandbox. Has numpy, pandas, scipy, sympy, matplotlib, scikit-learn. 30s timeout. USE THIS FREQUENTLY to verify claims, compute probabilities, simulate scenarios, or demonstrate algorithms.",
         parameters={
             "code": "Python code to run (required)",
         },

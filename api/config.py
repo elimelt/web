@@ -31,6 +31,19 @@ class RedisSettings(BaseSettings):
     socket_connect_timeout: float = Field(
         default=5.0, description="Socket connect timeout in seconds"
     )
+    # Connection lifecycle settings for leak prevention
+    cleanup_interval_sec: int = Field(
+        default=60, description="Interval for connection pool cleanup task"
+    )
+    pubsub_max_idle_sec: float = Field(
+        default=300.0, description="Max idle time for pubsub before forced cleanup (5 min)"
+    )
+    pubsub_max_lifetime_sec: float = Field(
+        default=3600.0, description="Max lifetime for pubsub connections (1 hour)"
+    )
+    pubsub_cleanup_timeout_sec: float = Field(
+        default=5.0, description="Timeout for pubsub cleanup operations"
+    )
 
 
 class PostgresSettings(BaseSettings):

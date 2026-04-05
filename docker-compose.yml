@@ -345,12 +345,17 @@ services:
     labels:
       - "traefik.enable=false"
 
+  # Routes Tailscale Funnel traffic to uptime-kuma (/) and public-api (/api/*)
+  # The host's Tailscale Funnel proxies https://blink.tail8ab50a.ts.net → http://127.0.0.1:443
   funnel-proxy:
     image: nginx:alpine
     container_name: funnel-proxy
     restart: always
     ports:
-      - "443:80"
+      # ⚠️  MUST be 127.0.0.1:443, NOT 0.0.0.0:443 or just "443:80"
+      # Tailscale Funnel binds to 100.x.x.x:443 (Tailscale IP), which conflicts
+      # with Docker binding to 0.0.0.0:443. See README.md for details.
+      - "127.0.0.1:443:80"
     volumes:
       - ./funnel-proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:

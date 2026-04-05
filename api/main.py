@@ -21,6 +21,7 @@ from api import db, state
 from api.batch.visitor_analytics import start_analytics_scheduler
 from api.bus import EventBus
 from api.config import get_settings
+from api.redis_pubsub import cleanup_expired_pubsubs, get_pool_stats, get_pubsub_stats
 from api.controllers.analytics_clicks import router as analytics_clicks_router
 from api.controllers.chat_analytics import router as chat_analytics_router
 from api.controllers.chat_history import router as chat_history_router
@@ -136,9 +137,65 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
             stop_event = asyncio.Event()
         analytics_tasks = await start_analytics_scheduler(stop_event)
 
+    # Start Redis connection pool monitor and cleanup task
+    cleanup_stop_event = asyncio.Event()
+    cleanup_interval = int(os.getenv("REDIS_CLEANUP_INTERVAL_SEC", "60"))
+    max_idle_sec = float(os.getenv("REDIS_PUBSUB_MAX_IDLE_SEC", "300"))
+
+    async def redis_pool_monitor():
+        """Periodic task to monitor and cleanup Redis connections."""
+        _logger = logging.getLogger("api.redis.monitor")
+        while not cleanup_stop_event.is_set():
+            try:
+                await asyncio.sleep(cleanup_interval)
+                if cleanup_stop_event.is_set():
+                    break
+
+                # Log pool stats
+                if redis_client:
+                    pool_stats = get_pool_stats(redis_client)
+                    pubsub_stats = await get_pubsub_stats()
+                    utilization = pool_stats.get("utilization_percent", 0)
+
+                    # Log warning if pool is getting full
+                    if utilization > 80:
+                        _logger.warning(
+                            "Redis pool high utilization: %s%% - pool=%s pubsub=%s",
+                            utilization,
+                            pool_stats,
+                            pubsub_stats,
+                        )
+                    elif utilization > 50:
+                        _logger.info(
+                            "Redis pool stats: utilization=%s%% in_use=%s pubsub_count=%s",
+                            utilization,
+                            pool_stats.get("in_use_connections", "?"),
+                            pubsub_stats.get("active_pubsub_count", 0),
+                        )
+
+                # Cleanup expired pubsubs
+                cleaned = await cleanup_expired_pubsubs(max_idle_sec=max_idle_sec)
+                if cleaned > 0:
+                    _logger.info("Cleaned up %d expired pubsub connections", cleaned)
+
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                _logger.error("Error in redis pool monitor: %s", e)
+
+    cleanup_task = asyncio.create_task(redis_pool_monitor())
+
     try:
         yield
     finally:
+        # Stop cleanup task
+        cleanup_stop_event.set()
+        cleanup_task.cancel()
+        try:
+            await asyncio.wait_for(cleanup_task, timeout=2)
+        except (asyncio.CancelledError, asyncio.TimeoutError):
+            pass
+
         if analytics_tasks and stop_event:
             stop_event.set()
             try:

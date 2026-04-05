@@ -1,15 +1,21 @@
 import asyncio
 import json
 import logging
+import os
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from api import state
 from api.bus import EventBus
 from api.producers.chat_producer import build_chat_message, publish_chat_message
+from api.redis_pubsub import managed_pubsub
 
 router = APIRouter(tags=["chat"])
 _logger = logging.getLogger("api.controllers.ws_chat")
+
+# Configuration
+HEARTBEAT_INTERVAL_SEC = int(os.getenv("WS_HEARTBEAT_INTERVAL_SEC", "25"))
+PUBSUB_MAX_LIFETIME_SEC = float(os.getenv("WS_PUBSUB_MAX_LIFETIME_SEC", "3600"))
 
 
 @router.websocket("/ws/chat/{channel}")
@@ -21,22 +27,55 @@ async def websocket_chat(websocket: WebSocket, channel: str) -> None:
         client_ip = client_ip.split(",")[0].strip()
     sender = f"{client_ip}:{id(websocket)}"
 
-    pubsub = state.redis_client.pubsub()
-    await pubsub.subscribe(EventBus.chat_channel(channel))
+    # Check if Redis is available
+    if state.redis_client is None:
+        _logger.warning("ws_chat.reject ip=%s reason=redis_unavailable", client_ip)
+        await websocket.close(code=1011, reason="Service temporarily unavailable")
+        return
+
+    redis_channel = EventBus.chat_channel(channel)
+
+    try:
+        async with managed_pubsub(
+            state.redis_client,
+            redis_channel,
+            client_info=f"chat:{sender}",
+            max_lifetime_sec=PUBSUB_MAX_LIFETIME_SEC,
+        ) as ps:
+            await _handle_chat_connection(websocket, ps, channel, sender)
+    except Exception as e:
+        _logger.warning("ws_chat.reject ip=%s reason=redis_error error=%s", client_ip, e)
+        try:
+            await websocket.close(code=1011, reason="Service temporarily unavailable")
+        except Exception:
+            pass
+
+
+async def _handle_chat_connection(
+    websocket: WebSocket,
+    ps,
+    channel: str,
+    sender: str,
+) -> None:
+    """Handle the chat WebSocket connection with managed pubsub."""
 
     async def send_updates():
         try:
-            async for message in pubsub.listen():
+            async for message in ps.listen():
                 if message["type"] == "message":
                     await websocket.send_text(message["data"])
+        except asyncio.CancelledError:
+            pass
         except Exception:
             pass
 
     async def heartbeat():
         try:
             while True:
-                await asyncio.sleep(25)
+                await asyncio.sleep(HEARTBEAT_INTERVAL_SEC)
                 await websocket.send_text(json.dumps({"type": "ping"}))
+        except asyncio.CancelledError:
+            pass
         except Exception:
             pass
 
@@ -71,21 +110,11 @@ async def websocket_chat(websocket: WebSocket, channel: str) -> None:
     finally:
         update_task.cancel()
         heartbeat_task.cancel()
-
-        # Cleanup pubsub with error handling
+        # Wait for tasks to actually cancel
         try:
-            await asyncio.wait_for(pubsub.unsubscribe(EventBus.chat_channel(channel)), timeout=2.0)
-        except TimeoutError:
-            _logger.warning("Timeout unsubscribing from chat channel %s", channel)
-        except Exception as e:
-            _logger.warning("Error unsubscribing from chat channel %s: %s", channel, e)
-
-        try:
-            if hasattr(pubsub, "aclose"):
-                await asyncio.wait_for(pubsub.aclose(), timeout=2.0)
-            else:
-                await asyncio.wait_for(pubsub.close(), timeout=2.0)
-        except TimeoutError:
-            _logger.warning("Timeout closing pubsub connection for channel %s", channel)
-        except Exception as e:
-            _logger.warning("Error closing pubsub for channel %s: %s", channel, e)
+            await asyncio.wait_for(
+                asyncio.gather(update_task, heartbeat_task, return_exceptions=True),
+                timeout=2.0,
+            )
+        except asyncio.TimeoutError:
+            _logger.debug("[ws_chat] Timeout waiting for tasks to cancel")

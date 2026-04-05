@@ -50,56 +50,69 @@ docker exec -it redis redis-cli
 
 ### Data Flow
 
-(😲 LLMs are actually good at this now)
-
 ```
-        Internet
-   ┌──────────────────────────────────────────────────────────────────┐
-   │                                                                  │
-   └─────▶ Tailscale Funnel (:not 443)                                │
-                 │                                                    │
-                 │                                                    │
-                 └──▶ Public API ──────▶ Redis (pub/sub, cache)       │
-                      (on elimelt.com)   Postgres (DB)                │ 
-                                                ▲                     │
-                                                │                     │
-                         shared netork ns       │                     │
-                                                │                     │
-                                                │                     │
-                      Internal API ─────────────┘                     │
-                      (not on elimelt.com)                            │
-                                                                      │
-                                                                      │
-Tailscale VPN ──────▶ Traefik (:443) ──┬──▶ Homepage (nginx)          │
-                      (reverse proxy)  ├──▶ Grafana                   │
-                                       ├──▶ Prometheus                │
-                                       ├──▶ Loki                      │
-                                       └──▶ Internal API              │
-                                                                      │
-       ┌─────────── shares network namespace ─────────────────────────┘
-       │
-       ▼
-Internal API
-       │
-       ├──▶ Agents ──▶ chat channels via Redis pub/sub
-       │       │
-       │       ▼
-       ├──▶ Python Sandbox
-       └──▶ Notes Sync (GitHub → Postgres)
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              INTERNET                                       │
+└─────────────────────────────────┬───────────────────────────────────────────┘
+                                  │
+                                  ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  HOST: Tailscale Funnel (https://blink.tail8ab50a.ts.net)                   │
+│  Binds to: 100.x.x.x:443 (Tailscale IP)                                     │
+│  Proxies to: http://127.0.0.1:443                                           │
+└─────────────────────────────────┬───────────────────────────────────────────┘
+                                  │
+                                  ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  DOCKER: funnel-proxy (nginx)                                               │
+│  Binds to: 127.0.0.1:443 (loopback only!)                                   │
+│  ⚠️  CANNOT use 0.0.0.0:443 - conflicts with Tailscale Funnel               │
+│                                                                             │
+│    /api/*  ──────────▶  public-api:80  ──┬──▶ Redis (pub/sub, cache)        │
+│    /*      ──────────▶  uptime-kuma:3001 │                                  │
+│                                          └──▶ Postgres (DB)                 │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-Observability:
-  Promtail ──▶ Loki (logs)
-  Node-exporter + cAdvisor ──▶ Prometheus (metrics) ──▶ Grafana
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  TAILSCALE VPN (private access)                                             │
+│                                                                             │
+│    Tailscale VPN ──▶ Traefik (:8443) ──┬──▶ Homepage (nginx)                │
+│                      (reverse proxy)   ├──▶ Grafana                         │
+│                                        ├──▶ Prometheus                      │
+│                                        ├──▶ Loki                            │
+│                                        └──▶ Internal API                    │
+│                                                                             │
+│    Tailscale container (in Docker) shares network namespace with Traefik   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  INTERNAL SERVICES (not publicly exposed)                                   │
+│                                                                             │
+│    Internal API ──┬──▶ Agents ──▶ chat channels via Redis pub/sub           │
+│                   │       │                                                 │
+│                   │       ▼                                                 │
+│                   ├──▶ Python Sandbox                                       │
+│                   └──▶ Notes Sync (GitHub → Postgres)                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  OBSERVABILITY                                                              │
+│                                                                             │
+│    Promtail ──▶ Loki (logs)                                                 │
+│    Node-exporter + cAdvisor ──▶ Prometheus (metrics) ──▶ Grafana            │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Service Map
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| traefik | 80, 443 | Reverse proxy, TLS termination |
-| tailscale | - | VPN access (shares traefik network) |
+| traefik | 80, 8443 | Reverse proxy for Tailscale VPN traffic |
+| tailscale (docker) | - | VPN access (shares traefik network) |
+| tailscale (host) | 443 | Funnel endpoint for public internet access |
+| funnel-proxy | 127.0.0.1:443 | Routes Funnel traffic to uptime-kuma/public-api |
 | homepage | - | Dashboard UI |
-| public-api | 443 (via Tailscale Funnel) | External API for elimelt.com |
+| public-api | 10000 | External API for elimelt.com (via funnel-proxy) |
 | internal-api | - | Agents, admin, notes sync |
 | redis | 6379 | Pub/sub, caching |
 | postgres | 5432 | Persistent storage |
@@ -109,6 +122,7 @@ Observability:
 | promtail | - | Log shipper |
 | node-exporter | 9100 | Host metrics |
 | cadvisor | 8080 | Container metrics |
+| uptime-kuma | 3001 | Status page (via funnel-proxy) |
 
 ---
 
@@ -135,6 +149,47 @@ VPN sidecar for secure remote access.
 - **State**: Persisted to `./tailscale/state/`.
 
 Environment: `TS_AUTHKEY`, `TS_HOSTNAME` (default: `devstack`).
+
+### Funnel Proxy
+
+Nginx reverse proxy that routes Tailscale Funnel traffic to internal services.
+
+**Architecture**:
+```
+Internet → Tailscale Funnel (host) → 127.0.0.1:443 → funnel-proxy → uptime-kuma / public-api
+                                                      (container)
+```
+
+**Why this exists**:
+- Tailscale Funnel runs on the **host** (not in Docker) and exposes `https://blink.tail8ab50a.ts.net` to the internet
+- Funnel is configured to proxy to `http://127.0.0.1:443`
+- The funnel-proxy container binds to `127.0.0.1:443` to receive this traffic
+- It routes `/api/*` to the public-api container and everything else to uptime-kuma
+
+**Critical port binding**:
+```yaml
+ports:
+  - "127.0.0.1:443:80"  # MUST be 127.0.0.1, NOT 0.0.0.0
+```
+
+⚠️ **Do NOT change this to `0.0.0.0:443` or `443:80`**. Tailscale Funnel binds to port 443 on the Tailscale interface (`100.x.x.x:443`), which conflicts with Docker trying to bind `0.0.0.0:443`. The container will fail with "address already in use".
+
+**Funnel configuration** (on host, not in Docker):
+```bash
+# View current config
+tailscale serve status
+
+# Expected output:
+# https://blink.tail8ab50a.ts.net (Funnel on)
+# |-- / proxy http://127.0.0.1:443
+```
+
+**Routing rules** (in `funnel-proxy/nginx.conf`):
+| Path | Destination | Purpose |
+|------|-------------|---------|
+| `/api/status-page/*` | uptime-kuma:3001 | Uptime Kuma status API |
+| `/api/*` | public-api:80 | Public API (elimelt.com backend) |
+| `/*` | uptime-kuma:3001 | Uptime Kuma dashboard |
 
 ### Redis
 

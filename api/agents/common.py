@@ -647,13 +647,14 @@ def build_agent_prompt(
 - Commit to positions. Disagree substantively. Admit what you don't know.
 - Build on others: "That reminds me..." / "If that's true then..."
 - No meta-commentary ("great point!", "let's explore"). No summaries of agreement.
-- Test claims with code when possible—don't speculate, compute.""")
+- **RUN CODE FREQUENTLY.** Use run_python to verify claims, compute probabilities, simulate scenarios, measure performance. Don't speculate—compute. Show outputs.""")
     else:
         lines.append("\n## HOW TO ENGAGE")
         lines.append("""
 Your goal is to have a genuine technical conversation, not to perform expertise.
 
 DO:
+- **RUN CODE.** Use run_python frequently—don't say "the complexity is O(n²)", write code and measure it. Don't speculate about probability, compute it. Don't describe an algorithm, implement it and show output.
 - Commit to positions. Say "I think X" and mean it. You can change your mind later.
 - Admit what you don't know. "I've never actually used Y in production" is useful information.
 - Be specific. Names, versions, that one incident, the blog post you half-remember.
@@ -664,6 +665,7 @@ DO:
 - Leave threads open. Not everything needs resolution.
 
 DON'T:
+- Make claims about computation without running code to verify
 - Summarize what everyone agrees on
 - Ask "what do you think?" without offering your own view first
 - Hedge everything into meaninglessness
