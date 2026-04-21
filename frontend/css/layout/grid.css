@@ -87,6 +87,27 @@ body:has(.right-sidebar.mobile-open) .main-content {
   overflow: hidden;
 }
 
+/* When stacked alongside About, equalize heights via flex instead of fixed 30rem */
+.grid-col-stack > #services,
+.grid-col-stack > #visitors,
+.grid-col-stack > #chat {
+  height: auto;
+  min-height: 0;
+}
+
+.grid-col-stack > #services {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.grid-col-stack > #services #services-content {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
 /* Align header areas */
 #visitors .section-title,
 #chat .section-title {
@@ -233,6 +254,7 @@ body:has(.right-sidebar.mobile-open) .main-content {
 }
 
 .about-text {
+  font-size: 1.125rem;
   line-height: 1.6;
   margin-bottom: 1.5rem;
 }
