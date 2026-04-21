@@ -19,7 +19,7 @@ cloth-content {
   cursor: grab;
   touch-action: pan-y pinch-zoom;
   pointer-events: auto;
-  font-size: 1rem;
+  font-size: 1.125rem;
   line-height: 1.6;
 }
 
@@ -58,6 +58,20 @@ body:has(.right-sidebar.mobile-open) .main-content {
   margin: 0 0 0.75rem 0;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--border);
+}
+
+/* Subsection label - same typography, used inside a panel to
+   separate a secondary block (e.g. Areas of Study under Education) */
+.subsection-title {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin: 1.25rem 0 0.5rem 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  scroll-margin-top: 5rem;
 }
 
 /* Grid row containers */
@@ -101,7 +115,7 @@ body:has(.right-sidebar.mobile-open) .main-content {
 #chat {
   display: flex;
   flex-direction: column;
-  height: 30rem;
+  height: 44rem;
   overflow: hidden;
 }
 
@@ -274,29 +288,22 @@ body:has(.right-sidebar.mobile-open) .main-content {
   font-weight: 600;
 }
 
-.areas-of-study-title {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 1.5rem 0 0.75rem 0;
-  color: var(--text);
-}
-
-/* About panel - compact, scrolls if content overflows */
+/* About panel - generous room, scrolls if content overflows */
 #about {
   margin-bottom: 0;
-  height: 32rem;
+  height: 44rem;
   overflow-y: auto;
 }
 
 /* Match right stack to About height */
 .grid-col-stack:has(> #services) {
-  height: 32rem;
+  height: 44rem;
 }
 
 .about-text {
-  font-size: 0.9375rem;
+  font-size: 1.0625rem;
   line-height: 1.65;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .about-text:last-child {
