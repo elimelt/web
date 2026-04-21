@@ -251,6 +251,8 @@ body:has(.right-sidebar.mobile-open) .main-content {
 
 #about {
   margin-bottom: 1.5rem;
+  max-height: 40rem;
+  overflow-y: auto;
 }
 
 .about-text {
