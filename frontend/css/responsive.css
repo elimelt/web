@@ -123,13 +123,8 @@
     grid-template-columns: 1fr;
   }
 
-  .section-title {
-    font-size: 1.125rem;
-    margin-bottom: 1rem;
-  }
-
   .section {
-    padding: 0.75rem;
+    padding: 0.75rem 0.875rem 0.875rem;
   }
 
   .timeline-item {
