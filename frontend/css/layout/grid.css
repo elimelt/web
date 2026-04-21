@@ -251,8 +251,12 @@ body:has(.right-sidebar.mobile-open) .main-content {
 
 #about {
   margin-bottom: 1.5rem;
-  max-height: 40rem;
+  height: 40rem;
   overflow-y: auto;
+}
+
+.grid-col-stack:has(> #services) {
+  height: 40rem;
 }
 
 .about-text {
