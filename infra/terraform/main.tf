@@ -111,6 +111,87 @@ resource "cloudflare_record" "api" {
 }
 
 # =============================================================================
+# DNS Records for GitHub Pages
+# =============================================================================
+
+# GitHub Pages IPs
+locals {
+  github_pages_ips = [
+    "185.199.108.153",
+    "185.199.109.153",
+    "185.199.110.153",
+    "185.199.111.153",
+  ]
+}
+
+# Apex domain (elimelt.com)
+resource "cloudflare_record" "apex" {
+  for_each = toset(local.github_pages_ips)
+  zone_id  = data.cloudflare_zone.main.id
+  name     = var.domain
+  type     = "A"
+  content  = each.value
+  proxied  = true
+  comment  = "GitHub Pages"
+}
+
+# www subdomain
+resource "cloudflare_record" "www" {
+  zone_id = data.cloudflare_zone.main.id
+  name    = "www"
+  type    = "CNAME"
+  content = "elimelt.github.io"
+  proxied = true
+  comment = "GitHub Pages"
+}
+
+# notes subdomain
+resource "cloudflare_record" "notes" {
+  for_each = toset(local.github_pages_ips)
+  zone_id  = data.cloudflare_zone.main.id
+  name     = "notes"
+  type     = "A"
+  content  = each.value
+  proxied  = true
+  comment  = "GitHub Pages - Notes app"
+}
+
+# music subdomain
+resource "cloudflare_record" "music" {
+  zone_id = data.cloudflare_zone.main.id
+  name    = "music"
+  type    = "CNAME"
+  content = "elimelt.github.io"
+  proxied = true
+  comment = "GitHub Pages - Music app"
+}
+
+# spa-template subdomain
+resource "cloudflare_record" "spa_template" {
+  for_each = toset(local.github_pages_ips)
+  zone_id  = data.cloudflare_zone.main.id
+  name     = "spa-template"
+  type     = "A"
+  content  = each.value
+  proxied  = true
+  comment  = "GitHub Pages - SPA template"
+}
+
+# =============================================================================
+# DNS Records for Other Services
+# =============================================================================
+
+# Auth service on AWS
+resource "cloudflare_record" "auth" {
+  zone_id = data.cloudflare_zone.main.id
+  name    = "auth"
+  type    = "A"
+  content = "54.185.38.121"
+  proxied = true
+  comment = "AWS EC2 - Auth service"
+}
+
+# =============================================================================
 # Outputs
 # =============================================================================
 
