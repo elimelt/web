@@ -3,7 +3,7 @@
  * Minimal, performant, stylized
  */
 
-const CANVAS_WS_URL = 'wss://blink.tail8ab50a.ts.net/api/ws/canvas';
+const CANVAS_WS_URL = 'wss://api.elimelt.com/ws/canvas';
 const COLORS = ['#fff', '#ff6b6b', '#4ecdc4', '#ffe66d', '#95e1d3', '#f38181', '#aa96da', '#fcbad3'];
 const WIDTHS = [2, 4, 8, 16];
 

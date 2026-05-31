@@ -1,71 +1,21 @@
 services:
-  tailscale:
-    image: tailscale/tailscale:${TAILSCALE_VERSION:-latest}
-    container_name: tailscale
+  # Caddy reverse proxy - handles all subdomain routing
+  # Add services by editing Caddyfile, then: docker exec caddy caddy reload --config /etc/caddy/Caddyfile
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
     restart: always
-    environment:
-      - TS_AUTHKEY=${TAILSCALE_AUTHKEY}
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_USERSPACE=false
-      - TS_EXTRA_ARGS=${TAILSCALE_EXTRA_ARGS:-}
-      - TS_HOSTNAME=${TAILSCALE_HOSTNAME:-devstack}
-    volumes:
-      - ${TAILSCALE_STATE_DIR:-./tailscale/state}:/var/lib/tailscale
-      - /dev/net/tun:/dev/net/tun
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-    network_mode: "service:traefik"
-    depends_on:
-      - traefik
-    sysctls:
-      - net.ipv4.ip_forward=1
-      - net.ipv6.conf.all.forwarding=1
-
-  traefik:
-    image: traefik:v2.11
-    container_name: traefik
-    restart: always
-    command:
-      - "--api.dashboard=true"
-      - "--api.insecure=false"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
-      - "--providers.file.filename=/traefik-config.yml"
-      - "--metrics.prometheus=true"
-      - "--metrics.prometheus.addEntryPointsLabels=true"
-      - "--metrics.prometheus.addRoutersLabels=true"
-      - "--metrics.prometheus.addServicesLabels=true"
-      - "--accesslog=true"
-      - "--accesslog.filepath=/var/log/traefik/access.log"
-      - "--accesslog.format=json"
-      - "--accesslog.fields.names.ClientUsername=keep"
-      - "--accesslog.fields.headers.names.User-Agent=keep"
-      - "--accesslog.fields.headers.names.X-Forwarded-For=keep"
-      - "--log.level=INFO"
     ports:
-      - "${TRAEFIK_HTTP_PORT:-80}:80"
-      - "${TRAEFIK_HTTPS_PORT:-8443}:443"
+      # Tailscale Funnel sends HTTP (TLS is terminated by Tailscale)
+      # Funnel: https://blink.tail8ab50a.ts.net → http://127.0.0.1:8080
+      - "127.0.0.1:8080:80"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ${TRAEFIK_CERTS_PATH:-./certs}:/certs:ro
-      - ${TRAEFIK_CONFIG_PATH:-./traefik-config.yml}:/traefik-config.yml:ro
-      - ${TRAEFIK_LOGS_PATH:-./logs}:/var/log/traefik
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${CADDY_CERTS_PATH:-./certs}:/certs:ro
+      - caddy_data:/data
+      - caddy_config:/config
     networks:
       - dev_network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.traefik-api.rule=(Host(`${DOMAIN}`) || Host(`${TAILSCALE_DOMAIN}`)) && PathPrefix(`/dashboard`)"
-      - "traefik.http.routers.traefik-api.entrypoints=websecure"
-      - "traefik.http.routers.traefik-api.tls=true"
-      - "traefik.http.routers.traefik-api.service=api@internal"
-      - "traefik.http.routers.traefik-api.middlewares=auth"
-      - "traefik.http.routers.traefik-api.priority=10"
-      - "traefik.http.middlewares.auth.basicauth.users=${BASIC_AUTH_USERS}"
 
   postgres:
     image: pgvector/pgvector:pg16
@@ -105,144 +55,6 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-
-  grafana:
-    image: grafana/grafana:${GRAFANA_VERSION:-latest}
-    container_name: grafana
-    restart: always
-    environment:
-      - GF_AUTH_DISABLE_LOGIN_FORM=true
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-      - GF_SERVER_ROOT_URL=https://${DOMAIN}/grafana
-      - GF_SERVER_SERVE_FROM_SUB_PATH=true
-      - GF_INSTALL_PLUGINS=
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ${GRAFANA_PROVISIONING_PATH:-./grafana}:/etc/grafana/provisioning
-    networks:
-      - dev_network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=(Host(`${DOMAIN}`) || Host(`${TAILSCALE_DOMAIN}`)) && PathPrefix(`/grafana`)"
-      - "traefik.http.routers.grafana.entrypoints=websecure"
-      - "traefik.http.routers.grafana.tls=true"
-      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
-      - "traefik.http.routers.grafana.middlewares=auth"
-      - "traefik.http.routers.grafana.priority=10"
-
-  prometheus:
-    image: prom/prometheus:${PROMETHEUS_VERSION:-latest}
-    container_name: prometheus
-    restart: always
-    volumes:
-      - ${PROMETHEUS_CONFIG_PATH:-./prometheus.yml}:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.external-url=https://${DOMAIN}/prometheus'
-      - '--web.route-prefix=/'
-    networks:
-      - dev_network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.prometheus.rule=(Host(`${DOMAIN}`) || Host(`${TAILSCALE_DOMAIN}`)) && PathPrefix(`/prometheus`)"
-      - "traefik.http.routers.prometheus.entrypoints=websecure"
-      - "traefik.http.routers.prometheus.tls=true"
-      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
-      - "traefik.http.routers.prometheus.middlewares=auth,prometheus-strip"
-      - "traefik.http.routers.prometheus.priority=10"
-      - "traefik.http.middlewares.prometheus-strip.stripprefix.prefixes=/prometheus"
-
-  loki:
-    image: grafana/loki:${LOKI_VERSION:-latest}
-    container_name: loki
-    restart: always
-    volumes:
-      - ${LOKI_CONFIG_PATH:-./loki-config.yml}:/etc/loki/config.yml:ro
-      - loki_data:/loki
-    command: -config.file=/etc/loki/config.yml
-    networks:
-      - dev_network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.loki.rule=(Host(`${DOMAIN}`) || Host(`${TAILSCALE_DOMAIN}`)) && PathPrefix(`/loki`)"
-      - "traefik.http.routers.loki.entrypoints=websecure"
-      - "traefik.http.routers.loki.tls=true"
-      - "traefik.http.services.loki.loadbalancer.server.port=3100"
-      - "traefik.http.routers.loki.middlewares=auth"
-      - "traefik.http.routers.loki.priority=10"
-
-  promtail:
-    image: grafana/promtail:${PROMTAIL_VERSION:-latest}
-    container_name: promtail
-    restart: always
-    volumes:
-      - ${PROMTAIL_CONFIG_PATH:-./promtail-config.yml}:/etc/promtail/promtail-config.yml
-      - ${TRAEFIK_LOGS_PATH:-./logs}:/var/log/traefik:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    command: -config.file=/etc/promtail/promtail-config.yml
-    networks:
-      - dev_network
-
-  node-exporter:
-    image: prom/node-exporter:${NODE_EXPORTER_VERSION:-latest}
-    container_name: node-exporter
-    restart: always
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    networks:
-      - dev_network
-
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:${CADVISOR_VERSION:-v0.51.0}
-    container_name: cadvisor
-    restart: always
-    command:
-      - '--docker_only=true'
-      - '--housekeeping_interval=30s'
-      - '--disable_metrics=disk,diskIO,percpu'
-      - '--store_container_labels=false'
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-      - /dev/disk:/dev/disk:ro
-    privileged: true
-    devices:
-      - /dev/kmsg
-    networks:
-      - dev_network
-
-  homepage:
-    image: nginx:${NGINX_VERSION:-alpine}
-    container_name: homepage
-    restart: always
-    volumes:
-      - ${HOMEPAGE_PATH:-./homepage}:/usr/share/nginx/html:ro
-      - ${HOMEPAGE_PATH:-./homepage}/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    depends_on:
-      - internal-api
-    networks:
-      - dev_network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.homepage.rule=(Host(`${DOMAIN}`) || Host(`${TAILSCALE_DOMAIN}`)) && PathPrefix(`/`)"
-      - "traefik.http.routers.homepage.entrypoints=websecure"
-      - "traefik.http.routers.homepage.tls=true"
-      - "traefik.http.services.homepage.loadbalancer.server.port=80"
-      - "traefik.http.services.homepage.loadbalancer.responseforwarding.flushinterval=1ms"
-      - "traefik.http.routers.homepage.middlewares=auth"
-      - "traefik.http.routers.homepage.priority=1"
 
   public-api:
     build: ${API_PATH:-./api}
@@ -338,29 +150,7 @@ services:
     volumes:
       - uptime_kuma_data:/app/data
     environment:
-      # Allow embedding in iframes (for dashboards like Homepage)
       - UPTIME_KUMA_DISABLE_FRAME_SAMEORIGIN=true
-    networks:
-      - dev_network
-    labels:
-      - "traefik.enable=false"
-
-  # Routes Tailscale Funnel traffic to uptime-kuma (/) and public-api (/api/*)
-  # The host's Tailscale Funnel proxies https://blink.tail8ab50a.ts.net → http://127.0.0.1:443
-  funnel-proxy:
-    image: nginx:alpine
-    container_name: funnel-proxy
-    restart: always
-    ports:
-      # ⚠️  MUST be 127.0.0.1:443, NOT 0.0.0.0:443 or just "443:80"
-      # Tailscale Funnel binds to 100.x.x.x:443 (Tailscale IP), which conflicts
-      # with Docker binding to 0.0.0.0:443. See README.md for details.
-      - "127.0.0.1:443:80"
-    volumes:
-      - ./funnel-proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    depends_on:
-      - uptime-kuma
-      - public-api
     networks:
       - dev_network
 
@@ -468,11 +258,10 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  grafana_data:
-  prometheus_data:
-  loki_data:
   uptime_kuma_data:
   minecraft_data:
+  caddy_data:
+  caddy_config:
 
 
 networks:

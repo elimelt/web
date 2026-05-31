@@ -21,6 +21,11 @@ infra/grafana/datasources/
 infra/venv/
 infra/api/venv/
 
+# Local infra configs (contain tunnel IDs, local paths)
+infra/Caddyfile
+infra/cloudflared-config.yml
+infra/lab
+
 # ===== Database backups =====
 *.sql
 backups/

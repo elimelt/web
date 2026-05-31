@@ -1,5 +1,5 @@
-export const BASE_URL = 'https://blink.tail8ab50a.ts.net:443/api';
-export const WS_BASE_URL = 'wss://blink.tail8ab50a.ts.net:443/api';
+export const BASE_URL = 'https://api.elimelt.com';
+export const WS_BASE_URL = 'wss://api.elimelt.com';
 export const PAGE_SIZE = 50;
 export const RECONNECT = {
   minDelay: 2000,
