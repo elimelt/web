@@ -40,36 +40,35 @@ data "cloudflare_zone" "main" {
 # =============================================================================
 # SSL/TLS Settings
 # =============================================================================
-
-resource "cloudflare_zone_settings_override" "ssl_settings" {
-  zone_id = data.cloudflare_zone.main.id
-
-  settings {
-    ssl                      = "full"
-    always_use_https         = "on"
-    automatic_https_rewrites = "on"
-    min_tls_version          = "1.2"
-  }
-}
+# NOTE: SSL mode must be set to "Full" in the Cloudflare dashboard.
+# This cannot be managed via Terraform without Zone Settings:Edit permission.
+# Dashboard: https://dash.cloudflare.com/ → elimelt.com → SSL/TLS → Overview
 
 # =============================================================================
 # Cloudflare Tunnel
 # =============================================================================
+#
+# The tunnel was created via CLI. We reference it as a data source to avoid
+# Terraform trying to recreate it (which would break the existing connection).
+#
+# Tunnel ID: ecc58535-4890-4667-b78a-9d00e1a5034c
 
-resource "cloudflare_tunnel" "homelab" {
-  account_id = var.cloudflare_account_id
-  name       = "homelab"
-  secret     = random_id.tunnel_secret.b64_std
+variable "tunnel_id" {
+  description = "Existing tunnel ID created via cloudflared CLI"
+  type        = string
+  default     = "ecc58535-4890-4667-b78a-9d00e1a5034c"
 }
 
-resource "random_id" "tunnel_secret" {
-  byte_length = 32
+# Reference to the existing tunnel (read-only)
+data "cloudflare_zero_trust_tunnel_cloudflared" "homelab" {
+  account_id = var.cloudflare_account_id
+  name       = "homelab"
 }
 
 # Tunnel configuration (ingress rules)
-resource "cloudflare_tunnel_config" "homelab" {
+resource "cloudflare_zero_trust_tunnel_cloudflared_config" "homelab" {
   account_id = var.cloudflare_account_id
-  tunnel_id  = cloudflare_tunnel.homelab.id
+  tunnel_id  = var.tunnel_id
 
   config {
     ingress_rule {
@@ -97,7 +96,7 @@ resource "cloudflare_record" "status" {
   zone_id = data.cloudflare_zone.main.id
   name    = "status"
   type    = "CNAME"
-  content = "${cloudflare_tunnel.homelab.id}.cfargotunnel.com"
+  content = "${var.tunnel_id}.cfargotunnel.com"
   proxied = true
   comment = "Uptime Kuma status page"
 }
@@ -106,7 +105,7 @@ resource "cloudflare_record" "api" {
   zone_id = data.cloudflare_zone.main.id
   name    = "api"
   type    = "CNAME"
-  content = "${cloudflare_tunnel.homelab.id}.cfargotunnel.com"
+  content = "${var.tunnel_id}.cfargotunnel.com"
   proxied = true
   comment = "Public API"
 }
@@ -116,17 +115,11 @@ resource "cloudflare_record" "api" {
 # =============================================================================
 
 output "tunnel_id" {
-  value       = cloudflare_tunnel.homelab.id
+  value       = var.tunnel_id
   description = "Tunnel ID"
 }
 
-output "tunnel_token" {
-  value       = cloudflare_tunnel.homelab.tunnel_token
-  sensitive   = true
-  description = "Tunnel token for CLOUDFLARE_TUNNEL_TOKEN env var"
-}
-
 output "tunnel_cname" {
-  value       = "${cloudflare_tunnel.homelab.id}.cfargotunnel.com"
+  value       = "${var.tunnel_id}.cfargotunnel.com"
   description = "CNAME target for tunnel DNS records"
 }
