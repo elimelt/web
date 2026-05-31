@@ -1,0 +1,39 @@
+# Cloudflare Configuration
+# =========================
+# Copy this to terraform.tfvars and fill in your values
+#
+# To get your Account ID:
+#   1. Go to https://dash.cloudflare.com/
+#   2. Select your domain
+#   3. Look in the right sidebar under "API" section
+#
+# To create an API Token:
+#   1. Go to https://dash.cloudflare.com/profile/api-tokens
+#   2. Create Token → Custom Token
+#   3. Permissions needed:
+#      - Zone:Zone:Read
+#      - Zone:DNS:Edit  
+#      - Account:Cloudflare Tunnel:Edit
+#   4. Set CLOUDFLARE_API_TOKEN environment variable
+
+cloudflare_account_id = "your-account-id-here"
+domain                = "elimelt.com"
+
+# Add more services here:
+# services = {
+#   status = {
+#     subdomain = "status"
+#     service   = "http://caddy:80"
+#     comment   = "Uptime Kuma"
+#   }
+#   api = {
+#     subdomain = "api"
+#     service   = "http://caddy:80"
+#     comment   = "Public API"
+#   }
+#   grafana = {
+#     subdomain = "grafana"
+#     service   = "http://caddy:80"
+#     comment   = "Grafana dashboards"
+#   }
+# }

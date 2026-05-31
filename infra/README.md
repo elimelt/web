@@ -14,56 +14,60 @@ Internet → Cloudflare Tunnel → Caddy (reverse proxy) → Docker services
 ### Prerequisites
 
 - Docker + docker-compose
+- Terraform (for Cloudflare config)
 - Cloudflare account with domain
-- `cloudflared` CLI installed
 
-### Setup
+### Initial Setup
 
-1. **Start services:**
+1. **Configure Cloudflare (Terraform):**
+   ```bash
+   cd infra/terraform
+   cp terraform.tfvars.example terraform.tfvars
+   # Edit terraform.tfvars with your Cloudflare account ID
+
+   export CLOUDFLARE_API_TOKEN="your-api-token"
+   terraform init
+   terraform apply
+
+   # Get the tunnel token for Docker
+   terraform output -raw tunnel_token
+   ```
+
+2. **Configure Docker:**
    ```bash
    cd infra
    cp .env.example .env
-   # Edit .env with your secrets
+   cp Caddyfile.example Caddyfile
+
+   # Add tunnel token from step 1
+   echo "CLOUDFLARE_TUNNEL_TOKEN=<token>" >> .env
+
    docker-compose up -d
-   ```
-
-2. **Configure Cloudflare Tunnel** (first time only):
-   ```bash
-   cloudflared tunnel login
-   cloudflared tunnel create homelab
-   cloudflared tunnel route dns homelab status.elimelt.com
-   cloudflared tunnel route dns homelab api.elimelt.com
-   ```
-
-3. **Create local config** (`cloudflared-config.yml`):
-   ```yaml
-   tunnel: <YOUR_TUNNEL_ID>
-   credentials-file: ~/.cloudflared/<YOUR_TUNNEL_ID>.json
-
-   ingress:
-     - hostname: status.elimelt.com
-       service: http://localhost:8080
-     - hostname: api.elimelt.com
-       service: http://localhost:8080
-     - service: http_status:404
-   ```
-
-4. **Run the tunnel:**
-   ```bash
-   cloudflared tunnel --config cloudflared-config.yml run homelab
    ```
 
 ## Adding a New Service
 
-1. **Add DNS route:**
-   ```bash
-   cloudflared tunnel route dns homelab myservice.elimelt.com
+1. **Add to Terraform** (`terraform/main.tf`):
+   ```hcl
+   # In cloudflare_tunnel_config.homelab.config:
+   ingress_rule {
+     hostname = "myservice.${var.domain}"
+     service  = "http://caddy:80"
+   }
+
+   # Add DNS record:
+   resource "cloudflare_record" "myservice" {
+     zone_id = data.cloudflare_zone.main.id
+     name    = "myservice"
+     type    = "CNAME"
+     content = "${cloudflare_tunnel.homelab.id}.cfargotunnel.com"
+     proxied = true
+   }
    ```
 
-2. **Add to cloudflared-config.yml:**
-   ```yaml
-   - hostname: myservice.elimelt.com
-     service: http://localhost:8080
+2. **Apply Terraform:**
+   ```bash
+   cd terraform && terraform apply
    ```
 
 3. **Add to Caddyfile:**
@@ -74,10 +78,9 @@ Internet → Cloudflare Tunnel → Caddy (reverse proxy) → Docker services
    }
    ```
 
-4. **Reload:**
+4. **Reload Caddy:**
    ```bash
    docker exec caddy caddy reload --config /etc/caddy/Caddyfile
-   # Restart cloudflared or send SIGHUP
    ```
 
 ## Common Commands

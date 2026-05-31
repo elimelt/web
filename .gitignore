@@ -23,8 +23,17 @@ infra/api/venv/
 
 # Local infra configs (contain tunnel IDs, local paths)
 infra/Caddyfile
+!infra/Caddyfile.example
 infra/cloudflared-config.yml
 infra/lab
+
+# Terraform state (contains secrets)
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.*
+infra/terraform/.terraform/
+infra/terraform/.terraform.lock.hcl
+infra/terraform/terraform.tfvars
+!infra/terraform/terraform.tfvars.example
 
 # ===== Database backups =====
 *.sql

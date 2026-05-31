@@ -1,0 +1,43 @@
+# Homelab Caddy Configuration
+# ============================
+# Cloudflare Tunnel terminates TLS and sends HTTP to Caddy.
+# Copy to Caddyfile and customize.
+#
+# Reload: docker exec caddy caddy reload --config /etc/caddy/Caddyfile
+
+{
+	auto_https off
+}
+
+:80 {
+	# ============ PUBLIC SERVICES ============
+	
+	# status.elimelt.com → Uptime Kuma
+	@status host status.elimelt.com
+	handle @status {
+		reverse_proxy uptime-kuma:3001
+	}
+
+	# api.elimelt.com → Public API
+	@api host api.elimelt.com
+	handle @api {
+		reverse_proxy public-api:80
+	}
+
+	# ============ ADD NEW SERVICES HERE ============
+	# 1. Add DNS record via Terraform (or dashboard)
+	# 2. Add ingress rule to Terraform tunnel config
+	# 3. Add Caddy route here
+	# 4. Reload: docker exec caddy caddy reload --config /etc/caddy/Caddyfile
+	#
+	# Example:
+	# @grafana host grafana.elimelt.com
+	# handle @grafana {
+	#     reverse_proxy grafana:3000
+	# }
+
+	# Default: 404
+	handle {
+		respond "Not Found" 404
+	}
+}
