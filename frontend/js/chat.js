@@ -1,4 +1,10 @@
-import { getEvents, getChatHistory, getChatAnalytics } from "./api.js";
+import {
+  getEvents,
+  getChatHistory,
+  getChatAnalytics,
+  isApiAvailable,
+  hideOfflineSection,
+} from "./api.js";
 import { WS_BASE_URL, PAGE_SIZE, RECONNECT } from "./config.js";
 import {
   getHumanReadableDateTimeString,
@@ -609,6 +615,11 @@ async function initChat() {
 
   if (!formEl || !inputEl || !msgsEl) {
     chatInitialized = false;
+    return;
+  }
+
+  if (!(await isApiAvailable())) {
+    hideOfflineSection("chat", "nav:chat");
     return;
   }
 

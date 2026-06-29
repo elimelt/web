@@ -1,4 +1,4 @@
-import { getSystem } from './api.js';
+import { getSystem, isApiAvailable, hideOfflineSection } from './api.js';
 
 const TABLE_STYLES = {
   table: 'width:100%; border-collapse: collapse;',
@@ -101,10 +101,15 @@ function renderServices(data) {
   return renderTable(services);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const statsEl = document.getElementById('services-stats');
   const container = document.getElementById('services-content');
   if (!container || !statsEl) return;
+
+  if (!(await isApiAvailable())) {
+    hideOfflineSection('services', 'nav:services');
+    return;
+  }
 
   // Show skeleton loading state immediately
   statsEl.textContent = 'Loading...';

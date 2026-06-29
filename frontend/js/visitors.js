@@ -1,4 +1,4 @@
-import { getVisitors, getVisitorsAnalytics, getWsVisitors } from './api.js';
+import { getVisitors, getVisitorsAnalytics, getWsVisitors, isApiAvailable, hideOfflineSection } from './api.js';
 import { BASE_URL, PAGE_SIZE, RECONNECT } from './config.js';
 import { toTimestampMs, debounce, getHumanReadableDateTimeString } from './utils.js';
 
@@ -23,7 +23,7 @@ const paginationState = {
 
 const DEDUP_BUCKET_MS = 60 * 60 * 1000;
 
-function initVisitors() {
+async function initVisitors() {
   if (visitorsInitialized) return;
   visitorsInitialized = true;
 
@@ -42,6 +42,11 @@ function initVisitors() {
 
   if (!statsEl || !listEl) {
     visitorsInitialized = false;
+    return;
+  }
+
+  if (!(await isApiAvailable())) {
+    hideOfflineSection('visitors', 'nav:visitors');
     return;
   }
 

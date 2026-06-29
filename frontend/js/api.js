@@ -8,6 +8,40 @@ const fetchJson = (endpoint) =>
       return error;
     });
 
+const HEALTH_TIMEOUT_MS = 5000;
+let __apiHealthPromise = null;
+
+export function isApiAvailable() {
+  if (__apiHealthPromise) return __apiHealthPromise;
+  __apiHealthPromise = (async () => {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS);
+      const response = await fetch(`${BASE_URL}/health`, {
+        method: 'GET',
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      return response.ok;
+    } catch (error) {
+      console.warn('[api] Health check failed, treating API as offline:', error);
+      return false;
+    }
+  })();
+  return __apiHealthPromise;
+}
+
+export function hideOfflineSection(sectionId, navAnalyticsId) {
+  const section = document.getElementById(sectionId);
+  if (section) section.style.display = 'none';
+  if (navAnalyticsId) {
+    const navLink = document.querySelector(`.nav-link[data-analytics-id="${navAnalyticsId}"]`);
+    const navItem = navLink ? navLink.closest('.nav-item') : null;
+    if (navItem) navItem.style.display = 'none';
+  }
+}
+
 const getSystem = () => fetchJson('/system');
 
 const getVisitors = () => fetchJson('/visitors');
