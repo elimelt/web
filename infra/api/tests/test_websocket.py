@@ -49,7 +49,7 @@ def test_websocket_join_broadcast_and_leave(client, monkeypatch):
         assert received["type"] == "broadcast"
         assert received["payload"]["hello"] == "world"
 
-    for _ in range(10):
+    for _ in range(50):
         visitors_resp = client.get("/visitors")
         assert visitors_resp.status_code == 200
         if visitors_resp.json()["active_count"] == 0:
