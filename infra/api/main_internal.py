@@ -23,6 +23,7 @@ from api.agents.gemini_agent import start_agents as start_gemini_agents
 from api.batch.notes_sync_scheduler import start_notes_sync_scheduler
 from api.bus import EventBus
 from api.config import get_settings
+from api.controllers.agents_status import router as agents_status_router
 from api.controllers.analytics_clicks import router as analytics_clicks_router
 from api.controllers.augment_chat import router as augment_chat_router
 from api.controllers.cache import router as cache_router
@@ -154,6 +155,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 app.router.lifespan_context = lifespan
 
 app.include_router(health_router)
+app.include_router(agents_status_router)
 app.include_router(augment_chat_router)
 app.include_router(codex_chat_router)
 app.include_router(chat_admin_router)

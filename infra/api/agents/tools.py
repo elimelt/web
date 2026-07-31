@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
@@ -297,14 +298,19 @@ async def run_python_async(code: str) -> str:
         from api.sandbox import execute_python, is_sandbox_available
 
         if not is_sandbox_available():
-            return "ERROR: Python sandbox is not available."
+            return (
+                "ERROR: Python sandbox is not available. "
+                "Check /agents/status for image and Docker CLI readiness."
+            )
 
+        start = time.perf_counter()
         result, success = await asyncio.to_thread(execute_python, code, "agent")
+        duration_ms = int((time.perf_counter() - start) * 1000)
 
         if success:
-            return result if result else "(no output)"
-        else:
-            return f"Execution failed:\n{result}"
+            output = result if result else "(no output)"
+            return f"OK python_sandbox duration_ms={duration_ms}\n{output}"
+        return f"ERROR python_sandbox duration_ms={duration_ms}\n{result}"
 
     except ImportError:
         return "ERROR: Sandbox module not available"

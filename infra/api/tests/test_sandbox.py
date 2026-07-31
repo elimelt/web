@@ -175,6 +175,20 @@ class TestSandboxToolLayer:
             from api.agents.tools import run_python_async
             result = await run_python_async("print(1)")
             assert "not available" in result.lower() or "ERROR" in result
+            assert "/agents/status" in result
+
+    @pytest.mark.asyncio
+    async def test_run_python_async_success_includes_status(self):
+        """Test run_python_async returns status metadata with output."""
+        with (
+            patch("api.sandbox.is_sandbox_available", return_value=True),
+            patch("api.sandbox.execute_python", return_value=("42\n", True)),
+        ):
+            from api.agents.tools import run_python_async
+
+            result = await run_python_async("print(42)")
+            assert result.startswith("OK python_sandbox duration_ms=")
+            assert "42" in result
 
     def test_run_python_sync_wrapper_exists(self):
         """Test that sync wrapper function exists."""
@@ -488,4 +502,3 @@ class TestSandboxPerformance:
         assert result1 == result2
         # Cached should be much faster
         assert elapsed2 < elapsed1 / 2
-
