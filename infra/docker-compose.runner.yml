@@ -1,0 +1,31 @@
+services:
+  # Optional GitHub Actions self-hosted runner for backend deploys.
+  # Public PRs must never run on this runner; backend-deploy.yml only uses self-hosted after merge/push.
+  github-runner:
+    build:
+      context: ./github-runner
+      dockerfile: Dockerfile
+    container_name: github-runner-backend
+    restart: always
+    profiles:
+      - runner
+    environment:
+      - GITHUB_RUNNER_REPO_URL=${GITHUB_RUNNER_REPO_URL:-https://github.com/elimelt/web}
+      - GITHUB_RUNNER_NAME=${GITHUB_RUNNER_NAME:-elimelt-backend}
+      - GITHUB_RUNNER_LABELS=${GITHUB_RUNNER_LABELS:-backend}
+      - GITHUB_RUNNER_TOKEN=${GITHUB_RUNNER_TOKEN:-}
+      - GITHUB_RUNNER_WORKDIR=/runner/_work
+    volumes:
+      - github_runner_data:/runner
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${BACKEND_DEPLOY_PATH:-/opt/elimelt-web-deploy}:/deploy/web
+    networks:
+      - dev_network
+
+volumes:
+  github_runner_data:
+
+networks:
+  dev_network:
+    external: true
+    name: ${COMPOSE_PROJECT_NAME:-homelab}_dev_network

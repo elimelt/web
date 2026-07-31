@@ -1,0 +1,112 @@
+name: Backend CI and Deploy
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "infra/api/**"
+      - "infra/docker-compose.yml"
+      - "infra/Caddyfile"
+      - "infra/github-runner/**"
+      - "infra/pytest.ini"
+      - "infra/pyproject.toml"
+      - ".github/workflows/backend-deploy.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "infra/api/**"
+      - "infra/docker-compose.yml"
+      - "infra/Caddyfile"
+      - "infra/github-runner/**"
+      - "infra/pytest.ini"
+      - "infra/pyproject.toml"
+      - ".github/workflows/backend-deploy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: backend-deploy
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Test backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: |
+            infra/api/requirements.txt
+            infra/api/requirements.dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r api/requirements.txt -r api/requirements.dev.txt
+
+      - name: Test
+        run: python -m pytest
+
+  deploy:
+    name: Deploy backend
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: [self-hosted, blink]
+    environment: backend
+    env:
+      DEPLOY_PATH: ${{ vars.BACKEND_DEPLOY_PATH || '/home/elimelt/repos/web-deploy' }}
+      HEALTHCHECK_URL: ${{ vars.BACKEND_HEALTHCHECK_URL || 'https://api.elimelt.com/health' }}
+    steps:
+      - name: Validate deploy checkout
+        run: |
+          set -euo pipefail
+
+          if [ -z "${DEPLOY_PATH}" ]; then
+            echo "Set the BACKEND_DEPLOY_PATH repository or environment variable."
+            exit 1
+          fi
+
+          if [ ! -d "${DEPLOY_PATH}/.git" ]; then
+            echo "BACKEND_DEPLOY_PATH must point at a git checkout: ${DEPLOY_PATH}"
+            exit 1
+          fi
+
+          if [ ! -f "${DEPLOY_PATH}/infra/.env" ]; then
+            echo "Missing ${DEPLOY_PATH}/infra/.env; deploy uses the host's existing Compose env file."
+            exit 1
+          fi
+
+          if [ -n "$(git -C "${DEPLOY_PATH}" status --porcelain)" ]; then
+            echo "Deploy checkout is dirty. Commit/stash local changes or use a dedicated clean deploy clone."
+            git -C "${DEPLOY_PATH}" status --short
+            exit 1
+          fi
+
+      - name: Update checkout
+        run: |
+          set -euo pipefail
+          git -C "${DEPLOY_PATH}" fetch origin main
+          git -C "${DEPLOY_PATH}" checkout main
+          git -C "${DEPLOY_PATH}" reset --hard "${GITHUB_SHA}"
+
+      - name: Rebuild and restart backend
+        run: |
+          set -euo pipefail
+          cd "${DEPLOY_PATH}/infra"
+          docker compose up -d --build public-api internal-api python-sandbox
+          docker compose up -d caddy
+          docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile || docker compose restart caddy
+          docker compose ps public-api internal-api caddy
+
+      - name: Health check
+        run: |
+          set -euo pipefail
+          curl --fail --retry 12 --retry-delay 5 --retry-all-errors "${HEALTHCHECK_URL}"

@@ -93,6 +93,35 @@ docker exec -it postgres psql -U devuser -d devdb
 docker exec -it redis redis-cli
 ```
 
+## Backend Auto-Deploy
+
+The backend deploy workflow runs from `.github/workflows/backend-deploy.yml`.
+
+The active deploy target is the existing `elimelt.com` self-hosted runner with labels
+`self-hosted`, `Linux`, `X64`, and `blink`. Public pull requests run only on GitHub-hosted
+runners; the self-hosted runner is used only by the deploy job after merge/push to `main`.
+
+Required host setup:
+
+1. Keep a dedicated clean deploy clone on the host at `/home/elimelt/repos/web-deploy`.
+2. Keep the production Compose env file at `/home/elimelt/repos/web-deploy/infra/.env`.
+3. Keep the GitHub `backend` environment variable `BACKEND_DEPLOY_PATH` set to that clone path.
+4. Optionally set `BACKEND_HEALTHCHECK_URL`; it defaults to `https://api.elimelt.com/health`.
+
+On pushes to `main` that touch backend files, the workflow runs tests, updates the deploy clone to the pushed commit, rebuilds `public-api`, `internal-api`, and `python-sandbox`, reloads Caddy, and checks the API health endpoint.
+
+Optional Dockerized runner:
+
+This repo also includes a Compose service for a Dockerized self-hosted runner. Start it only if
+you want to replace the existing host runner:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.runner.yml --profile runner up -d github-runner
+```
+
+If you use the Dockerized runner, set `BACKEND_DEPLOY_PATH=/deploy/web` in the GitHub `backend`
+environment because the host deploy clone is mounted into the runner container there.
+
 ---
 
 ## Detailed Architecture
