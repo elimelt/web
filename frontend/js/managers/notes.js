@@ -1,8 +1,11 @@
 "use strict";
 
+import { BASE_URL } from "../config.js";
+
 const NotesFetcher = {
   SOURCE_URL: "https://notes.elimelt.com",
-  SEARCH_API: "https://blink.tail8ab50a.ts.net:8443/notes/search",
+  NOTES_API: `${BASE_URL}/notes`,
+  SEARCH_API: `${BASE_URL}/notes/search`,
   originalNotesHTML: "",
 
   init() {
@@ -15,42 +18,19 @@ const NotesFetcher = {
 
   async fetchAndDisplay() {
     try {
-      const response = await fetch(this.SOURCE_URL);
+      const response = await fetch(`${this.NOTES_API}?limit=8`);
       if (!response.ok) {
         throw new Error(`Failed to fetch notes: ${response.statusText}`);
       }
 
-      const text = await response.text();
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(text, "text/html");
-      const notesContainer = doc.querySelector(".recent-posts");
-
-      if (!notesContainer) {
-        throw new Error("Notes container not found in fetched HTML");
+      const data = await response.json();
+      const notes = Array.isArray(data.documents) ? data.documents : [];
+      if (notes.length === 0) {
+        throw new Error("No notes returned from API");
       }
 
-      const notesList = notesContainer.querySelector("ul");
-      const links = notesContainer.querySelectorAll("a");
-      links.forEach((link) => {
-        const href = link.getAttribute("href");
-        if (href && !href.startsWith("http")) {
-          link.setAttribute("href", this.SOURCE_URL + href);
-        }
-      });
-
-      const noteItems = notesContainer.querySelectorAll("li");
-      noteItems.forEach((item) => {
-        const previewBtn = document.createElement("button");
-        previewBtn.classList.add("preview-btn");
-        previewBtn.setAttribute("aria-label", "Preview note");
-        previewBtn.innerHTML =
-          '<svg class="preview-icon"><use href="#icon-eye"></use></svg>';
-        item.appendChild(previewBtn);
-      });
-
       const container = document.getElementById("notes-content");
-      container.innerHTML = notesList.innerHTML;
-      this._styleNoteItems();
+      this._renderNotes(container, notes);
       this.originalNotesHTML = container.innerHTML;
     } catch (error) {
       console.error("Error fetching notes:", error);
@@ -106,33 +86,75 @@ const NotesFetcher = {
         return;
       }
 
-      container.innerHTML = results
-        .map((note) => {
-          const urlPath = note.file_path
-            ? note.file_path
-                .replace(/^content\//, "")
-                .replace(/\.md$/, ".html")
-            : note.id;
-          return `
-        <li class="note-item">
-          <a href="${this.SOURCE_URL}/${urlPath}" target="_blank" rel="noopener" class="note-link">${note.title}</a>
-          <div class="note-meta">
-            <span class="note-date">${note.last_modified ? new Date(note.last_modified).toLocaleDateString() : ""}</span>
-            ${note.category ? `<span class="note-category">${note.category}</span>` : ""}
-            <button class="preview-btn" aria-label="Preview note">
-              <svg class="preview-icon"><use href="#icon-eye"></use></svg>
-            </button>
-          </div>
-        </li>
-      `;
-        })
-        .join("");
-      this._attachPreviewListeners(container);
+      this._renderNotes(container, results);
     } catch (error) {
       console.error("Error searching notes:", error);
       container.innerHTML =
         '<li class="note-item"><p class="notes-error">Search failed. Please try again.</p></li>';
     }
+  },
+
+  _noteUrl(note) {
+    if (!note.file_path) return `${this.SOURCE_URL}`;
+    const urlPath = note.file_path
+      .replace(/^content\//, "")
+      .replace(/\.md$/, ".html")
+      .split("/")
+      .map(encodeURIComponent)
+      .join("/");
+    return `${this.SOURCE_URL}/${urlPath}`;
+  },
+
+  _renderNotes(container, notes) {
+    container.innerHTML = "";
+    const fragment = document.createDocumentFragment();
+
+    notes.forEach((note) => {
+      const item = document.createElement("li");
+      item.classList.add("note-item");
+
+      const link = document.createElement("a");
+      link.classList.add("note-link");
+      link.href = this._noteUrl(note);
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = note.title || "Untitled";
+      link.setAttribute("data-analytics", "notes.link");
+      link.setAttribute("data-analytics-id", `note:${note.file_path || note.id}`);
+      link.setAttribute("data-analytics-label", link.textContent);
+      link.setAttribute("data-analytics-group", "notes");
+
+      const meta = document.createElement("div");
+      meta.classList.add("note-meta");
+
+      if (note.last_modified) {
+        const date = document.createElement("span");
+        date.classList.add("note-date");
+        date.textContent = new Date(note.last_modified).toLocaleDateString();
+        meta.appendChild(date);
+      }
+
+      if (note.category) {
+        const category = document.createElement("span");
+        category.classList.add("note-category");
+        category.textContent = note.category;
+        meta.appendChild(category);
+      }
+
+      const previewBtn = document.createElement("button");
+      previewBtn.classList.add("preview-btn");
+      previewBtn.type = "button";
+      previewBtn.setAttribute("aria-label", "Preview note");
+      previewBtn.innerHTML = '<svg class="preview-icon"><use href="#icon-eye"></use></svg>';
+      previewBtn.addEventListener("click", () => this._previewNote(item));
+      meta.appendChild(previewBtn);
+
+      item.appendChild(link);
+      item.appendChild(meta);
+      fragment.appendChild(item);
+    });
+
+    container.appendChild(fragment);
   },
 
   _styleNoteItems() {
@@ -244,4 +266,3 @@ const NotesFetcher = {
 };
 
 export { NotesFetcher };
-
