@@ -56,6 +56,4 @@ uvloop==0.22.1
 watchfiles==1.1.1
 websockets==14.2
 yarl==1.22.0
-sentence-transformers>=2.2.0
 pgvector>=0.2.0
-numpy>=1.24.0

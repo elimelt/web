@@ -66,7 +66,10 @@ services:
       retries: 3
 
   public-api:
-    build: ${API_PATH:-./api}
+    build:
+      context: ${API_PATH:-./api}
+      args:
+        INSTALL_EMBEDDINGS: ${INSTALL_EMBEDDINGS:-0}
     container_name: public-api
     restart: always
     user: root
@@ -102,6 +105,8 @@ services:
     build:
       context: ${API_PATH:-./api}
       dockerfile: Dockerfile.internal
+      args:
+        INSTALL_EMBEDDINGS: ${INSTALL_EMBEDDINGS:-0}
     container_name: internal-api
     restart: always
     ports:

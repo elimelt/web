@@ -178,4 +178,9 @@ POSTGRES_PASSWORD=changeme
 AUGMENT_API_TOKEN=xxx          # optional: enables AI agents
 GEMINI_API_KEY=xxx             # optional: enables Gemini agent
 GITHUB_TOKEN=xxx               # optional: enables notes sync
+INSTALL_EMBEDDINGS=0           # optional: set to 1 to install local semantic search model deps
 ```
+
+The default API images do not install `sentence-transformers` or Torch. Notes search still supports
+full-text and hybrid fallback; set `INSTALL_EMBEDDINGS=1` only if this host should generate/query
+local semantic embeddings.

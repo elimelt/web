@@ -45,6 +45,7 @@ jobs:
           cache: "pip"
           cache-dependency-path: |
             infra/api/requirements.txt
+            infra/api/requirements.embeddings.txt
             infra/api/requirements.dev.txt
 
       - name: Install dependencies
@@ -64,6 +65,8 @@ jobs:
     env:
       DEPLOY_PATH: ${{ vars.BACKEND_DEPLOY_PATH || '/home/elimelt/repos/web-deploy' }}
       HEALTHCHECK_URL: ${{ vars.BACKEND_HEALTHCHECK_URL || 'https://api.elimelt.com/health' }}
+      COMPOSE_DOCKER_CLI_BUILD: "1"
+      DOCKER_BUILDKIT: "1"
     steps:
       - name: Validate deploy checkout
         run: |

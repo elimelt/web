@@ -1,13 +1,25 @@
+from __future__ import annotations
+
 import logging
 import re
+from typing import TYPE_CHECKING
 
-from sentence_transformers import SentenceTransformer
+try:
+    from sentence_transformers import SentenceTransformer
+except ImportError as exc:
+    SentenceTransformer = None  # type: ignore[assignment, misc]
+    _IMPORT_ERROR: ImportError | None = exc
+else:
+    _IMPORT_ERROR = None
+
+if TYPE_CHECKING:
+    from sentence_transformers import SentenceTransformer as SentenceTransformerType
 
 from api import db
 
 logger = logging.getLogger(__name__)
 
-_model: SentenceTransformer | None = None
+_model: SentenceTransformerType | None = None
 _model_load_error: Exception | None = None
 
 MODEL_NAME = "all-MiniLM-L6-v2"
@@ -15,11 +27,17 @@ MODEL_DIMENSION = 384
 CONTENT_MAX_CHARS = 8000
 
 
-def get_embedding_model() -> SentenceTransformer:
+def get_embedding_model() -> SentenceTransformerType:
     global _model, _model_load_error
 
     if _model is not None:
         return _model
+
+    if _IMPORT_ERROR is not None or SentenceTransformer is None:
+        raise RuntimeError(
+            "Embedding dependencies are not installed. Install api/requirements.embeddings.txt "
+            "or build with INSTALL_EMBEDDINGS=1."
+        ) from _IMPORT_ERROR
 
     if _model_load_error is not None:
         raise RuntimeError(f"Embedding model failed to load: {_model_load_error}")
