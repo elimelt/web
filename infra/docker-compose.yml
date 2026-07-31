@@ -1,17 +1,26 @@
 services:
-  # Caddy reverse proxy - handles all subdomain routing
+  # Cloudflare Tunnel - exposes services to the internet
+  # Requires CLOUDFLARE_TUNNEL_TOKEN from: https://one.dash.cloudflare.com/ → Networks → Tunnels
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    restart: always
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - dev_network
+    depends_on:
+      - caddy
+
+  # Caddy reverse proxy - routes by hostname to services
   # Add services by editing Caddyfile, then: docker exec caddy caddy reload --config /etc/caddy/Caddyfile
   caddy:
     image: caddy:2-alpine
     container_name: caddy
     restart: always
-    ports:
-      # Tailscale Funnel sends HTTP (TLS is terminated by Tailscale)
-      # Funnel: https://blink.tail8ab50a.ts.net → http://127.0.0.1:8080
-      - "127.0.0.1:8080:80"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - ${CADDY_CERTS_PATH:-./certs}:/certs:ro
       - caddy_data:/data
       - caddy_config:/config
     networks:
@@ -101,10 +110,12 @@ services:
         hard: 65536
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${CODEX_HOME:-/home/elimelt/.codex}:/root/.codex-source:ro
     environment:
       - AUGMENT_API_TOKEN=${AUGMENT_API_TOKEN}
       - AUGMENT_SESSION_AUTH=${AUGMENT_API_TOKEN}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - AGENTS=${AGENTS:-5}
       - AGENT_MIN_SLEEP_SEC=${AGENT_MIN_SLEEP_SEC:-30}
       - AGENT_MAX_SLEEP_SEC=${AGENT_MAX_SLEEP_SEC:-120}
@@ -113,6 +124,12 @@ services:
       - AGENT_DEBUG=${AGENT_DEBUG:-0}
       - AGENT_LOG_LEVEL=${AGENT_LOG_LEVEL:-INFO}
       - ENABLE_GEMINI_AGENT=${ENABLE_GEMINI_AGENT:-1}
+      - ENABLE_CODEX_AGENT=${ENABLE_CODEX_AGENT:-1}
+      - CODEX_WORKDIR=${CODEX_WORKDIR:-/app}
+      - CODEX_SANDBOX_MODE=${CODEX_SANDBOX_MODE:-read-only}
+      - CODEX_APPROVAL_POLICY=${CODEX_APPROVAL_POLICY:-never}
+      - CODEX_TIMEOUT_SEC=${CODEX_TIMEOUT_SEC:-300}
+      - CODEX_SOURCE_HOME=/root/.codex-source
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_MAX_CONNECTIONS=${REDIS_MAX_CONNECTIONS:-50}

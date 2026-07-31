@@ -18,6 +18,7 @@ from redis.asyncio import BlockingConnectionPool as RedisConnectionPool
 
 from api import db, state
 from api.agents.augment_agent import start_augment_agent
+from api.agents.codex_agent import start_codex_agents
 from api.agents.gemini_agent import start_agents as start_gemini_agents
 from api.batch.notes_sync_scheduler import start_notes_sync_scheduler
 from api.bus import EventBus
@@ -26,6 +27,7 @@ from api.controllers.analytics_clicks import router as analytics_clicks_router
 from api.controllers.augment_chat import router as augment_chat_router
 from api.controllers.cache import router as cache_router
 from api.controllers.chat_admin import router as chat_admin_router
+from api.controllers.codex_chat import router as codex_chat_router
 from api.controllers.health import router as health_router
 from api.controllers.notes import router as notes_router
 from api.controllers.notes_search import router as notes_search_router
@@ -57,6 +59,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     global redis_client, event_bus
     stop_event: asyncio.Event | None = None
     augment_agent_tasks: list[asyncio.Task] = []
+    codex_agent_tasks: list[asyncio.Task] = []
     gemini_agent_tasks: list[asyncio.Task] = []
     sync_tasks: list[asyncio.Task] = []
 
@@ -105,6 +108,12 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
             stop_event = asyncio.Event()
         gemini_agent_tasks = await start_gemini_agents(stop_event)
 
+    enable_codex_agent = os.getenv("ENABLE_CODEX_AGENT", "0") == "1"
+    if enable_codex_agent:
+        if stop_event is None:
+            stop_event = asyncio.Event()
+        codex_agent_tasks = await start_codex_agents(stop_event)
+
     enable_sync = os.getenv("NOTES_SYNC_ENABLED", "1") == "1"
     if enable_sync and enable_db:
         if stop_event is None:
@@ -114,7 +123,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     try:
         yield
     finally:
-        all_tasks = augment_agent_tasks + gemini_agent_tasks + sync_tasks
+        all_tasks = augment_agent_tasks + gemini_agent_tasks + codex_agent_tasks + sync_tasks
         if all_tasks and stop_event:
             stop_event.set()
             try:
@@ -146,6 +155,7 @@ app.router.lifespan_context = lifespan
 
 app.include_router(health_router)
 app.include_router(augment_chat_router)
+app.include_router(codex_chat_router)
 app.include_router(chat_admin_router)
 
 app.include_router(cache_router)

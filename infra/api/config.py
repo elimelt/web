@@ -159,6 +159,7 @@ class FeatureSettings(BaseSettings):
     agent: bool = Field(default=False, alias="enable_agent")
     analytics_scheduler: bool = Field(default=True, alias="enable_analytics_scheduler")
     augment_agent: bool = Field(default=True, alias="enable_augment_agent")
+    codex_agent: bool = Field(default=False, alias="enable_codex_agent")
     notes_sync: bool = Field(default=True, alias="notes_sync_enabled")
 
     @field_validator("*", mode="before")
@@ -215,6 +216,25 @@ class AugmentAgentSettings(BaseSettings):
         return [c.strip() for c in self.channels.split(",") if c.strip()]
 
 
+class CodexAgentSettings(BaseSettings):
+    """Codex AI agent configuration."""
+
+    model_config = SettingsConfigDict(env_prefix="CODEX_AGENT_", extra="ignore")
+
+    sender: str = Field(default="agent:codex", description="Agent sender name")
+    channels: str = Field(default="general", description="Comma-separated channels")
+    min_sleep_sec: int = Field(default=10800, description="Minimum sleep")
+    max_sleep_sec: int = Field(default=10800, description="Maximum sleep")
+    history_token_limit: int = Field(default=10000, description="History token limit")
+    model: str = Field(default="gpt-5.5", description="Model name")
+    global_cooldown_sec: float = Field(default=120, description="Global cooldown")
+
+    @property
+    def channel_list(self) -> list[str]:
+        """Parse comma-separated channels into list."""
+        return [c.strip() for c in self.channels.split(",") if c.strip()]
+
+
 class NotesSyncSettings(BaseSettings):
     """Notes sync configuration."""
 
@@ -246,6 +266,7 @@ class Settings:
         self.sandbox = SandboxSettings()
         self.geoip = GeoIPSettings()
         self.augment_agent = AugmentAgentSettings()
+        self.codex_agent = CodexAgentSettings()
         self.notes_sync = NotesSyncSettings()
 
 

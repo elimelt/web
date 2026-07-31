@@ -203,6 +203,22 @@
             color: #4ecdc4;
         }
 
+        #chat-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #chat-agent {
+            background: #1a1a1a;
+            border: 1px solid #444;
+            color: #e0e0e0;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
         #chat-close {
             background: none;
             border: none;
@@ -344,8 +360,14 @@
 
     <div id="chat-panel">
         <div id="chat-header">
-            <h3>🤖 Augment Chat</h3>
-            <button id="chat-close">×</button>
+            <h3 id="chat-title">Augment Chat</h3>
+            <div id="chat-controls">
+                <select id="chat-agent" aria-label="Chat agent">
+                    <option value="augment" selected>augment</option>
+                    <option value="codex">codex</option>
+                </select>
+                <button id="chat-close">×</button>
+            </div>
         </div>
         <div id="chat-messages">
             <div class="chat-message system">Send a message to start chatting with the AI assistant.</div>

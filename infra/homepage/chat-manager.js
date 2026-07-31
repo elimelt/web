@@ -7,6 +7,8 @@ class ChatManager {
     this.isOpen = false;
     this.isLoading = false;
     this.apiUrl = '/api/augment/chat';
+    this.agentSelect = null;
+    this.headerTitle = null;
   }
 
   init() {
@@ -14,8 +16,11 @@ class ChatManager {
     this.messagesContainer = document.getElementById('chat-messages');
     this.input = document.getElementById('chat-input');
     this.sendButton = document.getElementById('chat-send');
+    this.agentSelect = document.getElementById('chat-agent');
+    this.headerTitle = document.getElementById('chat-title');
     
     this.setupEventListeners();
+    this.updateAgent();
   }
 
   setupEventListeners() {
@@ -26,6 +31,7 @@ class ChatManager {
     closeBtn.addEventListener('click', () => this.close());
 
     this.sendButton.addEventListener('click', () => this.sendMessage());
+    this.agentSelect.addEventListener('change', () => this.updateAgent());
 
     this.input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
@@ -38,6 +44,16 @@ class ChatManager {
       this.input.style.height = 'auto';
       this.input.style.height = Math.min(this.input.scrollHeight, 100) + 'px';
     });
+  }
+
+  updateAgent() {
+    const agent = this.agentSelect?.value || 'augment';
+    this.apiUrl = `/api/${agent}/chat`;
+    if (this.headerTitle) {
+      const label = agent.charAt(0).toUpperCase() + agent.slice(1);
+      this.headerTitle.textContent = `${label} Chat`;
+    }
+    this.clearMessages();
   }
 
   toggle() {
@@ -120,13 +136,13 @@ class ChatManager {
           const data = line.slice(6);
           if (data) {
             fullResponse += data;
-            const displayText = this.parseAugmentResponse(fullResponse);
+            const displayText = this.parseResponse(fullResponse);
             messageEl.textContent = displayText;
             this.scrollToBottom();
           }
         } else if (line.startsWith('event: done')) {
           messageEl.classList.remove('streaming');
-          const finalText = this.parseAugmentResponse(fullResponse);
+          const finalText = this.parseResponse(fullResponse);
           messageEl.textContent = finalText;
           return;
         }
@@ -134,11 +150,15 @@ class ChatManager {
     }
 
     messageEl.classList.remove('streaming');
-    const finalText = this.parseAugmentResponse(fullResponse);
+    const finalText = this.parseResponse(fullResponse);
     messageEl.textContent = finalText;
   }
 
-  parseAugmentResponse(text) {
+  parseResponse(text) {
+    if ((this.agentSelect?.value || 'augment') !== 'augment') {
+      return text.trim();
+    }
+
     const resultMatch = text.match(/<augment-agent-result>([\s\S]*?)(<\/augment-agent-result>|$)/);
     if (resultMatch) {
       return resultMatch[1].trim();
@@ -192,4 +212,3 @@ class ChatManager {
 }
 
 export default ChatManager;
-

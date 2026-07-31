@@ -166,9 +166,11 @@ class TestSettings:
             "ENABLE_CHAT_DB": "1",
             "ENABLE_AGENT": "1",
             "ENABLE_ANALYTICS_SCHEDULER": "0",
+            "ENABLE_CODEX_AGENT": "1",
         }
         with patch.dict(os.environ, env, clear=True):
             settings = Settings()
             assert settings.features.chat_db is True
             assert settings.features.agent is True
             assert settings.features.analytics_scheduler is False
+            assert settings.features.codex_agent is True

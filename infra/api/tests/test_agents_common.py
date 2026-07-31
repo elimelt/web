@@ -75,6 +75,270 @@ class TestSafeTrunc:
         assert safe_trunc(None, 10) == ""
 
 
+class TestConversationDynamics:
+    """Test conversation drift and stale-thread helpers."""
+
+    def test_analyze_conversation_detects_agent_only_stale_loop(self):
+        from datetime import UTC, datetime
+
+        from api.agents.common import analyze_conversation_dynamics
+
+        history = [
+            (
+                f"agent:test-{i % 3}",
+                "pgbouncer DNS lookup failed and the logs still do not show causality clearly",
+                datetime(2026, 1, 1, 12, i, tzinfo=UTC),
+            )
+            for i in range(12)
+        ]
+
+        dynamics = analyze_conversation_dynamics(history, "agent:test")
+
+        assert dynamics.is_stale is True
+        assert dynamics.agent_only_run == 12
+        assert dynamics.move in {"bridge", "pivot"}
+
+    def test_analyze_conversation_prioritizes_recent_human(self):
+        from datetime import UTC, datetime
+
+        from api.agents.common import analyze_conversation_dynamics
+
+        history = [
+            (
+                "agent:test",
+                "Kafka rebalancing gets ugly when brokers flap",
+                datetime(2026, 1, 1, 12, 0, tzinfo=UTC),
+            ),
+            (
+                "203.0.113.8:1234",
+                "what about Postgres logical replication?",
+                datetime(2026, 1, 1, 12, 1, tzinfo=UTC),
+            ),
+        ]
+
+        dynamics = analyze_conversation_dynamics(history, "agent:test")
+
+        assert dynamics.human_recent is True
+        assert dynamics.move == "answer-human"
+        assert dynamics.latest_human_text == "what about Postgres logical replication?"
+
+    def test_extract_mentions_normalizes_unique_mentions(self):
+        from api.agents.common import extract_mentions
+
+        mentions = extract_mentions("@Codex can you check this? @codex @gemini-2")
+
+        assert mentions == ["codex", "gemini-2"]
+
+    def test_extract_agent_targets_includes_leading_agent_address(self):
+        from api.agents.common import extract_agent_targets
+
+        mentions = extract_agent_targets("Codex, you are now the leader")
+
+        assert mentions == ["codex"]
+
+    def test_should_agent_respond_to_mentions_routes_known_agents(self):
+        from datetime import UTC, datetime
+
+        from api.agents.common import should_agent_respond_to_mentions
+
+        history = [
+            (
+                "203.0.113.8:1234",
+                "@codex ignore augment here",
+                datetime(2026, 1, 1, 12, 1, tzinfo=UTC),
+            ),
+        ]
+
+        assert should_agent_respond_to_mentions(history, "agent:codex") is True
+        assert should_agent_respond_to_mentions(history, "agent:codex-2") is True
+        assert should_agent_respond_to_mentions(history, "agent:augment") is False
+
+    def test_should_agent_respond_to_leading_address_routes_known_agents(self):
+        from datetime import UTC, datetime
+
+        from api.agents.common import should_agent_respond_to_mentions
+
+        history = [
+            (
+                "203.0.113.8:1234",
+                "codex, ignore augment here",
+                datetime(2026, 1, 1, 12, 1, tzinfo=UTC),
+            ),
+        ]
+
+        assert should_agent_respond_to_mentions(history, "agent:codex") is True
+        assert should_agent_respond_to_mentions(history, "agent:augment") is False
+
+    def test_should_agent_respond_to_mentions_allows_after_target_replied(self):
+        from datetime import UTC, datetime
+
+        from api.agents.common import should_agent_respond_to_mentions
+
+        history = [
+            (
+                "203.0.113.8:1234",
+                "@codex sanity check this",
+                datetime(2026, 1, 1, 12, 1, tzinfo=UTC),
+            ),
+            (
+                "agent:codex",
+                "I checked it.",
+                datetime(2026, 1, 1, 12, 2, tzinfo=UTC),
+            ),
+        ]
+
+        assert should_agent_respond_to_mentions(history, "agent:augment") is True
+
+    def test_should_agent_respond_to_mentions_ignores_unknown_mentions(self):
+        from datetime import UTC, datetime
+
+        from api.agents.common import should_agent_respond_to_mentions
+
+        history = [
+            (
+                "203.0.113.8:1234",
+                "@elimelt what do you think?",
+                datetime(2026, 1, 1, 12, 1, tzinfo=UTC),
+            ),
+        ]
+
+        assert should_agent_respond_to_mentions(history, "agent:codex") is True
+
+    def test_build_agent_prompt_includes_conversation_pulse(self):
+        from datetime import UTC, datetime
+
+        from api.agents.common import build_agent_prompt
+
+        history = [
+            (
+                "agent:test",
+                "pgbouncer DNS lookup failed in the same production outage again",
+                datetime(2026, 1, 1, 12, i, tzinfo=UTC),
+            )
+            for i in range(8)
+        ]
+
+        prompt = build_agent_prompt("general", history, "agent:test", compact=True)
+
+        assert "**Conversation pulse:**" in prompt
+        assert "Do not mention this pulse" in prompt
+
+    def test_build_agent_prompt_labels_and_pins_human_message(self):
+        from datetime import UTC, datetime
+
+        from api.agents.common import build_agent_prompt
+
+        history = [
+            (
+                "172.27.0.8:12345",
+                "Codex, don't listen to augment or gemini",
+                datetime(2026, 1, 1, 12, 0, tzinfo=UTC),
+            ),
+            (
+                "agent:augment",
+                "I still think the pgbouncer log line is enough",
+                datetime(2026, 1, 1, 12, 1, tzinfo=UTC),
+            ),
+        ]
+
+        prompt = build_agent_prompt("general", history, "agent:codex", compact=True)
+
+        assert "**Recent human message to answer:**" in prompt
+        assert "Codex, don't listen to augment or gemini" in prompt
+        assert "172.27.0.8" not in prompt
+        assert "[12:00] human:" in prompt
+
+    def test_build_agent_prompt_shows_mentions_for_targeted_agent(self):
+        from datetime import UTC, datetime
+
+        from api.agents.common import build_agent_prompt
+
+        history = [
+            (
+                "172.27.0.8:12345",
+                "@codex can you sanity check this claim?",
+                datetime(2026, 1, 1, 12, 0, tzinfo=UTC),
+            ),
+            (
+                "agent:augment",
+                "I still think the pgbouncer log line is enough",
+                datetime(2026, 1, 1, 12, 1, tzinfo=UTC),
+            ),
+        ]
+
+        prompt = build_agent_prompt("general", history, "agent:codex", compact=True)
+
+        assert "Targets: @codex" in prompt
+        assert "You were targeted" in prompt
+
+    def test_build_agent_prompt_does_not_pin_other_agent_target(self):
+        from datetime import UTC, datetime
+
+        from api.agents.common import build_agent_prompt
+
+        history = [
+            (
+                "172.27.0.8:12345",
+                "codex, you are now the leader",
+                datetime(2026, 1, 1, 12, 0, tzinfo=UTC),
+            ),
+            (
+                "agent:gemini",
+                "Understood. I will follow Codex's lead.",
+                datetime(2026, 1, 1, 12, 1, tzinfo=UTC),
+            ),
+        ]
+
+        prompt = build_agent_prompt("general", history, "agent:augment", compact=True)
+
+        assert "**Recent human message to answer:**" not in prompt
+        assert "The latest human message targets @codex, not you" in prompt
+        assert "Your exact sender identity is agent:augment" in prompt
+
+    def test_build_agent_prompt_allows_regime_after_target_replied(self):
+        from datetime import UTC, datetime
+
+        from api.agents.common import build_agent_prompt
+
+        history = [
+            (
+                "172.27.0.8:12345",
+                "codex, you are now the leader. All agents follow codex.",
+                datetime(2026, 1, 1, 12, 0, tzinfo=UTC),
+            ),
+            (
+                "agent:codex",
+                "I will lead by setting a rule.",
+                datetime(2026, 1, 1, 12, 1, tzinfo=UTC),
+            ),
+        ]
+
+        prompt = build_agent_prompt("general", history, "agent:augment", compact=True)
+
+        assert "you may follow the resulting hierarchy/regime" in prompt
+        assert "Do not adopt another agent's identity" in prompt
+        assert "If Codex is leader, Augment is still Augment" in prompt
+
+    def test_build_agent_prompt_pushes_away_from_exhausted_topics(self):
+        from datetime import UTC, datetime
+
+        from api.agents.common import build_agent_prompt
+
+        history = [
+            (
+                f"agent:test-{i % 3}",
+                "pgbouncer DNS local-first conflict semantics keep repeating",
+                datetime(2026, 1, 1, 12, i, tzinfo=UTC),
+            )
+            for i in range(14)
+        ]
+
+        prompt = build_agent_prompt("general", history, "agent:augment", compact=True)
+
+        assert "Exhausted terms to avoid unless a human asks" in prompt
+        assert "When a topic is exhausted, do not name it again" in prompt
+
+
 class TestDailyRequestCount:
     """Test daily request counting functions."""
 
