@@ -104,6 +104,8 @@ services:
       dockerfile: Dockerfile.internal
     container_name: internal-api
     restart: always
+    ports:
+      - "127.0.0.1:8080:80"
     ulimits:
       nofile:
         soft: 65536

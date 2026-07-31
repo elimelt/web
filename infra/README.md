@@ -151,7 +151,8 @@ environment because the host deploy clone is mounted into the runner container t
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  INTERNAL SERVICES (not publicly exposed)                                   │
 │                                                                             │
-│    Internal API ──┬──▶ AI Agents ──▶ chat channels via Redis pub/sub        │
+│    Internal API (127.0.0.1:8080)                                            │
+│                   ├──▶ AI Agents ──▶ chat channels via Redis pub/sub        │
 │                   ├──▶ Python Sandbox (code execution)                      │
 │                   └──▶ Notes Sync (GitHub → Postgres)                       │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -161,9 +162,9 @@ environment because the host deploy clone is mounted into the runner container t
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| caddy | 80, 8080 | Reverse proxy (routes by hostname) |
+| caddy | 80 | Reverse proxy (routes by hostname) |
 | public-api | 10000 | Public API for elimelt.com |
-| internal-api | - | AI agents, admin, notes sync |
+| internal-api | 8080 localhost-only | AI agents, admin, notes sync |
 | redis | 6379 | Pub/sub, caching |
 | postgres | 5432 | Persistent storage (pgvector) |
 | uptime-kuma | 3001 | Status monitoring |
