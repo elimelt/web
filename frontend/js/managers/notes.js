@@ -4,7 +4,7 @@ import { BASE_URL } from "../config.js";
 
 const NotesFetcher = {
   SOURCE_URL: "https://notes.elimelt.com",
-  NOTES_API: `${BASE_URL}/notes`,
+  RSS_URL: "https://notes.elimelt.com/index.xml",
   SEARCH_API: `${BASE_URL}/notes/search`,
   originalNotesHTML: "",
 
@@ -18,15 +18,31 @@ const NotesFetcher = {
 
   async fetchAndDisplay() {
     try {
-      const response = await fetch(`${this.NOTES_API}?limit=8`);
+      const response = await fetch(this.RSS_URL);
       if (!response.ok) {
         throw new Error(`Failed to fetch notes: ${response.statusText}`);
       }
 
-      const data = await response.json();
-      const notes = Array.isArray(data.documents) ? data.documents : [];
+      const xml = await response.text();
+      const doc = new DOMParser().parseFromString(xml, "application/xml");
+      const parseError = doc.querySelector("parsererror");
+      if (parseError) {
+        throw new Error("Failed to parse notes RSS feed");
+      }
+
+      const rootUrl = `${this.SOURCE_URL}/`;
+      const notes = Array.from(doc.querySelectorAll("item"))
+        .map((item) => ({
+          title: item.querySelector("title")?.textContent?.trim() || "Untitled",
+          url: item.querySelector("link")?.textContent?.trim() || this.SOURCE_URL,
+          description: item.querySelector("description")?.textContent?.trim() || "",
+          last_modified: item.querySelector("pubDate")?.textContent?.trim() || "",
+        }))
+        .filter((note) => note.url !== this.SOURCE_URL && note.url !== rootUrl)
+        .slice(0, 8);
+
       if (notes.length === 0) {
-        throw new Error("No notes returned from API");
+        throw new Error("No notes returned from RSS feed");
       }
 
       const container = document.getElementById("notes-content");
@@ -95,6 +111,7 @@ const NotesFetcher = {
   },
 
   _noteUrl(note) {
+    if (note.url) return note.url;
     if (!note.file_path) return `${this.SOURCE_URL}`;
     const urlPath = note.file_path
       .replace(/^content\//, "")
