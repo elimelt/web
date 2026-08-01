@@ -1,4 +1,36 @@
-/* Notes List and Search */
+/* Notes graph */
+.notes-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.notes-section-header .section-title {
+  margin-bottom: 0;
+}
+
+.notes-graph-link {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.notes-graph-link:hover {
+  color: var(--accent);
+}
+
+.notes-graph-iframe {
+  display: block;
+  width: 100%;
+  height: clamp(360px, 48vw, 560px);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #0b0d12;
+}
+
+/* Legacy notes list/search styles remain available to the search manager. */
 .notes-list {
   list-style: none;
   padding: 0;
@@ -176,4 +208,3 @@
   color: var(--text-secondary);
   font-size: 0.875rem;
 }
-
