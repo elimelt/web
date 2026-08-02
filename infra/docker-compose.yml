@@ -14,9 +14,13 @@ services:
       - caddy
 
   # Caddy reverse proxy - routes by hostname to services
+  # Custom build with rate limiting plugin
   # Add services by editing Caddyfile, then: docker exec caddy caddy reload --config /etc/caddy/Caddyfile
   caddy:
-    image: caddy:2-alpine
+    build:
+      context: ./caddy
+      dockerfile: Dockerfile
+    image: caddy-custom:latest
     container_name: caddy
     restart: always
     volumes:

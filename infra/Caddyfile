@@ -7,6 +7,28 @@
 
 {
 	auto_https off
+	order rate_limit before basicauth
+}
+
+# Global rate limit configuration
+(rate_limit_transcribe) {
+	rate_limit {
+		zone transcribe_zone {
+			key    {remote_host}
+			events 30
+			window 1m
+		}
+	}
+}
+
+(rate_limit_llm) {
+	rate_limit {
+		zone llm_zone {
+			key    {remote_host}
+			events 20
+			window 1m
+		}
+	}
 }
 
 :80 {
@@ -26,6 +48,9 @@
 	# transcribe.elimelt.com → Speaches (Whisper transcription API)
 	@transcribe host transcribe.elimelt.com
 	handle @transcribe {
+		# Rate limit: 30 requests per minute per IP
+		import rate_limit_transcribe
+
 		# CORS headers for allowed origins
 		@cors_preflight method OPTIONS
 		handle @cors_preflight {
@@ -64,6 +89,9 @@
 	# llm.elimelt.com → Ollama (OpenAI-compatible LLM API)
 	@llm host llm.elimelt.com
 	handle @llm {
+		# Rate limit: 20 requests per minute per IP
+		import rate_limit_llm
+
 		# CORS headers for allowed origins
 		@cors_preflight method OPTIONS
 		handle @cors_preflight {

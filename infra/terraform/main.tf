@@ -230,6 +230,19 @@ resource "cloudflare_record" "auth" {
 }
 
 # =============================================================================
+# Rate Limiting
+# =============================================================================
+# NOTE: Rate limiting requires additional API token permissions.
+# To enable via Terraform, add these permissions to your API token:
+#   - Zone > WAF > Edit
+#   - Zone > Zone Settings > Edit
+#
+# Alternatively, configure manually in Cloudflare Dashboard:
+#   Security > WAF > Rate limiting rules
+#   - transcribe.elimelt.com: 30 req/min per IP
+#   - llm.elimelt.com: 20 req/min per IP
+#
+# =============================================================================
 # Outputs
 # =============================================================================
 
