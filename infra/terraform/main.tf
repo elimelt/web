@@ -177,6 +177,16 @@ resource "cloudflare_record" "spa_template" {
   comment  = "GitHub Pages - SPA template"
 }
 
+# time subdomain
+resource "cloudflare_record" "time" {
+  zone_id = data.cloudflare_zone.main.id
+  name    = "time"
+  type    = "CNAME"
+  content = "elimelt.github.io"
+  proxied = true
+  comment = "GitHub Pages - Time tracker"
+}
+
 # =============================================================================
 # DNS Records for Other Services
 # =============================================================================
