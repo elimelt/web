@@ -26,6 +26,21 @@
 	# transcribe.elimelt.com → Speaches (Whisper transcription API)
 	@transcribe host transcribe.elimelt.com
 	handle @transcribe {
+		# CORS headers for allowed origins
+		@cors_preflight method OPTIONS
+		handle @cors_preflight {
+			header Access-Control-Allow-Origin "{http.request.header.Origin}"
+			header Access-Control-Allow-Methods "GET, POST, OPTIONS"
+			header Access-Control-Allow-Headers "Content-Type, Authorization"
+			header Access-Control-Max-Age "86400"
+			respond 204
+		}
+
+		@cors_localhost header Origin http://localhost:5173
+		@cors_time header Origin https://time.elimelt.com
+		header @cors_localhost Access-Control-Allow-Origin "http://localhost:5173"
+		header @cors_time Access-Control-Allow-Origin "https://time.elimelt.com"
+
 		# Block management endpoints - model download/delete, process control, UI
 		@blocked_models {
 			path /v1/models/*
