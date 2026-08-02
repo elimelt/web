@@ -26,6 +26,23 @@
 	# transcribe.elimelt.com → Speaches (Whisper transcription API)
 	@transcribe host transcribe.elimelt.com
 	handle @transcribe {
+		# Block management endpoints - model download/delete, process control, UI
+		@blocked_models {
+			path /v1/models/*
+			not method GET
+		}
+		respond @blocked_models "Forbidden" 403
+
+		@blocked_api_ps path /api/ps*
+		respond @blocked_api_ps "Forbidden" 403
+
+		@blocked_chat path /v1/chat/completions
+		respond @blocked_chat "Forbidden" 403
+
+		# Block Gradio UI (root path exactly)
+		@blocked_ui path /
+		respond @blocked_ui "Forbidden" 403
+
 		reverse_proxy speaches:8000
 	}
 
