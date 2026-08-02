@@ -255,6 +255,28 @@ services:
     stdin_open: true
     tty: true
 
+  # Ollama - Local LLM inference with OpenAI-compatible API
+  # Models are stored in ollama_data volume, download via: docker exec ollama ollama pull <model>
+  # API: http://ollama:11434/v1/chat/completions (OpenAI-compatible)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: always
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_NUM_PARALLEL=${OLLAMA_NUM_PARALLEL:-2}
+      - OLLAMA_MAX_LOADED_MODELS=${OLLAMA_MAX_LOADED_MODELS:-2}
+    networks:
+      - dev_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
   # Speaches - OpenAI-compatible speech-to-text/text-to-speech API
   # Uses faster-whisper for transcription, piper/kokoro for TTS
   # API: https://speaches.ai/
@@ -309,6 +331,7 @@ volumes:
   caddy_data:
   caddy_config:
   speaches_cache:
+  ollama_data:
 
 
 networks:

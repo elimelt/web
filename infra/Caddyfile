@@ -61,6 +61,39 @@
 		reverse_proxy speaches:8000
 	}
 
+	# llm.elimelt.com → Ollama (OpenAI-compatible LLM API)
+	@llm host llm.elimelt.com
+	handle @llm {
+		# CORS headers for allowed origins
+		@cors_preflight method OPTIONS
+		handle @cors_preflight {
+			header Access-Control-Allow-Origin "{http.request.header.Origin}"
+			header Access-Control-Allow-Methods "GET, POST, OPTIONS"
+			header Access-Control-Allow-Headers "Content-Type, Authorization"
+			header Access-Control-Max-Age "86400"
+			respond 204
+		}
+
+		@cors_localhost header Origin http://localhost:5173
+		@cors_time header Origin https://time.elimelt.com
+		header @cors_localhost Access-Control-Allow-Origin "http://localhost:5173"
+		header @cors_time Access-Control-Allow-Origin "https://time.elimelt.com"
+
+		# Block model management - pull/delete/copy/push
+		@blocked_pull path /api/pull
+		@blocked_delete path /api/delete
+		@blocked_copy path /api/copy
+		@blocked_push path /api/push
+		@blocked_create path /api/create
+		respond @blocked_pull "Forbidden" 403
+		respond @blocked_delete "Forbidden" 403
+		respond @blocked_copy "Forbidden" 403
+		respond @blocked_push "Forbidden" 403
+		respond @blocked_create "Forbidden" 403
+
+		reverse_proxy ollama:11434
+	}
+
 	# ============ ADD NEW SERVICES HERE ============
 	# Example:
 	# @grafana host grafana.elimelt.com

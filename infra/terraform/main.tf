@@ -86,6 +86,11 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "homelab" {
       service  = "http://caddy:80"
     }
 
+    ingress_rule {
+      hostname = "llm.${var.domain}"
+      service  = "http://caddy:80"
+    }
+
     # Catch-all rule (required)
     ingress_rule {
       service = "http_status:404"
@@ -122,6 +127,15 @@ resource "cloudflare_record" "transcribe" {
   content = "${var.tunnel_id}.cfargotunnel.com"
   proxied = true
   comment = "Speaches - Whisper transcription API"
+}
+
+resource "cloudflare_record" "llm" {
+  zone_id = data.cloudflare_zone.main.id
+  name    = "llm"
+  type    = "CNAME"
+  content = "${var.tunnel_id}.cfargotunnel.com"
+  proxied = true
+  comment = "Ollama - Local LLM API"
 }
 
 # =============================================================================
