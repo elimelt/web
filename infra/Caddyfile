@@ -31,6 +31,27 @@
 	}
 }
 
+# CORS for *.elimelt.com and localhost development
+(cors_elimelt) {
+	@cors_preflight method OPTIONS
+	handle @cors_preflight {
+		@cors_allowed_preflight {
+			expression {http.request.header.Origin}.matches("^https://[a-zA-Z0-9-]+\\.elimelt\\.com$") || {http.request.header.Origin} == "http://localhost:5173"
+		}
+		header @cors_allowed_preflight Access-Control-Allow-Origin "{http.request.header.Origin}"
+		header @cors_allowed_preflight Access-Control-Allow-Methods "GET, POST, OPTIONS"
+		header @cors_allowed_preflight Access-Control-Allow-Headers "Content-Type, Authorization"
+		header @cors_allowed_preflight Access-Control-Max-Age "86400"
+		respond @cors_allowed_preflight 204
+		respond "Forbidden" 403
+	}
+
+	@cors_allowed {
+		expression {http.request.header.Origin}.matches("^https://[a-zA-Z0-9-]+\\.elimelt\\.com$") || {http.request.header.Origin} == "http://localhost:5173"
+	}
+	header @cors_allowed Access-Control-Allow-Origin "{http.request.header.Origin}"
+}
+
 :80 {
 	# ============ PUBLIC SERVICES ============
 	# status.elimelt.com → Uptime Kuma
@@ -51,20 +72,8 @@
 		# Rate limit: 30 requests per minute per IP
 		import rate_limit_transcribe
 
-		# CORS headers for allowed origins
-		@cors_preflight method OPTIONS
-		handle @cors_preflight {
-			header Access-Control-Allow-Origin "{http.request.header.Origin}"
-			header Access-Control-Allow-Methods "GET, POST, OPTIONS"
-			header Access-Control-Allow-Headers "Content-Type, Authorization"
-			header Access-Control-Max-Age "86400"
-			respond 204
-		}
-
-		@cors_localhost header Origin http://localhost:5173
-		@cors_time header Origin https://time.elimelt.com
-		header @cors_localhost Access-Control-Allow-Origin "http://localhost:5173"
-		header @cors_time Access-Control-Allow-Origin "https://time.elimelt.com"
+		# CORS for *.elimelt.com and localhost
+		import cors_elimelt
 
 		# Block management endpoints - model download/delete, process control, UI
 		@blocked_models {
@@ -83,7 +92,12 @@
 		@blocked_ui path /
 		respond @blocked_ui "Forbidden" 403
 
-		reverse_proxy speaches:8000
+		reverse_proxy speaches:8000 {
+			header_down -Access-Control-Allow-Origin
+			header_down -Access-Control-Allow-Methods
+			header_down -Access-Control-Allow-Headers
+			header_down -Access-Control-Allow-Credentials
+		}
 	}
 
 	# llm.elimelt.com → Ollama (OpenAI-compatible LLM API)
@@ -92,20 +106,8 @@
 		# Rate limit: 20 requests per minute per IP
 		import rate_limit_llm
 
-		# CORS headers for allowed origins
-		@cors_preflight method OPTIONS
-		handle @cors_preflight {
-			header Access-Control-Allow-Origin "{http.request.header.Origin}"
-			header Access-Control-Allow-Methods "GET, POST, OPTIONS"
-			header Access-Control-Allow-Headers "Content-Type, Authorization"
-			header Access-Control-Max-Age "86400"
-			respond 204
-		}
-
-		@cors_localhost header Origin http://localhost:5173
-		@cors_time header Origin https://time.elimelt.com
-		header @cors_localhost Access-Control-Allow-Origin "http://localhost:5173"
-		header @cors_time Access-Control-Allow-Origin "https://time.elimelt.com"
+		# CORS for *.elimelt.com and localhost
+		import cors_elimelt
 
 		# Block model management - pull/delete/copy/push
 		@blocked_pull path /api/pull
@@ -119,7 +121,12 @@
 		respond @blocked_push "Forbidden" 403
 		respond @blocked_create "Forbidden" 403
 
-		reverse_proxy ollama:11434
+		reverse_proxy ollama:11434 {
+			header_down -Access-Control-Allow-Origin
+			header_down -Access-Control-Allow-Methods
+			header_down -Access-Control-Allow-Headers
+			header_down -Access-Control-Allow-Credentials
+		}
 	}
 
 	# ============ ADD NEW SERVICES HERE ============
