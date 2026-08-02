@@ -255,6 +255,28 @@ services:
     stdin_open: true
     tty: true
 
+  # Speaches - OpenAI-compatible speech-to-text/text-to-speech API
+  # Uses faster-whisper for transcription, piper/kokoro for TTS
+  # API: https://speaches.ai/
+  speaches:
+    image: ghcr.io/speaches-ai/speaches:latest-cpu
+    container_name: speaches
+    restart: always
+    volumes:
+      - speaches_cache:/home/ubuntu/.cache/huggingface/hub
+    environment:
+      - WHISPER__MODEL=Systran/faster-whisper-base.en
+      - WHISPER__INFERENCE_DEVICE=cpu
+      - WHISPER__COMPUTE_TYPE=int8
+    networks:
+      - dev_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
   postgres-backup:
     image: postgres:16-alpine
     container_name: postgres-backup
@@ -286,6 +308,7 @@ volumes:
   minecraft_data:
   caddy_data:
   caddy_config:
+  speaches_cache:
 
 
 networks:

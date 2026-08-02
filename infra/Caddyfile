@@ -23,6 +23,12 @@
 		reverse_proxy public-api:80
 	}
 
+	# transcribe.elimelt.com → Speaches (Whisper transcription API)
+	@transcribe host transcribe.elimelt.com
+	handle @transcribe {
+		reverse_proxy speaches:8000
+	}
+
 	# ============ ADD NEW SERVICES HERE ============
 	# Example:
 	# @grafana host grafana.elimelt.com

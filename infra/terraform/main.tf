@@ -81,6 +81,11 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "homelab" {
       service  = "http://caddy:80"
     }
 
+    ingress_rule {
+      hostname = "transcribe.${var.domain}"
+      service  = "http://caddy:80"
+    }
+
     # Catch-all rule (required)
     ingress_rule {
       service = "http_status:404"
@@ -108,6 +113,15 @@ resource "cloudflare_record" "api" {
   content = "${var.tunnel_id}.cfargotunnel.com"
   proxied = true
   comment = "Public API"
+}
+
+resource "cloudflare_record" "transcribe" {
+  zone_id = data.cloudflare_zone.main.id
+  name    = "transcribe"
+  type    = "CNAME"
+  content = "${var.tunnel_id}.cfargotunnel.com"
+  proxied = true
+  comment = "Speaches - Whisper transcription API"
 }
 
 # =============================================================================
