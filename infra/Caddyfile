@@ -25,7 +25,7 @@
 	rate_limit {
 		zone llm_zone {
 			key    {remote_host}
-			events 20
+			events 100
 			window 1m
 		}
 	}
@@ -103,29 +103,53 @@
 	# llm.elimelt.com → Ollama (OpenAI-compatible LLM API)
 	@llm host llm.elimelt.com
 	handle @llm {
-		# Rate limit: 20 requests per minute per IP
-		import rate_limit_llm
+		# Set CORS headers for allowed origins (non-terminal, always runs)
+		@cors_allowed {
+			expression {http.request.header.Origin}.matches("^https://[a-zA-Z0-9-]+\\.elimelt\\.com$") || {http.request.header.Origin} == "http://localhost:5173"
+		}
+		header @cors_allowed Access-Control-Allow-Origin "{http.request.header.Origin}"
 
-		# CORS for *.elimelt.com and localhost
-		import cors_elimelt
+		# Handle CORS preflight
+		@cors_preflight method OPTIONS
+		handle @cors_preflight {
+			@cors_allowed_preflight {
+				expression {http.request.header.Origin}.matches("^https://[a-zA-Z0-9-]+\\.elimelt\\.com$") || {http.request.header.Origin} == "http://localhost:5173"
+			}
+			header @cors_allowed_preflight Access-Control-Allow-Methods "GET, POST, OPTIONS"
+			header @cors_allowed_preflight Access-Control-Allow-Headers "Content-Type, Authorization"
+			header @cors_allowed_preflight Access-Control-Max-Age "86400"
+			respond @cors_allowed_preflight 204
+			respond "Forbidden" 403
+		}
 
-		# Block model management - pull/delete/copy/push
-		@blocked_pull path /api/pull
-		@blocked_delete path /api/delete
-		@blocked_copy path /api/copy
-		@blocked_push path /api/push
-		@blocked_create path /api/create
-		respond @blocked_pull "Forbidden" 403
-		respond @blocked_delete "Forbidden" 403
-		respond @blocked_copy "Forbidden" 403
-		respond @blocked_push "Forbidden" 403
-		respond @blocked_create "Forbidden" 403
+		# Block model management endpoints
+		@blocked path /api/pull /api/delete /api/copy /api/push /api/create
+		handle @blocked {
+			respond "Forbidden" 403
+		}
 
-		reverse_proxy ollama:11434 {
-			header_down -Access-Control-Allow-Origin
-			header_down -Access-Control-Allow-Methods
-			header_down -Access-Control-Allow-Headers
-			header_down -Access-Control-Allow-Credentials
+		# Internal origins: no rate limit, proxy to Ollama
+		@internal_origin {
+			expression {http.request.header.Origin}.matches("^https://[a-zA-Z0-9-]+\\.elimelt\\.com$") || {http.request.header.Origin} == "http://localhost:5173"
+		}
+		handle @internal_origin {
+			reverse_proxy ollama:11434 {
+				header_down -Access-Control-Allow-Origin
+				header_down -Access-Control-Allow-Methods
+				header_down -Access-Control-Allow-Headers
+				header_down -Access-Control-Allow-Credentials
+			}
+		}
+
+		# External/no origin: rate limited, proxy to Ollama
+		handle {
+			import rate_limit_llm
+			reverse_proxy ollama:11434 {
+				header_down -Access-Control-Allow-Origin
+				header_down -Access-Control-Allow-Methods
+				header_down -Access-Control-Allow-Headers
+				header_down -Access-Control-Allow-Credentials
+			}
 		}
 	}
 

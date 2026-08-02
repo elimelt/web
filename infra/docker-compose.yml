@@ -262,6 +262,7 @@ services:
   # Ollama - Local LLM inference with OpenAI-compatible API
   # Models are stored in ollama_data volume, download via: docker exec ollama ollama pull <model>
   # API: http://ollama:11434/v1/chat/completions (OpenAI-compatible)
+  # Backpressure: OLLAMA_NUM_PARALLEL controls concurrent inference; excess requests queue.
   ollama:
     image: ollama/ollama:latest
     container_name: ollama
@@ -270,10 +271,23 @@ services:
       - ollama_data:/root/.ollama
     environment:
       - OLLAMA_HOST=0.0.0.0
-      - OLLAMA_NUM_PARALLEL=${OLLAMA_NUM_PARALLEL:-2}
+      # Accept any Origin header; CORS/origin policy is enforced by Caddy at the edge
+      - OLLAMA_ORIGINS=*
+      # Concurrent requests per model (queues excess). Keep low for backpressure.
+      - OLLAMA_NUM_PARALLEL=${OLLAMA_NUM_PARALLEL:-4}
+      # Max models in memory simultaneously
       - OLLAMA_MAX_LOADED_MODELS=${OLLAMA_MAX_LOADED_MODELS:-2}
+      # Queue timeout: reject if queued too long (prevents infinite queue buildup)
+      - OLLAMA_MAX_QUEUE=${OLLAMA_MAX_QUEUE:-20}
     networks:
       - dev_network
+    # Memory limits to prevent OOM
+    deploy:
+      resources:
+        limits:
+          memory: 50G
+        reservations:
+          memory: 2G
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
       interval: 30s
