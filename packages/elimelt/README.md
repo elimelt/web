@@ -17,7 +17,7 @@ pnpm add elimelt
 ```typescript
 import { Client } from 'elimelt';
 
-const client = new Client('https://blink.tail8ab50a.ts.net');
+const client = new Client('https://api.elimelt.com');
 
 // Check API health
 const health = await client.health();
