@@ -2,14 +2,13 @@
 
 import asyncio
 import time
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from api.redis_pubsub import (
     ManagedPubSub,
     PubSubMetadata,
-    _active_pubsubs,
     _pubsub_metadata,
     _registry_lock,
     cleanup_expired_pubsubs,

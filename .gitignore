@@ -22,8 +22,6 @@ infra/venv/
 infra/api/venv/
 
 # Local infra configs (contain tunnel IDs, local paths)
-infra/Caddyfile
-!infra/Caddyfile.example
 infra/cloudflared-config.yml
 infra/lab
 
@@ -37,6 +35,7 @@ infra/terraform/terraform.tfvars
 
 # ===== Database backups =====
 *.sql
+!infra/api/db/migrations/*.sql
 backups/
 backup_*.sql*
 

@@ -10,7 +10,6 @@ import time
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from fastapi.testclient import TestClient
 
 from api import main, state
 from api.redis_pubsub import get_pubsub_stats, managed_pubsub
