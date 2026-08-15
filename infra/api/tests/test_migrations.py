@@ -2,6 +2,7 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import psycopg
 import pytest
 
 
@@ -9,12 +10,18 @@ class TestMigrationSystem:
     """Tests for the migration module."""
 
     @pytest.fixture
-    def mock_connection(self):
-        """Create a mock database connection."""
-        conn = AsyncMock()
-        conn.execute = AsyncMock()
-        conn.fetchval = AsyncMock(return_value=0)
-        conn.fetch = AsyncMock(return_value=[])
+    def mock_cursor(self):
+        """Create a mock psycopg cursor as returned by conn.execute()."""
+        cursor = MagicMock(spec=psycopg.AsyncCursor)
+        cursor.fetchone = AsyncMock(return_value=(0,))
+        cursor.fetchall = AsyncMock(return_value=[])
+        return cursor
+
+    @pytest.fixture
+    def mock_connection(self, mock_cursor):
+        """Create a mock psycopg AsyncConnection."""
+        conn = AsyncMock(spec=psycopg.AsyncConnection)
+        conn.execute = AsyncMock(return_value=mock_cursor)
         return conn
 
     @pytest.fixture
@@ -42,9 +49,11 @@ class TestMigrationSystem:
             assert version == 0
 
     @pytest.mark.asyncio
-    async def test_get_current_version_returns_max(self, mock_get_connection, mock_connection):
+    async def test_get_current_version_returns_max(
+        self, mock_get_connection, mock_connection, mock_cursor
+    ):
         """Test that get_current_version returns the max version."""
-        mock_connection.fetchval = AsyncMock(return_value=5)
+        mock_cursor.fetchone.return_value = (5,)
 
         with patch("api.db.migrations._get_connection", return_value=mock_get_connection):
             from api.db.migrations import get_current_version
@@ -54,10 +63,10 @@ class TestMigrationSystem:
 
     @pytest.mark.asyncio
     async def test_apply_migration_skips_if_already_applied(
-        self, mock_get_connection, mock_connection
+        self, mock_get_connection, mock_connection, mock_cursor
     ):
         """Test that apply_migration skips already applied migrations."""
-        mock_connection.fetchval = AsyncMock(return_value=5)
+        mock_cursor.fetchone.return_value = (5,)
 
         with patch("api.db.migrations._get_connection", return_value=mock_get_connection):
             from api.db.migrations import apply_migration
@@ -69,10 +78,10 @@ class TestMigrationSystem:
 
     @pytest.mark.asyncio
     async def test_apply_migration_applies_new_migration(
-        self, mock_get_connection, mock_connection
+        self, mock_get_connection, mock_connection, mock_cursor
     ):
         """Test that apply_migration applies new migrations."""
-        mock_connection.fetchval = AsyncMock(return_value=2)
+        mock_cursor.fetchone.return_value = (2,)
 
         with patch("api.db.migrations._get_connection", return_value=mock_get_connection):
             from api.db.migrations import apply_migration
@@ -89,10 +98,10 @@ class TestMigrationSystem:
 
     @pytest.mark.asyncio
     async def test_get_pending_migrations_finds_sql_files(
-        self, mock_get_connection, mock_connection
+        self, mock_get_connection, mock_connection, mock_cursor
     ):
         """Test that get_pending_migrations finds SQL files."""
-        mock_connection.fetchval = AsyncMock(return_value=0)
+        mock_cursor.fetchone.return_value = (0,)
 
         with patch("api.db.migrations._get_connection", return_value=mock_get_connection):
             from api.db.migrations import get_pending_migrations
@@ -107,10 +116,10 @@ class TestMigrationSystem:
 
     @pytest.mark.asyncio
     async def test_get_pending_migrations_excludes_applied(
-        self, mock_get_connection, mock_connection
+        self, mock_get_connection, mock_connection, mock_cursor
     ):
         """Test that get_pending_migrations excludes already applied migrations."""
-        mock_connection.fetchval = AsyncMock(return_value=1)
+        mock_cursor.fetchone.return_value = (1,)
 
         with patch("api.db.migrations._get_connection", return_value=mock_get_connection):
             from api.db.migrations import get_pending_migrations
@@ -123,9 +132,11 @@ class TestMigrationSystem:
             assert 2 in versions
 
     @pytest.mark.asyncio
-    async def test_run_migrations_applies_pending(self, mock_get_connection, mock_connection):
+    async def test_run_migrations_applies_pending(
+        self, mock_get_connection, mock_connection, mock_cursor
+    ):
         """Test that run_migrations applies all pending migrations."""
-        mock_connection.fetchval = AsyncMock(return_value=0)
+        mock_cursor.fetchone.return_value = (0,)
 
         with patch("api.db.migrations._get_connection", return_value=mock_get_connection):
             from api.db.migrations import run_migrations
@@ -136,14 +147,14 @@ class TestMigrationSystem:
             assert applied >= 2
 
     @pytest.mark.asyncio
-    async def test_get_migration_history_returns_list(self, mock_get_connection, mock_connection):
+    async def test_get_migration_history_returns_list(
+        self, mock_get_connection, mock_connection, mock_cursor
+    ):
         """Test that get_migration_history returns applied migrations."""
-        mock_connection.fetch = AsyncMock(
-            return_value=[
-                {"version": 1, "applied_at": "2024-01-01", "description": "initial"},
-                {"version": 2, "applied_at": "2024-01-02", "description": "vector"},
-            ]
-        )
+        mock_cursor.fetchall.return_value = [
+            (1, "2024-01-01", "initial"),
+            (2, "2024-01-02", "vector"),
+        ]
 
         with patch("api.db.migrations._get_connection", return_value=mock_get_connection):
             from api.db.migrations import get_migration_history
