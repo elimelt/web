@@ -21,6 +21,7 @@ from api.agents.codex_agent import start_codex_agents
 from api.agents.gemini_agent import start_agents as start_gemini_agents
 from api.batch.notes_sync_scheduler import start_notes_sync_scheduler
 from api.bus import EventBus
+from api.config import get_settings
 from api.controllers.agents_status import router as agents_status_router
 from api.controllers.analytics_clicks import router as analytics_clicks_router
 from api.controllers.augment_chat import router as augment_chat_router
@@ -68,21 +69,22 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     state.redis_client = redis_client
     state.event_bus = event_bus
 
-    enable_db = os.getenv("ENABLE_CHAT_DB", "0") == "1"
+    features = get_settings().features
+    enable_db = features.chat_db == "1"
     await init_database()
 
-    enable_augment_agent = os.getenv("ENABLE_AUGMENT_AGENT", "1") == "1"
+    enable_augment_agent = features.augment_agent == "1"
     if enable_augment_agent:
         stop_event = asyncio.Event()
         augment_agent_tasks = await start_augment_agent(stop_event)
 
-    enable_gemini_agent = os.getenv("ENABLE_GEMINI_AGENT", "0") == "1"
+    enable_gemini_agent = features.gemini_agent == "1"
     if enable_gemini_agent:
         if stop_event is None:
             stop_event = asyncio.Event()
         gemini_agent_tasks = await start_gemini_agents(stop_event)
 
-    enable_codex_agent = os.getenv("ENABLE_CODEX_AGENT", "0") == "1"
+    enable_codex_agent = features.codex_agent == "1"
     if enable_codex_agent:
         if stop_event is None:
             stop_event = asyncio.Event()

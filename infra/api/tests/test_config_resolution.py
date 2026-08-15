@@ -2,7 +2,10 @@
 
 These tests pin the CURRENT effective value of each env var in the
 migration list, under (a) unset env and (b) a representative set value.
-They pin behavior at today's os.getenv read sites, not desired behavior.
+The expected values are unchanged from the original os.getenv read
+sites. Since W4.1 the read sites resolve these vars through the cached
+get_settings() accessor, so the test mechanics clear the settings cache
+wherever env is patched. Read timing (import vs call) is unchanged.
 
 Read timing per var:
 
@@ -29,9 +32,8 @@ afterward, so tests stay hermetic and order independent. CALL-time vars
 are pinned with monkeypatch around the call (app startup or a direct
 handler call).
 
-Note: api/config.py (get_settings) also mirrors several of these vars.
-The lru_cache is cleared around every reload/boot here so no stale
-Settings instance leaks between tests.
+The lru_cache is cleared around every test, reload, and boot here so no
+stale Settings instance leaks between tests.
 """
 
 import importlib
@@ -61,6 +63,18 @@ _FLAG_VARS = (
     "ENABLE_CODEX_AGENT",
     "NOTES_SYNC_ENABLED",
 )
+
+
+@pytest.fixture(autouse=True)
+def _fresh_settings_cache():
+    """Isolate the lru_cached Settings singleton per test.
+
+    Read sites now go through get_settings(), so a cache entry built under
+    one test's env must not leak into another test.
+    """
+    clear_settings_cache()
+    yield
+    clear_settings_cache()
 
 
 # ---------------------------------------------------------------------------
@@ -122,6 +136,9 @@ def _reloaded(module, env):
                 os.environ.pop(key, None)
             else:
                 os.environ[key] = value
+        # Clear BEFORE the restoring reload: the reload re-runs module-level
+        # get_settings() reads, which must not see the test-env cache entry.
+        clear_settings_cache()
         importlib.reload(module)
         clear_settings_cache()
 
@@ -428,6 +445,7 @@ class TestGithubToken:
         assert recorder.calls[-1] == ((), {"token": None, "force": False})
 
         monkeypatch.setenv("GITHUB_TOKEN", "ghp_test123")
+        clear_settings_cache()  # read goes through cached get_settings() now
         await notes.trigger_sync(force=True, x_sync_secret="s")
         assert recorder.calls[-1] == ((), {"token": "ghp_test123", "force": True})
 
@@ -443,6 +461,7 @@ class TestGithubToken:
         assert recorder.calls[-1] == ((), {"token": None, "resume_job_id": 7})
 
         monkeypatch.setenv("GITHUB_TOKEN", "ghp_test123")
+        clear_settings_cache()  # read goes through cached get_settings() now
         await notes.resume_sync_job(7, x_sync_secret="s")
         assert recorder.calls[-1] == ((), {"token": "ghp_test123", "resume_job_id": 7})
 
@@ -458,6 +477,7 @@ class TestGithubToken:
         assert recorder.calls[-1] == ((7,), {"token": None})
 
         monkeypatch.setenv("GITHUB_TOKEN", "ghp_test123")
+        clear_settings_cache()  # read goes through cached get_settings() now
         await notes.retry_failed_job_items(7, x_sync_secret="s")
         assert recorder.calls[-1] == ((7,), {"token": "ghp_test123"})
 

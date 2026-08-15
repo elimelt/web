@@ -4,6 +4,21 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from api.config import clear_settings_cache
+
+
+@pytest.fixture(autouse=True)
+def _fresh_settings_cache():
+    """Isolate the lru_cached Settings singleton per test.
+
+    lifespan.py resolves GEOIP_DB_PATH and ENABLE_CHAT_DB through
+    get_settings() now, so tests that patch os.environ need an empty
+    cache before the call and must not leak their env into later tests.
+    """
+    clear_settings_cache()
+    yield
+    clear_settings_cache()
+
 
 class TestLifespanResources:
     """Test LifespanResources dataclass."""

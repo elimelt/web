@@ -6,10 +6,14 @@ import time
 from datetime import UTC, datetime
 from typing import Any
 
+from api.config import get_settings
+
 _logger = logging.getLogger("api.sandbox")
 
-SANDBOX_IMAGE = os.getenv("SANDBOX_IMAGE", "devstack-python-sandbox:latest")
-SANDBOX_TIMEOUT = int(os.getenv("SANDBOX_TIMEOUT_SEC", "30"))
+# Module-level constants on purpose: values are frozen at import time,
+# matching the historical os.getenv reads.
+SANDBOX_IMAGE = get_settings().sandbox.image
+SANDBOX_TIMEOUT = get_settings().sandbox.timeout_sec
 SANDBOX_MEMORY_LIMIT = os.getenv("SANDBOX_MEMORY_LIMIT", "128m")
 SANDBOX_CPU_LIMIT = float(os.getenv("SANDBOX_CPU_LIMIT", "0.5"))
 SANDBOX_ENABLED = os.getenv("SANDBOX_ENABLED", "1") == "1"

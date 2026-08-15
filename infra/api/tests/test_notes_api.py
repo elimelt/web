@@ -2,6 +2,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from api.config import clear_settings_cache
 from api.controllers.notes import (
     get_note,
     get_notes_by_category,
@@ -259,23 +260,29 @@ class TestTriggerSync:
             assert exc_info.value.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_valid_secret_triggers_sync(self, mock_sync):
-        with (
-            patch("api.controllers.notes.NOTES_SYNC_SECRET", "valid-secret"),
-            patch("api.controllers.notes.os.getenv", return_value=None),
-        ):
-            result = await trigger_sync(x_sync_secret="valid-secret")
+    async def test_valid_secret_triggers_sync(self, mock_sync, monkeypatch):
+        # GITHUB_TOKEN resolves through get_settings() now; unset env plus
+        # a cleared cache yields token=None, like os.getenv did.
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        clear_settings_cache()
+        try:
+            with patch("api.controllers.notes.NOTES_SYNC_SECRET", "valid-secret"):
+                result = await trigger_sync(x_sync_secret="valid-secret")
 
-            assert result["job_status"] == "completed"
-            assert result["completed"] == 5
-            mock_sync.assert_called_once()
+                assert result["job_status"] == "completed"
+                assert result["completed"] == 5
+                mock_sync.assert_called_once()
+        finally:
+            clear_settings_cache()
 
     @pytest.mark.asyncio
-    async def test_force_parameter_passed(self, mock_sync):
-        with (
-            patch("api.controllers.notes.NOTES_SYNC_SECRET", "valid-secret"),
-            patch("api.controllers.notes.os.getenv", return_value=None),
-        ):
-            await trigger_sync(force=True, x_sync_secret="valid-secret")
+    async def test_force_parameter_passed(self, mock_sync, monkeypatch):
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        clear_settings_cache()
+        try:
+            with patch("api.controllers.notes.NOTES_SYNC_SECRET", "valid-secret"):
+                await trigger_sync(force=True, x_sync_secret="valid-secret")
 
-            mock_sync.assert_called_with(token=None, force=True)
+                mock_sync.assert_called_with(token=None, force=True)
+        finally:
+            clear_settings_cache()

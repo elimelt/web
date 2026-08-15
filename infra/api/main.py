@@ -19,6 +19,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from api import db, state
 from api.batch.visitor_analytics import start_analytics_scheduler
 from api.bus import EventBus
+from api.config import get_settings
 from api.lifespan import (
     LifespanResources,
     cleanup_resources,
@@ -63,11 +64,9 @@ app = FastAPI(
 )
 register_exception_handlers(app)
 
-cors_origins_raw = os.getenv("CORS_ORIGINS", "http://localhost:3000")
-cors_origins = [o.strip() for o in cors_origins_raw.split(",") if o.strip()]
-cors_regex_env = os.getenv("CORS_ORIGINS_REGEX", "").strip()
-elimelt_subdomain_regex = r"https?://([a-zA-Z0-9-]+\.)?elimelt\.com"
-cors_regex = cors_regex_env if cors_regex_env else elimelt_subdomain_regex
+_cors_settings = get_settings().cors
+cors_origins = _cors_settings.origins
+cors_regex = _cors_settings.origins_regex
 allow_credentials = cors_origins != ["*"] and cors_regex is None
 
 app.add_middleware(
@@ -110,11 +109,11 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     state.event_bus = event_bus
     state.geoip_reader = geoip_reader
 
-    enable_db = os.getenv("ENABLE_CHAT_DB", "0") == "1"
+    enable_db = get_settings().features.chat_db == "1"
     await init_database()
 
     analytics_tasks: list[asyncio.Task] = []
-    enable_analytics = os.getenv("ENABLE_ANALYTICS_SCHEDULER", "1") == "1"
+    enable_analytics = get_settings().features.analytics_scheduler == "1"
     if enable_analytics and enable_db:
         if stop_event is None:
             stop_event = asyncio.Event()

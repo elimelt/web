@@ -2,13 +2,14 @@ import asyncio
 import logging
 import os
 
+from api.config import get_settings
 from api.notes_sync import sync_notes_with_job
 
 logger = logging.getLogger(__name__)
 
 
 async def run_sync_job(force: bool = False) -> dict:
-    github_token = os.getenv("GITHUB_TOKEN")
+    github_token = get_settings().notes_sync.github_token
     result = await sync_notes_with_job(token=github_token, force=force)
     return result
 

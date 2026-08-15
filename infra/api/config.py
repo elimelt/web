@@ -83,27 +83,8 @@ class PostgresSettings(BaseSettings):
         )
 
 
-class AgentSettings(BaseSettings):
-    """AI agent configuration."""
-
-    model_config = SettingsConfigDict(env_prefix="AGENT_", extra="ignore")
-
-    count: int = Field(default=5, alias="agents", description="Number of agents")
-    min_sleep_sec: int = Field(default=30, description="Minimum sleep between checks")
-    max_sleep_sec: int = Field(default=120, description="Maximum sleep between checks")
-    wake_probability: float = Field(
-        default=0.2, alias="wake_prob", description="Probability of waking"
-    )
-    wake_cooldown_sec: int = Field(default=45, description="Cooldown after wake")
-    debug: bool = Field(default=False, description="Enable agent debug mode")
-    log_level: str = Field(default="INFO", description="Agent log level")
-
-    @field_validator("debug", mode="before")
-    @classmethod
-    def parse_debug(cls, v):
-        if isinstance(v, str):
-            return v.lower() in ("1", "true", "yes")
-        return bool(v)
+# Default regex applied when CORS_ORIGINS_REGEX is unset or whitespace-only.
+DEFAULT_CORS_ORIGINS_REGEX = r"https?://([a-zA-Z0-9-]+\.)?elimelt\.com"
 
 
 class CorsSettings(BaseSettings):
@@ -116,20 +97,25 @@ class CorsSettings(BaseSettings):
         validation_alias="CORS_ORIGINS",
     )
     origins_regex: str = Field(
-        default="",
+        default=DEFAULT_CORS_ORIGINS_REGEX,
         validation_alias="CORS_ORIGINS_REGEX",
         description="Regex pattern for origins",
     )
+
+    @field_validator("origins_regex", mode="before")
+    @classmethod
+    def strip_regex_or_fall_back(cls, v):
+        """Strip the set value. A whitespace-only value falls back to the default."""
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return DEFAULT_CORS_ORIGINS_REGEX
+        return v
 
     @property
     def origins(self) -> list[str]:
         """Parse comma-separated origins into list."""
         return [o.strip() for o in self.origins_raw.split(",") if o.strip()]
-
-    @property
-    def allow_credentials(self) -> bool:
-        """Credentials not allowed with wildcard origins."""
-        return self.origins != ["*"] and not self.origins_regex
 
 
 class DebugSettings(BaseSettings):
@@ -151,23 +137,20 @@ class DebugSettings(BaseSettings):
 
 
 class FeatureSettings(BaseSettings):
-    """Feature flags configuration."""
+    """Feature flags configuration.
+
+    Flags are raw strings on purpose. Read sites compare the value to "1"
+    exactly, so "true", "yes", etc. resolve to OFF. This preserves the
+    historical os.getenv(...) == "1" semantics.
+    """
 
     model_config = SettingsConfigDict(extra="ignore")
 
-    chat_db: bool = Field(default=False, alias="enable_chat_db")
-    agent: bool = Field(default=False, alias="enable_agent")
-    analytics_scheduler: bool = Field(default=True, alias="enable_analytics_scheduler")
-    augment_agent: bool = Field(default=True, alias="enable_augment_agent")
-    codex_agent: bool = Field(default=False, alias="enable_codex_agent")
-    notes_sync: bool = Field(default=True, alias="notes_sync_enabled")
-
-    @field_validator("*", mode="before")
-    @classmethod
-    def parse_bool(cls, v):
-        if isinstance(v, str):
-            return v.lower() in ("1", "true", "yes")
-        return bool(v)
+    chat_db: str = Field(default="0", alias="enable_chat_db")
+    analytics_scheduler: str = Field(default="1", alias="enable_analytics_scheduler")
+    augment_agent: str = Field(default="1", alias="enable_augment_agent")
+    gemini_agent: str = Field(default="0", alias="enable_gemini_agent")
+    codex_agent: str = Field(default="0", alias="enable_codex_agent")
 
 
 class SandboxSettings(BaseSettings):
@@ -175,18 +158,8 @@ class SandboxSettings(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="SANDBOX_", extra="ignore")
 
-    enabled: bool = Field(default=True, description="Enable sandbox")
     image: str = Field(default="devstack-python-sandbox:latest")
     timeout_sec: int = Field(default=30, description="Execution timeout")
-    memory_limit: str = Field(default="128m", description="Memory limit")
-    cpu_limit: float = Field(default=0.5, description="CPU limit")
-
-    @field_validator("enabled", mode="before")
-    @classmethod
-    def parse_enabled(cls, v):
-        if isinstance(v, str):
-            return v.lower() in ("1", "true", "yes")
-        return bool(v)
 
 
 class GeoIPSettings(BaseSettings):
@@ -197,51 +170,13 @@ class GeoIPSettings(BaseSettings):
     db_path: str = Field(default="/app/GeoLite2-City.mmdb", alias="geoip_db_path")
 
 
-class AugmentAgentSettings(BaseSettings):
-    """Augment AI agent configuration."""
-
-    model_config = SettingsConfigDict(env_prefix="AUGMENT_AGENT_", extra="ignore")
-
-    sender: str = Field(default="agent:augment", description="Agent sender name")
-    channels: str = Field(default="general", description="Comma-separated channels")
-    min_sleep_sec: int = Field(default=10800, description="Minimum sleep")
-    max_sleep_sec: int = Field(default=10800, description="Maximum sleep")
-    history_token_limit: int = Field(default=10000, description="History token limit")
-    model: str = Field(default="sonnet4.5", description="Model name")
-    global_cooldown_sec: float = Field(default=120, description="Global cooldown")
-
-    @property
-    def channel_list(self) -> list[str]:
-        """Parse comma-separated channels into list."""
-        return [c.strip() for c in self.channels.split(",") if c.strip()]
-
-
-class CodexAgentSettings(BaseSettings):
-    """Codex AI agent configuration."""
-
-    model_config = SettingsConfigDict(env_prefix="CODEX_AGENT_", extra="ignore")
-
-    sender: str = Field(default="agent:codex", description="Agent sender name")
-    channels: str = Field(default="general", description="Comma-separated channels")
-    min_sleep_sec: int = Field(default=10800, description="Minimum sleep")
-    max_sleep_sec: int = Field(default=10800, description="Maximum sleep")
-    history_token_limit: int = Field(default=10000, description="History token limit")
-    model: str = Field(default="gpt-5.5", description="Model name")
-    global_cooldown_sec: float = Field(default=120, description="Global cooldown")
-
-    @property
-    def channel_list(self) -> list[str]:
-        """Parse comma-separated channels into list."""
-        return [c.strip() for c in self.channels.split(",") if c.strip()]
-
-
 class NotesSyncSettings(BaseSettings):
     """Notes sync configuration."""
 
     model_config = SettingsConfigDict(extra="ignore")
 
     secret: str = Field(default="", alias="notes_sync_secret")
-    github_token: str = Field(default="", alias="github_token")
+    github_token: str | None = Field(default=None, alias="github_token")
 
 
 class Settings:
@@ -259,14 +194,11 @@ class Settings:
     def __init__(self) -> None:
         self.redis = RedisSettings()
         self.postgres = PostgresSettings()
-        self.agent = AgentSettings()
         self.cors = CorsSettings()
         self.debug = DebugSettings()
         self.features = FeatureSettings()
         self.sandbox = SandboxSettings()
         self.geoip = GeoIPSettings()
-        self.augment_agent = AugmentAgentSettings()
-        self.codex_agent = CodexAgentSettings()
         self.notes_sync = NotesSyncSettings()
 
 
