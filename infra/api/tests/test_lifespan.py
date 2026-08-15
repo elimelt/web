@@ -72,13 +72,12 @@ class TestInitGeoip:
         """Test that init_geoip returns None when file doesn't exist."""
         from api.lifespan import init_geoip
 
-        with patch("api.lifespan.os.path.exists", return_value=False):
-            with patch("api.lifespan.get_settings") as mock_settings:
-                mock_settings.return_value.geoip.db_path = "/nonexistent/path.mmdb"
-
+        with patch.dict("os.environ", {"GEOIP_DB_PATH": "/nonexistent/path.mmdb"}):
+            with patch("api.lifespan.os.path.exists", return_value=False) as mock_exists:
                 result = init_geoip()
 
                 assert result is None
+                mock_exists.assert_called_once_with("/nonexistent/path.mmdb")
 
     def test_init_geoip_returns_reader_when_file_exists(self):
         """Test that init_geoip returns reader when file exists."""
@@ -86,37 +85,52 @@ class TestInitGeoip:
 
         mock_reader = MagicMock()
 
-        with patch("api.lifespan.os.path.exists", return_value=True):
-            with patch("api.lifespan.geoip2.database.Reader", return_value=mock_reader):
-                with patch("api.lifespan.get_settings") as mock_settings:
-                    mock_settings.return_value.geoip.db_path = "/app/GeoLite2-City.mmdb"
-
+        with patch.dict("os.environ", {"GEOIP_DB_PATH": "/app/GeoLite2-City.mmdb"}):
+            with patch("api.lifespan.os.path.exists", return_value=True):
+                with patch(
+                    "api.lifespan.geoip2.database.Reader", return_value=mock_reader
+                ) as mock_reader_cls:
                     result = init_geoip()
 
                     assert result is mock_reader
+                    mock_reader_cls.assert_called_once_with("/app/GeoLite2-City.mmdb")
 
 
 class TestInitDatabase:
     """Test init_database function."""
 
     @pytest.mark.asyncio
-    async def test_init_database_returns_false_when_disabled(self):
-        """Test that init_database returns False when disabled."""
+    async def test_init_database_skips_pool_when_disabled(self):
+        """Test that init_database does not touch the pool when disabled."""
         from api.lifespan import init_database
 
         with patch.dict("os.environ", {"ENABLE_CHAT_DB": "0"}):
-            result = await init_database()
-            assert result is False
+            with patch("api.lifespan.db.init_pool", new_callable=AsyncMock) as mock_init:
+                result = await init_database()
+                assert result is None
+                mock_init.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_init_database_returns_true_when_enabled_and_successful(self):
-        """Test that init_database returns True when enabled and successful."""
+    async def test_init_database_inits_pool_when_enabled(self):
+        """Test that init_database initializes the pool when enabled.
+
+        Also pins that pool init failures are swallowed silently.
+        """
         from api.lifespan import init_database
 
         with patch.dict("os.environ", {"ENABLE_CHAT_DB": "1"}):
-            with patch("api.lifespan.db.init_pool", new_callable=AsyncMock):
+            with patch("api.lifespan.db.init_pool", new_callable=AsyncMock) as mock_init:
                 result = await init_database()
-                assert result is True
+                assert result is None
+                mock_init.assert_called_once()
+
+            with patch(
+                "api.lifespan.db.init_pool",
+                new_callable=AsyncMock,
+                side_effect=RuntimeError("boom"),
+            ):
+                # Must not raise: failures are ignored (pinned behavior).
+                await init_database()
 
 
 class TestSetupResources:

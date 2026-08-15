@@ -15,12 +15,17 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
-from redis.asyncio import BlockingConnectionPool as RedisConnectionPool
 
 from api import db, state
 from api.batch.visitor_analytics import start_analytics_scheduler
 from api.bus import EventBus
-from api.config import get_settings
+from api.lifespan import (
+    LifespanResources,
+    cleanup_resources,
+    init_database,
+    init_geoip,
+    init_redis,
+)
 from api.redis_pubsub import cleanup_expired_pubsubs, get_pool_stats, get_pubsub_stats
 from api.controllers.analytics_clicks import router as analytics_clicks_router
 from api.controllers.chat_analytics import router as chat_analytics_router
@@ -38,7 +43,6 @@ from api.controllers.ws_visitors import router as ws_visitors_router
 from api.controllers.ws_canvas import router as ws_canvas_router, load_canvas_state
 from api.errors import register_exception_handlers
 from api.middleware import HTTPLogMiddleware
-from api.redis_debug import wrap_redis_client
 
 app = FastAPI(
     title="Public API",
@@ -92,44 +96,22 @@ geoip_reader = None
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     global redis_client, geoip_reader, event_bus
     stop_event: asyncio.Event | None = None
-    settings = get_settings()
 
-    redis_pool = RedisConnectionPool(
-        host=settings.redis.host,
-        port=settings.redis.port,
-        password=settings.redis.password if settings.redis.password else None,
-        max_connections=settings.redis.max_connections,
-        timeout=settings.redis.pool_timeout_sec,
-        health_check_interval=settings.redis.health_check_interval,
-        socket_timeout=settings.redis.socket_timeout,
-        socket_connect_timeout=settings.redis.socket_connect_timeout,
-        retry_on_timeout=settings.redis.retry_on_timeout,
-    )
-    candidate_client = redis.Redis(connection_pool=redis_pool, decode_responses=True)
-    if hasattr(candidate_client, "__await__"):
-        redis_client = await candidate_client  # type: ignore[assignment]
-    else:
-        redis_client = candidate_client
-    if settings.debug.redis:
-        logging.getLogger("api.redis").setLevel(logging.DEBUG)
-        redis_logger = logging.getLogger("api.redis")
-        redis_client = wrap_redis_client(redis_client, redis_logger)
+    redis_client = await init_redis()
     event_bus = EventBus(redis_client)
 
-    geoip_db_path = os.getenv("GEOIP_DB_PATH", "/app/GeoLite2-City.mmdb")
-    if os.path.exists(geoip_db_path):
-        geoip_reader = geoip2.database.Reader(geoip_db_path)
+    # Preserve historical semantics: the module global is only assigned
+    # when a reader was created (a missing file leaves the prior value).
+    new_geoip_reader = init_geoip()
+    if new_geoip_reader is not None:
+        geoip_reader = new_geoip_reader
 
     state.redis_client = redis_client
     state.event_bus = event_bus
     state.geoip_reader = geoip_reader
 
     enable_db = os.getenv("ENABLE_CHAT_DB", "0") == "1"
-    if enable_db:
-        try:
-            await db.init_pool()
-        except Exception:
-            pass
+    await init_database()
 
     analytics_tasks: list[asyncio.Task] = []
     enable_analytics = os.getenv("ENABLE_ANALYTICS_SCHEDULER", "1") == "1"
@@ -200,33 +182,16 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         except (asyncio.CancelledError, asyncio.TimeoutError):
             pass
 
-        if analytics_tasks and stop_event:
-            stop_event.set()
-            try:
-                await asyncio.wait_for(
-                    asyncio.gather(*analytics_tasks, return_exceptions=True), timeout=5
-                )
-            except Exception:
-                for t in analytics_tasks:
-                    t.cancel()
-        if enable_db:
-            try:
-                await db.close_pool()
-            except Exception:
-                pass
-        if redis_client:
-            aclose = getattr(redis_client, "aclose", None)
-            if callable(aclose):
-                await aclose()
-            else:
-                close = getattr(redis_client, "close", None)
-                if callable(close):
-                    close()
-        if geoip_reader:
-            geoip_reader.close()
-        state.redis_client = None
-        state.event_bus = None
-        state.geoip_reader = None
+        await cleanup_resources(
+            LifespanResources(
+                redis_client=redis_client,
+                event_bus=event_bus,
+                geoip_reader=geoip_reader,
+                stop_event=stop_event,
+                background_tasks=analytics_tasks,
+                db_enabled=enable_db,
+            )
+        )
 
 
 app.router.lifespan_context = lifespan
