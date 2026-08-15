@@ -1,8 +1,9 @@
 """Dependency injection for FastAPI endpoints.
 
-This module provides FastAPI dependencies for accessing shared resources
-like Redis, EventBus, and GeoIP reader. It replaces direct access to
-global state with proper dependency injection.
+This module is the path for HTTP request handlers to access shared
+resources like Redis, EventBus, and GeoIP reader. HTTP handlers must use
+these dependencies instead of reading api.state directly. For non-request
+contexts (WebSocket loops, agents, producers, lifespan), use api.state.
 
 Usage in controllers:
     from api.dependencies import get_redis, get_event_bus

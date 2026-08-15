@@ -18,8 +18,6 @@ from api.bus import EventBus
 from api.config import get_settings
 from api.redis_debug import wrap_redis_client
 
-logger = logging.getLogger(__name__)
-
 
 @dataclass
 class LifespanResources:
@@ -70,31 +68,32 @@ async def init_redis() -> redis.Redis:
 def init_geoip() -> geoip2.database.Reader | None:
     """Initialize GeoIP reader if database file exists.
 
+    Reads the GeoIP db path from settings at call time, exactly like
+    the entry points historically read GEOIP_DB_PATH.
+
     Returns:
         GeoIP reader or None if not available.
     """
-    settings = get_settings()
-    geoip_db_path = settings.geoip.db_path
+    geoip_db_path = get_settings().geoip.db_path
 
     if os.path.exists(geoip_db_path):
         return geoip2.database.Reader(geoip_db_path)
     return None
 
 
-async def init_database() -> bool:
-    """Initialize database connection pool.
+async def init_database() -> None:
+    """Initialize database connection pool if ENABLE_CHAT_DB is "1".
 
-    Returns:
-        True if database was initialized, False otherwise.
+    Failures are swallowed silently, exactly like the entry points
+    historically did. Callers gate downstream features and teardown on
+    the ENABLE_CHAT_DB flag, not on init success.
     """
-    enable_db = os.getenv("ENABLE_CHAT_DB", "0") == "1"
+    enable_db = get_settings().features.chat_db == "1"
     if enable_db:
         try:
             await db.init_pool()
-            return True
-        except Exception as e:
-            logger.warning("Failed to initialize database: %s", e)
-    return False
+        except Exception:
+            pass
 
 
 async def setup_resources(
@@ -120,9 +119,12 @@ async def setup_resources(
     if enable_geoip:
         resources.geoip_reader = init_geoip()
 
-    # Initialize database if enabled
+    # Initialize database if enabled. db_enabled records the config flag,
+    # not init success, so cleanup gates close_pool the same way the
+    # entry points do.
     if enable_db:
-        resources.db_enabled = await init_database()
+        await init_database()
+        resources.db_enabled = get_settings().features.chat_db == "1"
 
     # Update global state for backward compatibility
     state.redis_client = resources.redis_client

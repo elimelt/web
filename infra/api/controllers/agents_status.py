@@ -6,6 +6,7 @@ from fastapi import APIRouter
 
 from api.agents.tools import TOOL_DEFINITIONS
 from api.codex_runner import codex_is_ready
+from api.config import get_settings
 
 router = APIRouter(prefix="/agents", tags=["agents"])
 
@@ -35,12 +36,13 @@ async def agents_status() -> dict[str, Any]:
         "GEMINI_API_KEY configured" if gemini_status == "ok" else "GEMINI_API_KEY not set"
     )
 
+    sandbox_settings = get_settings().sandbox
     sandbox_status: dict[str, Any] = {
         "enabled": _env_enabled("SANDBOX_ENABLED", "1"),
-        "image": os.getenv("SANDBOX_IMAGE", "devstack-python-sandbox:latest"),
+        "image": sandbox_settings.image,
         "available": False,
         "docker_cli": shutil.which("docker") is not None,
-        "timeout_sec": int(os.getenv("SANDBOX_TIMEOUT_SEC", "30")),
+        "timeout_sec": sandbox_settings.timeout_sec,
         "memory_limit": os.getenv("SANDBOX_MEMORY_LIMIT", "128m"),
     }
     if sandbox_status["enabled"]:

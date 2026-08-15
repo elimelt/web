@@ -1,9 +1,9 @@
-import os
 from typing import Any
 
 from fastapi import APIRouter, Header, HTTPException, Query
 
 from api import db
+from api.config import get_settings
 from api.models.notes import (
     CategoriesResponse,
     NotesByCategoryResponse,
@@ -18,7 +18,9 @@ from api.notes_sync import retry_failed_items, sync_notes_with_job
 
 router = APIRouter(prefix="/notes", tags=["notes"])
 
-NOTES_SYNC_SECRET = os.getenv("NOTES_SYNC_SECRET", "")
+# Module-level constant on purpose: value is frozen at import time,
+# matching the historical os.getenv read.
+NOTES_SYNC_SECRET = get_settings().notes_sync.secret
 
 
 def _validate_sync_secret(x_sync_secret: str | None) -> None:
@@ -145,7 +147,7 @@ async def trigger_sync(
 ) -> dict[str, Any]:
     _validate_sync_secret(x_sync_secret)
 
-    github_token = os.getenv("GITHUB_TOKEN")
+    github_token = get_settings().notes_sync.github_token
     result = await sync_notes_with_job(token=github_token, force=force)
 
     return result
@@ -168,7 +170,7 @@ async def resume_sync_job(
             detail=f"Job cannot be resumed (status: {job['status']})",
         )
 
-    github_token = os.getenv("GITHUB_TOKEN")
+    github_token = get_settings().notes_sync.github_token
     result = await sync_notes_with_job(token=github_token, resume_job_id=job_id)
 
     return result
@@ -185,7 +187,7 @@ async def retry_failed_job_items(
     if not job:
         raise HTTPException(status_code=404, detail=f"Sync job {job_id} not found")
 
-    github_token = os.getenv("GITHUB_TOKEN")
+    github_token = get_settings().notes_sync.github_token
     result = await retry_failed_items(job_id, token=github_token)
 
     return result

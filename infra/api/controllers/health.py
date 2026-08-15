@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
-from api import state
 from api.db.core import get_pool_stats
+from api.dependencies import OptionalRedis
 from api.redis_pubsub import get_pool_stats as get_redis_pool_stats
 from api.redis_pubsub import get_pubsub_stats
 
@@ -9,11 +9,11 @@ router = APIRouter(tags=["health"])
 
 
 @router.get("/health")
-async def health() -> dict[str, str]:
+async def health(redis_client: OptionalRedis) -> dict[str, str]:
     redis_status = "disconnected"
-    if state.redis_client:
+    if redis_client:
         try:
-            await state.redis_client.ping()
+            await redis_client.ping()
             redis_status = "healthy"
         except Exception:
             redis_status = "unhealthy"
@@ -22,12 +22,12 @@ async def health() -> dict[str, str]:
 
 
 @router.get("/health/pools")
-async def health_pools() -> dict:
+async def health_pools(redis_client: OptionalRedis) -> dict:
     """Get connection pool status for Redis and PostgreSQL."""
     # Redis pool stats with detailed info
     redis_stats = {"status": "not_initialized"}
-    if state.redis_client:
-        redis_stats = get_redis_pool_stats(state.redis_client)
+    if redis_client:
+        redis_stats = get_redis_pool_stats(redis_client)
         pubsub_stats = await get_pubsub_stats()
         redis_stats["pubsub"] = pubsub_stats
 
@@ -38,7 +38,7 @@ async def health_pools() -> dict:
 
 
 @router.get("/health/redis")
-async def health_redis_detailed() -> dict:
+async def health_redis_detailed(redis_client: OptionalRedis) -> dict:
     """Get detailed Redis connection pool and pubsub statistics.
 
     This endpoint provides comprehensive information about:
@@ -46,10 +46,10 @@ async def health_redis_detailed() -> dict:
     - Active pubsub connections with age and idle time
     - Warnings if pool is getting full
     """
-    if not state.redis_client:
+    if not redis_client:
         return {"status": "not_initialized", "error": "Redis client not available"}
 
-    pool_stats = get_redis_pool_stats(state.redis_client)
+    pool_stats = get_redis_pool_stats(redis_client)
     pubsub_stats = await get_pubsub_stats()
 
     # Add health assessment

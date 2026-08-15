@@ -77,44 +77,54 @@ class TestPostgresSettings:
             assert "dbname=mydb" in dsn
 
 
-class TestAgentSettings:
-    """Test AI agent configuration settings."""
-
-    def test_agent_default_values(self):
-        """Test agent settings have sensible defaults."""
-        from api.config import AgentSettings
-
-        with patch.dict(os.environ, {}, clear=True):
-            settings = AgentSettings()
-            assert settings.count == 5
-            assert settings.min_sleep_sec == 30
-            assert settings.max_sleep_sec == 120
-            assert settings.wake_probability == 0.2
-            assert settings.wake_cooldown_sec == 45
-            assert settings.debug is False
-
-
 class TestCorsSettings:
     """Test CORS configuration settings."""
 
     def test_cors_default_values(self):
-        """Test CORS settings have sensible defaults."""
-        from api.config import CorsSettings
+        """Test CORS settings match the historical read-site defaults."""
+        from api.config import DEFAULT_CORS_ORIGINS_REGEX, CorsSettings
 
         with patch.dict(os.environ, {}, clear=True):
             settings = CorsSettings()
-            assert "http://localhost:3000" in settings.origins
-            assert settings.allow_credentials is True
+            assert settings.origins == ["http://localhost:3000"]
+            assert settings.origins_regex == DEFAULT_CORS_ORIGINS_REGEX
+            assert DEFAULT_CORS_ORIGINS_REGEX == r"https?://([a-zA-Z0-9-]+\.)?elimelt\.com"
 
-    def test_cors_wildcard_disables_credentials(self):
-        """Test that wildcard origin disables credentials."""
+    def test_cors_origins_split_strip_and_drop_empties(self):
+        """Test comma-split parsing of CORS_ORIGINS."""
+        from api.config import CorsSettings
+
+        env = {"CORS_ORIGINS": "https://a.example, https://b.example ,,"}
+        with patch.dict(os.environ, env, clear=True):
+            settings = CorsSettings()
+            assert settings.origins == ["https://a.example", "https://b.example"]
+
+    def test_cors_wildcard_origin(self):
+        """Test that a wildcard origin parses as-is."""
         from api.config import CorsSettings
 
         env = {"CORS_ORIGINS": "*"}
         with patch.dict(os.environ, env, clear=True):
             settings = CorsSettings()
             assert settings.origins == ["*"]
-            assert settings.allow_credentials is False
+
+    def test_cors_regex_set_value_is_stripped(self):
+        """Test that a set CORS_ORIGINS_REGEX is stripped."""
+        from api.config import CorsSettings
+
+        env = {"CORS_ORIGINS_REGEX": r"  https://x\.example  "}
+        with patch.dict(os.environ, env, clear=True):
+            settings = CorsSettings()
+            assert settings.origins_regex == r"https://x\.example"
+
+    def test_cors_regex_whitespace_only_falls_back_to_default(self):
+        """Test that a whitespace-only CORS_ORIGINS_REGEX uses the default."""
+        from api.config import DEFAULT_CORS_ORIGINS_REGEX, CorsSettings
+
+        env = {"CORS_ORIGINS_REGEX": "   "}
+        with patch.dict(os.environ, env, clear=True):
+            settings = CorsSettings()
+            assert settings.origins_regex == DEFAULT_CORS_ORIGINS_REGEX
 
 
 class TestSettings:
@@ -136,10 +146,12 @@ class TestSettings:
             settings = Settings()
             assert hasattr(settings, "redis")
             assert hasattr(settings, "postgres")
-            assert hasattr(settings, "agent")
             assert hasattr(settings, "cors")
             assert hasattr(settings, "debug")
             assert hasattr(settings, "features")
+            assert hasattr(settings, "sandbox")
+            assert hasattr(settings, "geoip")
+            assert hasattr(settings, "notes_sync")
 
     def test_debug_settings(self):
         """Test debug flag configuration."""
@@ -158,19 +170,45 @@ class TestSettings:
             assert settings.debug.redis is True
             assert settings.debug.agent is True
 
+    def test_feature_flag_defaults(self):
+        """Test feature flag defaults match the historical read-site defaults."""
+        from api.config import Settings
+
+        with patch.dict(os.environ, {}, clear=True):
+            settings = Settings()
+            assert settings.features.chat_db == "0"
+            assert settings.features.analytics_scheduler == "1"
+            assert settings.features.augment_agent == "1"
+            assert settings.features.gemini_agent == "0"
+            assert settings.features.codex_agent == "0"
+
     def test_feature_flags(self):
-        """Test feature flag configuration."""
+        """Test feature flag configuration.
+
+        Flags stay raw strings; read sites compare == "1" exactly.
+        """
         from api.config import Settings
 
         env = {
             "ENABLE_CHAT_DB": "1",
-            "ENABLE_AGENT": "1",
             "ENABLE_ANALYTICS_SCHEDULER": "0",
+            "ENABLE_AUGMENT_AGENT": "0",
+            "ENABLE_GEMINI_AGENT": "1",
             "ENABLE_CODEX_AGENT": "1",
         }
         with patch.dict(os.environ, env, clear=True):
             settings = Settings()
-            assert settings.features.chat_db is True
-            assert settings.features.agent is True
-            assert settings.features.analytics_scheduler is False
-            assert settings.features.codex_agent is True
+            assert settings.features.chat_db == "1"
+            assert settings.features.analytics_scheduler == "0"
+            assert settings.features.augment_agent == "0"
+            assert settings.features.gemini_agent == "1"
+            assert settings.features.codex_agent == "1"
+
+    def test_feature_flags_non_1_truthy_strings_stay_raw(self):
+        """Test that "true" stays "true" (read sites treat it as OFF)."""
+        from api.config import Settings
+
+        with patch.dict(os.environ, {"ENABLE_CHAT_DB": "true"}, clear=True):
+            settings = Settings()
+            assert settings.features.chat_db == "true"
+            assert settings.features.chat_db != "1"

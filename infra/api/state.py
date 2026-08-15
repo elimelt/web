@@ -1,3 +1,11 @@
+"""Shared application state.
+
+This module is the sanctioned path for non-request contexts: WebSocket
+loops, agents, producers, and lifespan. HTTP request handlers must not
+read these attributes directly; they use the accessors and Annotated
+aliases in api.dependencies instead.
+"""
+
 import asyncio
 
 import geoip2.database

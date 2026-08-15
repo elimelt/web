@@ -1,6 +1,6 @@
 # DevStack Public API Integration Tests
 
-Integration tests for the DevStack Public API at `https://blink.tail8ab50a.ts.net:443/api`.
+Integration tests for the DevStack Public API. The default base URL is `https://api.elimelt.com/api`. Override it with the `API_BASE_URL` environment variable.
 
 ## Requirements
 

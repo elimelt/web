@@ -37,7 +37,7 @@ Internet → Cloudflare Tunnel → Caddy (reverse proxy) → Docker services
    ```bash
    cd infra
    cp .env.example .env
-   cp Caddyfile.example Caddyfile
+   # infra/Caddyfile is tracked in git. Edit it in place; no copy step is needed.
 
    # Add tunnel token from step 1
    echo "CLOUDFLARE_TUNNEL_TOKEN=<token>" >> .env
@@ -122,6 +122,17 @@ docker compose -f docker-compose.yml -f docker-compose.runner.yml --profile runn
 If you use the Dockerized runner, set `BACKEND_DEPLOY_PATH=/deploy/web` in the GitHub `backend`
 environment because the host deploy clone is mounted into the runner container there.
 
+## Manually operated (not wired to CI)
+
+These pieces run only when someone starts them by hand:
+
+- `docker-compose.runner.yml` + `github-runner/`: self-hosted GitHub runner.
+- `systemd/homelab-backup.service` + `.timer` + `backup.sh`: host backups.
+- `terraform/`: DNS and tunnel config.
+- `.github/workflows/count-code.yaml`: manual dispatch.
+
+Note: `infra/homepage/` has no in-repo deploy path. Its status is an open question.
+
 ---
 
 ## Detailed Architecture
@@ -168,6 +179,8 @@ environment because the host deploy clone is mounted into the runner container t
 | redis | 6379 | Pub/sub, caching |
 | postgres | 5432 | Persistent storage (pgvector) |
 | uptime-kuma | 3001 | Status monitoring |
+| ollama | 11434 | LLM API (llm.elimelt.com) |
+| speaches | 8000 | Whisper transcription API (transcribe.elimelt.com) |
 
 ### Environment Variables
 

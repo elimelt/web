@@ -18,7 +18,6 @@ from dataclasses import dataclass, field
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from api import state
-from api.redis_pubsub import managed_pubsub
 
 router = APIRouter(tags=["canvas"])
 _logger = logging.getLogger("api.controllers.ws_canvas")

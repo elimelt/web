@@ -14,7 +14,6 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
-from redis.asyncio import BlockingConnectionPool as RedisConnectionPool
 
 from api import db, state
 from api.agents.augment_agent import start_augment_agent
@@ -34,7 +33,7 @@ from api.controllers.notes import router as notes_router
 from api.controllers.notes_search import router as notes_search_router
 from api.controllers.when2meet import router as when2meet_router
 from api.errors import register_exception_handlers
-from api.redis_debug import wrap_redis_client
+from api.lifespan import LifespanResources, cleanup_resources, init_database, init_redis
 
 app = FastAPI(
     title="DevStack Internal API",
@@ -64,52 +63,28 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     gemini_agent_tasks: list[asyncio.Task] = []
     sync_tasks: list[asyncio.Task] = []
 
-    settings = get_settings()
-
-    redis_pool = RedisConnectionPool(
-        host=settings.redis.host,
-        port=settings.redis.port,
-        password=settings.redis.password if settings.redis.password else None,
-        max_connections=settings.redis.max_connections,
-        timeout=settings.redis.pool_timeout_sec,
-        health_check_interval=settings.redis.health_check_interval,
-        socket_timeout=settings.redis.socket_timeout,
-        socket_connect_timeout=settings.redis.socket_connect_timeout,
-        retry_on_timeout=settings.redis.retry_on_timeout,
-    )
-    candidate_client = redis.Redis(connection_pool=redis_pool, decode_responses=True)
-    if hasattr(candidate_client, "__await__"):
-        redis_client = await candidate_client
-    else:
-        redis_client = candidate_client
-    if settings.debug.redis:
-        logging.getLogger("api.redis").setLevel(logging.DEBUG)
-        redis_logger = logging.getLogger("api.redis")
-        redis_client = wrap_redis_client(redis_client, redis_logger)
+    redis_client = await init_redis()
     event_bus = EventBus(redis_client)
 
     state.redis_client = redis_client
     state.event_bus = event_bus
 
-    enable_db = os.getenv("ENABLE_CHAT_DB", "0") == "1"
-    if enable_db:
-        try:
-            await db.init_pool()
-        except Exception:
-            pass
+    features = get_settings().features
+    enable_db = features.chat_db == "1"
+    await init_database()
 
-    enable_augment_agent = os.getenv("ENABLE_AUGMENT_AGENT", "1") == "1"
+    enable_augment_agent = features.augment_agent == "1"
     if enable_augment_agent:
         stop_event = asyncio.Event()
         augment_agent_tasks = await start_augment_agent(stop_event)
 
-    enable_gemini_agent = os.getenv("ENABLE_GEMINI_AGENT", "0") == "1"
+    enable_gemini_agent = features.gemini_agent == "1"
     if enable_gemini_agent:
         if stop_event is None:
             stop_event = asyncio.Event()
         gemini_agent_tasks = await start_gemini_agents(stop_event)
 
-    enable_codex_agent = os.getenv("ENABLE_CODEX_AGENT", "0") == "1"
+    enable_codex_agent = features.codex_agent == "1"
     if enable_codex_agent:
         if stop_event is None:
             stop_event = asyncio.Event()
@@ -125,31 +100,15 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         yield
     finally:
         all_tasks = augment_agent_tasks + gemini_agent_tasks + codex_agent_tasks + sync_tasks
-        if all_tasks and stop_event:
-            stop_event.set()
-            try:
-                await asyncio.wait_for(
-                    asyncio.gather(*all_tasks, return_exceptions=True), timeout=5
-                )
-            except Exception:
-                for t in all_tasks:
-                    t.cancel()
-
-        if enable_db:
-            try:
-                await db.close_pool()
-            except Exception:
-                pass
-        if redis_client:
-            aclose = getattr(redis_client, "aclose", None)
-            if callable(aclose):
-                await aclose()
-            else:
-                close = getattr(redis_client, "close", None)
-                if callable(close):
-                    close()
-        state.redis_client = None
-        state.event_bus = None
+        await cleanup_resources(
+            LifespanResources(
+                redis_client=redis_client,
+                event_bus=event_bus,
+                stop_event=stop_event,
+                background_tasks=all_tasks,
+                db_enabled=enable_db,
+            )
+        )
 
 
 app.router.lifespan_context = lifespan

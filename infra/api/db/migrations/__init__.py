@@ -29,7 +29,9 @@ async def get_current_version() -> int:
             """
         )
 
-        result = await conn.fetchval("SELECT COALESCE(MAX(version), 0) FROM schema_migrations")
+        cur = await conn.execute("SELECT COALESCE(MAX(version), 0) FROM schema_migrations")
+        row = await cur.fetchone()
+        result = row[0] if row is not None else None
         return int(result) if result else 0
 
 
@@ -143,12 +145,15 @@ async def get_migration_history() -> list[dict[str, Any]]:
             """
         )
 
-        rows = await conn.fetch(
+        cur = await conn.execute(
             """
             SELECT version, applied_at, description
             FROM schema_migrations
             ORDER BY version
             """
         )
+        rows = await cur.fetchall()
 
-        return [dict(row) for row in rows]
+        return [
+            {"version": row[0], "applied_at": row[1], "description": row[2]} for row in rows
+        ]

@@ -1,5 +1,4 @@
 import logging
-import os
 import time
 from enum import Enum
 from typing import Any
@@ -7,12 +6,15 @@ from typing import Any
 from fastapi import APIRouter, Header, HTTPException, Query
 
 from api import db
+from api.config import get_settings
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/notes", tags=["notes-search"])
 
-NOTES_SYNC_SECRET = os.getenv("NOTES_SYNC_SECRET", "")
+# Module-level constant on purpose: value is frozen at import time,
+# matching the historical os.getenv read.
+NOTES_SYNC_SECRET = get_settings().notes_sync.secret
 
 
 class SearchMode(str, Enum):
