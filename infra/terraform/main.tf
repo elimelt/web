@@ -216,6 +216,17 @@ resource "cloudflare_record" "capture" {
   comment  = "GitHub Pages - Capture app"
 }
 
+# inbox subdomain
+resource "cloudflare_record" "inbox" {
+  for_each = toset(local.github_pages_ips)
+  zone_id  = data.cloudflare_zone.main.id
+  name     = "inbox"
+  type     = "A"
+  content  = each.value
+  proxied  = true
+  comment  = "GitHub Pages - Inbox app"
+}
+
 # =============================================================================
 # DNS Records for Other Services
 # =============================================================================
