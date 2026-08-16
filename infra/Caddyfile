@@ -154,11 +154,19 @@
 	}
 
 	# ============ ADD NEW SERVICES HERE ============
-	# Example:
-	# @grafana host grafana.elimelt.com
-	# handle @grafana {
-	#     reverse_proxy grafana:3000
-	# }
+
+	# inbox.elimelt.com → Inbox Agent frontend
+	@inbox host inbox.elimelt.com
+	handle @inbox {
+		reverse_proxy inbox-agent:8000
+	}
+
+	# api.inbox.elimelt.com → Inbox Agent API
+	@api_inbox host api.inbox.elimelt.com
+	handle @api_inbox {
+		import cors_elimelt
+		reverse_proxy inbox-agent:8000
+	}
 
 	# Default: 404
 	handle {

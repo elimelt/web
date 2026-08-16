@@ -317,6 +317,43 @@ services:
       retries: 3
       start_period: 60s
 
+  # Inbox Agent - Email triage, drafting, and digest
+  # Serves both frontend and API on port 8000
+  inbox-agent:
+    build:
+      context: ${INBOX_AGENT_PATH:-/home/elimelt/repos/inbox-agent}
+    container_name: inbox-agent
+    restart: always
+    ports:
+      - "127.0.0.1:8001:8000"
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - INBOX_DATABASE_URL=postgresql://${INBOX_POSTGRES_USER:-inbox}:${INBOX_POSTGRES_PASSWORD:-inbox}@postgres-inbox:5432/${INBOX_POSTGRES_DB:-inbox}
+      - GOOGLE_CREDENTIALS_PATH=/app/credentials.json
+      - OAUTH_REDIRECT_URI=https://api.inbox.elimelt.com/auth/callback
+      - RAW_STORE_DIR=/app/data/raw
+    volumes:
+      - ${INBOX_CREDENTIALS_PATH:-./inbox-credentials.json}:/app/credentials.json:ro
+      - inbox_raw_data:/app/data/raw
+    depends_on:
+      - postgres-inbox
+    networks:
+      - dev_network
+
+  # Postgres for Inbox Agent (separate from main postgres)
+  postgres-inbox:
+    image: pgvector/pgvector:pg17
+    container_name: postgres-inbox
+    restart: always
+    environment:
+      POSTGRES_USER: ${INBOX_POSTGRES_USER:-inbox}
+      POSTGRES_PASSWORD: ${INBOX_POSTGRES_PASSWORD:-inbox}
+      POSTGRES_DB: ${INBOX_POSTGRES_DB:-inbox}
+    volumes:
+      - postgres_inbox_data:/var/lib/postgresql/data
+    networks:
+      - dev_network
+
   postgres-backup:
     image: postgres:16-alpine
     container_name: postgres-backup
@@ -343,6 +380,7 @@ services:
 
 volumes:
   postgres_data:
+  postgres_inbox_data:
   redis_data:
   uptime_kuma_data:
   minecraft_data:
@@ -350,6 +388,7 @@ volumes:
   caddy_config:
   speaches_cache:
   ollama_data:
+  inbox_raw_data:
 
 
 networks:

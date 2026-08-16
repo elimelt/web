@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@augmentcode/auggie": "^0.28.0"
+  }
+}
