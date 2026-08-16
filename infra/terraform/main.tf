@@ -91,6 +91,16 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "homelab" {
       service  = "http://caddy:80"
     }
 
+    ingress_rule {
+      hostname = "inbox.${var.domain}"
+      service  = "http://caddy:80"
+    }
+
+    ingress_rule {
+      hostname = "api.inbox.${var.domain}"
+      service  = "http://caddy:80"
+    }
+
     # Catch-all rule (required)
     ingress_rule {
       service = "http_status:404"
