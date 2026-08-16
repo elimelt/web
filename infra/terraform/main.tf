@@ -227,6 +227,16 @@ resource "cloudflare_record" "inbox" {
   comment  = "GitHub Pages - Inbox app"
 }
 
+# api.inbox subdomain
+resource "cloudflare_record" "api_inbox" {
+  zone_id = data.cloudflare_zone.main.id
+  name    = "api.inbox"
+  type    = "CNAME"
+  content = "${var.tunnel_id}.cfargotunnel.com"
+  proxied = true
+  comment = "Inbox API backend"
+}
+
 # =============================================================================
 # DNS Records for Other Services
 # =============================================================================
