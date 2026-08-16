@@ -97,7 +97,7 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "homelab" {
     }
 
     ingress_rule {
-      hostname = "api.inbox.${var.domain}"
+      hostname = "inbox-api.${var.domain}"
       service  = "http://caddy:80"
     }
 
@@ -236,10 +236,10 @@ resource "cloudflare_record" "inbox" {
   comment = "Inbox app frontend"
 }
 
-# api.inbox subdomain
-resource "cloudflare_record" "api_inbox" {
+# inbox-api subdomain
+resource "cloudflare_record" "inbox_api" {
   zone_id = data.cloudflare_zone.main.id
-  name    = "api.inbox"
+  name    = "inbox-api"
   type    = "CNAME"
   content = "${var.tunnel_id}.cfargotunnel.com"
   proxied = true

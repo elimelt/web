@@ -330,7 +330,7 @@ services:
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - INBOX_DATABASE_URL=postgresql://${INBOX_POSTGRES_USER:-inbox}:${INBOX_POSTGRES_PASSWORD:-inbox}@postgres-inbox:5432/${INBOX_POSTGRES_DB:-inbox}
       - GOOGLE_CREDENTIALS_PATH=/app/credentials.json
-      - OAUTH_REDIRECT_URI=https://api.inbox.elimelt.com/auth/callback
+      - OAUTH_REDIRECT_URI=https://inbox-api.elimelt.com/auth/callback
       - RAW_STORE_DIR=/app/data/raw
     volumes:
       - ${INBOX_CREDENTIALS_PATH:-./inbox-credentials.json}:/app/credentials.json:ro

@@ -161,9 +161,9 @@
 		reverse_proxy inbox-agent:8000
 	}
 
-	# api.inbox.elimelt.com → Inbox Agent API
-	@api_inbox host api.inbox.elimelt.com
-	handle @api_inbox {
+	# inbox-api.elimelt.com → Inbox Agent API
+	@inbox_api host inbox-api.elimelt.com
+	handle @inbox_api {
 		import cors_elimelt
 		reverse_proxy inbox-agent:8000
 	}
