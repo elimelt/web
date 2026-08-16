@@ -1,0 +1,16 @@
+[Unit]
+Description=Codex remote control bridge
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/YOUR_USER
+Environment=PATH=/home/YOUR_USER/.local/share/npm/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/YOUR_USER/.local/share/npm/bin/codex remote-control
+Restart=always
+RestartSec=5
+StandardOutput=append:/home/YOUR_USER/.codex/remote-control.log
+StandardError=append:/home/YOUR_USER/.codex/remote-control.log
+
+[Install]
+WantedBy=default.target

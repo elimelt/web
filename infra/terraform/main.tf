@@ -205,14 +205,15 @@ resource "cloudflare_record" "spa_template" {
   comment  = "GitHub Pages - SPA template"
 }
 
-# time subdomain
-resource "cloudflare_record" "time" {
-  zone_id = data.cloudflare_zone.main.id
-  name    = "time"
-  type    = "CNAME"
-  content = "elimelt.github.io"
-  proxied = true
-  comment = "GitHub Pages - Time tracker"
+# capture subdomain
+resource "cloudflare_record" "capture" {
+  for_each = toset(local.github_pages_ips)
+  zone_id  = data.cloudflare_zone.main.id
+  name     = "capture"
+  type     = "A"
+  content  = each.value
+  proxied  = true
+  comment  = "GitHub Pages - Capture app"
 }
 
 # =============================================================================
