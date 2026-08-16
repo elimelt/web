@@ -218,13 +218,12 @@ resource "cloudflare_record" "capture" {
 
 # inbox subdomain
 resource "cloudflare_record" "inbox" {
-  for_each = toset(local.github_pages_ips)
-  zone_id  = data.cloudflare_zone.main.id
-  name     = "inbox"
-  type     = "A"
-  content  = each.value
-  proxied  = true
-  comment  = "GitHub Pages - Inbox app"
+  zone_id = data.cloudflare_zone.main.id
+  name    = "inbox"
+  type    = "CNAME"
+  content = "${var.tunnel_id}.cfargotunnel.com"
+  proxied = true
+  comment = "Inbox app frontend"
 }
 
 # api.inbox subdomain
