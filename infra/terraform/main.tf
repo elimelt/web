@@ -261,6 +261,35 @@ resource "cloudflare_record" "auth" {
 }
 
 # =============================================================================
+# tech.sex Zone
+# =============================================================================
+# Separate zone, same Cloudflare account. Serves the tech.sex landing page
+# from GitHub Pages (repo: elimelt/tech.sex).
+
+data "cloudflare_zone" "tech_sex" {
+  name = "tech.sex"
+}
+
+resource "cloudflare_record" "tech_sex_apex" {
+  for_each = toset(local.github_pages_ips)
+  zone_id  = data.cloudflare_zone.tech_sex.id
+  name     = "tech.sex"
+  type     = "A"
+  content  = each.value
+  proxied  = true
+  comment  = "GitHub Pages - tech.sex landing page"
+}
+
+resource "cloudflare_record" "tech_sex_www" {
+  zone_id = data.cloudflare_zone.tech_sex.id
+  name    = "www"
+  type    = "CNAME"
+  content = "elimelt.github.io"
+  proxied = true
+  comment = "GitHub Pages - tech.sex landing page"
+}
+
+# =============================================================================
 # Rate Limiting
 # =============================================================================
 # NOTE: Rate limiting requires additional API token permissions.
