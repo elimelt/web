@@ -31,12 +31,12 @@
 	}
 }
 
-# CORS for *.elimelt.com and localhost development
+# CORS for *.elimelt.com, tech.sex, and localhost development
 (cors_elimelt) {
 	@cors_preflight method OPTIONS
 	handle @cors_preflight {
 		@cors_allowed_preflight {
-			expression {http.request.header.Origin}.matches("^https://[a-zA-Z0-9-]+\\.elimelt\\.com$") || {http.request.header.Origin} == "http://localhost:5173"
+			expression {http.request.header.Origin}.matches("^https://[a-zA-Z0-9-]+\\.elimelt\\.com$") || {http.request.header.Origin} == "https://tech.sex" || {http.request.header.Origin} == "https://www.tech.sex" || {http.request.header.Origin} == "http://localhost:5173"
 		}
 		header @cors_allowed_preflight Access-Control-Allow-Origin "{http.request.header.Origin}"
 		header @cors_allowed_preflight Access-Control-Allow-Methods "GET, POST, OPTIONS"
@@ -47,7 +47,7 @@
 	}
 
 	@cors_allowed {
-		expression {http.request.header.Origin}.matches("^https://[a-zA-Z0-9-]+\\.elimelt\\.com$") || {http.request.header.Origin} == "http://localhost:5173"
+		expression {http.request.header.Origin}.matches("^https://[a-zA-Z0-9-]+\\.elimelt\\.com$") || {http.request.header.Origin} == "https://tech.sex" || {http.request.header.Origin} == "https://www.tech.sex" || {http.request.header.Origin} == "http://localhost:5173"
 	}
 	header @cors_allowed Access-Control-Allow-Origin "{http.request.header.Origin}"
 }
@@ -105,7 +105,7 @@
 	handle @llm {
 		# Set CORS headers for allowed origins (non-terminal, always runs)
 		@cors_allowed {
-			expression {http.request.header.Origin}.matches("^https://[a-zA-Z0-9-]+\\.elimelt\\.com$") || {http.request.header.Origin} == "http://localhost:5173"
+			expression {http.request.header.Origin}.matches("^https://[a-zA-Z0-9-]+\\.elimelt\\.com$") || {http.request.header.Origin} == "https://tech.sex" || {http.request.header.Origin} == "https://www.tech.sex" || {http.request.header.Origin} == "http://localhost:5173"
 		}
 		header @cors_allowed Access-Control-Allow-Origin "{http.request.header.Origin}"
 
@@ -113,7 +113,7 @@
 		@cors_preflight method OPTIONS
 		handle @cors_preflight {
 			@cors_allowed_preflight {
-				expression {http.request.header.Origin}.matches("^https://[a-zA-Z0-9-]+\\.elimelt\\.com$") || {http.request.header.Origin} == "http://localhost:5173"
+				expression {http.request.header.Origin}.matches("^https://[a-zA-Z0-9-]+\\.elimelt\\.com$") || {http.request.header.Origin} == "https://tech.sex" || {http.request.header.Origin} == "https://www.tech.sex" || {http.request.header.Origin} == "http://localhost:5173"
 			}
 			header @cors_allowed_preflight Access-Control-Allow-Methods "GET, POST, OPTIONS"
 			header @cors_allowed_preflight Access-Control-Allow-Headers "Content-Type, Authorization"
@@ -130,7 +130,7 @@
 
 		# Internal origins: no rate limit, proxy to Ollama
 		@internal_origin {
-			expression {http.request.header.Origin}.matches("^https://[a-zA-Z0-9-]+\\.elimelt\\.com$") || {http.request.header.Origin} == "http://localhost:5173"
+			expression {http.request.header.Origin}.matches("^https://[a-zA-Z0-9-]+\\.elimelt\\.com$") || {http.request.header.Origin} == "https://tech.sex" || {http.request.header.Origin} == "https://www.tech.sex" || {http.request.header.Origin} == "http://localhost:5173"
 		}
 		handle @internal_origin {
 			reverse_proxy ollama:11434 {
