@@ -115,3 +115,6 @@ packages/elimelt/node_modules/
 packages/elimelt/dist/
 
 .augmentinbox-creds.json
+
+# ===== Static files (untracked large files) =====
+static/untracked/

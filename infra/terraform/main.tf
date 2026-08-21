@@ -101,6 +101,11 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "homelab" {
       service  = "http://caddy:80"
     }
 
+    ingress_rule {
+      hostname = "static.${var.domain}"
+      service  = "http://caddy:80"
+    }
+
     # Catch-all rule (required)
     ingress_rule {
       service = "http_status:404"
@@ -244,6 +249,16 @@ resource "cloudflare_record" "inbox_api" {
   content = "${var.tunnel_id}.cfargotunnel.com"
   proxied = true
   comment = "Inbox API backend"
+}
+
+# static subdomain
+resource "cloudflare_record" "static" {
+  zone_id = data.cloudflare_zone.main.id
+  name    = "static"
+  type    = "CNAME"
+  content = "${var.tunnel_id}.cfargotunnel.com"
+  proxied = true
+  comment = "Static file server"
 }
 
 # =============================================================================
