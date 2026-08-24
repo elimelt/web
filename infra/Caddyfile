@@ -8,6 +8,11 @@
 {
 	auto_https off
 	order rate_limit before basicauth
+	servers {
+		# Trust cloudflared (Docker network) so the real client IP from
+		# X-Forwarded-For is preserved and passed to upstream services.
+		trusted_proxies static private_ranges
+	}
 }
 
 # Global rate limit configuration
