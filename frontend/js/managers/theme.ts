@@ -33,7 +33,7 @@ const ThemeManager = {
     const toLight = (src) =>
       src.replace("-dark.png", ".png").replace("-dark.svg", ".svg");
 
-    document.querySelectorAll(".timeline-logo").forEach((logo) => {
+    document.querySelectorAll<HTMLImageElement>(".timeline-logo").forEach((logo) => {
       logo.src = isDark ? toDark(logo.src) : toLight(logo.src);
     });
   },

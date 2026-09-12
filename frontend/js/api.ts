@@ -37,7 +37,7 @@ export function hideOfflineSection(sectionId, navAnalyticsId) {
   if (section) section.style.display = 'none';
   if (navAnalyticsId) {
     const navLink = document.querySelector(`.nav-link[data-analytics-id="${navAnalyticsId}"]`);
-    const navItem = navLink ? navLink.closest('.nav-item') : null;
+    const navItem = navLink ? navLink.closest<HTMLElement>('.nav-item') : null;
     if (navItem) navItem.style.display = 'none';
   }
 }
@@ -274,7 +274,7 @@ export function recordClickEvent(clickPayload) {
   AnalyticsDelivery.enqueueClick(clickPayload);
 }
 
-const getWsVisitors = (callbacks = {}) => {
+const getWsVisitors = (callbacks: { onConnect?: (event: Event) => void; onVisitorJoin?: (visitor: any) => void; onVisitorLeave?: (ip: string) => void; onUpdate?: (data: any) => void; onError?: (event: Event) => void; onDisconnect?: (event: CloseEvent) => void } = {}) => {
   const ws = new WebSocket(`${WS_BASE_URL}/ws/visitors`);
 
   const {

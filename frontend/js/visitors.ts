@@ -1,6 +1,6 @@
 import { getVisitors, getVisitorsAnalytics, getWsVisitors, isApiAvailable, hideOfflineSection } from './api.js';
 import { BASE_URL, PAGE_SIZE, RECONNECT } from './config.js';
-import { createVisitorMap } from './visitor-world.js?v=3';
+import { createVisitorMap } from './visitor-world.js';
 import { toTimestampMs, debounce, getHumanReadableDateTimeString } from './utils.js';
 
 let visitorsInitialized = false;
@@ -28,24 +28,24 @@ async function initVisitors() {
   if (visitorsInitialized) return;
   visitorsInitialized = true;
 
-  const statsEl = document.getElementById("visitor-stats");
+  const statsEl = (document.getElementById("visitor-stats") as HTMLDivElement);
   const analyticsEl = document.getElementById("visitor-analytics");
   const listEl = document.getElementById("visitor-list");
   const recentTitleEl = document.getElementById("recent-visitors-title");
   const recentListEl = document.getElementById("recent-visitor-list");
-  const filterTimeEl = document.getElementById("visitor-filter-time");
-  const filterSearchEl = document.getElementById("visitor-filter-search");
-  const filterStatsEl = document.getElementById("visitor-filter-stats");
-  const modalOverlay = document.getElementById("visitor-modal-overlay");
+  const filterTimeEl = (document.getElementById("visitor-filter-time") as HTMLSelectElement);
+  const filterSearchEl = (document.getElementById("visitor-filter-search") as HTMLInputElement);
+  const filterStatsEl = (document.getElementById("visitor-filter-stats") as HTMLDivElement);
+  const modalOverlay = (document.getElementById("visitor-modal-overlay") as HTMLDivElement);
   const modalTitle = document.getElementById("visitor-modal-title");
-  const modalContent = document.getElementById("visitor-modal-content");
+  const modalContent = (document.getElementById("visitor-modal-content") as HTMLDivElement);
   const modalClose = document.getElementById("visitor-modal-close");
   const visitorMap = createVisitorMap(showIpActivityModal);
   const section = document.getElementById('visitors');
-  document.querySelectorAll('[data-visitor-view]').forEach(button => {
+  document.querySelectorAll<HTMLButtonElement>('[data-visitor-view]').forEach(button => {
     button.addEventListener('click', () => {
       section.dataset.view = button.dataset.visitorView;
-      document.querySelectorAll('[data-visitor-view]').forEach(other => {
+      document.querySelectorAll<HTMLButtonElement>('[data-visitor-view]').forEach(other => {
         other.setAttribute('aria-pressed', String(other === button));
       });
     });
@@ -444,14 +444,14 @@ async function initVisitors() {
 
   if (filterTimeEl) {
     filterTimeEl.addEventListener('change', (e) => {
-      filterState.time = e.target.value;
+      filterState.time = (e.target as HTMLSelectElement).value;
       loadTimeWindow();
     });
   }
 
   if (filterSearchEl) {
     const handleSearchInput = debounce((e) => {
-      let value = e.target.value.trim();
+      let value = (e.target as HTMLSelectElement).value.trim();
       if (value.startsWith('!')) {
         filterState.searchInvert = true;
         value = value.slice(1);
@@ -485,7 +485,7 @@ async function initVisitors() {
   }
 
   function getLoadingIndicator() {
-    let loader = recentListEl?.querySelector('.visitor-loader');
+    let loader = recentListEl?.querySelector<HTMLElement>('.visitor-loader');
     if (!loader && recentListEl) {
       loader = document.createElement("li");
       loader.className = "visitor-loader";
@@ -529,7 +529,7 @@ async function initVisitors() {
     });
     recentListEl.appendChild(fragment);
 
-    const existingLoader = recentListEl.querySelector('.visitor-loader');
+    const existingLoader = recentListEl.querySelector<HTMLElement>('.visitor-loader');
     if (!existingLoader) {
       const loader = getLoadingIndicator();
       if (loader) {
@@ -630,7 +630,7 @@ async function initVisitors() {
     `;
   }
 
-  async function fetchPresenceEvents(before = null, signal) {
+  async function fetchPresenceEvents(before = null, signal?: AbortSignal) {
     const params = new URLSearchParams({
       topic: "visitor_updates",
       limit: '500',

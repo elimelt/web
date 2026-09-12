@@ -1,17 +1,21 @@
 import VoiceLeader from './voicing.js';
 import { Chord, getCommonProgressions, getNextChords, getRandomChords, getVariations, detect, analyzeChordChoice, NOTE_NAMES, TONE_NOTE_NAMES } from './chord-theory.js';
 
-const midiToFreq = midi => 440 * Math.pow(2, (midi - 69) / 12);
-const midiToNote = midi => `${TONE_NOTE_NAMES[midi % 12]}${Math.floor(midi / 12) - 1}`;
+const midiToFreq = (midi: number) => 440 * Math.pow(2, (midi - 69) / 12);
+const midiToNote = (midi: number) => `${TONE_NOTE_NAMES[midi % 12]}${Math.floor(midi / 12) - 1}`;
 
 class VoiceController {
+  declare voiceLeader: VoiceLeader;
+  declare currentVoicing: number[];
+  declare numVoices: number;
+
   constructor(numVoices = 5) {
     this.voiceLeader = new VoiceLeader({ octaveRange: 2 });
     this.currentVoicing = null;
     this.numVoices = numVoices;
   }
 
-  buildDefaultVoicing(chord) {
+  buildDefaultVoicing(chord: Chord) {
     const pcs = chord.pitchClasses;
     const voicing = [48 + pcs[0]];
     let baseOctave = 60;
@@ -27,7 +31,7 @@ class VoiceController {
     return voicing.sort((a, b) => a - b);
   }
 
-  getVoicing(chord) {
+  getVoicing(chord: Chord) {
     let pitchClasses = chord.pitchClasses.slice(0, this.numVoices);
 
     while (pitchClasses.length < this.numVoices) {
@@ -43,7 +47,7 @@ class VoiceController {
     return [...this.currentVoicing];
   }
 
-  setCustomVoicing(midiNotes) {
+  setCustomVoicing(midiNotes: number[]) {
     this.currentVoicing = [...midiNotes].sort((a, b) => a - b);
     this.numVoices = midiNotes.length;
   }
@@ -54,7 +58,19 @@ class VoiceController {
 }
 
 class AudioEngine {
-  constructor(numVoices, glideTime = 0.15) {
+  declare synths: import("tone").Synth[];
+  declare numVoices: number;
+  declare glideTime: number;
+  declare playing: boolean;
+  declare bassSynth: import("tone").Synth;
+  declare bassEnabled: boolean;
+  declare currentBassNote: number;
+  declare currentNotes: number[];
+  declare touchSynths: import("tone").Synth[];
+  declare touchSynthPool: import("tone").Synth[];
+  declare activeTouches: Map<number, import("tone").Synth>;
+
+  constructor(numVoices: number, glideTime = 0.15) {
     this.synths = [];
     this.numVoices = numVoices;
     this.glideTime = glideTime;
@@ -221,7 +237,7 @@ function createPiano(container, startMidi = 48, endMidi = 84) {
     if (![1, 3, 6, 8, 10].includes(pc)) {
       const key = document.createElement('div');
       key.className = 'white-key';
-      key.dataset.midi = midi;
+      key.dataset.midi = String(midi);
       container.appendChild(key);
     }
   }
@@ -234,7 +250,7 @@ function createPiano(container, startMidi = 48, endMidi = 84) {
     if ([1, 3, 6, 8, 10].includes(pc)) {
       const key = document.createElement('div');
       key.className = 'black-key';
-      key.dataset.midi = midi;
+      key.dataset.midi = String(midi);
       const whiteKey = whiteKeys[whiteIndex - 1];
       key.style.left = `${whiteKey.offsetLeft + whiteKey.offsetWidth - 9}px`;
       container.appendChild(key);
@@ -300,28 +316,28 @@ async function ensureTouchAudio() {
   return touchAudio;
 }
 
-const pianoEl = document.getElementById('piano');
-const chordDisplayContainerEl = document.getElementById('chord-display-container');
+const pianoEl = (document.getElementById('piano') as HTMLDivElement);
+const chordDisplayContainerEl = (document.getElementById('chord-display-container') as HTMLDivElement);
 const chordDisplayEl = document.getElementById('chord-display');
-const chordHistoryEl = document.getElementById('chord-history');
-const chordNameEl = document.getElementById('chord-name');
-const sheetMusicEl = document.getElementById('sheet-music');
-const chordButtonsEl = document.getElementById('chord-buttons');
-const startBtn = document.getElementById('start-btn');
-const bassToggle = document.getElementById('bass-toggle');
-const volChordSlider = document.getElementById('vol-chord');
-const volBassSlider = document.getElementById('vol-bass');
-const volPianoSlider = document.getElementById('vol-piano');
-const octaveUpBtn = document.getElementById('octave-up');
-const octaveDownBtn = document.getElementById('octave-down');
-const inversionUpBtn = document.getElementById('inversion-up');
-const inversionDownBtn = document.getElementById('inversion-down');
-const keyboardLeftBtn = document.getElementById('keyboard-left');
-const keyboardRightBtn = document.getElementById('keyboard-right');
-const historyModal = document.getElementById('history-modal');
-const historyModalList = document.getElementById('history-modal-list');
-const historyModalClose = document.getElementById('history-modal-close');
-const transposeSelect = document.getElementById('transpose-select');
+const chordHistoryEl = (document.getElementById('chord-history') as HTMLDivElement);
+const chordNameEl = (document.getElementById('chord-name') as HTMLDivElement);
+const sheetMusicEl = (document.getElementById('sheet-music') as HTMLDivElement);
+const chordButtonsEl = (document.getElementById('chord-buttons') as HTMLDivElement);
+const startBtn = (document.getElementById('start-btn') as HTMLButtonElement);
+const bassToggle = (document.getElementById('bass-toggle') as HTMLButtonElement);
+const volChordSlider = (document.getElementById('vol-chord') as HTMLInputElement);
+const volBassSlider = (document.getElementById('vol-bass') as HTMLInputElement);
+const volPianoSlider = (document.getElementById('vol-piano') as HTMLInputElement);
+const octaveUpBtn = (document.getElementById('octave-up') as HTMLButtonElement);
+const octaveDownBtn = (document.getElementById('octave-down') as HTMLButtonElement);
+const inversionUpBtn = (document.getElementById('inversion-up') as HTMLButtonElement);
+const inversionDownBtn = (document.getElementById('inversion-down') as HTMLButtonElement);
+const keyboardLeftBtn = (document.getElementById('keyboard-left') as HTMLButtonElement);
+const keyboardRightBtn = (document.getElementById('keyboard-right') as HTMLButtonElement);
+const historyModal = (document.getElementById('history-modal') as HTMLDivElement);
+const historyModalList = (document.getElementById('history-modal-list') as HTMLDivElement);
+const historyModalClose = (document.getElementById('history-modal-close') as HTMLButtonElement);
+const transposeSelect = (document.getElementById('transpose-select') as HTMLSelectElement);
 
 function getTransposedSymbol(chord) {
   if (!chord) return '—';
@@ -374,7 +390,7 @@ function midiToVexKey(midi) {
   return { key: `${NOTE_LETTERS[pitchClass]}/${octave}`, accidental: NOTE_ACCIDENTALS[pitchClass] };
 }
 
-function renderSheetMusic(midiNotes, playingNotes = []) {
+function renderSheetMusic(midiNotes: number[], playingNotes = []) {
   sheetMusicEl.innerHTML = '';
 
   const chordSet = new Set(midiNotes || []);
@@ -449,7 +465,7 @@ function updateSheetMusic() {
   }
 }
 
-function updateChordSymbol(midiNotes, rebuildUI = true) {
+function updateChordSymbol(midiNotes: number[], rebuildUI = true) {
   if (!midiNotes || midiNotes.length === 0) {
     chordNameEl.textContent = '—';
     return null;
@@ -554,7 +570,7 @@ keyboardRightBtn.addEventListener('click', () => {
   if (pianoStartMidi < PIANO_MAX_START) { pianoStartMidi += 12; rebuildPiano(); }
 });
 
-const pressedKeys = new Set();
+const pressedKeys = new Set<number>();
 
 function getTouchEngine() {
   if (audio && audio.touchSynths.length > 0) return audio;
@@ -586,7 +602,7 @@ function handleKeyUp(midi, keyEl) {
 }
 
 function getKeyAndMidi(e) {
-  const key = e.target.closest('[data-midi]');
+  const key = (e.target as Element).closest<HTMLElement>('[data-midi]');
   if (!key) return null;
   return { key, midi: parseInt(key.dataset.midi) };
 }
@@ -603,14 +619,14 @@ pianoEl.addEventListener('mouseup', (e) => {
 
 document.addEventListener('mouseup', () => {
   pressedKeys.forEach(midi => {
-    const keyEl = pianoEl.querySelector(`[data-midi="${midi}"]`);
+    const keyEl = pianoEl.querySelector<HTMLElement>(`[data-midi="${midi}"]`);
     if (keyEl) handleKeyUp(midi, keyEl);
   });
 });
 
 pianoEl.addEventListener('mouseleave', () => {
   pressedKeys.forEach(midi => {
-    const keyEl = pianoEl.querySelector(`[data-midi="${midi}"]`);
+    const keyEl = pianoEl.querySelector<HTMLElement>(`[data-midi="${midi}"]`);
     if (keyEl) handleKeyUp(midi, keyEl);
   });
 });
@@ -631,7 +647,7 @@ pianoEl.addEventListener('touchstart', async (e) => {
   e.preventDefault();
   for (const touch of e.changedTouches) {
     const el = document.elementFromPoint(touch.clientX, touch.clientY);
-    const key = el?.closest('[data-midi]');
+    const key = el?.closest<HTMLElement>('[data-midi]');
     if (key) await handleKeyDown(parseInt(key.dataset.midi), key);
   }
 }, { passive: false });
@@ -640,14 +656,14 @@ pianoEl.addEventListener('touchend', (e) => {
   e.preventDefault();
   for (const touch of e.changedTouches) {
     const el = document.elementFromPoint(touch.clientX, touch.clientY);
-    const key = el?.closest('[data-midi]');
+    const key = el?.closest<HTMLElement>('[data-midi]');
     if (key) handleKeyUp(parseInt(key.dataset.midi), key);
   }
 }, { passive: false });
 
 pianoEl.addEventListener('touchcancel', () => {
   pressedKeys.forEach(midi => {
-    const keyEl = pianoEl.querySelector(`[data-midi="${midi}"]`);
+    const keyEl = pianoEl.querySelector<HTMLElement>(`[data-midi="${midi}"]`);
     if (keyEl) handleKeyUp(midi, keyEl);
   });
 }, { passive: false });
@@ -662,7 +678,7 @@ pianoEl.addEventListener('touchmove', async (e) => {
 
   for (const touch of e.touches) {
     const el = document.elementFromPoint(touch.clientX, touch.clientY);
-    const key = el?.closest('[data-midi]');
+    const key = el?.closest<HTMLElement>('[data-midi]');
     if (key) {
       const midi = parseInt(key.dataset.midi);
       currentTouchMidis.add(midi);
@@ -670,7 +686,7 @@ pianoEl.addEventListener('touchmove', async (e) => {
       const prevMidi = touchMidiMap.get(touch.identifier);
       if (prevMidi !== midi) {
         if (prevMidi !== undefined) {
-          const prevKey = pianoEl.querySelector(`[data-midi="${prevMidi}"]`);
+          const prevKey = pianoEl.querySelector<HTMLElement>(`[data-midi="${prevMidi}"]`);
           if (prevKey) handleKeyUp(prevMidi, prevKey);
         }
         await handleKeyDown(midi, key);
@@ -683,7 +699,7 @@ pianoEl.addEventListener('touchmove', async (e) => {
 pianoEl.addEventListener('touchstart', (e) => {
   for (const touch of e.changedTouches) {
     const el = document.elementFromPoint(touch.clientX, touch.clientY);
-    const key = el?.closest('[data-midi]');
+    const key = el?.closest<HTMLElement>('[data-midi]');
     if (key) touchMidiMap.set(touch.identifier, parseInt(key.dataset.midi));
   }
 }, { passive: true, capture: true });
@@ -754,12 +770,12 @@ function isInCurrentVoicing(midi) {
 
 function getMidiFromPoint(x, y) {
   const el = document.elementFromPoint(x, y);
-  const key = el?.closest('[data-midi]');
+  const key = el?.closest<HTMLElement>('[data-midi]');
   return key ? parseInt(key.dataset.midi) : null;
 }
 
 pianoEl.addEventListener('mousedown', (e) => {
-  const key = e.target.closest('[data-midi]');
+  const key = (e.target as Element).closest<HTMLElement>('[data-midi]');
   if (!key) return;
 
   const midi = parseInt(key.dataset.midi);
@@ -1025,7 +1041,7 @@ function toggleAudio() {
 startBtn.addEventListener('click', toggleAudio);
 
 document.addEventListener('keydown', (e) => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if ((e.target as Element).tagName === 'INPUT' || (e.target as Element).tagName === 'TEXTAREA') return;
 
   if (e.code === 'Space') {
     e.preventDefault();
@@ -1069,7 +1085,7 @@ async function initMIDI() {
     midiAccess.onstatechange = (e) => {
       if (e.port.type === 'input') {
         if (e.port.state === 'connected') {
-          e.port.onmidimessage = onMIDIMessage;
+          (e.port as MIDIInput).onmidimessage = onMIDIMessage;
           console.log(`MIDI connected: ${e.port.name}`);
         } else {
           console.log(`MIDI disconnected: ${e.port.name}`);
@@ -1089,7 +1105,7 @@ async function midiNoteOn(midi) {
 
   if (engine.touchNoteOn(midi)) {
     pressedKeys.add(midi);
-    const keyEl = pianoEl.querySelector(`[data-midi="${midi}"]`);
+    const keyEl = pianoEl.querySelector<HTMLElement>(`[data-midi="${midi}"]`);
     if (keyEl) keyEl.classList.add('playing');
     updateSheetMusic();
   }
@@ -1101,7 +1117,7 @@ function midiNoteOff(midi) {
   const engine = getTouchEngine();
   if (engine) engine.touchNoteOff(midi);
   pressedKeys.delete(midi);
-  const keyEl = pianoEl.querySelector(`[data-midi="${midi}"]`);
+  const keyEl = pianoEl.querySelector<HTMLElement>(`[data-midi="${midi}"]`);
   if (keyEl) keyEl.classList.remove('playing');
   updateSheetMusic();
 }

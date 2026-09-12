@@ -13,7 +13,7 @@ function position(lat, lon, radius = 1.005) {
 }
 
 export function createVisitorMap(onSelectVisitor) {
-  const host = document.getElementById('visitor-map');
+  const host = (document.getElementById('visitor-map') as HTMLDivElement);
   const summary = document.getElementById('visitor-map-summary');
   let renderer;
   try {
@@ -120,7 +120,7 @@ export function createVisitorMap(onSelectVisitor) {
   }
   const zoomButtons = document.createElement('div');
   zoomButtons.className = 'globe-zoom';
-  for (const [label, text, factor] of [['Zoom in', '+', 0.85], ['Zoom out', '−', 1.15]]) {
+  for (const [label, text, factor] of [['Zoom in', '+', 0.85], ['Zoom out', '−', 1.15]] as const) {
     const button = document.createElement('button');
     button.type = 'button';
     button.textContent = text;
@@ -144,7 +144,7 @@ export function createVisitorMap(onSelectVisitor) {
     controls.update();
     render();
   });
-  document.getElementById('visitor-map-reset').addEventListener('click', () => {
+  (document.getElementById('visitor-map-reset') as HTMLButtonElement).addEventListener('click', () => {
     camera.position.copy(position(24, -40, 3.3));
     popup.hidden = true;
     controls.update();
@@ -205,7 +205,7 @@ export function createVisitorMap(onSelectVisitor) {
     sizeObserver.disconnect();
     themeObserver.disconnect();
     controls.dispose();
-    scene.traverse(object => object.geometry?.dispose());
+    scene.traverse(object => (object as THREE.Mesh).geometry?.dispose());
     ocean.dispose(); coast.dispose(); grid.dispose(); renderer.dispose();
   }, { once: true });
   return {

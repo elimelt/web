@@ -95,8 +95,8 @@ const SidebarManager = {
   },
 
   _initResizeHandles() {
-    const leftHandle = document.getElementById("left-resize-handle");
-    const rightHandle = document.getElementById("right-resize-handle");
+    const leftHandle = (document.getElementById("left-resize-handle") as HTMLDivElement);
+    const rightHandle = (document.getElementById("right-resize-handle") as HTMLDivElement);
 
     this._initResize(leftHandle, this.leftSidebar, true);
     this._initResize(rightHandle, this.rightSidebar, false);

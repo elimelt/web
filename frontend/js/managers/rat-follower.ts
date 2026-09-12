@@ -291,7 +291,7 @@ export const RatFollower = {
   },
 
   _attachEventListeners(updateTargetFromEvent, onBlur) {
-    if ("onpointermove" in window) {
+    if (Reflect.has(window, "onpointermove")) {
       window.addEventListener("pointerdown", updateTargetFromEvent, {
         passive: true,
       });
@@ -313,7 +313,7 @@ export const RatFollower = {
   },
 
   _detachEventListeners(updateTargetFromEvent, onBlur) {
-    if ("onpointermove" in window) {
+    if (Reflect.has(window, "onpointermove")) {
       window.removeEventListener("pointerdown", updateTargetFromEvent);
       window.removeEventListener("pointermove", updateTargetFromEvent);
     } else {

@@ -131,7 +131,7 @@ These pieces run only when someone starts them by hand:
 - `terraform/`: DNS and tunnel config.
 - `.github/workflows/count-code.yaml`: manual dispatch.
 
-Note: `infra/homepage/` has no in-repo deploy path. Its status is an open question.
+The TypeScript homepage in `infra/homepage/` builds with `npm run build` at the repository root. Serve `dist/infra/homepage/`; it has no configured production deployment target.
 
 ---
 

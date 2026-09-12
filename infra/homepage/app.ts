@@ -6,6 +6,13 @@ import KeyboardManager from './keyboard-manager.js';
 import UIManager from './ui-manager.js';
 
 class App {
+  declare frameManager: FrameManager;
+  declare storageManager: StorageManager;
+  declare keyboardManager: KeyboardManager;
+  declare uiManager: UIManager;
+  declare chatManager: ChatManager;
+  declare healthManager: HealthManager;
+
   constructor() {
     this.frameManager = new FrameManager();
     this.storageManager = new StorageManager();
@@ -49,7 +56,7 @@ class App {
   }
 
   setupClearButton() {
-    const clearBtn = document.getElementById('clear-all');
+    const clearBtn = (document.getElementById('clear-all') as HTMLButtonElement);
     clearBtn.addEventListener('click', () => {
       this.uiManager.clearAll();
     });

@@ -30,10 +30,16 @@ function renderMarkdown(text) {
     .replace(/&gt;/g, ">")
     .replace(/&#39;/g, "'")
     .replace(/&quot;/g, '"');
-  return marked.parse(restored);
+  return marked.parse(restored, { async: false });
 }
 
 class ConnectionState {
+  declare ws: WebSocket;
+  declare retries: number;
+  declare reconnectDelay: number;
+  declare reconnectTimer: ReturnType<typeof setTimeout>;
+  declare stopped: boolean;
+
   constructor() {
     this.ws = null;
     this.retries = 0;
@@ -246,14 +252,14 @@ function getWsUrl(channel) {
 
 function setConnection(status, showRetry = false) {
   state.connection = status;
-  const sendBtn = document.getElementById("chat-send-btn");
+  const sendBtn = (document.getElementById("chat-send-btn") as HTMLButtonElement);
   const retryBtn = document.getElementById("chat-retry-btn");
   if (sendBtn) sendBtn.disabled = status !== "open";
   if (retryBtn) retryBtn.style.display = showRetry ? "inline-block" : "none";
 }
 
 async function updateChatStats() {
-  const statusEl = document.getElementById("chat-status");
+  const statusEl = (document.getElementById("chat-status") as HTMLDivElement);
   if (!statusEl) return;
 
   try {
@@ -269,7 +275,7 @@ async function updateChatStats() {
 
 function setLoading(loading) {
   state.isLoadingHistory = loading;
-  const loader = document.getElementById("chat-loader");
+  const loader = (document.getElementById("chat-loader") as HTMLDivElement);
   if (loader) loader.style.display = loading ? "block" : "none";
 }
 
@@ -327,7 +333,7 @@ function findInsertionIndex(messages, newMsg) {
 }
 
 function insertMessageSorted(msg, autoScroll = true) {
-  const msgsEl = document.getElementById("chat-messages");
+  const msgsEl = (document.getElementById("chat-messages") as HTMLDivElement);
   if (!msgsEl) return;
 
   // Check if this presence event should be debounced
@@ -377,7 +383,7 @@ function insertMessageSorted(msg, autoScroll = true) {
 }
 
 function renderMessagesAtTop(messages) {
-  const msgsEl = document.getElementById("chat-messages");
+  const msgsEl = (document.getElementById("chat-messages") as HTMLDivElement);
   if (!msgsEl) return;
   const prevScrollHeight = msgsEl.scrollHeight;
 
@@ -421,7 +427,7 @@ async function fetchHistory(initial = false) {
   }
 }
 
-async function fetchPresenceEvents(before) {
+async function fetchPresenceEvents(before?: string) {
   const params = new URLSearchParams({
     topic: "visitor_updates",
     limit: "100",
@@ -440,7 +446,7 @@ async function fetchPresenceEvents(before) {
     }));
     return events
       .filter((e) => !isDuplicate(e))
-      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   } catch (err) {
     console.error("Failed to fetch presence events:", err);
     return [];
@@ -448,7 +454,7 @@ async function fetchPresenceEvents(before) {
 }
 
 function handleScroll() {
-  const msgsEl = document.getElementById("chat-messages");
+  const msgsEl = (document.getElementById("chat-messages") as HTMLDivElement);
   if (!msgsEl) return;
   if (
     msgsEl.scrollTop < 50 &&
@@ -609,8 +615,8 @@ async function initChat() {
   chatInitialized = true;
 
   const formEl = document.getElementById("chat-form");
-  const inputEl = document.getElementById("chat-input");
-  const msgsEl = document.getElementById("chat-messages");
+  const inputEl = (document.getElementById("chat-input") as HTMLInputElement);
+  const msgsEl = (document.getElementById("chat-messages") as HTMLDivElement);
   const retryBtn = document.getElementById("chat-retry-btn");
 
   if (!formEl || !inputEl || !msgsEl) {
@@ -634,7 +640,7 @@ async function initChat() {
   });
 
   inputEl.addEventListener("input", (e) => {
-    state.inputText = e.target.value;
+    state.inputText = (e.target as HTMLInputElement).value;
   });
 
   if (retryBtn) {

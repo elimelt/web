@@ -1,13 +1,20 @@
+export interface Service { name: string; url: string; embeddable: boolean }
+export interface ServiceFrame { id: string; service: Service; url: string; element: HTMLElement | null; loaded: boolean }
+
 class FrameManager {
+  declare frames: Map<string, ServiceFrame>;
+  declare nextId: number;
+  declare activeFrameId: string;
+
   constructor() {
     this.frames = new Map();
     this.nextId = 1;
     this.activeFrameId = null;
   }
 
-  createFrame(service) {
+  createFrame(service: Service) {
     const id = `frame-${this.nextId++}`;
-    const frame = {
+    const frame: ServiceFrame = {
       id,
       service,
       url: service.url,

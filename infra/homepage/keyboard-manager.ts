@@ -1,4 +1,7 @@
 class KeyboardManager {
+  declare handlers: Map<string, (event: KeyboardEvent) => void>;
+  declare enabled: boolean;
+
   constructor() {
     this.handlers = new Map();
     this.enabled = true;
@@ -18,7 +21,7 @@ class KeyboardManager {
     });
   }
 
-  getKeyCombo(e) {
+  getKeyCombo(e: KeyboardEvent) {
     const parts = [];
     if (e.ctrlKey) parts.push('ctrl');
     if (e.altKey) parts.push('alt');
@@ -27,11 +30,11 @@ class KeyboardManager {
     return parts.join('+');
   }
 
-  register(keyCombo, handler) {
+  register(keyCombo: string, handler: (event: KeyboardEvent) => void) {
     this.handlers.set(keyCombo, handler);
   }
 
-  unregister(keyCombo) {
+  unregister(keyCombo: string) {
     this.handlers.delete(keyCombo);
   }
 

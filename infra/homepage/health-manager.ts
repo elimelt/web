@@ -1,4 +1,10 @@
 class HealthManager {
+  declare dot: HTMLElement;
+  declare text: HTMLElement;
+  declare healthUrl: string;
+  declare pollInterval: number;
+  declare intervalId: ReturnType<typeof setTimeout>;
+
   constructor() {
     this.dot = null;
     this.text = null;

@@ -1,3 +1,7 @@
+interface Point { x: number; y: number }
+interface Stroke { id: string; author_id: string; points: Point[]; color: string; width: number; timestamp: number }
+interface Cursor extends Point { author_id: string; color: string }
+
 /**
  * Collaborative Canvas with 2P-Set CRDT
  * Minimal, performant, stylized
@@ -8,7 +12,29 @@ const COLORS = ['#fff', '#ff6b6b', '#4ecdc4', '#ffe66d', '#95e1d3', '#f38181', '
 const WIDTHS = [2, 4, 8, 16];
 
 class CollaborativeCanvas {
-  constructor(container) {
+  declare container: HTMLElement;
+  declare canvas: HTMLCanvasElement;
+  declare ctx: CanvasRenderingContext2D;
+  declare ws: WebSocket;
+  declare clientId: string;
+  declare clock: number;
+  declare strokes: Map<string, Stroke>;
+  declare removed: Set<string>;
+  declare myStrokes: string[];
+  declare cursors: Map<string, Cursor>;
+  declare remoteDrawing: Map<string, Stroke>;
+  declare isDrawing: boolean;
+  declare currentStroke: Stroke;
+  declare color: string;
+  declare width: number;
+  declare needsRedraw: boolean;
+  declare lastCursorBroadcast: number;
+  declare lastDrawingBroadcast: number;
+  declare cursorsEl: HTMLElement;
+  declare statusUsers: HTMLElement;
+  declare statusConn: HTMLElement;
+
+  constructor(container: HTMLElement) {
     this.container = container;
     this.canvas = null;
     this.ctx = null;
@@ -81,14 +107,14 @@ class CollaborativeCanvas {
       const btn = document.createElement('button');
       btn.className = 'width-btn' + (w === this.width ? ' active' : '');
       btn.innerHTML = `<span style="width:${w}px;height:${w}px"></span>`;
-      btn.dataset.width = w;
+      btn.dataset.width = String(w);
       widthsDiv.appendChild(btn);
     });
 
-    this.canvas = this.container.querySelector('#collab-canvas');
-    this.cursorsEl = this.container.querySelector('.canvas-cursors');
-    this.statusUsers = this.container.querySelector('.status-users');
-    this.statusConn = this.container.querySelector('.status-connection');
+    this.canvas = this.container.querySelector<HTMLCanvasElement>('#collab-canvas');
+    this.cursorsEl = this.container.querySelector<HTMLElement>('.canvas-cursors');
+    this.statusUsers = this.container.querySelector<HTMLElement>('.status-users');
+    this.statusConn = this.container.querySelector<HTMLElement>('.status-connection');
   }
 
   setupCanvas() {
@@ -117,19 +143,19 @@ class CollaborativeCanvas {
 
     // Toolbar
     this.container.addEventListener('click', e => {
-      const colorBtn = e.target.closest('.color-btn');
+      const colorBtn = (e.target as Element).closest<HTMLButtonElement>('.color-btn');
       if (colorBtn) {
         this.color = colorBtn.dataset.color;
         this.container.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
         colorBtn.classList.add('active');
       }
-      const widthBtn = e.target.closest('.width-btn');
+      const widthBtn = (e.target as Element).closest<HTMLButtonElement>('.width-btn');
       if (widthBtn) {
         this.width = parseInt(widthBtn.dataset.width);
         this.container.querySelectorAll('.width-btn').forEach(b => b.classList.remove('active'));
         widthBtn.classList.add('active');
       }
-      const actionBtn = e.target.closest('.toolbar-btn');
+      const actionBtn = (e.target as Element).closest<HTMLButtonElement>('.toolbar-btn');
       if (actionBtn) {
         if (actionBtn.dataset.action === 'undo') this.undo();
         if (actionBtn.dataset.action === 'clear') this.clearMine();
@@ -216,7 +242,7 @@ class CollaborativeCanvas {
   }
 
   // Drawing
-  getPoint(e) {
+  getPoint(e: PointerEvent) {
     const rect = this.canvas.getBoundingClientRect();
     return {
       x: (e.clientX - rect.left) / rect.width,
@@ -224,7 +250,7 @@ class CollaborativeCanvas {
     };
   }
 
-  onPointerDown(e) {
+  onPointerDown(e: PointerEvent) {
     this.isDrawing = true;
     this.canvas.setPointerCapture(e.pointerId);
     const pt = this.getPoint(e);
@@ -238,7 +264,7 @@ class CollaborativeCanvas {
     };
   }
 
-  onPointerMove(e) {
+  onPointerMove(e: PointerEvent) {
     const pt = this.getPoint(e);
     const now = Date.now();
 
@@ -259,7 +285,7 @@ class CollaborativeCanvas {
     }
   }
 
-  onPointerUp(e) {
+  onPointerUp(e: PointerEvent) {
     if (!this.isDrawing || !this.currentStroke) return;
     this.isDrawing = false;
 
@@ -289,7 +315,7 @@ class CollaborativeCanvas {
   }
 
   // Cursors
-  updateCursor(cursor) {
+  updateCursor(cursor: Cursor) {
     this.cursors.set(cursor.author_id, cursor);
     this.renderCursors();
     setTimeout(() => {
@@ -350,7 +376,7 @@ class CollaborativeCanvas {
     }
   }
 
-  drawStroke(stroke, w, h) {
+  drawStroke(stroke: Stroke, w: number, h: number) {
     const ctx = this.ctx;
     const pts = stroke.points;
     if (pts.length < 2) return;

@@ -15,7 +15,7 @@ const INTERVALS = {
   FLAT_13TH: 20, THIRTEENTH: 21,
 };
 
-const TRIAD = {
+const TRIAD: Record<string, number[]> = {
   major: [0, 4, 7],
   minor: [0, 3, 7],
   diminished: [0, 3, 6],
@@ -24,23 +24,23 @@ const TRIAD = {
   sus4: [0, 5, 7],
 };
 
-export function triad(type) {
+export function triad(type: string) {
   return [...(TRIAD[type] || TRIAD.major)];
 }
 
-export function add7th(intervals, type = 'dominant') {
-  const seventh = { major: 11, dominant: 10, minor: 10, diminished: 9 };
+export function add7th(intervals: number[], type = 'dominant') {
+  const seventh: Record<string, number> = { major: 11, dominant: 10, minor: 10, diminished: 9 };
   return [...intervals, seventh[type] ?? 10];
 }
 
-export function extend(intervals, degree) {
-  const extensions = { 9: 14, 11: 17, 13: 21 };
+export function extend(intervals: number[], degree: number) {
+  const extensions: Record<number, number> = { 9: 14, 11: 17, 13: 21 };
   return extensions[degree] ? [...intervals, extensions[degree]] : intervals;
 }
 
-export function alter(intervals, alterations) {
+export function alter(intervals: number[], alterations: string[]) {
   const result = [...intervals];
-  const altMap = {
+  const altMap: Record<string, { from?: number; to?: number; add?: number }> = {
     'b5': { from: 7, to: 6 },
     '#5': { from: 7, to: 8 },
     'b9': { add: 13 },
@@ -54,7 +54,7 @@ export function alter(intervals, alterations) {
     if (rule) {
       if (rule.from !== undefined) {
         const idx = result.indexOf(rule.from);
-        if (idx !== -1) result[idx] = rule.to;
+        if (idx !== -1) result[idx] = rule.to!;
       }
       if (rule.add !== undefined && !result.includes(rule.add)) {
         result.push(rule.add);
@@ -65,7 +65,7 @@ export function alter(intervals, alterations) {
   return result.sort((a, b) => a - b);
 }
 
-export const CHORD_TYPES = {
+export const CHORD_TYPES: Record<string, { intervals: number[]; symbol: string; category: string }> = {
   '': { intervals: triad('major'), symbol: '', category: 'triad' },
   'm': { intervals: triad('minor'), symbol: 'm', category: 'triad' },
   'dim': { intervals: triad('diminished'), symbol: '°', category: 'triad' },
@@ -102,7 +102,7 @@ const VARIATION_GROUPS = {
   dominant: ['7', '9', '11', '13', '7sus4', '7b9', '7#9', '7alt'],
 };
 
-export function getVariations(chord) {
+export function getVariations(chord: Chord) {
   const typeData = CHORD_TYPES[chord.type] || CHORD_TYPES[''];
   let group;
 
@@ -118,7 +118,11 @@ export function getVariations(chord) {
 }
 
 export class Chord {
-  constructor(root, type = '') {
+  declare root: number;
+  declare type: string;
+  declare typeData: { intervals: number[]; symbol: string; category: string };
+
+  constructor(root: number, type = '') {
     this.root = root % 12;
     this.type = type;
     this.typeData = CHORD_TYPES[type] || CHORD_TYPES[''];
@@ -144,13 +148,13 @@ export class Chord {
     return `${this.root}:${this.type}`;
   }
 
-  static decode(encoded) {
+  static decode(encoded: string) {
     const [root, type] = encoded.split(':');
     return new Chord(parseInt(root), type || '');
   }
 }
 
-function matchChordType(intervals) {
+function matchChordType(intervals: number[]) {
   const normalized = [...new Set(intervals)].sort((a, b) => a - b);
   let bestMatch = null;
   let bestScore = -1;
@@ -169,7 +173,7 @@ function matchChordType(intervals) {
   return { type: bestMatch, score: bestScore };
 }
 
-export function detect(pitchClasses) {
+export function detect(pitchClasses: number[]) {
   const pcs = [...new Set(pitchClasses.map(p => p % 12))];
   let bestResult = null;
   let bestScore = -1;
@@ -184,10 +188,10 @@ export function detect(pitchClasses) {
     }
   }
 
-  return bestResult ? new Chord(bestResult.root, bestResult.type) : null;
+  return bestResult ? new Chord(bestResult.root, bestResult.type!) : null;
 }
 
-const SCALE_DEGREES = {
+const SCALE_DEGREES: Record<string, number> = {
   I: 0, bII: 1, II: 2, bIII: 3, III: 4, IV: 5,
   '#IV': 6, bV: 6, V: 7, '#V': 8, bVI: 8, VI: 9, bVII: 10, VII: 11,
 };
@@ -330,7 +334,7 @@ const PROGRESSION_RULES = {
   ],
 };
 
-function getChordFunction(chordRoot, keyRoot, chordType) {
+function getChordFunction(chordRoot: number, keyRoot: number, chordType: string) {
   const degree = (chordRoot - keyRoot + 12) % 12;
   const isMinor = chordType.includes('m') && !chordType.includes('maj');
   const isDom = chordType.includes('7') && !chordType.includes('maj') && !isMinor;
@@ -358,7 +362,7 @@ function getChordFunction(chordRoot, keyRoot, chordType) {
   return 'any';
 }
 
-export function getNextChords(currentChord, keyRoot = 0) {
+export function getNextChords(currentChord: Chord, keyRoot = 0) {
   const func = getChordFunction(currentChord.root, keyRoot, currentChord.type);
   const rules = PROGRESSION_RULES[func] || PROGRESSION_RULES['I'];
 
@@ -416,32 +420,32 @@ export function getRandomChords(count = 6) {
   return chords;
 }
 
-function countCommonTones(chord1, chord2) {
+function countCommonTones(chord1: Chord, chord2: Chord) {
   const set1 = new Set(chord1.pitchClasses);
   return chord2.pitchClasses.filter(pc => set1.has(pc)).length;
 }
 
-function isTritoneSubstitution(fromChord, toChord) {
+function isTritoneSubstitution(fromChord: Chord, toChord: Chord) {
   const interval = (toChord.root - fromChord.root + 12) % 12;
   return interval === 6;
 }
 
-function isChromaticMediant(fromChord, toChord) {
+function isChromaticMediant(fromChord: Chord, toChord: Chord) {
   const interval = (toChord.root - fromChord.root + 12) % 12;
   return interval === 3 || interval === 4 || interval === 8 || interval === 9;
 }
 
-function isIIVSetup(chord, keyRoot) {
+function isIIVSetup(chord: Chord, keyRoot: number) {
   const iiRoot = (keyRoot + 2) % 12;
   return chord.root === iiRoot && (chord.type.includes('m7') || chord.type.includes('m9'));
 }
 
-function isDominant(chord, keyRoot) {
+function isDominant(chord: Chord, keyRoot: number) {
   const vRoot = (keyRoot + 7) % 12;
   return chord.root === vRoot && (chord.type.includes('7') || chord.type.includes('9') || chord.type.includes('13'));
 }
 
-export function analyzeChordChoice(fromChord, toChord, keyRoot) {
+export function analyzeChordChoice(fromChord: Chord, toChord: Chord, keyRoot: number) {
   if (!fromChord || !toChord) return null;
 
   const commonTones = countCommonTones(fromChord, toChord);

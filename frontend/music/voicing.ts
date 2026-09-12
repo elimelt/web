@@ -1,15 +1,19 @@
 class VoiceLeader {
-  constructor(options = {}) {
+  declare octaveRange: number;
+  declare midiMin: number;
+  declare midiMax: number;
+
+  constructor(options: { octaveRange?: number; midiMin?: number; midiMax?: number } = {}) {
     this.octaveRange = options.octaveRange || 2;
     this.midiMin = options.midiMin || 36;
     this.midiMax = options.midiMax || 96;
   }
 
-  chromaticDistance(note1, note2) {
+  chromaticDistance(note1: number, note2: number) {
     return Math.abs(note1 - note2);
   }
 
-  findClosestVoicingGreedy(currentVoicing, targetPitchClasses) {
+  findClosestVoicingGreedy(currentVoicing: number[], targetPitchClasses: number[]) {
     if (currentVoicing.length !== targetPitchClasses.length) {
       throw new Error('Current voicing and target chord must have same length');
     }
@@ -41,14 +45,14 @@ class VoiceLeader {
         }
       }
 
-      nextVoicing.push(bestNote);
-      availablePitchClasses.splice(bestPcIndex, 1);
+      nextVoicing.push(bestNote!);
+      availablePitchClasses.splice(Number(bestPcIndex), 1);
     }
 
     return nextVoicing;
   }
 
-  calculateTotalDistance(voicing1, voicing2) {
+  calculateTotalDistance(voicing1: number[], voicing2: number[]) {
     return voicing1.reduce((sum, note, i) => sum + this.chromaticDistance(note, voicing2[i]), 0);
   }
 }

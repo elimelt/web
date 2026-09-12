@@ -118,3 +118,7 @@ packages/elimelt/dist/
 
 # ===== Static files (untracked large files) =====
 static/untracked/
+
+# Browser test output
+playwright-report/
+test-results/

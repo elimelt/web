@@ -25,6 +25,16 @@ const CLOTH_CONTENT_CONFIG = {
 };
 
 class ClothPhysics {
+  declare width: number;
+  declare height: number;
+  declare segmentsX: number;
+  declare segmentsY: number;
+  declare particles: { pos: THREE.Vector3; prev: THREE.Vector3; restX: number; restY: number; pinned: boolean; dragging: boolean }[];
+  declare constraints: { p1: number; p2: number; rest: number }[];
+  declare _tempVel: THREE.Vector3;
+  declare _tempDiff: THREE.Vector3;
+  declare _tempCorrection: THREE.Vector3;
+
   constructor(width, height, segmentsX = 20) {
     this.width = width;
     this.height = height;
@@ -166,6 +176,16 @@ class ClothPhysics {
 }
 
 class ClothRenderer {
+  declare shadowRoot: ShadowRoot;
+  declare physics: ClothPhysics;
+  declare scale: number;
+  declare scene: THREE.Scene;
+  declare camera: THREE.OrthographicCamera;
+  declare renderer: THREE.WebGLRenderer;
+  declare texture: THREE.CanvasTexture;
+  declare geometry: THREE.PlaneGeometry;
+  declare mesh: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
+
   constructor(shadowRoot, texture, physics) {
     this.shadowRoot = shadowRoot;
     this.physics = physics;
@@ -241,6 +261,30 @@ class ClothRenderer {
 }
 
 class ClothContent extends HTMLElement {
+  declare initialized: boolean;
+  declare wiggleEnabled: boolean;
+  declare liveContent: HTMLDivElement;
+  declare checkbox: HTMLInputElement;
+  declare width: number;
+  declare contentWidth: number;
+  declare contentHeight: number;
+  declare physics: ClothPhysics;
+  declare clothRenderer: ClothRenderer;
+  declare isRecapturing: boolean;
+  declare computedStyles: {
+        text: string;
+        font: string;
+        fontSize: string;
+        lineHeight: string;
+        letterSpacing: string;
+        links: any[];
+    };
+  declare resizeObserver: ResizeObserver;
+  declare themeObserver: MutationObserver;
+  declare isChangingTheme: boolean;
+  declare isResizing: boolean;
+  declare animationId: number;
+
   static get observedAttributes() {
     return ["wiggle"];
   }
@@ -360,7 +404,7 @@ class ClothContent extends HTMLElement {
     this._captureComputedStyles();
 
     // Create a temporary placeholder to prevent flash
-    const placeholder = this.liveContent.cloneNode(true);
+    const placeholder = this.liveContent.cloneNode(true) as HTMLElement;
     placeholder.className = "content cloth-placeholder";
     this.shadowRoot.insertBefore(placeholder, this.liveContent);
 

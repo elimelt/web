@@ -274,7 +274,7 @@ await test('connects successfully', async () => {
   const { WebSocket } = await import('ws');
   const ws = new WebSocket(`${WS_BASE_URL}/ws/visitors`);
 
-  await new Promise((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => {
       ws.close();
       reject(new Error('WebSocket connection timeout'));

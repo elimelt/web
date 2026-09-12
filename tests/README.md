@@ -17,7 +17,7 @@ npm install
 ## Running Tests
 
 ```bash
-node api.test.js
+npm test
 ```
 
 ## Test Coverage

@@ -1,5 +1,13 @@
+import type FrameManager from './frame-manager.js';
+import type StorageManager from './storage-manager.js';
+
 class UIManager {
-  constructor(frameManager, storageManager) {
+  declare frameManager: FrameManager;
+  declare storageManager: StorageManager;
+  declare gridContainer: HTMLElement;
+  declare serviceList: HTMLElement;
+
+  constructor(frameManager: FrameManager, storageManager: StorageManager) {
     this.frameManager = frameManager;
     this.storageManager = storageManager;
     this.gridContainer = null;
@@ -8,12 +16,12 @@ class UIManager {
 
   init() {
     this.gridContainer = document.getElementById('grid-container');
-    this.serviceList = document.getElementById('service-list');
+    this.serviceList = (document.getElementById('service-list') as HTMLDivElement);
     this.setupServiceButtons();
   }
 
   setupServiceButtons() {
-    const buttons = this.serviceList.querySelectorAll('button[data-name]');
+    const buttons = this.serviceList.querySelectorAll<HTMLButtonElement>('button[data-name]');
     buttons.forEach(button => {
       button.addEventListener('click', () => {
         const service = {

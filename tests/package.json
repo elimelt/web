@@ -4,13 +4,20 @@
   "description": "Integration tests for DevStack Public API",
   "type": "module",
   "scripts": {
-    "test": "node api.test.js",
-    "test:verbose": "VERBOSE=1 node api.test.js"
+    "test": "tsx api.test.ts",
+    "test:verbose": "VERBOSE=1 tsx api.test.ts",
+    "typecheck": "tsc --noEmit"
   },
   "engines": {
     "node": ">=18.0.0"
   },
   "dependencies": {
     "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.2",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3"
   }
 }

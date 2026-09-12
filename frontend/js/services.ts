@@ -102,8 +102,8 @@ function renderServices(data) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const statsEl = document.getElementById('services-stats');
-  const container = document.getElementById('services-content');
+  const statsEl = (document.getElementById('services-stats') as HTMLDivElement);
+  const container = (document.getElementById('services-content') as HTMLDivElement);
   if (!container || !statsEl) return;
 
   if (!(await isApiAvailable())) {

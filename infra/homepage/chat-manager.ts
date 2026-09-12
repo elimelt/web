@@ -1,4 +1,14 @@
 class ChatManager {
+  declare panel: HTMLElement;
+  declare messagesContainer: HTMLElement;
+  declare input: HTMLTextAreaElement;
+  declare sendButton: HTMLButtonElement;
+  declare isOpen: boolean;
+  declare isLoading: boolean;
+  declare apiUrl: string;
+  declare agentSelect: HTMLSelectElement;
+  declare headerTitle: HTMLElement;
+
   constructor() {
     this.panel = null;
     this.messagesContainer = null;
@@ -12,11 +22,11 @@ class ChatManager {
   }
 
   init() {
-    this.panel = document.getElementById('chat-panel');
-    this.messagesContainer = document.getElementById('chat-messages');
-    this.input = document.getElementById('chat-input');
-    this.sendButton = document.getElementById('chat-send');
-    this.agentSelect = document.getElementById('chat-agent');
+    this.panel = (document.getElementById('chat-panel') as HTMLDivElement);
+    this.messagesContainer = (document.getElementById('chat-messages') as HTMLDivElement);
+    this.input = (document.getElementById('chat-input') as HTMLTextAreaElement);
+    this.sendButton = (document.getElementById('chat-send') as HTMLButtonElement);
+    this.agentSelect = (document.getElementById('chat-agent') as HTMLSelectElement);
     this.headerTitle = document.getElementById('chat-title');
     
     this.setupEventListeners();
@@ -24,8 +34,8 @@ class ChatManager {
   }
 
   setupEventListeners() {
-    const toggleBtn = document.getElementById('chat-toggle');
-    const closeBtn = document.getElementById('chat-close');
+    const toggleBtn = (document.getElementById('chat-toggle') as HTMLButtonElement);
+    const closeBtn = (document.getElementById('chat-close') as HTMLButtonElement);
 
     toggleBtn.addEventListener('click', () => this.toggle());
     closeBtn.addEventListener('click', () => this.close());

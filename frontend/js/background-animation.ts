@@ -44,10 +44,10 @@ export const DiceGame = {
   settleFrames: 0,
 
   init() {
-    this.overlay = document.getElementById('dice-overlay');
-    this.canvas = document.getElementById('dice-canvas');
-    this.popup = document.getElementById('dice-popup');
-    this.popupBtn = document.getElementById('dice-popup-btn');
+    this.overlay = (document.getElementById('dice-overlay') as HTMLDivElement);
+    this.canvas = (document.getElementById('dice-canvas') as HTMLCanvasElement);
+    this.popup = (document.getElementById('dice-popup') as HTMLDivElement);
+    this.popupBtn = (document.getElementById('dice-popup-btn') as HTMLButtonElement);
     this.sidebarBtn = document.getElementById('dice-toggle');
     if (!this.overlay || !this.canvas) return;
 

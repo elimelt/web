@@ -1,5 +1,5 @@
 export function createVisitorMap(onSelectVisitor) {
-  const host = document.getElementById('visitor-map');
+  const host = (document.getElementById('visitor-map') as HTMLDivElement);
   const summary = document.getElementById('visitor-map-summary');
   const gl = window.maplibregl;
   let map;
@@ -78,7 +78,7 @@ export function createVisitorMap(onSelectVisitor) {
       groups.get(key).push(visit);
     }
     for (const group of groups.values()) {
-      const coordinates = [
+      const coordinates: [number, number] = [
         group.reduce((n, v) => n + v.location.lon, 0) / group.length,
         group.reduce((n, v) => n + v.location.lat, 0) / group.length,
       ];
@@ -95,7 +95,7 @@ export function createVisitorMap(onSelectVisitor) {
   map.on('zoomend', draw);
   const observer = new ResizeObserver(() => { if (host.clientWidth && host.clientHeight) map.resize(); });
   observer.observe(host);
-  document.getElementById('visitor-map-reset').addEventListener('click', () => {
+  (document.getElementById('visitor-map-reset') as HTMLButtonElement).addEventListener('click', () => {
     popup?.remove();
     map.flyTo({ center: [-40, 24], zoom: 0.8, pitch: 0, bearing: 0, essential: false });
   });

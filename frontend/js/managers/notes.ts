@@ -56,7 +56,7 @@ const NotesFetcher = {
   },
 
   _initSearch() {
-    const input = document.getElementById("notes-search-input");
+    const input = (document.getElementById("notes-search-input") as HTMLInputElement);
     const btn = document.getElementById("notes-search-btn");
 
     if (!input || !btn) return;
@@ -237,7 +237,7 @@ const NotesFetcher = {
 
     const titleEl = previewSection.querySelector(".note-inline-title");
     const contentEl = previewSection.querySelector(".note-inline-content");
-    const closeBtn = previewSection.querySelector(".note-inline-close");
+    const closeBtn = previewSection.querySelector<HTMLButtonElement>(".note-inline-close");
 
     titleEl.textContent = link.textContent || "Preview";
     contentEl.innerHTML = '<div class="note-inline-loading">Loading...</div>';
@@ -246,7 +246,7 @@ const NotesFetcher = {
     // On mobile, move preview to appear after the notes section
     const isMobile = window.innerWidth <= 768;
     const notesSection = document.getElementById("notes-preview");
-    const originalParent = document.getElementById("right-col-stack");
+    const originalParent = (document.getElementById("right-col-stack") as HTMLDivElement);
     if (
       isMobile &&
       notesSection &&

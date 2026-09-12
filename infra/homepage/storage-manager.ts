@@ -1,9 +1,13 @@
+import type { ServiceFrame } from './frame-manager.js';
+
 class StorageManager {
+  declare storageKey: string;
+
   constructor() {
     this.storageKey = 'devstack-frames';
   }
 
-  saveFrames(frames) {
+  saveFrames(frames: ServiceFrame[]) {
     const data = frames.map(frame => ({
       service: frame.service,
       id: frame.id
@@ -40,7 +44,7 @@ class StorageManager {
     }
   }
 
-  saveActiveFrame(frameId) {
+  saveActiveFrame(frameId: string) {
     try {
       localStorage.setItem('devstack-active-frame', frameId);
       return true;

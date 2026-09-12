@@ -1,5 +1,5 @@
 export function createVisitorMap(onSelectVisitor) {
-  const host = document.getElementById('visitor-map');
+  const host = (document.getElementById('visitor-map') as HTMLDivElement);
   const summary = document.getElementById('visitor-map-summary');
   if (!host || !window.L) {
     if (summary) summary.textContent = 'Map unavailable. Use the list to explore visitors.';
@@ -71,7 +71,7 @@ export function createVisitorMap(onSelectVisitor) {
   map.on('zoomend', draw);
   const observer = new ResizeObserver(() => map.invalidateSize());
   observer.observe(host);
-  document.getElementById('visitor-map-reset').addEventListener('click', () => map.setView([24, 0], 1));
+  (document.getElementById('visitor-map-reset') as HTMLButtonElement).addEventListener('click', () => map.setView([24, 0], 1));
   window.addEventListener('pagehide', () => { observer.disconnect(); map.remove(); }, { once: true });
   return {
     update(events) {
