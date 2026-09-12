@@ -17,7 +17,7 @@
 
 /* Layout styles */
 @import url('./layout/sidebar.css');
-@import url('./layout/grid.css');
+@import url('./layout/grid.css?v=3');
 
 /* Component styles */
 @import url('./components/timeline.css');
@@ -32,3 +32,4 @@
 
 /* Responsive styles (must be last) */
 @import url('./responsive.css');
+@import url('./layout/editorial.css?v=3');

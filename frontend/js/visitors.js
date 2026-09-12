@@ -1,5 +1,6 @@
 import { getVisitors, getVisitorsAnalytics, getWsVisitors, isApiAvailable, hideOfflineSection } from './api.js';
 import { BASE_URL, PAGE_SIZE, RECONNECT } from './config.js';
+import { createVisitorMap } from './visitor-world.js?v=3';
 import { toTimestampMs, debounce, getHumanReadableDateTimeString } from './utils.js';
 
 let visitorsInitialized = false;
@@ -9,7 +10,7 @@ let allVisitorEvents = [];
 let ipActivityMap = new Map();
 
 const filterState = {
-  time: 'all',
+  time: '30d',
   search: '',
   searchInvert: false
 };
@@ -39,6 +40,45 @@ async function initVisitors() {
   const modalTitle = document.getElementById("visitor-modal-title");
   const modalContent = document.getElementById("visitor-modal-content");
   const modalClose = document.getElementById("visitor-modal-close");
+  const visitorMap = createVisitorMap(showIpActivityModal);
+  const section = document.getElementById('visitors');
+  document.querySelectorAll('[data-visitor-view]').forEach(button => {
+    button.addEventListener('click', () => {
+      section.dataset.view = button.dataset.visitorView;
+      document.querySelectorAll('[data-visitor-view]').forEach(other => {
+        other.setAttribute('aria-pressed', String(other === button));
+      });
+    });
+  });
+  const windowStatus = document.getElementById('visitor-window-status');
+  let windowRequest = null;
+
+  async function loadTimeWindow() {
+    windowRequest?.abort();
+    const request = new AbortController();
+    windowRequest = request;
+    const durations = { '1h': 3600000, '24h': 86400000, '7d': 604800000, '30d': 2592000000 };
+    const cutoff = Date.now() - (durations[filterState.time] || Infinity);
+    const label = filterTimeEl.selectedOptions[0].textContent;
+    windowStatus.textContent = `Loading ${label.toLowerCase()}…`;
+    applyFilters();
+    let before = null;
+    try {
+      while (!request.signal.aborted) {
+        const { events, nextBefore } = await fetchPresenceEvents(before, request.signal);
+        if (request.signal.aborted) return;
+        allVisitorEvents = dedupeVisitorEvents([...allVisitorEvents, ...events]);
+        buildIpActivityMap(allVisitorEvents);
+        applyFilters();
+        const oldest = events.length ? toTimestampMs(events[events.length - 1].timestamp) : null;
+        if (!events.length || !nextBefore || nextBefore === before || (oldest != null && oldest <= cutoff)) break;
+        before = nextBefore;
+      }
+      if (!request.signal.aborted) windowStatus.textContent = `${label} · All available visits in this window loaded`;
+    } catch (error) {
+      if (!request.signal.aborted) windowStatus.textContent = 'Could not finish loading this window. Showing partial results; select a window to retry.';
+    }
+  }
 
   if (!statsEl || !listEl) {
     visitorsInitialized = false;
@@ -165,6 +205,7 @@ async function initVisitors() {
       '1h': 60 * 60 * 1000,
       '24h': 24 * 60 * 60 * 1000,
       '7d': 7 * 24 * 60 * 60 * 1000,
+      '30d': 30 * 24 * 60 * 60 * 1000,
       'all': Infinity
     };
     const timeLimit = timeRanges[filterState.time] || Infinity;
@@ -399,13 +440,12 @@ async function initVisitors() {
 
     updateFilterStats();
 
-    ensureScrollable();
   }
 
   if (filterTimeEl) {
     filterTimeEl.addEventListener('change', (e) => {
       filterState.time = e.target.value;
-      applyFilters();
+      loadTimeWindow();
     });
   }
 
@@ -466,6 +506,7 @@ async function initVisitors() {
   }
 
   function renderRecentWithFilters(visits, append = false) {
+    visitorMap.update(visits || []);
     if (!recentListEl) return;
 
     if (!append) {
@@ -549,7 +590,7 @@ async function initVisitors() {
       ...v,
       type: v.type || 'join'
     }));
-    allVisitorEvents = dedupeVisitorEvents(eventsWithType);
+    allVisitorEvents = dedupeVisitorEvents([...allVisitorEvents, ...eventsWithType]);
     buildIpActivityMap(allVisitorEvents);
 
     const filtered = filterEvents(allVisitorEvents);
@@ -589,17 +630,18 @@ async function initVisitors() {
     `;
   }
 
-  async function fetchPresenceEvents(before = null) {
+  async function fetchPresenceEvents(before = null, signal) {
     const params = new URLSearchParams({
       topic: "visitor_updates",
-      limit: String(PAGE_SIZE),
+      limit: '500',
     });
     if (before) {
       params.set("before", before);
     }
 
     try {
-      const res = await fetch(`${BASE_URL}/events?${params}`);
+      const res = await fetch(`${BASE_URL}/events?${params}`, { signal });
+      if (!res.ok) throw new Error(`Visitor history returned ${res.status}`);
       const body = await res.json();
 
       const events = (body.events || []).map((e) => ({
@@ -627,7 +669,7 @@ async function initVisitors() {
       return { events: sortedEvents, nextBefore: body.next_before || null, total };
     } catch (err) {
       console.error("Failed to fetch presence events:", err);
-      return { events: [], nextBefore: null, total: null };
+      throw err;
     }
   }
 
@@ -643,12 +685,13 @@ async function initVisitors() {
         paginationState.totalEvents = total;
       }
 
-      if (events.length === 0 || !nextBefore) {
+      if (events.length === 0) {
         paginationState.hasMoreEvents = false;
         return false;
       }
 
       paginationState.nextBefore = nextBefore;
+      paginationState.hasMoreEvents = Boolean(nextBefore);
 
       const existingKeys = new Set(allVisitorEvents.map(getEventDedupKey));
       const newEvents = events.filter(e => !existingKeys.has(getEventDedupKey(e)));
@@ -683,6 +726,7 @@ async function initVisitors() {
   }
 
   async function ensureScrollable() {
+    if (section?.dataset.view !== 'list') return;
     while (!isScrollable() && paginationState.hasMoreEvents && !paginationState.isLoadingMore) {
       const fetched = await fetchMoreEvents();
       if (!fetched) break;
@@ -722,7 +766,6 @@ async function initVisitors() {
 
       renderRecent(sortedEvents);
 
-      ensureScrollable();
     } catch (err) {
       console.error("Failed to load visitors:", err);
       statsEl.textContent = "Failed to load visitors";
@@ -807,16 +850,14 @@ async function initVisitors() {
   }
 
   function cleanup() {
+    windowRequest?.abort();
     stopRetrying();
   }
 
   window.addEventListener("beforeunload", cleanup);
   window.addEventListener("pagehide", cleanup);
 
-  if (recentListEl) {
-    recentListEl.addEventListener("scroll", handleRecentListScroll);
-  }
-
+  loadTimeWindow();
   refreshVisitors();
   initRealtime();
 }

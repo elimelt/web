@@ -1,0 +1,129 @@
+/* Open, typographic layout. Structure comes from spacing, not panel chrome. */
+body {
+  font-family: var(--font);
+}
+
+.main-content {
+  padding: clamp(1.5rem, 4vw, 4rem);
+  gap: 3.5rem;
+}
+
+.main-content .section {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.intro-layout {
+  gap: 3.5rem;
+}
+
+.live-grid,
+.grid-row-equal,
+.grid-col-stack {
+  gap: 2rem;
+}
+
+.main-content .section-title,
+.main-content .subsection-title {
+  border: 0;
+  padding: 0;
+  margin: 0 0 1rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-secondary);
+}
+
+/* The introduction speaks for itself; retain its heading for screen readers. */
+#about > .section-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+#about cloth-content {
+  max-width: 64ch;
+  margin-inline: 0;
+}
+
+.about-text {
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: clamp(1.125rem, 1.5vw, 1.375rem);
+  line-height: 1.6;
+}
+
+.about-text:first-of-type {
+  font-size: clamp(1.75rem, 3vw, 2.75rem);
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  margin-top: 1rem;
+  max-width: 28ch;
+}
+
+.line-count-display {
+  margin: 0.75rem 0 1.25rem;
+  font-size: 0.75rem;
+}
+
+.main-content #services-content,
+.main-content #recent-visitor-list,
+.main-content .chat-messages {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0 0.5rem 0 0;
+}
+
+.main-content .chat-msg {
+  background: transparent;
+  padding: 0.75rem 0;
+  margin: 0;
+}
+
+.main-content .services-table td {
+  padding: 0.625rem 0.75rem 0.625rem 0;
+  vertical-align: top;
+}
+
+.main-content .services-table td:last-child {
+  padding-right: 0;
+}
+
+.main-content .chat-meta {
+  color: var(--text-secondary);
+}
+
+.main-content .notes-graph-iframe {
+  border: 0;
+  border-radius: 10px;
+}
+
+.main-content .timeline-item {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0.5rem 1rem 0.5rem 0;
+}
+
+.main-content .subsection-title {
+  margin-top: 2rem;
+}
+
+@media (max-width: 640px) {
+  .main-content {
+    padding: 4.5rem 1.5rem 5rem;
+    gap: 2.5rem;
+  }
+
+  .intro-layout {
+    gap: 2.5rem;
+  }
+}

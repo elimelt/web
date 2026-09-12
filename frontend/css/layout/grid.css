@@ -9,8 +9,9 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  container: main / inline-size;
   overflow-x: hidden;
-  gap: 0.75rem;
+  gap: 1.25rem;
 }
 
 cloth-content {
@@ -39,6 +40,7 @@ body:has(.right-sidebar.mobile-open) .main-content {
    of industrial design (consistent borders, subtle radius, uniform
    internal rhythm). */
 .section {
+  min-width: 0;
   margin-bottom: 0;
   padding: 0.875rem 1rem 1rem;
   border: 1px solid var(--border);
@@ -74,70 +76,67 @@ body:has(.right-sidebar.mobile-open) .main-content {
   scroll-margin-top: 5rem;
 }
 
-/* Grid row containers */
-.grid-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-  align-items: stretch;
-}
-
-.grid-row>.section {
-  height: 100%;
-}
-
+/* Columns follow the actual content width, including resized sidebars. */
+.intro-layout,
+.live-grid,
+.grid-row,
 .grid-row-equal {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-  align-items: stretch;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
 }
 
-.grid-row-equal>.section {
-  min-height: 0;
+#about cloth-content {
+  max-width: 72ch;
+  margin-inline: auto;
 }
 
 /* Right column stack for notes row */
 .grid-col-stack {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1.25rem;
+  min-width: 0;
   min-height: 0;
 }
 
 .grid-col-stack>.section {
-  flex: 1;
   min-height: 0;
 }
 
-/* Services / Visitors / Chat stack - fixed height matches About */
+/* Live feeds scroll within their own panels without stretching the page. */
+#services,
 #visitors,
 #chat {
   display: flex;
   flex-direction: column;
-  height: 44rem;
+  height: 26rem;
   overflow: hidden;
 }
 
-/* When stacked alongside About, equalize via flex */
-.grid-col-stack > #services,
-.grid-col-stack > #visitors,
-.grid-col-stack > #chat {
-  height: auto;
-  min-height: 0;
-}
-
-.grid-col-stack > #services {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.grid-col-stack > #services #services-content {
+#services #services-content {
   flex: 1;
-  height: auto;
   min-height: 0;
-  overflow-y: auto;
+  overflow: auto;
+}
+
+@container main (min-width: 44rem) {
+  .grid-row,
+  .grid-row-equal {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+}
+
+@container main (min-width: 60rem) {
+  .live-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .live-grid > #chat {
+    grid-column: 1 / -1;
+  }
 }
 
 /* Align header areas */
@@ -286,18 +285,6 @@ body:has(.right-sidebar.mobile-open) .main-content {
   padding-top: 0.2em;
   color: var(--text);
   font-weight: 600;
-}
-
-/* About panel - generous room, scrolls if content overflows */
-#about {
-  margin-bottom: 0;
-  height: 44rem;
-  overflow-y: auto;
-}
-
-/* Match right stack to About height */
-.grid-col-stack:has(> #services) {
-  height: 44rem;
 }
 
 .about-text {

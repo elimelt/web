@@ -7,7 +7,10 @@
   <title>Elijah Melton | Software Engineer</title>
   <meta name="description"
     content="Elijah Melton - Software Engineer specializing in distributed systems, backend development, and cloud infrastructure" />
-  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/styles.css?v=6" />
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css" />
+  <script defer src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
+  <link rel="stylesheet" href="css/components/visitor-map.css?v=5" />
   <link rel="stylesheet" href="css/canvas.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -75,10 +78,11 @@
 
       <!-- Eye Icon (for preview) -->
       <symbol id="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z">
+        </path>
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
+        </path>
       </symbol>
 
       <!-- Chevron Left Icon -->
@@ -201,73 +205,79 @@
 
     <!-- Main Content -->
     <main class="main-content">
-      <!-- Row 1: About | stack(Services, Visitors, Chat) -->
-      <div class="grid-row-equal">
-          <section id="about" class="section">
-            <h2 class="section-title">About</h2>
-            <cloth-content>
-              <p class="about-text">
-                I write code professionally and for fun. Check out my
-                <a href="https://github.com/elimelt" target="_blank" rel="noopener">GitHub</a>
-                to see some of the fun stuff.
-              </p>
-              <div class="line-count-display">
-                <div>4,905,731</div>
-                <div>-1,349,198</div>
-                <div>3,556,533</div>
-              </div>
+      <!-- Introduction followed by the live services grid -->
+      <div class="intro-layout">
+        <section id="about" class="section">
+          <h2 class="section-title">About</h2>
+          <cloth-content>
+            <p class="about-text">
+              I write code professionally and for fun. Check out my
+              <a href="https://github.com/elimelt" target="_blank" rel="noopener">GitHub</a>
+              to see some of the fun stuff.
+            </p>
 
-              <p class="about-text">
-                Every once in a while I contribute to open source (mostly when
-                tools break, or if I read an interesting paper). In the past, this
-                has included
-                <a href="https://github.com/ray-project/ray" target="_blank" rel="noopener">Ray</a>, a distributed
-                computing framework, and the Node.js clients for MySQL (<a href="https://www.npmjs.com/package/mysql2" target="_blank" rel="noopener">mysql2</a>) 
-                and Redis (<a href="https://www.npmjs.com/package/redis" target="_blank" rel="noopener">redis</a>). 
-                I also started
-                <a href="https://labs.swecc.org" target="_blank" rel="noopener">a program at UW Seattle</a>
-                to help students get involved in open source.
-              </p>
-              <p class="about-text">
-                I'm currently working at
-                <a href="https://shv.com" target="_blank" rel="noopener">Sutter Hill Ventures</a>
-                as a Codepoint Fellow, where I'll spend 6 months working in SHV labs
-                with early-stage startups, and then another 6 months at
-                <a href="https://reve.com" target="_blank" rel="noopener">Reve</a>,
-                a small startup training its own diffusion models from the ground
-                up.
-              </p>
-            </cloth-content>
-          </section>
+            <p class="about-text">
+              After graduating from the University of Washington in 2025, I worked at
+              <a href="https://shv.com" target="_blank" rel="noopener">Sutter Hill Ventures</a>
+              on on a few experiments with their internal product team revolving around agents.
+              After a little while, I was drafted into one of their portfolio companies,
+              <a href="https://reve.com" target="_blank" rel="noopener">Reve</a>,
+              where I now work full-time.
+            </p>
+            <p class="about-text">
+              I've been lucky enough to work on and operate clusters training frontier language and diffusion models
+              (PBs of data, thousands of GPUs, etc.). I love working on reliability,
+              efficiency, observability, and many other problems that come up at this scale. I've spent a lot of
+              time with Kubernetes, cloud infrastructure, and distributed systems in general.
+            </p>
+            <p class="about-text">
+              Automation has been a longtime passion of mine. Lately, that's
+              meant building things with LLMs to make my own work and my
+              coworkers' jobs easier.
+            </p>
+          </cloth-content>
+        </section>
 
-        <div class="grid-col-stack">
+        <div class="live-grid">
           <section id="services" class="section">
             <h2 class="section-title">Services</h2>
             <div id="services-stats">Loading...</div>
             <div id="services-content"></div>
           </section>
 
-          <section id="visitors" class="section">
-          <h2 class="section-title">Visitors</h2>
-          <div id="visitor-stats">Connecting…</div>
-          <ul id="visitor-list" class="visitor-list"></ul>
+          <section id="visitors" class="section" data-view="map">
+            <h2 class="section-title">Visitors</h2>
+            <div id="visitor-stats">Connecting…</div>
+            <ul id="visitor-list" class="visitor-list"></ul>
 
-          <!-- Visitor Filters -->
-          <div class="visitor-filters" id="visitor-filters">
-            <div class="visitor-filter-row">
-              <select id="visitor-filter-time" class="visitor-filter-select" aria-label="Filter by time range">
-                <option value="all">All Time</option>
-                <option value="1h">Last Hour</option>
-                <option value="24h">Last 24 Hours</option>
-                <option value="7d">Last 7 Days</option>
-              </select>
-              <input type="text" id="visitor-filter-search" class="visitor-filter-input"
-                placeholder="Regex search (IP, location)… prefix ! to invert" autocomplete="off" />
+            <!-- Visitor Filters -->
+            <div class="visitor-filters" id="visitor-filters">
+              <div class="visitor-filter-row">
+                <select id="visitor-filter-time" class="visitor-filter-select" aria-label="Filter by time range">
+                  <option value="all">All Time</option>
+                  <option value="1h">Last Hour</option>
+                  <option value="24h">Last 24 Hours</option>
+                  <option value="7d">Last 7 Days</option>
+                  <option value="30d" selected>Last 30 Days</option>
+                </select>
+                <input type="text" id="visitor-filter-search" class="visitor-filter-input"
+                  placeholder="Regex search (IP, location)… prefix ! to invert" autocomplete="off" />
+              </div>
+              <div class="visitor-filter-stats" id="visitor-filter-stats"></div>
             </div>
-            <div class="visitor-filter-stats" id="visitor-filter-stats"></div>
-          </div>
 
+          <div class="visitor-map-toolbar">
+            <div role="group" aria-label="Visitor view">
+              <button type="button" data-visitor-view="map" aria-pressed="true">Globe</button>
+              <button type="button" data-visitor-view="list" aria-pressed="false">List</button>
+            </div>
+            <button type="button" id="visitor-map-reset">Reset view</button>
+          </div>
+          <div id="visitor-map" aria-label="Interactive globe of recent visitors"></div>
+          <p class="globe-hint">Drag to explore · Scroll, pinch, or use + / − to zoom from globe to streets · Select a marker for visits</p>
+          <p id="visitor-map-summary" role="status">Loading visitor locations…</p>
           <ul id="recent-visitor-list" class="visitor-list visitor-list-clickable"></ul>
+          <p id="visitor-window-status" role="status"></p>
           </section>
 
           <section id="chat" class="section">
@@ -300,11 +310,8 @@
                 Open full view
               </a>
             </div>
-            <iframe
-              class="notes-graph-iframe"
-              src="https://notes.elimelt.com/graph/?target=top"
-              title="Interactive graph of linked notes"
-              loading="lazy"
+            <iframe class="notes-graph-iframe" src="https://notes.elimelt.com/graph/?target=top"
+              title="Interactive graph of linked notes" loading="lazy"
               referrerpolicy="strict-origin-when-cross-origin"></iframe>
           </section>
         </div>
@@ -391,129 +398,129 @@
             </svg>
           </button>
           <div class="timeline">
-          <article class="timeline-item">
-            <div class="timeline-header">
-              <img src="assets/logos/reve.svg" alt="Reve Image logo" class="timeline-logo" />
-              <div class="timeline-details">
-                <h3 class="timeline-position">Software Engineer</h3>
-                <p class="timeline-company">Reve Image</p>
-                <p class="timeline-location">Palo Alto, CA</p>
-                <p class="timeline-period">Nov 2025 - Present</p>
-                <p class="timeline-description">Platform engineering stuff</p>
+            <article class="timeline-item">
+              <div class="timeline-header">
+                <img src="assets/logos/reve.svg" alt="Reve Image logo" class="timeline-logo" />
+                <div class="timeline-details">
+                  <h3 class="timeline-position">Software Engineer</h3>
+                  <p class="timeline-company">Reve Image</p>
+                  <p class="timeline-location">Palo Alto, CA</p>
+                  <p class="timeline-period">Nov 2025 - Present</p>
+                  <p class="timeline-description">Platform engineering stuff</p>
+                </div>
               </div>
-            </div>
-          </article>
+            </article>
 
-          <article class="timeline-item">
-            <div class="timeline-header">
-              <img src="assets/logos/shv.png" alt="Sutter Hill Ventures logo" class="timeline-logo" />
-              <div class="timeline-details">
-                <h3 class="timeline-position">Software Engineer</h3>
-                <p class="timeline-company">Sutter Hill Ventures</p>
-                <p class="timeline-location">Palo Alto, CA</p>
-                <p class="timeline-period">Aug 2025 - Present</p>
-                <p class="timeline-description">
-                  Working with founders and early-stage startups at SHV Labs
-                </p>
+            <article class="timeline-item">
+              <div class="timeline-header">
+                <img src="assets/logos/shv.png" alt="Sutter Hill Ventures logo" class="timeline-logo" />
+                <div class="timeline-details">
+                  <h3 class="timeline-position">Software Engineer</h3>
+                  <p class="timeline-company">Sutter Hill Ventures</p>
+                  <p class="timeline-location">Palo Alto, CA</p>
+                  <p class="timeline-period">Aug 2025 - Present</p>
+                  <p class="timeline-description">
+                    Working with founders and early-stage startups at SHV Labs
+                  </p>
+                </div>
               </div>
-            </div>
-          </article>
+            </article>
 
-          <article class="timeline-item">
-            <div class="timeline-header">
-              <img src="assets/logos/meta.png" alt="Meta logo" class="timeline-logo" />
-              <div class="timeline-details">
-                <h3 class="timeline-position">Software Engineer Intern</h3>
-                <p class="timeline-company">Meta</p>
-                <p class="timeline-location">Menlo Park, CA</p>
-                <p class="timeline-period">May 2025 -July 2025</p>
-                <p class="timeline-description">
-                  ML models for ads ranking and fairness
-                </p>
+            <article class="timeline-item">
+              <div class="timeline-header">
+                <img src="assets/logos/meta.png" alt="Meta logo" class="timeline-logo" />
+                <div class="timeline-details">
+                  <h3 class="timeline-position">Software Engineer Intern</h3>
+                  <p class="timeline-company">Meta</p>
+                  <p class="timeline-location">Menlo Park, CA</p>
+                  <p class="timeline-period">May 2025 -July 2025</p>
+                  <p class="timeline-description">
+                    ML models for ads ranking and fairness
+                  </p>
+                </div>
               </div>
-            </div>
-          </article>
+            </article>
 
-          <article class="timeline-item">
-            <div class="timeline-header">
-              <img src="assets/logos/aws.png" alt="AWS logo" class="timeline-logo" />
-              <div class="timeline-details">
-                <h3 class="timeline-position">
-                  Software Development Engineer Intern
-                </h3>
-                <p class="timeline-company">
-                  Amazon Web Services - Firewall Manager
-                </p>
-                <p class="timeline-location">Seattle, WA</p>
-                <p class="timeline-period">Sept 2024 - Dec 2024</p>
-                <p class="timeline-description">
-                  Improving customer experiences with AWS service quotas
-                </p>
+            <article class="timeline-item">
+              <div class="timeline-header">
+                <img src="assets/logos/aws.png" alt="AWS logo" class="timeline-logo" />
+                <div class="timeline-details">
+                  <h3 class="timeline-position">
+                    Software Development Engineer Intern
+                  </h3>
+                  <p class="timeline-company">
+                    Amazon Web Services - Firewall Manager
+                  </p>
+                  <p class="timeline-location">Seattle, WA</p>
+                  <p class="timeline-period">Sept 2024 - Dec 2024</p>
+                  <p class="timeline-description">
+                    Improving customer experiences with AWS service quotas
+                  </p>
+                </div>
               </div>
-            </div>
-          </article>
+            </article>
 
-          <article class="timeline-item">
-            <div class="timeline-header">
-              <img src="assets/logos/doordash.png" alt="DoorDash logo" class="timeline-logo" />
-              <div class="timeline-details">
-                <h3 class="timeline-position">Software Engineer Intern</h3>
-                <p class="timeline-company">
-                  DoorDash - Dasher Engagement Team
-                </p>
-                <p class="timeline-location">Seattle, WA</p>
-                <p class="timeline-period">June 2024 - Sept 2024</p>
-                <p class="timeline-description">
-                  Real-time systems for dasher engagement and retention
-                </p>
+            <article class="timeline-item">
+              <div class="timeline-header">
+                <img src="assets/logos/doordash.png" alt="DoorDash logo" class="timeline-logo" />
+                <div class="timeline-details">
+                  <h3 class="timeline-position">Software Engineer Intern</h3>
+                  <p class="timeline-company">
+                    DoorDash - Dasher Engagement Team
+                  </p>
+                  <p class="timeline-location">Seattle, WA</p>
+                  <p class="timeline-period">June 2024 - Sept 2024</p>
+                  <p class="timeline-description">
+                    Real-time systems for dasher engagement and retention
+                  </p>
+                </div>
               </div>
-            </div>
-          </article>
+            </article>
 
-          <article class="timeline-item">
-            <div class="timeline-header">
-              <img src="assets/logos/stockcharts.png" alt="StockCharts.com logo" class="timeline-logo" />
-              <div class="timeline-details">
-                <h3 class="timeline-position">Software Engineer Intern</h3>
-                <p class="timeline-company">StockCharts.com</p>
-                <p class="timeline-location">Redmond, WA</p>
-                <p class="timeline-period">June 2023 - Sept 2023</p>
-                <p class="timeline-description">
-                  Enabling content creation partners to publish on
-                  StockCharts.com
-                </p>
+            <article class="timeline-item">
+              <div class="timeline-header">
+                <img src="assets/logos/stockcharts.png" alt="StockCharts.com logo" class="timeline-logo" />
+                <div class="timeline-details">
+                  <h3 class="timeline-position">Software Engineer Intern</h3>
+                  <p class="timeline-company">StockCharts.com</p>
+                  <p class="timeline-location">Redmond, WA</p>
+                  <p class="timeline-period">June 2023 - Sept 2023</p>
+                  <p class="timeline-description">
+                    Enabling content creation partners to publish on
+                    StockCharts.com
+                  </p>
+                </div>
               </div>
-            </div>
-          </article>
-          <article class="timeline-item">
-            <div class="timeline-header">
-              <img src="assets/logos/allen.png" alt="Paul G. Allen School of Computer Science and Engineering logo"
-                class="timeline-logo" />
-              <div class="timeline-details">
-                <h3 class="timeline-position">Helpdesk</h3>
-                <p class="timeline-company">
-                  Paul G. Allen School of Computer Science and Engineering
-                </p>
-                <p class="timeline-location">Seattle, WA</p>
-                <p class="timeline-period">Sept 2021 - Jan 2023</p>
-                <p class="timeline-description">
-                  Boring IT stuff, but for a cutting-edge research institution
-                </p>
+            </article>
+            <article class="timeline-item">
+              <div class="timeline-header">
+                <img src="assets/logos/allen.png" alt="Paul G. Allen School of Computer Science and Engineering logo"
+                  class="timeline-logo" />
+                <div class="timeline-details">
+                  <h3 class="timeline-position">Helpdesk</h3>
+                  <p class="timeline-company">
+                    Paul G. Allen School of Computer Science and Engineering
+                  </p>
+                  <p class="timeline-location">Seattle, WA</p>
+                  <p class="timeline-period">Sept 2021 - Jan 2023</p>
+                  <p class="timeline-description">
+                    Boring IT stuff, but for a cutting-edge research institution
+                  </p>
+                </div>
               </div>
-            </div>
-          </article>
-          <article class="timeline-item">
-            <div class="timeline-header">
-              <img src="assets/logos/pizzahut.png" alt="Pizza Hut logo" class="timeline-logo" />
-              <div class="timeline-details">
-                <h3 class="timeline-position">Pizza Chef</h3>
-                <p class="timeline-company">Pizza Hut</p>
-                <p class="timeline-location">Puyallup, WA</p>
-                <p class="timeline-period">June 2019 - Sept 2021</p>
-                <p class="timeline-description">Making pizza</p>
+            </article>
+            <article class="timeline-item">
+              <div class="timeline-header">
+                <img src="assets/logos/pizzahut.png" alt="Pizza Hut logo" class="timeline-logo" />
+                <div class="timeline-details">
+                  <h3 class="timeline-position">Pizza Chef</h3>
+                  <p class="timeline-company">Pizza Hut</p>
+                  <p class="timeline-location">Puyallup, WA</p>
+                  <p class="timeline-period">June 2019 - Sept 2021</p>
+                  <p class="timeline-description">Making pizza</p>
+                </div>
               </div>
-            </div>
-          </article>
+            </article>
           </div>
           <button class="timeline-nav timeline-nav-next" aria-label="Next">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -614,7 +621,7 @@
   <script type="module" src="js/services.js?v=2"></script>
   <script type="module" src="js/canvas.js?v=2"></script>
   <script type="module" src="js/click-tracking.js?v=2"></script>
-  <script type="module" src="js/visitors.js?v=2"></script>
+  <script type="module" src="js/visitors.js?v=11"></script>
   <script type="module" src="js/chat.js?v=2"></script>
   <script type="module" src="js/main.js?v=2"></script>
 </body>
