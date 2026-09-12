@@ -27,7 +27,12 @@
   height: clamp(360px, 48vw, 560px);
   border: 1px solid var(--border);
   border-radius: 4px;
-  background: #0b0d12;
+  background: var(--bg);
+  color-scheme: light;
+}
+
+.dark-mode .notes-graph-iframe {
+  color-scheme: dark;
 }
 
 /* Legacy notes list/search styles remain available to the search manager. */
