@@ -21,7 +21,7 @@
 
 /* Component styles */
 @import url('./components/timeline.css');
-@import url('./components/notes.css?v=2');
+@import url('./components/notes.css?v=3');
 @import url('./components/buttons.css');
 @import url('./components/chat.css');
 @import url('./components/visitors.css');

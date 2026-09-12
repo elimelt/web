@@ -27,7 +27,7 @@
   height: clamp(360px, 48vw, 560px);
   border: 1px solid var(--border);
   border-radius: 4px;
-  background: var(--bg);
+  background: transparent;
   color-scheme: light;
 }
 
