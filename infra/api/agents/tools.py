@@ -330,26 +330,13 @@ def run_python(code: str) -> str:
 
 
 async def fetch_url_async(url: str, max_bytes: int = 5000) -> str:
-    """Fetch content from a public URL (async version)."""
-    import requests
+    """Fetch a bounded public response with DNS pinning and redirect validation."""
+    from api.safe_fetch import fetch_public_url
 
-    parsed = urlparse(url)
-    if parsed.scheme not in ("http", "https"):
-        return "ERROR: unsupported scheme"
     try:
-        resp = await asyncio.to_thread(lambda: requests.get(url, timeout=5, stream=True))
-        resp.raise_for_status()
-        chunks, size = [], 0
-        for chunk in resp.iter_content(chunk_size=1024):
-            if size + len(chunk) > max_bytes:
-                chunks.append(chunk[: max_bytes - size])
-                break
-            chunks.append(chunk)
-            size += len(chunk)
-        text = b"".join(chunks).decode("utf-8", errors="replace")
-        return f"status={resp.status_code}\n{text}"
-    except Exception as e:
-        return f"ERROR: {e}"
+        return await asyncio.to_thread(fetch_public_url, url, max_bytes)
+    except Exception as exc:
+        return f"ERROR: {exc}"
 
 
 def fetch_url(url: str, max_bytes: int = 5000) -> str:

@@ -1,3 +1,5 @@
+from api.security import ConnectionLimits, RateLimiter, allowed_ws_origin
+from api.security import client_ip as trusted_client_ip
 import asyncio
 import json
 import logging
@@ -9,6 +11,10 @@ from api import db, state
 from api.producers.visitor_producer import heartbeat as hb
 from api.producers.visitor_producer import join_visitor, leave_visitor
 from api.redis_pubsub import managed_pubsub
+
+_connections = ConnectionLimits(128, 8)
+_message_limit = RateLimiter(60, 60)
+_global_limit = RateLimiter(2000, 60)
 
 router = APIRouter(tags=["visitors"])
 
@@ -39,7 +45,7 @@ async def _handle_analytics_batch(data: dict, client_ip: str) -> None:
         )
         return
 
-    if not events:
+    if not isinstance(events, list) or not 1 <= len(events) <= 100:
         return
 
     try:
@@ -67,11 +73,23 @@ async def _decrement_visitor_count(client_ip: str) -> None:
 
 @router.websocket("/ws/visitors")
 async def websocket_visitors(websocket: WebSocket) -> None:
+    ip = trusted_client_ip(websocket)
+    if not allowed_ws_origin(websocket):
+        await websocket.close(code=1008)
+        return
+    if not _connections.acquire(ip):
+        await websocket.close(code=1008)
+        return
+    try:
+        await _websocket_visitors(websocket)
+    finally:
+        _connections.release(ip)
+
+
+async def _websocket_visitors(websocket: WebSocket) -> None:
     await websocket.accept()
 
-    client_ip = websocket.headers.get("x-forwarded-for", websocket.client.host)
-    if "," in client_ip:
-        client_ip = client_ip.split(",")[0].strip()
+    client_ip = trusted_client_ip(websocket)
 
     origin = websocket.headers.get("origin", "-")
     user_agent = websocket.headers.get("user-agent", "-")
@@ -183,11 +201,14 @@ async def _handle_visitor_connection(
             data = await websocket.receive_text()
             if data == "pong":
                 continue
+            if len(data.encode()) > 32768 or not _message_limit.allow(client_ip) or not _global_limit.allow("all"):
+                await websocket.close(code=1008)
+                break
 
             try:
                 msg = json.loads(data)
                 if isinstance(msg, dict) and msg.get("type") == "analytics.batch":
-                    asyncio.create_task(_handle_analytics_batch(msg, client_ip))
+                    await _handle_analytics_batch(msg, client_ip)
             except (json.JSONDecodeError, TypeError):
                 pass
     except WebSocketDisconnect:

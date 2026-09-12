@@ -13,4 +13,7 @@ for (const directory of ['frontend', 'infra/homepage']) {
   });
 }
 execFileSync(resolve(root, 'node_modules/.bin/tsc'), ['-p', 'tsconfig.json'], { cwd: root, stdio: 'inherit' });
+await mkdir(resolve(output, 'frontend/js/vendor'), { recursive: true });
+await cp(resolve(root, 'node_modules/dompurify/dist/purify.es.mjs'), resolve(output, 'frontend/js/vendor/purify.js'));
+await cp(resolve(root, 'node_modules/dompurify/LICENSE'), resolve(output, 'frontend/js/vendor/DOMPurify-LICENSE'));
 console.log('Built site in dist/frontend and homepage in dist/infra/homepage');

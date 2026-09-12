@@ -11,27 +11,7 @@ import {
   getUserColor,
   parseWebSocketMessage,
 } from "./utils.js";
-import { marked } from "https://cdn.jsdelivr.net/npm/marked@15.0.0/+esm";
-
-marked.setOptions({
-  breaks: true,
-  gfm: true,
-});
-
-function escapeHtml(text) {
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-function renderMarkdown(text) {
-  const escaped = escapeHtml(text);
-  const restored = escaped
-    .replace(/&gt;/g, ">")
-    .replace(/&#39;/g, "'")
-    .replace(/&quot;/g, '"');
-  return marked.parse(restored, { async: false });
-}
+import { renderMarkdown, setIdentityText } from './safe-content.js';
 
 class ConnectionState {
   declare ws: WebSocket;
@@ -290,18 +270,12 @@ function createMessageElement(msg) {
     const time = getHumanReadableDateTimeString(
       msg.timestamp || msg.visitor?.connected_at || Date.now(),
     );
-    item.innerHTML = `<span style="color:${getUserColor(
-      ip,
-    )}">${ip}</span> ${action} • ${time}`;
+    setIdentityText(item, ip, ` ${action} • ${time}`);
   } else {
     const sender = msg.sender ?? "unknown";
     const meta = document.createElement("div");
     meta.className = "chat-meta";
-    meta.innerHTML = `<span style="color:${getUserColor(
-      sender,
-    )}">${sender}</span> • ${getHumanReadableDateTimeString(
-      msg.timestamp ?? Date.now(),
-    )}`;
+    setIdentityText(meta, sender, ` • ${getHumanReadableDateTimeString(msg.timestamp ?? Date.now())}`);
     const text = document.createElement("div");
     text.className = "chat-text";
     text.innerHTML = renderMarkdown(msg.text || "");
@@ -348,7 +322,7 @@ function insertMessageSorted(msg, autoScroll = true) {
         const time = getHumanReadableDateTimeString(
           msg.timestamp || msg.visitor?.connected_at || Date.now(),
         );
-        debounceResult.updateExisting.innerHTML = `<span style="color:${getUserColor(ip)}">${ip}</span> ${action} • ${time}`;
+        setIdentityText(debounceResult.updateExisting, ip, ` ${action} • ${time}`);
         // Update the debounce tracking
         registerPresenceEvent(msg, debounceResult.updateExisting);
       }

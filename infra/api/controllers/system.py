@@ -1,4 +1,6 @@
 import json
+import os
+import httpx
 import subprocess
 from typing import Any
 
@@ -15,6 +17,19 @@ async def _get_system_stats(redis: OptionalRedis) -> dict[str, Any]:
         cached = await redis.get("system_stats")
         if cached:
             return json.loads(cached)
+
+    broker = os.getenv("SYSTEM_STATS_URL", "")
+    if broker:
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                response = await client.get(broker)
+                response.raise_for_status()
+                data = response.json()
+            if redis:
+                await redis.setex("system_stats", 10, json.dumps(data))
+            return data
+        except Exception:
+            return {"total_containers": 0, "services": [], "error": "Stats unavailable"}
 
     try:
         result = subprocess.run(

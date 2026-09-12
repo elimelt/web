@@ -99,34 +99,6 @@ def _create_agent_config(agent_index: int, persona_key: str | None) -> AgentConf
 
 
 async def start_codex_agents(stop_event: asyncio.Event) -> list[asyncio.Task]:
-    ready, message = codex_is_ready()
-    if not ready:
-        _logger.info("%s; skipping codex agent", message)
-        return []
-
-    num_agents = int(env("CODEX_AGENT_COUNT", "2"))
-    num_agents = max(1, min(num_agents, 5))
-    persona_keys = list(PERSONAS.keys())
-
-    tasks = []
-    for i in range(num_agents):
-        persona_key = persona_keys[i % len(persona_keys)] if persona_keys else None
-        config = _create_agent_config(i, persona_key)
-        agent = CodexAgent(config)
-
-        persona_name = (
-            PERSONAS.get(persona_key).name if persona_key and persona_key in PERSONAS else "default"
-        )
-        _logger.info(
-            "Starting Codex agent sender=%s persona=%s channels=%s model=%s",
-            config.effective_sender,
-            persona_name,
-            config.channels,
-            config.model,
-        )
-
-        task = asyncio.create_task(agent.run(stop_event))
-        tasks.append(task)
-
-    _logger.info("Started %d Codex agents", len(tasks))
-    return tasks
+    # Public chat must not reach a shell process carrying model or infrastructure credentials.
+    _logger.warning("Public Codex chat agent disabled until a credential-isolated worker is configured")
+    return []

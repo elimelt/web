@@ -2,6 +2,22 @@ interface Point { x: number; y: number }
 interface Stroke { id: string; author_id: string; points: Point[]; color: string; width: number; timestamp: number }
 interface Cursor extends Point { author_id: string; color: string }
 
+const MAX_POINTS = 512;
+function isPoint(value: unknown): value is Point {
+  if (!value || typeof value !== 'object') return false;
+  const p = value as Point;
+  return Number.isFinite(p.x) && Number.isFinite(p.y) && p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1;
+}
+function isStroke(value: unknown): value is Stroke {
+  if (!value || typeof value !== 'object') return false;
+  const s = value as Stroke;
+  return typeof s.id === 'string' && s.id.length <= 160 && typeof s.author_id === 'string'
+    && Array.isArray(s.points) && s.points.length > 0 && s.points.length <= MAX_POINTS
+    && s.points.every(isPoint) && Number.isFinite(s.timestamp)
+    && Number.isFinite(s.width) && s.width >= 1 && s.width <= 32
+    && typeof s.color === 'string' && /^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(s.color);
+}
+
 /**
  * Collaborative Canvas with 2P-Set CRDT
  * Minimal, performant, stylized
@@ -183,7 +199,9 @@ class CollaborativeCanvas {
       this.statusConn.title = 'Disconnected';
       setTimeout(() => this.connect(), 2000);
     };
-    this.ws.onmessage = e => this.onMessage(JSON.parse(e.data));
+    this.ws.onmessage = e => {
+      try { this.onMessage(JSON.parse(e.data)); } catch (error) { console.warn('Invalid canvas message', error); }
+    };
   }
 
   send(msg) {
@@ -193,14 +211,19 @@ class CollaborativeCanvas {
   }
 
   onMessage(msg) {
+    if (!msg || typeof msg !== 'object') return;
     switch (msg.type) {
       case 'sync':
+        if (typeof msg.client_id !== 'string' || !Array.isArray(msg.state?.strokes)) return;
         this.clientId = msg.client_id;
+        this.myStrokes = [];
+        this.isDrawing = false;
+        this.currentStroke = null;
         this.strokes.clear();
         this.removed.clear();
         this.remoteDrawing.clear();
-        msg.state.strokes.forEach(s => this.strokes.set(s.id, s));
-        msg.state.removed.forEach(id => this.removed.add(id));
+        msg.state.strokes.slice(-500).filter(isStroke).forEach(s => this.strokes.set(s.id, s));
+        (msg.state.removed || []).slice(-500).filter(id => typeof id === 'string').forEach(id => this.removed.add(id));
         this.statusUsers.textContent = msg.user_count + ' online';
         this.needsRedraw = true;
         break;
@@ -209,7 +232,10 @@ class CollaborativeCanvas {
         break;
       case 'drawing':
         // Real-time drawing from another user
-        if (msg.stroke && msg.stroke.author_id !== this.clientId) {
+        if (isStroke(msg.stroke) && msg.stroke.author_id !== this.clientId) {
+          if (this.remoteDrawing.size >= 64 && !this.remoteDrawing.has(msg.stroke.id)) {
+            this.remoteDrawing.delete(this.remoteDrawing.keys().next().value);
+          }
           this.remoteDrawing.set(msg.stroke.id, msg.stroke);
           this.needsRedraw = true;
         }
@@ -227,16 +253,20 @@ class CollaborativeCanvas {
   }
 
   applyOp(op) {
-    if (op.type === 'add') {
+    if (!op || typeof op !== 'object') return;
+    if (op.type === 'add' && isStroke(op.stroke)) {
       // Remove from remote drawing since it's now committed
       this.remoteDrawing.delete(op.stroke.id);
       if (!this.removed.has(op.stroke.id)) {
         this.strokes.set(op.stroke.id, op.stroke);
+        while (this.strokes.size > 500) this.strokes.delete(this.strokes.keys().next().value);
         this.needsRedraw = true;
       }
-    } else if (op.type === 'remove') {
+    } else if (op.type === 'remove' && typeof op.stroke_id === 'string') {
       this.remoteDrawing.delete(op.stroke_id);
+      this.strokes.delete(op.stroke_id);
       this.removed.add(op.stroke_id);
+      if (this.removed.size > 500) this.removed.delete(this.removed.values().next().value);
       this.needsRedraw = true;
     }
   }
@@ -245,12 +275,13 @@ class CollaborativeCanvas {
   getPoint(e: PointerEvent) {
     const rect = this.canvas.getBoundingClientRect();
     return {
-      x: (e.clientX - rect.left) / rect.width,
-      y: (e.clientY - rect.top) / rect.height,
+      x: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
+      y: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)),
     };
   }
 
   onPointerDown(e: PointerEvent) {
+    if (!this.clientId || this.ws?.readyState !== WebSocket.OPEN) return;
     this.isDrawing = true;
     this.canvas.setPointerCapture(e.pointerId);
     const pt = this.getPoint(e);
@@ -275,7 +306,11 @@ class CollaborativeCanvas {
     }
 
     if (!this.isDrawing || !this.currentStroke) return;
-    this.currentStroke.points.push(pt);
+    if (this.currentStroke.points.length >= MAX_POINTS) {
+      this.onPointerUp(e);
+      this.onPointerDown(e);
+    }
+    this.currentStroke?.points.push(pt);
     this.needsRedraw = true;
 
     // Broadcast drawing progress every 50ms for real-time sync
@@ -316,6 +351,8 @@ class CollaborativeCanvas {
 
   // Cursors
   updateCursor(cursor: Cursor) {
+    if (!isPoint(cursor) || typeof cursor.author_id !== 'string' || typeof cursor.color !== 'string') return;
+    if (this.cursors.size >= 128 && !this.cursors.has(cursor.author_id)) return;
     this.cursors.set(cursor.author_id, cursor);
     this.renderCursors();
     setTimeout(() => {
@@ -378,6 +415,7 @@ class CollaborativeCanvas {
 
   drawStroke(stroke: Stroke, w: number, h: number) {
     const ctx = this.ctx;
+    if (!isStroke(stroke)) return;
     const pts = stroke.points;
     if (pts.length < 2) return;
 

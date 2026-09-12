@@ -1,3 +1,6 @@
+import re
+from api.security import ConnectionLimits, RateLimiter, allowed_ws_origin
+from api.security import client_ip as trusted_client_ip
 import asyncio
 import json
 import logging
@@ -10,6 +13,10 @@ from api.bus import EventBus
 from api.producers.chat_producer import build_chat_message, publish_chat_message
 from api.redis_pubsub import managed_pubsub
 
+_connections = ConnectionLimits(128, 8)
+_message_limit = RateLimiter(20, 60)
+_global_limit = RateLimiter(500, 60)
+
 router = APIRouter(tags=["chat"])
 _logger = logging.getLogger("api.controllers.ws_chat")
 
@@ -20,11 +27,26 @@ PUBSUB_MAX_LIFETIME_SEC = float(os.getenv("WS_PUBSUB_MAX_LIFETIME_SEC", "3600"))
 
 @router.websocket("/ws/chat/{channel}")
 async def websocket_chat(websocket: WebSocket, channel: str) -> None:
+    ip = trusted_client_ip(websocket)
+    if not allowed_ws_origin(websocket):
+        await websocket.close(code=1008)
+        return
+    if not re.fullmatch(r"[a-zA-Z0-9_-]{1,64}", channel):
+        await websocket.close(code=1008)
+        return
+    if not _connections.acquire(ip):
+        await websocket.close(code=1008)
+        return
+    try:
+        await _websocket_chat(websocket, channel)
+    finally:
+        _connections.release(ip)
+
+
+async def _websocket_chat(websocket: WebSocket, channel: str) -> None:
     await websocket.accept()
 
-    client_ip = websocket.headers.get("x-forwarded-for", websocket.client.host)
-    if "," in client_ip:
-        client_ip = client_ip.split(",")[0].strip()
+    client_ip = trusted_client_ip(websocket)
     sender = f"{client_ip}:{id(websocket)}"
 
     # Check if Redis is available
@@ -85,11 +107,17 @@ async def _handle_chat_connection(
     try:
         while True:
             raw = await websocket.receive_text()
+            if raw == "pong":
+                continue
+            ip = trusted_client_ip(websocket)
+            if len(raw.encode()) > 8192 or not _message_limit.allow(ip) or not _global_limit.allow("all"):
+                await websocket.close(code=1008)
+                break
             _logger.debug("[ws_chat] Received raw message: %s", raw[:500] if raw else "<empty>")
             try:
                 payload = json.loads(raw)
                 text = payload.get("text")
-                if not text:
+                if not isinstance(text, str) or not text.strip() or len(text) > 4000:
                     _logger.debug("[ws_chat] No text in payload, skipping")
                     continue
             except Exception as e:

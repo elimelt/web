@@ -1,296 +1,268 @@
-"""
-Collaborative Canvas WebSocket handler with 2P-Set CRDT.
-
-Operations:
-- add: Add a new stroke
-- remove: Remove a stroke (only by author)
-- sync: Request full state
-- clear: Clear all strokes by this author
-"""
+"""Public collaborative canvas with server-bound ownership and bounded state."""
 
 import asyncio
 import json
 import logging
-import os
+import math
+import re
+import secrets
 import time
 from dataclasses import dataclass, field
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from api import state
+from api.security import ConnectionLimits, RateLimiter, allowed_ws_origin, client_ip
 
 router = APIRouter(tags=["canvas"])
-_logger = logging.getLogger("api.controllers.ws_canvas")
-
-HEARTBEAT_INTERVAL_SEC = int(os.getenv("WS_HEARTBEAT_INTERVAL_SEC", "25"))
-PUBSUB_MAX_LIFETIME_SEC = float(os.getenv("WS_PUBSUB_MAX_LIFETIME_SEC", "3600"))
+_logger = logging.getLogger(__name__)
 REDIS_CANVAS_KEY = "canvas:state"
-REDIS_CANVAS_CHANNEL = "canvas:updates"
-MAX_STROKES = 500  # Limit total strokes to prevent unbounded growth
+MAX_STROKES = 500
+MAX_POINTS = 512
+MAX_TOTAL_POINTS = 20_000
+MAX_MESSAGE_BYTES = 65_536
+_ID = re.compile(r"^[a-zA-Z0-9:._-]{1,160}$")
+_COLOR = re.compile(r"^#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?$")
+_limits = ConnectionLimits(total=128, per_ip=8)
+_messages = RateLimiter(120, 1)
+_global_messages = RateLimiter(2000, 1)
+_writes = RateLimiter(10, 1)
+_global_writes = RateLimiter(50, 1)
+
+
+def _number(value, low: float, high: float) -> bool:
+    return type(value) in (int, float) and low <= value <= high and math.isfinite(value)
+
+
+def valid_point(point) -> bool:
+    return (isinstance(point, dict) and _number(point.get("x"), 0, 1)
+            and _number(point.get("y"), 0, 1))
+
+
+def validate_stroke(value, owner: str | None = None) -> dict | None:
+    if not isinstance(value, dict):
+        return None
+    sid, color, points = value.get("id"), value.get("color"), value.get("points")
+    if not isinstance(sid, str) or not _ID.fullmatch(sid):
+        return None
+    if owner and not sid.startswith(owner + "-"):
+        return None
+    if not isinstance(color, str) or not _COLOR.fullmatch(color):
+        return None
+    if not _number(value.get("width"), 1, 32):
+        return None
+    if not isinstance(points, list) or not 1 <= len(points) <= MAX_POINTS:
+        return None
+    if not all(valid_point(point) for point in points):
+        return None
+    author = owner or value.get("author_id")
+    timestamp = time.time() * 1000 if owner else value.get("timestamp")
+    if not isinstance(author, str) or not _ID.fullmatch(author):
+        return None
+    if not _number(timestamp, 0, time.time() * 1000 + 60_000):
+        return None
+    return {"id": sid, "author_id": author, "timestamp": timestamp,
+            "color": color, "width": value["width"],
+            "points": [{"x": p["x"], "y": p["y"]} for p in points]}
 
 
 @dataclass
 class CanvasCRDT:
-    """2P-Set CRDT for canvas strokes."""
-
-    strokes: dict = field(default_factory=dict)  # id -> stroke
-    removed: set = field(default_factory=set)  # removed stroke ids
+    strokes: dict = field(default_factory=dict)
+    removed: set = field(default_factory=set)
 
     def add(self, stroke: dict) -> bool:
-        """Add a stroke. Returns True if state changed."""
-        if stroke["id"] in self.removed:
-            return False  # Can't re-add removed stroke
-        if stroke["id"] in self.strokes:
-            return False  # Already exists
+        if stroke["id"] in self.removed or stroke["id"] in self.strokes:
+            return False
         self.strokes[stroke["id"]] = stroke
         return True
 
     def remove(self, stroke_id: str, author_id: str) -> bool:
-        """Remove a stroke. Only author can remove. Returns True if state changed."""
         stroke = self.strokes.get(stroke_id)
-        if not stroke:
+        if not stroke or stroke["author_id"] != author_id:
             return False
-        if stroke["author_id"] != author_id:
-            return False  # Not the author
-        if stroke_id in self.removed:
-            return False  # Already removed
+        self.strokes.pop(stroke_id)
         self.removed.add(stroke_id)
+        self._trim_tombstones()
         return True
 
+    def _trim_tombstones(self):
+        while len(self.removed) > MAX_STROKES:
+            self.removed.pop()
+
     def clear_by_author(self, author_id: str) -> list[str]:
-        """Clear all strokes by an author. Returns list of removed ids."""
-        removed_ids = []
-        for sid, stroke in self.strokes.items():
-            if stroke["author_id"] == author_id and sid not in self.removed:
-                self.removed.add(sid)
-                removed_ids.append(sid)
-        return removed_ids
+        ids = [sid for sid, stroke in self.strokes.items() if stroke["author_id"] == author_id]
+        for sid in ids:
+            self.remove(sid, author_id)
+        return ids
 
     def visible_strokes(self) -> list[dict]:
-        """Get all visible (non-removed) strokes, sorted by timestamp."""
-        visible = [s for s in self.strokes.values() if s["id"] not in self.removed]
-        return sorted(visible, key=lambda s: s["timestamp"])
+        return sorted(self.strokes.values(), key=lambda stroke: stroke["timestamp"])
 
-    def merge(self, other_strokes: list[dict], other_removed: list[str]) -> None:
-        """Merge another state into this one."""
-        for stroke in other_strokes:
-            if stroke["id"] not in self.strokes:
-                self.strokes[stroke["id"]] = stroke
-        for rid in other_removed:
-            self.removed.add(rid)
+    def merge(self, other_strokes, other_removed) -> None:
+        if not isinstance(other_strokes, list) or not isinstance(other_removed, list):
+            return
+        removed = {s for s in other_removed if isinstance(s, str)}
+        # Legacy records are untrusted too. Validate before admitting them to state.
+        for value in other_strokes:
+            if isinstance(value, dict):
+                points = value.get("points")
+                if isinstance(points, list) and len(points) > MAX_POINTS and all(valid_point(p) for p in points):
+                    # Preserve valid legacy drawings while enforcing the new per-stroke bound.
+                    points = [points[i * (len(points) - 1) // (MAX_POINTS - 1)] for i in range(MAX_POINTS)]
+                    value = {**value, "points": points}
+            stroke = validate_stroke(value)
+            if stroke and stroke["id"] not in removed:
+                self.add(stroke)
+                self.gc()
 
     def to_dict(self) -> dict:
-        return {
-            "strokes": list(self.strokes.values()),
-            "removed": list(self.removed),
-        }
+        return {"strokes": self.visible_strokes(), "removed": []}
 
-    def gc(self) -> None:
-        """Garbage collect old removed strokes and limit total."""
-        # Remove tombstones older than 1 hour
-        for rid in list(self.removed):
-            if rid not in self.strokes:
-                self.removed.discard(rid)
-
-        # If too many strokes, remove oldest non-active ones
-        visible = self.visible_strokes()
-        if len(visible) > MAX_STROKES:
-            to_remove = visible[: len(visible) - MAX_STROKES]
-            for stroke in to_remove:
-                self.removed.add(stroke["id"])
+    def gc(self) -> list[str]:
+        evicted = []
+        points = sum(len(s["points"]) for s in self.strokes.values())
+        for stroke in self.visible_strokes():
+            if len(self.strokes) <= MAX_STROKES and points <= MAX_TOTAL_POINTS:
+                break
+            self.strokes.pop(stroke["id"])
+            points -= len(stroke["points"])
+            evicted.append(stroke["id"])
+        self.removed.update(evicted)
+        self._trim_tombstones()
+        return evicted
 
 
-# Global canvas state
 _canvas = CanvasCRDT()
 _connected_clients: set[WebSocket] = set()
-_last_persist_time = 0
+_persist_lock = asyncio.Lock()
 
 
 async def load_canvas_state() -> None:
-    """Load canvas state from Redis on startup."""
     global _canvas
+    _canvas = CanvasCRDT()
     if state.redis_client is None:
         return
     try:
         data = await state.redis_client.get(REDIS_CANVAS_KEY)
         if data:
             parsed = json.loads(data)
-            _canvas.merge(parsed.get("strokes", []), parsed.get("removed", []))
-            _logger.info("Loaded canvas state: %d strokes", len(_canvas.strokes))
-    except Exception as e:
-        _logger.error("Failed to load canvas state: %s", e)
+            if isinstance(parsed, dict):
+                _canvas.merge(parsed.get("strokes", []), parsed.get("removed", []))
+    except Exception:
+        _logger.exception("Discarding invalid saved canvas state")
 
 
 async def persist_canvas_state() -> None:
-    """Persist canvas state to Redis."""
-    global _last_persist_time
     if state.redis_client is None:
         return
-    now = time.time()
-    if now - _last_persist_time < 5:  # Debounce: max once per 5 seconds
-        return
-    _last_persist_time = now
-    try:
-        _canvas.gc()  # Clean up before persisting
-        await state.redis_client.set(REDIS_CANVAS_KEY, json.dumps(_canvas.to_dict()))
-    except Exception as e:
-        _logger.error("Failed to persist canvas state: %s", e)
-
-
-async def broadcast_op(op: dict, exclude: WebSocket | None = None) -> None:
-    """Broadcast an operation to all connected clients."""
-    msg = json.dumps({"type": "op", "op": op})
-    disconnected = []
-    for ws in _connected_clients:
-        if ws is exclude:
-            continue
+    async with _persist_lock:
         try:
-            await ws.send_text(msg)
+            await state.redis_client.set(REDIS_CANVAS_KEY, json.dumps(_canvas.to_dict()))
         except Exception:
-            disconnected.append(ws)
-    for ws in disconnected:
-        _connected_clients.discard(ws)
+            _logger.exception("Canvas persistence failed")
 
 
-async def broadcast_cursor(cursor: dict, exclude: WebSocket | None = None) -> None:
-    """Broadcast cursor position to all connected clients."""
-    msg = json.dumps({"type": "cursor", "cursor": cursor})
-    for ws in _connected_clients:
-        if ws is exclude:
-            continue
+async def _broadcast(message: dict, exclude=None) -> None:
+    text = json.dumps(message)
+
+    async def send(ws):
         try:
-            await ws.send_text(msg)
+            await asyncio.wait_for(ws.send_text(text), timeout=1)
         except Exception:
-            pass
+            _connected_clients.discard(ws)
+            try:
+                await asyncio.wait_for(ws.close(code=1013), timeout=1)
+            except Exception:
+                pass
+
+    await asyncio.gather(*(send(ws) for ws in tuple(_connected_clients) if ws is not exclude))
 
 
-async def broadcast_drawing(stroke: dict, exclude: WebSocket | None = None) -> None:
-    """Broadcast in-progress drawing to all connected clients."""
-    msg = json.dumps({"type": "drawing", "stroke": stroke})
-    for ws in _connected_clients:
-        if ws is exclude:
-            continue
-        try:
-            await ws.send_text(msg)
-        except Exception:
-            pass
+async def broadcast_op(op: dict, exclude=None) -> None:
+    await _broadcast({"type": "op", "op": op}, exclude)
 
 
 async def broadcast_user_count() -> None:
-    """Broadcast current user count to all clients."""
-    msg = json.dumps({"type": "user_count", "count": len(_connected_clients)})
-    for ws in _connected_clients:
-        try:
-            await ws.send_text(msg)
-        except Exception:
-            pass
+    await _broadcast({"type": "user_count", "count": len(_connected_clients)})
 
 
 @router.websocket("/ws/canvas")
 async def websocket_canvas(websocket: WebSocket) -> None:
-    await websocket.accept()
-
-    client_ip = websocket.headers.get("x-forwarded-for", websocket.client.host)
-    if "," in client_ip:
-        client_ip = client_ip.split(",")[0].strip()
-    client_id = f"{client_ip}:{id(websocket)}"
-
-    _connected_clients.add(websocket)
-    _logger.info("Canvas client connected: %s (total: %d)", client_id, len(_connected_clients))
-
-    # Send initial state
-    try:
-        await websocket.send_text(
-            json.dumps({
-                "type": "sync",
-                "state": {
-                    "strokes": _canvas.visible_strokes(),
-                    "removed": list(_canvas.removed),
-                },
-                "client_id": client_id,
-                "user_count": len(_connected_clients),
-            })
-        )
-        await broadcast_user_count()
-    except Exception as e:
-        _logger.error("Failed to send initial state: %s", e)
-        _connected_clients.discard(websocket)
+    ip = client_ip(websocket)
+    if not allowed_ws_origin(websocket) or not _limits.acquire(ip):
+        await websocket.close(code=1008)
         return
-
-    async def heartbeat():
-        try:
-            while True:
-                await asyncio.sleep(HEARTBEAT_INTERVAL_SEC)
-                await websocket.send_text(json.dumps({"type": "ping"}))
-        except asyncio.CancelledError:
-            pass
-        except Exception:
-            pass
-
-    heartbeat_task = asyncio.create_task(heartbeat())
-
+    owner = secrets.token_hex(16)
+    heartbeat_task = None
     try:
+        await websocket.accept()
+        _connected_clients.add(websocket)
+        await websocket.send_json({"type": "sync", "client_id": owner,
+                                   "state": _canvas.to_dict(), "user_count": len(_connected_clients)})
+        await broadcast_user_count()
+
+        async def heartbeat():
+            while True:
+                await asyncio.sleep(25)
+                await asyncio.wait_for(websocket.send_json({"type": "ping"}), timeout=2)
+
+        heartbeat_task = asyncio.create_task(heartbeat())
         while True:
             raw = await websocket.receive_text()
+            if len(raw.encode()) > MAX_MESSAGE_BYTES:
+                await websocket.close(code=1009)
+                break
+            if not _messages.allow(ip) or not _global_messages.allow("all"):
+                await websocket.close(code=1008)
+                break
             try:
                 msg = json.loads(raw)
-            except json.JSONDecodeError:
+            except (ValueError, RecursionError):
                 continue
-
-            op_type = msg.get("type")
-
-            if op_type == "add":
-                stroke = msg.get("stroke")
-                if stroke and _canvas.add(stroke):
-                    await broadcast_op({"type": "add", "stroke": stroke}, exclude=websocket)
+            if not isinstance(msg, dict):
+                continue
+            kind = msg.get("type")
+            if kind in ("add", "remove", "clear") and (not _writes.allow(ip) or not _global_writes.allow("all")):
+                await websocket.close(code=1008)
+                break
+            if kind in ("add", "drawing"):
+                stroke = validate_stroke(msg.get("stroke"), owner)
+                if stroke is None:
+                    continue
+                if kind == "drawing":
+                    await _broadcast({"type": "drawing", "stroke": stroke}, websocket)
+                elif _canvas.add(stroke):
+                    evicted = _canvas.gc()
+                    await broadcast_op({"type": "add", "stroke": stroke})
+                    for sid in evicted:
+                        await broadcast_op({"type": "remove", "stroke_id": sid})
                     await persist_canvas_state()
-
-            elif op_type == "remove":
-                stroke_id = msg.get("stroke_id")
-                author_id = msg.get("author_id")
-                if stroke_id and author_id and _canvas.remove(stroke_id, author_id):
-                    await broadcast_op(
-                        {"type": "remove", "stroke_id": stroke_id, "author_id": author_id},
-                        exclude=websocket,
-                    )
+            elif kind == "remove":
+                sid = msg.get("stroke_id")
+                if isinstance(sid, str) and _canvas.remove(sid, owner):
+                    await broadcast_op({"type": "remove", "stroke_id": sid})
                     await persist_canvas_state()
-
-            elif op_type == "clear":
-                author_id = msg.get("author_id")
-                if author_id:
-                    removed_ids = _canvas.clear_by_author(author_id)
-                    for sid in removed_ids:
-                        await broadcast_op(
-                            {"type": "remove", "stroke_id": sid, "author_id": author_id},
-                            exclude=websocket,
-                        )
-                    if removed_ids:
-                        await persist_canvas_state()
-
-            elif op_type == "drawing":
-                # Real-time drawing progress - broadcast to other clients
-                stroke = msg.get("stroke")
-                if stroke:
-                    await broadcast_drawing(stroke, exclude=websocket)
-
-            elif op_type == "cursor":
+            elif kind == "clear":
+                ids = _canvas.clear_by_author(owner)
+                for sid in ids:
+                    await broadcast_op({"type": "remove", "stroke_id": sid})
+                if ids:
+                    await persist_canvas_state()
+            elif kind == "cursor":
                 cursor = msg.get("cursor")
-                if cursor:
-                    cursor["author_id"] = client_id
-                    await broadcast_cursor(cursor, exclude=websocket)
-
-            elif op_type == "pong":
-                pass  # Client responding to ping
-
+                if valid_point(cursor) and isinstance(cursor.get("color"), str) and _COLOR.fullmatch(cursor["color"]):
+                    await _broadcast({"type": "cursor", "cursor": {
+                        "x": cursor["x"], "y": cursor["y"], "color": cursor["color"], "author_id": owner,
+                    }}, websocket)
     except WebSocketDisconnect:
-        _logger.info("Canvas client disconnected: %s", client_id)
-    except Exception as e:
-        _logger.error("Canvas WebSocket error: %s", e)
+        pass
+    except Exception:
+        _logger.exception("Canvas connection failed")
     finally:
-        heartbeat_task.cancel()
+        if heartbeat_task:
+            heartbeat_task.cancel()
+            await asyncio.gather(heartbeat_task, return_exceptions=True)
         _connected_clients.discard(websocket)
+        _limits.release(ip)
         await broadcast_user_count()
-        try:
-            await asyncio.wait_for(heartbeat_task, timeout=1.0)
-        except (asyncio.TimeoutError, asyncio.CancelledError):
-            pass

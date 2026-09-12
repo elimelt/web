@@ -104,7 +104,7 @@ jobs:
         run: |
           set -euo pipefail
           cd "${DEPLOY_PATH}/infra"
-          docker compose up -d --build public-api internal-api python-sandbox
+          docker compose up -d --build public-api internal-api sandbox-worker python-sandbox
           docker compose up -d caddy
           docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile || docker compose restart caddy
           docker compose ps public-api internal-api caddy

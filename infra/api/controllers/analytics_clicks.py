@@ -1,3 +1,4 @@
+from api.security import client_ip as trusted_client_ip
 import logging
 import os
 from typing import Any
@@ -22,7 +23,7 @@ _logger.propagate = False
 
 class ClickEventsBatchRequest(BaseModel):
     topic: str = Field(default="clicks", description="Analytics topic (should be 'clicks')")
-    events: list[dict[str, Any]] = Field(default_factory=list, description="Array of click events")
+    events: list[dict[str, Any]] = Field(default_factory=list, max_length=100, description="Array of click events")
 
 
 @router.get("/clicks/analytics", response_model=ClickEventsResponse)
@@ -70,11 +71,7 @@ async def get_click_events(
 
 @router.post("/clicks/analytics", status_code=202)
 async def receive_click_events(request: Request, body: ClickEventsBatchRequest) -> dict[str, Any]:
-    client_ip = request.headers.get(
-        "x-forwarded-for", request.client.host if request.client else "unknown"
-    )
-    if "," in client_ip:
-        client_ip = client_ip.split(",")[0].strip()
+    client_ip = trusted_client_ip(request)
 
     events = body.events
     if not events:

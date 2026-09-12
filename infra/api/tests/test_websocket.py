@@ -42,7 +42,8 @@ def test_websocket_join_broadcast_and_leave(client, monkeypatch):
         visitors = visitors_resp.json()
         assert visitors["active_count"] >= 1
         ips = [v["ip"] for v in visitors["active_visitors"]]
-        assert "203.0.113.10" in ips
+        assert "unknown" in ips
+        assert "203.0.113.10" not in ips
 
         msg = ws.receive_text()
         received = json.loads(msg)

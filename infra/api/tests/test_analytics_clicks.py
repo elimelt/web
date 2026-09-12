@@ -75,7 +75,7 @@ class TestPostAnalyticsClicks:
 
         mock_insert.assert_not_called()
 
-    def test_client_ip_extracted_from_x_forwarded_for_header(self, internal_client, monkeypatch):
+    def test_untrusted_forwarded_ip_is_ignored(self, internal_client, monkeypatch):
         captured_ip = []
 
         async def mock_insert(events, client_ip):
@@ -97,7 +97,7 @@ class TestPostAnalyticsClicks:
 
         assert response.status_code == 202
         assert len(captured_ip) == 1
-        assert captured_ip[0] == "192.168.1.100"
+        assert captured_ip[0] == "unknown"
 
     def test_database_error_still_returns_202(self, internal_client, monkeypatch):
         mock_insert = AsyncMock(side_effect=Exception("Database connection failed"))

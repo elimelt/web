@@ -2,6 +2,7 @@ import hashlib
 import logging
 import os
 import subprocess
+import secrets
 import time
 from datetime import UTC, datetime
 from typing import Any
@@ -104,7 +105,21 @@ def execute_python(code: str, agent_id: str = "unknown") -> tuple[str, bool]:
         _log_execution(agent_id, code, cached[0], cached[1], 0)
         return cached
 
+    broker = os.getenv("SANDBOX_WORKER_URL", "")
+    if broker:
+        import requests
+        try:
+            response = requests.post(broker, json={"code": code},
+                                     headers={"X-Worker-Token": os.getenv("SANDBOX_WORKER_TOKEN", "")},
+                                     timeout=SANDBOX_TIMEOUT + 15)
+            response.raise_for_status()
+            result = response.json()
+            return str(result["output"])[:50000], bool(result["success"])
+        except Exception:
+            return "ERROR: Sandbox unavailable", False
+
     start_time = time.time()
+    container_name = "sandbox-" + secrets.token_hex(12)
 
     # Build docker run command with security options
     cpu_quota = int(100000 * SANDBOX_CPU_LIMIT)
@@ -112,6 +127,8 @@ def execute_python(code: str, agent_id: str = "unknown") -> tuple[str, bool]:
         "docker",
         "run",
         "--rm",
+        "--name",
+        container_name,
         "-i",
         "--network",
         "none",
@@ -166,6 +183,11 @@ def execute_python(code: str, agent_id: str = "unknown") -> tuple[str, bool]:
         return combined, success
 
     except subprocess.TimeoutExpired:
+        try:
+            subprocess.run(["docker", "rm", "--force", container_name],
+                           capture_output=True, timeout=5, check=False)
+        except Exception:
+            _logger.exception("Could not clean up timed-out sandbox")
         duration_ms = int((time.time() - start_time) * 1000)
         error_msg = f"ERROR: Execution timed out after {SANDBOX_TIMEOUT}s"
         _log_execution(agent_id, code, error_msg, False, duration_ms)
@@ -192,6 +214,13 @@ def get_execution_log(limit: int = 50) -> list[dict[str, Any]]:
 def is_sandbox_available() -> bool:
     if not SANDBOX_ENABLED:
         return False
+    broker = os.getenv("SANDBOX_WORKER_URL", "")
+    if broker:
+        import requests
+        try:
+            return requests.get(broker.rsplit("/", 1)[0] + "/health", timeout=10).status_code == 200
+        except Exception:
+            return False
     try:
         # Check if docker CLI is available and image exists
         result = subprocess.run(
