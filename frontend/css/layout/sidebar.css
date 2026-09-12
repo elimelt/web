@@ -123,6 +123,11 @@ body:has(.right-sidebar.mobile-open) #right-resize-handle {
   transition: color 0.2s;
 }
 
+.contact-link span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .contact-link:hover {
   color: var(--accent-hover);
 }
@@ -187,4 +192,3 @@ body:has(.right-sidebar.mobile-open) #right-resize-handle {
   color: var(--text-secondary);
   margin-top: 0.25rem;
 }
-
