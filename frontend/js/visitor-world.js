@@ -22,7 +22,7 @@ export function createVisitorMap(onSelectVisitor) {
     });
   } catch {
     host.textContent = 'Globe unavailable. Switch to List to explore visitors.';
-    return { update() {} };
+    return { update() { } };
   }
   map.addControl(new gl.NavigationControl({ showCompass: true }), 'bottom-left');
   let visits = [];
@@ -34,7 +34,7 @@ export function createVisitorMap(onSelectVisitor) {
     const content = document.createElement('div');
     content.className = 'visitor-map-popup';
     const title = document.createElement('strong');
-    title.textContent = [...new Set(group.map(v => [v.location.city, v.location.country].filter(Boolean).join(', ') || 'Unknown location'))].join(' · ');
+    title.textContent = [...new Set(group.map(v => [v.location.city, v.location.country].filter(Boolean).join(', ') || 'Unknown location'))].join(' | ');
     const zoom = document.createElement('button');
     zoom.type = 'button';
     zoom.className = 'visitor-street-zoom';
@@ -90,7 +90,7 @@ export function createVisitorMap(onSelectVisitor) {
       button.addEventListener('click', event => { event.stopPropagation(); details(group, coordinates); });
       markers.push(new gl.Marker({ element: button }).setLngLat(coordinates).addTo(map));
     }
-    summary.textContent = `${visits.length} mapped visits · ${missing} without coordinates · Locations approximate`;
+    summary.textContent = `${visits.length} mapped visits | ${missing} without coordinates`;
   }
   map.on('zoomend', draw);
   const observer = new ResizeObserver(() => { if (host.clientWidth && host.clientHeight) map.resize(); });

@@ -20,7 +20,7 @@ export function createVisitorMap(onSelectVisitor) {
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   } catch {
     host.textContent = '3D is unavailable in this browser. Switch to List to explore visitors.';
-    return { update() {} };
+    return { update() { } };
   }
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   host.append(renderer.domElement);
@@ -79,7 +79,7 @@ export function createVisitorMap(onSelectVisitor) {
     }
     overlay.replaceChildren();
     for (const { x, y, group } of clusters) {
-      const label = [...new Set(group.map(v => [v.location.city, v.location.country].filter(Boolean).join(', ') || 'Unknown location'))].join(' · ');
+      const label = [...new Set(group.map(v => [v.location.city, v.location.country].filter(Boolean).join(', ') || 'Unknown location'))].join(' | ');
       const button = document.createElement('button');
       button.className = 'globe-marker';
       button.type = 'button';
@@ -169,7 +169,7 @@ export function createVisitorMap(onSelectVisitor) {
     }).catch(() => {
       if (disposed) return;
       coastlineFailed = true;
-      summary.textContent = `${counts} · Coastlines unavailable`;
+      summary.textContent = `${counts} | Coastlines unavailable`;
     });
 
   function showVisits(group, label, sourceButton) {
@@ -213,8 +213,8 @@ export function createVisitorMap(onSelectVisitor) {
       const arrivals = events.filter(v => !v.type || v.type === 'join');
       const visits = arrivals.filter(v => v.location && Number.isFinite(v.location.lat)
         && Number.isFinite(v.location.lon) && Math.abs(v.location.lat) <= 90 && Math.abs(v.location.lon) <= 180);
-      counts = `${visits.length} mapped visits · ${arrivals.length - visits.length} without coordinates · Locations approximate`;
-      summary.textContent = counts + (coastlineFailed ? ' · Coastlines unavailable' : '');
+      counts = `${visits.length} mapped visits | ${arrivals.length - visits.length} without coordinates`;
+      summary.textContent = counts + (coastlineFailed ? ' | Coastlines unavailable' : '');
       const groups = new Map();
       for (const visit of visits) {
         const key = `${Math.round(visit.location.lat / 5)}:${Math.round(visit.location.lon / 5)}`;

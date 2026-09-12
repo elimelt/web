@@ -3,7 +3,7 @@ export function createVisitorMap(onSelectVisitor) {
   const summary = document.getElementById('visitor-map-summary');
   if (!host || !window.L) {
     if (summary) summary.textContent = 'Map unavailable. Use the list to explore visitors.';
-    return { update() {} };
+    return { update() { } };
   }
   const L = window.L;
   const map = L.map(host, {
@@ -38,7 +38,7 @@ export function createVisitorMap(onSelectVisitor) {
       const popup = document.createElement('div');
       popup.className = 'visitor-map-popup';
       const title = document.createElement('strong');
-      title.textContent = locations.join(' · ');
+      title.textContent = locations.join(' | ');
       popup.append(title);
       const list = document.createElement('ul');
       for (const visit of group) {
@@ -57,7 +57,7 @@ export function createVisitorMap(onSelectVisitor) {
       }
       popup.append(list);
       L.marker([lat, lon], {
-        title: `${group.length} visits: ${locations.join(' · ')}`,
+        title: `${group.length} visits: ${locations.join(' | ')}`,
         keyboard: true,
         icon: L.divIcon({
           className: 'visitor-map-marker',
@@ -66,7 +66,7 @@ export function createVisitorMap(onSelectVisitor) {
         }),
       }).bindPopup(popup, { maxWidth: 300 }).addTo(markers);
     }
-    summary.textContent = `${visits.length} mapped visits · ${missing} without coordinates · Locations approximate`;
+    summary.textContent = `${visits.length} mapped visits | ${missing} without coordinates`;
   }
   map.on('zoomend', draw);
   const observer = new ResizeObserver(() => map.invalidateSize());

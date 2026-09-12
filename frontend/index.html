@@ -266,18 +266,17 @@
               <div class="visitor-filter-stats" id="visitor-filter-stats"></div>
             </div>
 
-          <div class="visitor-map-toolbar">
-            <div role="group" aria-label="Visitor view">
-              <button type="button" data-visitor-view="map" aria-pressed="true">Globe</button>
-              <button type="button" data-visitor-view="list" aria-pressed="false">List</button>
+            <div class="visitor-map-toolbar">
+              <div role="group" aria-label="Visitor view">
+                <button type="button" data-visitor-view="map" aria-pressed="true">Globe</button>
+                <button type="button" data-visitor-view="list" aria-pressed="false">Log</button>
+              </div>
+              <button type="button" id="visitor-map-reset">Reset view</button>
             </div>
-            <button type="button" id="visitor-map-reset">Reset view</button>
-          </div>
-          <div id="visitor-map" aria-label="Interactive globe of recent visitors"></div>
-          <p class="globe-hint">Drag to explore · Scroll, pinch, or use + / − to zoom from globe to streets · Select a marker for visits</p>
-          <p id="visitor-map-summary" role="status">Loading visitor locations…</p>
-          <ul id="recent-visitor-list" class="visitor-list visitor-list-clickable"></ul>
-          <p id="visitor-window-status" role="status"></p>
+            <div id="visitor-map" aria-label="Interactive globe of recent visitors"></div>
+            <p id="visitor-map-summary" role="status">Loading visitor locations…</p>
+            <ul id="recent-visitor-list" class="visitor-list visitor-list-clickable"></ul>
+            <p id="visitor-window-status" role="status"></p>
           </section>
 
           <section id="chat" class="section">

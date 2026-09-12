@@ -120,7 +120,7 @@
 }
 
 .timeline-period::before {
-  content: "·";
+  content: "|";
   margin: 0 var(--space-2);
   opacity: 0.6;
 }

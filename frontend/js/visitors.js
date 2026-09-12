@@ -74,7 +74,7 @@ async function initVisitors() {
         if (!events.length || !nextBefore || nextBefore === before || (oldest != null && oldest <= cutoff)) break;
         before = nextBefore;
       }
-      if (!request.signal.aborted) windowStatus.textContent = `${label} · All available visits in this window loaded`;
+      if (!request.signal.aborted) windowStatus.textContent = `${label} | All available visits in this window loaded`;
     } catch (error) {
       if (!request.signal.aborted) windowStatus.textContent = 'Could not finish loading this window. Showing partial results; select a window to retry.';
     }

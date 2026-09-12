@@ -285,7 +285,7 @@ function saveHistory() {
   try {
     const toSave = fullHistory.map(chord => ({ root: chord.root, quality: chord.quality }));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
-  } catch (e) {}
+  } catch (e) { }
 }
 
 async function ensureTouchAudio() {
@@ -435,7 +435,7 @@ function renderSheetMusic(midiNotes, playingNotes = []) {
 
     drawNotes(trebleNotes, 'treble', trebleStave);
     drawNotes(bassNotes, 'bass', bassStave);
-  } catch (e) {}
+  } catch (e) { }
 }
 
 function updateSheetMusic() {
@@ -736,7 +736,7 @@ function endNoteDrag() {
   if (!isDragging) return;
 
   const changed = !dragStartVoicing.every(m => controller.currentVoicing.includes(m)) ||
-                  !controller.currentVoicing.every(m => dragStartVoicing.includes(m));
+    !controller.currentVoicing.every(m => dragStartVoicing.includes(m));
 
   if (changed && dragStartChord) addToHistory(dragStartChord);
 
@@ -818,7 +818,7 @@ function renderHistory() {
   if (fullHistory.length > chordHistory.length) {
     const ellipsis = document.createElement('button');
     ellipsis.className = 'history-chip';
-    ellipsis.textContent = '···';
+    ellipsis.textContent = '|||';
     ellipsis.title = `View all ${fullHistory.length} chords`;
     ellipsis.addEventListener('click', openHistoryModal);
     chordHistoryEl.appendChild(ellipsis);
