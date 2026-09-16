@@ -1,5 +1,4 @@
 interface Window {
-  maplibregl: typeof import('maplibre-gl');
   L: typeof import('leaflet');
 }
 declare const Tone: typeof import('tone');

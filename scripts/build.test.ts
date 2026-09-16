@@ -7,17 +7,22 @@ import { Chord, detect, getCommonProgressions } from '../frontend/music/chord-th
 import VoiceLeader from '../frontend/music/voicing.js';
 
 const root = resolve(import.meta.dirname, '..');
-test('every generated page and module points to existing local scripts', async () => {
+test('every generated page and module points to existing local assets', async () => {
   for (const directory of ['frontend', 'infra/homepage']) {
     const base = resolve(root, 'dist', directory);
     const files = await readdir(base, { recursive: true });
     assert(!files.some(file => file.endsWith('.ts')), 'TypeScript sources must not be published');
-    for (const file of files.filter(file => /\.(html|js)$/.test(file))) {
+    for (const file of files.filter(file => /\.(html|m?js)$/.test(file))) {
       const full = resolve(base, file);
       const source = await readFile(full, 'utf8');
       const references: string[] = [];
       if (file.endsWith('.html')) {
         references.push(...Array.from(source.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)/g), match => match[1]));
+        references.push(...Array.from(source.matchAll(/<link\b[^>]*\bhref=["']([^"']+)/g), match => match[1]));
+        for (const match of source.matchAll(/<script\b[^>]*\btype=["']importmap["'][^>]*>([\s\S]*?)<\/script>/g)) {
+          const { imports } = JSON.parse(match[1]) as { imports: Record<string, string> };
+          references.push(...Object.values(imports).filter(reference => !reference.endsWith('/')));
+        }
       } else {
         const parsed = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
         for (const node of parsed.statements) {

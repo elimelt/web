@@ -8,8 +8,7 @@
   <meta name="description"
     content="Elijah Melton - Software Engineer specializing in distributed systems, backend development, and cloud infrastructure" />
   <link rel="stylesheet" href="css/styles.css?v=8" />
-  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.4.1/dist/maplibre-gl.css" />
-  <script defer src="https://unpkg.com/maplibre-gl@6.4.1/dist/maplibre-gl.js"></script>
+  <link rel="stylesheet" href="js/vendor/maplibre-gl/maplibre-gl.css" />
   <link rel="stylesheet" href="css/components/visitor-map.css?v=5" />
   <link rel="stylesheet" href="css/canvas.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -24,6 +23,7 @@
   <script type="importmap">
       {
         "imports": {
+          "maplibre-gl": "./js/vendor/maplibre-gl/maplibre-gl.mjs",
           "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
           "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
         }
@@ -620,7 +620,7 @@
   <script type="module" src="js/services.js?v=2"></script>
   <script type="module" src="js/canvas.js?v=2"></script>
   <script type="module" src="js/click-tracking.js?v=2"></script>
-  <script type="module" src="js/visitors.js?v=11"></script>
+  <script type="module" src="js/visitors.js?v=12"></script>
   <script type="module" src="js/chat.js?v=2"></script>
   <script type="module" src="js/main.js?v=2"></script>
 </body>

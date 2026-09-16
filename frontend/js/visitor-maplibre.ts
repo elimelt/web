@@ -1,7 +1,8 @@
+import * as gl from 'maplibre-gl';
+
 export function createVisitorMap(onSelectVisitor) {
   const host = (document.getElementById('visitor-map') as HTMLDivElement);
   const summary = document.getElementById('visitor-map-summary');
-  const gl = window.maplibregl;
   let map;
   try {
     map = new gl.Map({
