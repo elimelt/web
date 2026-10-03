@@ -32,7 +32,7 @@ export function createVisitorMap(onSelectVisitor) {
   }
   map.addControl(new gl.NavigationControl({ showCompass: true }), 'bottom-left');
   let visits = [];
-  let markers = [];
+  const markers = new Map();
   let popup = null;
   let missing = 0;
   function details(group, coordinates) {
@@ -72,8 +72,7 @@ export function createVisitorMap(onSelectVisitor) {
     popup = new gl.Popup({ maxWidth: '300px' }).setLngLat(coordinates).setDOMContent(content).addTo(map);
   }
   function draw() {
-    markers.forEach(marker => marker.remove());
-    markers = [];
+    const visible = new Set();
     const groups = new Map();
     // Split geographic clusters as the user approaches street level.
     const step = 360 / 2 ** (map.getZoom() + 4);
@@ -88,17 +87,51 @@ export function createVisitorMap(onSelectVisitor) {
         group.reduce((n, v) => n + v.location.lon, 0) / group.length,
         group.reduce((n, v) => n + v.location.lat, 0) / group.length,
       ];
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'world-visitor-marker';
-      button.textContent = group.length;
-      button.setAttribute('aria-label', `${group.length} visits near ${group[0].location.city || group[0].location.country || 'unknown location'}`);
-      button.addEventListener('click', event => { event.stopPropagation(); details(group, coordinates); });
-      markers.push(new gl.Marker({ element: button }).setLngLat(coordinates).addTo(map));
+      // At close zooms, offscreen DOM markers still subscribe to every map move.
+      // Keep a buffered viewport so short drags reveal nearby markers immediately.
+      if (map.getZoom() >= 4) {
+        // Project the nearest longitude copy, including across the antimeridian.
+        const longitude = coordinates[0] + 360 * Math.round((map.getCenter().lng - coordinates[0]) / 360);
+        const point = map.project([longitude, coordinates[1]]);
+        const marginX = host.clientWidth / 2;
+        const marginY = host.clientHeight / 2;
+        if (!Number.isFinite(point.x) || !Number.isFinite(point.y)
+          || point.x < -marginX || point.x > host.clientWidth + marginX
+          || point.y < -marginY || point.y > host.clientHeight + marginY) continue;
+      }
+      // The first visit identifies a cluster across pans, even if its grid cell changes.
+      const key = group[0];
+      visible.add(key);
+      let entry = markers.get(key);
+      if (!entry) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'world-visitor-marker';
+        entry = { button, group, coordinates, marker: new gl.Marker({ element: button }) };
+        button.addEventListener('click', event => {
+          event.stopPropagation();
+          details(entry.group, entry.coordinates);
+        });
+        entry.marker.setLngLat(coordinates).addTo(map);
+        markers.set(key, entry);
+      } else if (entry.coordinates[0] !== coordinates[0] || entry.coordinates[1] !== coordinates[1]) {
+        entry.marker.setLngLat(coordinates);
+      }
+      entry.group = group;
+      entry.coordinates = coordinates;
+      entry.button.textContent = group.length;
+      entry.button.setAttribute('aria-label', `${group.length} visits near ${group[0].location.city || group[0].location.country || 'unknown location'}`);
+    }
+    for (const [key, entry] of markers) {
+      if (!visible.has(key)) {
+        entry.marker.remove();
+        markers.delete(key);
+      }
     }
     summary.textContent = `${visits.length} mapped visits | ${missing} without coordinates`;
   }
-  map.on('zoomend', draw);
+  // Refresh both clustering and the visible marker set after zooming or panning.
+  map.on('moveend', draw);
   const observer = new ResizeObserver(() => { if (host.clientWidth && host.clientHeight) map.resize(); });
   observer.observe(host);
   (document.getElementById('visitor-map-reset') as HTMLButtonElement).addEventListener('click', () => {
