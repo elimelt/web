@@ -1,0 +1,87 @@
+<div class="intro-layout">
+  <section id="about" class="section">
+    <h2 class="section-title">About</h2>
+    <cloth-content>
+      <p class="about-text">
+        I write code professionally and for fun. Check out my
+        <a href="https://github.com/elimelt" target="_blank" rel="noopener">GitHub</a>
+        to see some of the fun stuff.
+      </p>
+      <p class="about-text">
+        After graduating from the University of Washington in 2025, I worked at
+        <a href="https://shv.com" target="_blank" rel="noopener">Sutter Hill Ventures</a>
+        on on a few experiments with their internal product team revolving around agents.
+        After a little while, I was drafted into one of their portfolio companies,
+        <a href="https://reve.com" target="_blank" rel="noopener">Reve</a>,
+        where I now work full-time.
+      </p>
+      <p class="about-text">
+        I've been lucky enough to work on and operate clusters training frontier language and diffusion models
+        (PBs of data, thousands of GPUs, etc.). I love working on reliability,
+        efficiency, observability, and many other problems that come up at this scale. I've spent a lot of
+        time with Kubernetes, cloud infrastructure, and distributed systems in general.
+      </p>
+      <p class="about-text">
+        Automation has been a longtime passion of mine. Lately, that's
+        meant building things with LLMs to make my own work and my
+        coworkers' jobs easier.
+      </p>
+    </cloth-content>
+  </section>
+
+  <div class="live-grid">
+    <section id="services" class="section">
+      <h2 class="section-title">Services</h2>
+      <div id="services-stats">Loading...</div>
+      <div id="services-content"></div>
+    </section>
+
+    <section id="visitors" class="section" data-view="map">
+      <h2 class="section-title">Visitors</h2>
+      <div id="visitor-stats">Connecting…</div>
+      <ul id="visitor-list" class="visitor-list"></ul>
+      <div class="visitor-filters" id="visitor-filters">
+        <div class="visitor-filter-row">
+          <select id="visitor-filter-time" class="visitor-filter-select" aria-label="Filter by time range">
+            <option value="all">All Time</option>
+            <option value="1h">Last Hour</option>
+            <option value="24h">Last 24 Hours</option>
+            <option value="7d">Last 7 Days</option>
+            <option value="30d" selected>Last 30 Days</option>
+          </select>
+          <input type="text" id="visitor-filter-search" class="visitor-filter-input" placeholder="Regex search (IP, location)… prefix ! to invert" autocomplete="off" />
+        </div>
+        <div class="visitor-filter-stats" id="visitor-filter-stats"></div>
+      </div>
+      <div class="visitor-map-toolbar">
+        <div role="group" aria-label="Visitor view">
+          <button type="button" data-visitor-view="map" aria-pressed="true">Globe</button>
+          <button type="button" data-visitor-view="list" aria-pressed="false">Log</button>
+        </div>
+        <button type="button" id="visitor-map-reset">Reset view</button>
+      </div>
+      <div id="visitor-map" aria-label="Interactive globe of recent visitors"></div>
+      <p id="visitor-map-summary" role="status">Loading visitor locations…</p>
+      <ul id="recent-visitor-list" class="visitor-list visitor-list-clickable"></ul>
+      <p id="visitor-window-status" role="status"></p>
+    </section>
+
+    <section id="chat" class="section">
+      <h2 class="section-title">Chat</h2>
+      <div class="chat-status" id="chat-status">connecting…</div>
+      <button class="chat-retry-btn hidden" id="chat-retry-btn" data-analytics="button" data-analytics-id="btn:chat-retry" data-analytics-label="Chat retry">Retry</button>
+      <div class="chat-messages" id="chat-messages"><div class="chat-loader" id="chat-loader">Loading...</div></div>
+      <form class="chat-form" id="chat-form">
+        <input class="chat-input" id="chat-input" type="text" placeholder="Say something…" autocomplete="off" />
+        <button class="chat-send-btn" id="chat-send-btn" type="submit" disabled data-analytics="button" data-analytics-id="btn:chat-send" data-analytics-label="Chat send">Send</button>
+      </form>
+    </section>
+  </div>
+</div>
+
+<script>
+  import '../../js/cloth-content.ts';
+  import '../../js/services.ts';
+  import '../../js/visitors.ts';
+  import '../../js/chat.ts';
+</script>

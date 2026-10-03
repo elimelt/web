@@ -1,5 +1,5 @@
-import DOMPurify from './vendor/purify.js';
-import { marked } from 'https://cdn.jsdelivr.net/npm/marked@15.0.0/+esm';
+import DOMPurify from 'dompurify';
+import { marked } from 'marked';
 import { getUserColor } from './utils.js';
 
 export function renderMarkdown(value: unknown): string {

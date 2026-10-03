@@ -1,0 +1,28 @@
+---
+import ChordBrowser from '../components/music/ChordBrowser.astro';
+import ChordDisplay from '../components/music/ChordDisplay.astro';
+import HistoryModal from '../components/music/HistoryModal.astro';
+import PianoKeyboard from '../components/music/PianoKeyboard.astro';
+import Transport from '../components/music/Transport.astro';
+import '../../music/styles.css';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Voice Leading Synth</title>
+  </head>
+  <body>
+    <div class="app">
+      <Transport />
+      <ChordDisplay />
+      <PianoKeyboard />
+      <ChordBrowser />
+    </div>
+
+    <HistoryModal />
+    <script src="../../music/main.ts"></script>
+  </body>
+</html>

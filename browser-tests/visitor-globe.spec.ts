@@ -1,14 +1,20 @@
 import { expect, test } from '@playwright/test';
 
-const LOCAL_ORIGIN = 'http://127.0.0.1:3000';
-const MAPLIBRE_WORKER = '/frontend/js/vendor/maplibre-gl/maplibre-gl-worker.mjs';
+const LOCAL_ORIGIN = 'http://127.0.0.1:4173';
+const MAPLIBRE_WORKER_PATH = /^\/_astro\/maplibre-gl-worker-[A-Za-z0-9_-]+\.js$/;
 const TILE_PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
   'base64',
 );
 
 test('visitor globe uses the complete local MapLibre runtime and remains interactive', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('diceRolled', 'true'));
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem('diceRolled', 'true');
+    } catch {
+      // Sandboxed frames can deny storage access.
+    }
+  });
   const timestamp = new Date().toISOString();
   const visitor = {
     ip: '203.0.113.7',
@@ -88,12 +94,14 @@ test('visitor globe uses the complete local MapLibre runtime and remains interac
   });
   await page.routeWebSocket('wss://api.elimelt.com/**', socket => socket.close());
 
-  await page.goto('/frontend/');
+  await page.goto('/');
 
   const map = page.locator('#visitor-map');
-  const workerUrl = `${LOCAL_ORIGIN}${MAPLIBRE_WORKER}`;
   await expect(map.locator('canvas.maplibregl-canvas')).toBeVisible();
-  await expect.poll(() => page.workers().map(worker => worker.url())).toContain(workerUrl);
+  await expect.poll(() => page.workers().some(worker => {
+    const url = new URL(worker.url());
+    return url.origin === LOCAL_ORIGIN && MAPLIBRE_WORKER_PATH.test(url.pathname);
+  })).toBe(true);
   await expect(map.locator('.maplibregl-ctrl-zoom-in')).toBeVisible();
   await expect(map.locator('.maplibregl-ctrl-zoom-out')).toBeVisible();
   await expect(map.locator('.maplibregl-ctrl-compass')).toBeVisible();

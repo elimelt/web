@@ -8,17 +8,21 @@ import VoiceLeader from '../frontend/music/voicing.js';
 
 const root = resolve(import.meta.dirname, '..');
 test('every generated page and module points to existing local assets', async () => {
+  for (const page of ['frontend/index.html', 'frontend/music/index.html', 'infra/homepage/index.html']) {
+    await access(resolve(root, 'dist', page));
+  }
   for (const directory of ['frontend', 'infra/homepage']) {
     const base = resolve(root, 'dist', directory);
     const files = await readdir(base, { recursive: true });
-    assert(!files.some(file => file.endsWith('.ts')), 'TypeScript sources must not be published');
+    assert(!files.some(file => /\.(ts|astro)$/.test(file)), 'Source files must not be published');
     for (const file of files.filter(file => /\.(html|m?js)$/.test(file))) {
       const full = resolve(base, file);
       const source = await readFile(full, 'utf8');
       const references: string[] = [];
       if (file.endsWith('.html')) {
-        references.push(...Array.from(source.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)/g), match => match[1]));
+        references.push(...Array.from(source.matchAll(/<(?:script|img|source)\b[^>]*\bsrc=["']([^"']+)/g), match => match[1]));
         references.push(...Array.from(source.matchAll(/<link\b[^>]*\bhref=["']([^"']+)/g), match => match[1]));
+        references.push(...Array.from(source.matchAll(/data-(?:photo|video)-src=["']([^"']+)/g), match => match[1]));
         for (const match of source.matchAll(/<script\b[^>]*\btype=["']importmap["'][^>]*>([\s\S]*?)<\/script>/g)) {
           const { imports } = JSON.parse(match[1]) as { imports: Record<string, string> };
           references.push(...Object.values(imports).filter(reference => !reference.endsWith('/')));
@@ -32,8 +36,9 @@ test('every generated page and module points to existing local assets', async ()
           }
         }
       }
-      for (const reference of references.filter(reference => !/^https?:/.test(reference))) {
-        await access(resolve(dirname(full), reference.split('?')[0]));
+      for (const reference of references.filter(reference => !/^(?:[a-z]+:|\/\/|#)/i.test(reference))) {
+        const pathname = reference.split(/[?#]/)[0];
+        await access(pathname.startsWith('/') ? resolve(base, pathname.slice(1)) : resolve(dirname(full), pathname));
       }
     }
   }

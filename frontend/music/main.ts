@@ -1,3 +1,5 @@
+import * as Tone from 'tone';
+import * as VexFlow from 'vexflow';
 import VoiceLeader from './voicing.js';
 import { Chord, getCommonProgressions, getNextChords, getRandomChords, getVariations, detect, analyzeChordChoice, NOTE_NAMES, TONE_NOTE_NAMES } from './chord-theory.js';
 
@@ -400,7 +402,7 @@ function renderSheetMusic(midiNotes: number[], playingNotes = []) {
   if (allNotesSet.size === 0) return;
 
   try {
-    const VF = Vex.Flow;
+    const VF = VexFlow;
     const renderer = new VF.Renderer(sheetMusicEl, VF.Renderer.Backends.SVG);
     renderer.resize(200, 140);
     const context = renderer.getContext();

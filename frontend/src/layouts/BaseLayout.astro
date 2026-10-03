@@ -1,0 +1,46 @@
+---
+import '../../css/base/variables.css';
+import '../../css/base/reset.css';
+import '../../css/layout/sidebar.css';
+import '../../css/layout/grid.css';
+import '../../css/components/timeline.css';
+import '../../css/components/notes.css';
+import '../../css/components/buttons.css';
+import '../../css/components/chat.css';
+import '../../css/components/visitors.css';
+import '../../css/features/meat-game.css';
+import '../../css/features/dice-game.css';
+import '../../css/responsive.css';
+import '../../css/layout/editorial.css';
+import '../../css/components/visitor-map.css';
+import '../../css/canvas.css';
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Crimson+Pro:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" type="image/svg+xml" href="/assets/apple-touch.png" />
+  </head>
+  <body>
+    <slot />
+
+    <script is:inline src="https://cdn.apple-livephotoskit.com/lpk/1/livephotoskit.js"></script>
+  </body>
+</html>

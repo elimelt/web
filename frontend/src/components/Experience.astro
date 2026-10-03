@@ -1,0 +1,40 @@
+---
+const roles = [
+  { logo: 'reve.svg', alt: 'Reve Image logo', position: 'Software Engineer', company: 'Reve Image', location: 'Palo Alto, CA', period: 'Nov 2025 - Present', description: 'Platform engineering stuff' },
+  { logo: 'shv.png', alt: 'Sutter Hill Ventures logo', position: 'Software Engineer', company: 'Sutter Hill Ventures', location: 'Palo Alto, CA', period: 'Aug 2025 - Present', description: 'Working with founders and early-stage startups at SHV Labs' },
+  { logo: 'meta.png', alt: 'Meta logo', position: 'Software Engineer Intern', company: 'Meta', location: 'Menlo Park, CA', period: 'May 2025 -July 2025', description: 'ML models for ads ranking and fairness' },
+  { logo: 'aws.png', alt: 'AWS logo', position: 'Software Development Engineer Intern', company: 'Amazon Web Services - Firewall Manager', location: 'Seattle, WA', period: 'Sept 2024 - Dec 2024', description: 'Improving customer experiences with AWS service quotas' },
+  { logo: 'doordash.png', alt: 'DoorDash logo', position: 'Software Engineer Intern', company: 'DoorDash - Dasher Engagement Team', location: 'Seattle, WA', period: 'June 2024 - Sept 2024', description: 'Real-time systems for dasher engagement and retention' },
+  { logo: 'stockcharts.png', alt: 'StockCharts.com logo', position: 'Software Engineer Intern', company: 'StockCharts.com', location: 'Redmond, WA', period: 'June 2023 - Sept 2023', description: 'Enabling content creation partners to publish on StockCharts.com' },
+  { logo: 'allen.png', alt: 'Paul G. Allen School of Computer Science and Engineering logo', position: 'Helpdesk', company: 'Paul G. Allen School of Computer Science and Engineering', location: 'Seattle, WA', period: 'Sept 2021 - Jan 2023', description: 'Boring IT stuff, but for a cutting-edge research institution' },
+  { logo: 'pizzahut.png', alt: 'Pizza Hut logo', position: 'Pizza Chef', company: 'Pizza Hut', location: 'Puyallup, WA', period: 'June 2019 - Sept 2021', description: 'Making pizza' },
+];
+---
+
+<section id="experience" class="section">
+  <h2 class="section-title">Experience</h2>
+  <div class="timeline-container">
+    <button class="timeline-nav timeline-nav-prev" aria-label="Previous" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    </button>
+    <div class="timeline">
+      {roles.map((role) => (
+        <article class="timeline-item">
+          <div class="timeline-header">
+            <img src={`/assets/logos/${role.logo}`} alt={role.alt} class="timeline-logo" />
+            <div class="timeline-details">
+              <h3 class="timeline-position">{role.position}</h3>
+              <p class="timeline-company">{role.company}</p>
+              <p class="timeline-location">{role.location}</p>
+              <p class="timeline-period">{role.period}</p>
+              <p class="timeline-description">{role.description}</p>
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
+    <button class="timeline-nav timeline-nav-next" aria-label="Next">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </button>
+  </div>
+</section>

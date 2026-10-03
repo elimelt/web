@@ -22,7 +22,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:browser -- browser-tests/visitor-globe.spec.ts
+      - run: npm run test:browser
 
   test:
     runs-on: ubuntu-latest

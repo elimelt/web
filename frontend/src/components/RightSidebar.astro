@@ -1,0 +1,21 @@
+---
+const photos = ['IMG_8179.jpg', 'IMG_8228.jpg', 'IMG_8322.jpg', 'IMG_8653.jpg', 'IMG_8762.jpg', 'IMG_8783.jpg', 'IMG_8784.jpg'];
+const livePhotos = ['IMG_8875', 'IMG_8913'];
+---
+
+<button id="right-menu-toggle" class="right-menu-toggle" data-analytics="button" data-analytics-id="btn:right-menu-toggle" data-analytics-label="Right menu toggle" aria-label="Toggle photo sidebar">
+  <svg class="menu-icon" id="right-menu-icon"><use href="#icon-chevron-left"></use></svg>
+</button>
+
+<aside class="right-sidebar" id="right-sidebar">
+  <div class="photo-grid">
+    {photos.map((photo) => <figure class="photo-item"><img src={`/assets/album/${photo}`} alt="" loading="lazy" /></figure>)}
+    {livePhotos.map((photo) => (
+      <figure class="photo-item">
+        <div data-live-photo data-photo-src={`/assets/album/${photo}.jpg`} data-video-src={`/assets/album/${photo}.MOV`}></div>
+      </figure>
+    ))}
+  </div>
+</aside>
+<div class="sidebar-resize-handle" id="left-resize-handle"></div>
+<div class="sidebar-resize-handle" id="right-resize-handle"></div>

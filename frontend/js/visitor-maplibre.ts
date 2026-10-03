@@ -1,4 +1,9 @@
 import * as gl from 'maplibre-gl';
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
+import 'maplibre-gl/dist/maplibre-gl.css';
+
+// Bundle the worker and its shared imports instead of relying on a relative CDN URL.
+gl.setWorkerUrl(workerUrl);
 
 export function createVisitorMap(onSelectVisitor) {
   const host = (document.getElementById('visitor-map') as HTMLDivElement);
