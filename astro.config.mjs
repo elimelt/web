@@ -1,6 +1,7 @@
 import { defineConfig } from 'astro/config';
 
 export default defineConfig({
+  site: 'https://elimelt.com',
   srcDir: './frontend/src',
   publicDir: './frontend/public',
   outDir: './dist/frontend',
