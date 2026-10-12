@@ -194,6 +194,7 @@ body:has(.right-sidebar.mobile-open) #right-resize-handle {
   margin-top: 0.25rem;
 }
 .live-photo { position: relative; cursor: pointer; }
-.live-photo:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 3px; }
+.live-photo:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
 /* The SDK sets position: relative inline; keep its player over the thumbnail. */
-.live-photo-player { position: absolute !important; inset: 0; width: 100%; aspect-ratio: 1; }
+.live-photo-player { position: absolute !important; inset: 0; width: 100%; aspect-ratio: 1; opacity: 0; background: var(--bg); }
+.live-photo-player.is-ready { opacity: 1; }
