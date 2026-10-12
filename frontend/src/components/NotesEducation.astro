@@ -29,7 +29,7 @@
         <h3 class="subsection-title">Notes Graph</h3>
         <a class="notes-graph-link" href="https://notes.elimelt.com/graph/" target="_blank" rel="noopener">Open full view</a>
       </div>
-      <iframe class="notes-graph-iframe" src="https://notes.elimelt.com/graph/?target=top&amp;v=3" title="Interactive graph of linked notes" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+      <iframe class="notes-graph-iframe" data-src="https://notes.elimelt.com/graph/?target=top&amp;v=3" title="Interactive graph of linked notes" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
     </section>
   </div>
 
@@ -75,3 +75,16 @@
     </section>
   </div>
 </div>
+
+<script>
+  const graph = document.querySelector<HTMLIFrameElement>('.notes-graph-iframe');
+  if (graph) {
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some(entry => entry.isIntersecting)) {
+        graph.src = graph.dataset.src!;
+        observer.disconnect();
+      }
+    });
+    observer.observe(graph);
+  }
+</script>

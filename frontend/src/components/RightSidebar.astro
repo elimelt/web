@@ -7,15 +7,80 @@ const livePhotos = ['IMG_8875', 'IMG_8913'];
   <svg class="menu-icon" id="right-menu-icon"><use href="#icon-chevron-left"></use></svg>
 </button>
 
-<aside class="right-sidebar" id="right-sidebar">
-  <div class="photo-grid">
-    {photos.map((photo) => <figure class="photo-item"><img src={`/assets/album/${photo}`} alt="" loading="lazy" /></figure>)}
-    {livePhotos.map((photo) => (
-      <figure class="photo-item">
-        <div data-live-photo data-photo-src={`/assets/album/${photo}.jpg`} data-video-src={`/assets/album/${photo}.MOV`}></div>
-      </figure>
-    ))}
-  </div>
+<aside class="right-sidebar" id="right-sidebar" inert>
+  <template id="photo-gallery-template">
+    <div class="photo-grid">
+      {photos.map((photo) => <figure class="photo-item"><img src={`/assets/album/thumbs/${photo.replace('.jpg', '.webp')}`} alt="" width="640" height="640" loading="lazy" decoding="async" /></figure>)}
+      {livePhotos.map((photo) => (
+        <figure class="photo-item live-photo" data-photo={photo}>
+          <img src={`/assets/album/thumbs/${photo}.webp`} alt="" width="640" height="640" loading="lazy" decoding="async" />
+          <button class="live-photo-play" type="button">Play Live Photo</button>
+        </figure>
+      ))}
+    </div>
+  </template>
 </aside>
 <div class="sidebar-resize-handle" id="left-resize-handle"></div>
 <div class="sidebar-resize-handle" id="right-resize-handle"></div>
+
+<script>
+  const sidebar = document.getElementById('right-sidebar');
+  const template = document.getElementById('photo-gallery-template') as HTMLTemplateElement;
+  // Offscreen drawers are within browsers' lazy-load margins. Keep their image
+  // URLs inert until the drawer is actually opened (including wide desktops).
+  const hydrate = () => {
+    if (!sidebar) return;
+    const open = sidebar.classList.contains('mobile-open');
+    sidebar.inert = !open;
+    if (!open || !template.isConnected) return;
+    sidebar.append(template.content.cloneNode(true));
+    template.remove();
+  };
+  const observer = new MutationObserver(hydrate);
+  if (sidebar && template) {
+    observer.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
+    hydrate();
+  }
+
+  interface LivePlayer extends HTMLElement {
+    photoSrc: string;
+    videoSrc: string;
+    play(): void;
+  }
+  let kit: Promise<void> | undefined;
+  const loadKit = () => kit ??= new Promise<void>((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.apple-livephotoskit.com/lpk/1/livephotoskit.js';
+    script.onload = () => resolve();
+    script.onerror = () => { script.remove(); kit = undefined; reject(new Error('Live Photo player unavailable')); };
+    document.head.append(script);
+  });
+  sidebar?.addEventListener('click', async (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('.live-photo-play');
+    if (!button) return;
+    const figure = button.closest<HTMLElement>('[data-photo]');
+    if (!figure) return;
+    const originalChildren = [...figure.childNodes];
+    const restore = () => {
+      figure.replaceChildren(...originalChildren);
+      button.disabled = false;
+      button.textContent = 'Retry Live Photo';
+    };
+    button.disabled = true;
+    button.textContent = 'Loading…';
+    try {
+      await loadKit();
+      const element = document.createElement('div');
+      element.className = 'live-photo-player';
+      const api = (window as unknown as { LivePhotosKit: { Player(el: HTMLElement): LivePlayer } }).LivePhotosKit;
+      const player = api.Player(element);
+      player.photoSrc = `/assets/album/${figure.dataset.photo}.jpg`;
+      player.videoSrc = `/assets/album/${figure.dataset.photo}.MOV`;
+      player.addEventListener('error', restore, { once: true });
+      figure.replaceChildren(player);
+      player.play();
+    } catch {
+      restore();
+    }
+  });
+</script>

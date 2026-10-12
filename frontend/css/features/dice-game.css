@@ -14,6 +14,10 @@
   transition: opacity 0.3s ease;
 }
 
+.dice-overlay[hidden] {
+  display: none;
+}
+
 .dice-overlay.dice-visible {
   opacity: 1;
   pointer-events: auto;

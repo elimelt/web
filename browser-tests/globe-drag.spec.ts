@@ -33,6 +33,7 @@ test('street-level dragging tracks the pointer and culls remote markers', async 
   await page.goto('/');
 
   const map = page.locator('#visitor-map');
+  await page.locator('#visitors').scrollIntoViewIfNeeded();
   const canvas = map.locator('canvas.maplibregl-canvas');
   const markers = map.locator('.world-visitor-marker');
   const londonMarker = map.locator('.world-visitor-marker[aria-label="1 visits near London"]');

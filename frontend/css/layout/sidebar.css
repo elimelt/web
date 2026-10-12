@@ -177,6 +177,7 @@ body:has(.right-sidebar.mobile-open) #right-resize-handle {
 
 .photo-item img {
   width: 100%;
+  height: auto;
   aspect-ratio: 1;
   object-fit: cover;
   display: block;
@@ -192,3 +193,16 @@ body:has(.right-sidebar.mobile-open) #right-resize-handle {
   color: var(--text-secondary);
   margin-top: 0.25rem;
 }
+.live-photo { position: relative; }
+.live-photo-play {
+  position: absolute;
+  bottom: 0.5rem;
+  left: 0.5rem;
+  padding: 0.65rem;
+  color: #fff;
+  background: #222;
+  border: 1px solid #fff;
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
+.live-photo-player { width: 100%; aspect-ratio: 1; }

@@ -139,6 +139,7 @@ export function createVisitorMap(onSelectVisitor) {
     map.flyTo({ center: [-40, 24], zoom: 0.8, pitch: 0, bearing: 0, essential: false });
   });
   map.on('error', () => {
+    host.dataset.mapError = 'true';
     summary.textContent = 'Some map details could not load. Visitor details remain available in List.';
   });
   window.addEventListener('pagehide', () => { observer.disconnect(); map.remove(); }, { once: true });
