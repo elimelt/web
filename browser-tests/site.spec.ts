@@ -21,6 +21,7 @@ test('frontend loads its compiled modules at the site root', async ({ page }) =>
   await page.goto('/');
   await expect(page.locator('#about')).toBeVisible();
   await expect(page.locator('#about')).toContainText('Check out my GitHub to see');
+  await page.locator('#services').scrollIntoViewIfNeeded();
   await expect(page.locator('#services-stats')).toHaveText('0 containers');
 
   expect(failures.brokenScripts).toEqual([]);
@@ -59,6 +60,7 @@ test('visitor data renders on the globe and the log view is selectable', async (
   await mockFrontendNetwork(page);
   await page.goto('/');
 
+  await page.locator('#visitors').scrollIntoViewIfNeeded();
   await expect(page.locator('#visitor-stats')).toHaveText('1 active visitor');
   await expect(page.locator('#visitor-map-summary')).toHaveText('1 mapped visits | 0 without coordinates');
   await expect(page.locator('.world-visitor-marker')).toHaveCount(1);

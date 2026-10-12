@@ -17,7 +17,9 @@ export function getUserColor(id) {
     hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0;
   }
   const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 65%, 55%)`;
+  // Blend each stable identity hue toward the active theme's text color. This
+  // keeps identities distinct without producing low-contrast midtones.
+  return `color-mix(in srgb, hsl(${hue}, 80%, 50%) 35%, var(--text))`;
 }
 
 export async function parseWebSocketMessage(data) {

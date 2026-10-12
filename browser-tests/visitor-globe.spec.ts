@@ -97,6 +97,7 @@ test('visitor globe uses the complete local MapLibre runtime and remains interac
   await page.goto('/');
 
   const map = page.locator('#visitor-map');
+  await page.locator('#visitors').scrollIntoViewIfNeeded();
   await expect(map.locator('canvas.maplibregl-canvas')).toBeVisible();
   await expect.poll(() => page.workers().some(worker => {
     const url = new URL(worker.url());

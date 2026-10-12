@@ -61,19 +61,12 @@ const personSchema = {
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={socialImageUrl} />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Crimson+Pro:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
+    <link rel="preload" href="/assets/fonts/crimson-pro-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="icon" type="image/png" href="/assets/apple-touch.png" />
     <link rel="apple-touch-icon" href="/assets/apple-touch.png" />
     <script type="application/ld+json" set:html={JSON.stringify(personSchema)} />
   </head>
   <body>
     <slot />
-
-    <script is:inline src="https://cdn.apple-livephotoskit.com/lpk/1/livephotoskit.js"></script>
   </body>
 </html>

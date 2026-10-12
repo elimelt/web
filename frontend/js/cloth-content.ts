@@ -348,6 +348,7 @@ class ClothContent extends HTMLElement {
   }
 
   _setupToggle() {
+    if (this.hasAttribute("external-toggle")) return;
     const isMobile =
       /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
       (navigator.maxTouchPoints > 1 &&

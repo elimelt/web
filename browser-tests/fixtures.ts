@@ -71,6 +71,13 @@ export async function mockFrontendNetwork(page: Page): Promise<void> {
   await page.route('**/*', route => {
     const url = new URL(route.request().url());
     if (url.hostname === '127.0.0.1') return route.continue();
+    if (url.hostname === 'tile.openstreetmap.org') {
+      return route.fulfill({
+        status: 200,
+        contentType: 'image/png',
+        body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64'),
+      });
+    }
     if (url.hostname === 'api.elimelt.com') return fulfillApi(route);
     if (url.hostname === 'notes.elimelt.com' && url.pathname === '/index.xml') {
       return route.fulfill({

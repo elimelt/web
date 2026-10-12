@@ -4,6 +4,7 @@ import { maliciousIdentity, mockFrontendNetwork } from './fixtures.js';
 test('historical chat identity and Markdown payloads cannot execute code', async ({ page }) => {
   await mockFrontendNetwork(page);
   await page.goto('/');
+  await page.locator('#chat').scrollIntoViewIfNeeded();
 
   const message = page.locator('#chat-messages .chat-msg').filter({ hasText: 'bold' });
   await expect(message).toHaveCount(1);
