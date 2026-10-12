@@ -84,6 +84,7 @@ const livePhotos = ['IMG_8875', 'IMG_8913'];
           const api = (window as unknown as { LivePhotosKit: { Player(el: HTMLElement): LivePlayer } }).LivePhotosKit;
           player = api.Player(element);
           player.showsNativeControls = false;
+          player.addEventListener('photoload', () => element.classList.add('is-ready'), { once: true });
           player.addEventListener('error', reset, { once: true });
           player.photoSrc = `/assets/album/${figure.dataset.photo}.jpg`;
           player.videoSrc = `/assets/album/${figure.dataset.photo}.MOV`;

@@ -17,6 +17,7 @@ const livePhotosKitStub = `
       element.pause = function () { window.__livePhotoEvents.push({ type: 'pause' }); };
       element.stop = function () { window.__livePhotoEvents.push({ type: 'stop' }); };
       window.__livePhotoEvents.push({ type: 'create' });
+      setTimeout(() => element.dispatchEvent(new Event('photoload')), 0);
       return element;
     },
   };
@@ -95,6 +96,8 @@ test('desktop plays Live Photos on hover and stops them on exit', async ({ page 
     showsNativeControls: false,
   });
   await expect(livePhoto.locator('.live-photo-player')).toHaveCSS('position', 'absolute');
+  await expect(livePhoto.locator('.live-photo-player')).toHaveCSS('opacity', '1');
+  await expect(livePhoto.locator('.live-photo-player')).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   expect(await livePhoto.evaluate(element => element.getBoundingClientRect().height)).toBeCloseTo(heightBefore, 0);
 
   await page.mouse.move(1, 1);
