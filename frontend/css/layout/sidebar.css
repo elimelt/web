@@ -193,16 +193,7 @@ body:has(.right-sidebar.mobile-open) #right-resize-handle {
   color: var(--text-secondary);
   margin-top: 0.25rem;
 }
-.live-photo { position: relative; }
-.live-photo-play {
-  position: absolute;
-  bottom: 0.5rem;
-  left: 0.5rem;
-  padding: 0.65rem;
-  color: #fff;
-  background: #222;
-  border: 1px solid #fff;
-  border-radius: 0.25rem;
-  cursor: pointer;
-}
-.live-photo-player { width: 100%; aspect-ratio: 1; }
+.live-photo { position: relative; cursor: pointer; }
+.live-photo:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 3px; }
+/* The SDK sets position: relative inline; keep its player over the thumbnail. */
+.live-photo-player { position: absolute !important; inset: 0; width: 100%; aspect-ratio: 1; }

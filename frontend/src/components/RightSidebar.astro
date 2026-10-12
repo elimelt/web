@@ -12,9 +12,8 @@ const livePhotos = ['IMG_8875', 'IMG_8913'];
     <div class="photo-grid">
       {photos.map((photo) => <figure class="photo-item"><img src={`/assets/album/thumbs/${photo.replace('.jpg', '.webp')}`} alt="" width="640" height="640" loading="lazy" decoding="async" /></figure>)}
       {livePhotos.map((photo) => (
-        <figure class="photo-item live-photo" data-photo={photo}>
+        <figure class="photo-item live-photo" data-photo={photo} tabindex="0" role="button" aria-label="Play Live Photo">
           <img src={`/assets/album/thumbs/${photo}.webp`} alt="" width="640" height="640" loading="lazy" decoding="async" />
-          <button class="live-photo-play" type="button">Play Live Photo</button>
         </figure>
       ))}
     </div>
@@ -35,6 +34,7 @@ const livePhotos = ['IMG_8875', 'IMG_8913'];
     if (!open || !template.isConnected) return;
     sidebar.append(template.content.cloneNode(true));
     template.remove();
+    sidebar.querySelectorAll<HTMLElement>('.live-photo').forEach(setupLivePhoto);
   };
   const observer = new MutationObserver(hydrate);
   if (sidebar && template) {
@@ -45,7 +45,10 @@ const livePhotos = ['IMG_8875', 'IMG_8913'];
   interface LivePlayer extends HTMLElement {
     photoSrc: string;
     videoSrc: string;
+    showsNativeControls: boolean;
     play(): void;
+    pause(): void;
+    stop(): void;
   }
   let kit: Promise<void> | undefined;
   const loadKit = () => kit ??= new Promise<void>((resolve, reject) => {
@@ -55,32 +58,67 @@ const livePhotos = ['IMG_8875', 'IMG_8913'];
     script.onerror = () => { script.remove(); kit = undefined; reject(new Error('Live Photo player unavailable')); };
     document.head.append(script);
   });
-  sidebar?.addEventListener('click', async (event) => {
-    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('.live-photo-play');
-    if (!button) return;
-    const figure = button.closest<HTMLElement>('[data-photo]');
-    if (!figure) return;
-    const originalChildren = [...figure.childNodes];
-    const restore = () => {
-      figure.replaceChildren(...originalChildren);
-      button.disabled = false;
-      button.textContent = 'Retry Live Photo';
+  function setupLivePhoto(figure: HTMLElement) {
+    let player: LivePlayer | undefined;
+    let loading: Promise<void> | undefined;
+    let active = false;
+
+    const reset = () => {
+      player?.pause();
+      player?.remove();
+      player = undefined;
+      figure.removeAttribute('aria-busy');
     };
-    button.disabled = true;
-    button.textContent = 'Loading…';
-    try {
-      await loadKit();
-      const element = document.createElement('div');
-      element.className = 'live-photo-player';
-      const api = (window as unknown as { LivePhotosKit: { Player(el: HTMLElement): LivePlayer } }).LivePhotosKit;
-      const player = api.Player(element);
-      player.photoSrc = `/assets/album/${figure.dataset.photo}.jpg`;
-      player.videoSrc = `/assets/album/${figure.dataset.photo}.MOV`;
-      player.addEventListener('error', restore, { once: true });
-      figure.replaceChildren(player);
-      player.play();
-    } catch {
-      restore();
-    }
-  });
+    const start = async () => {
+      active = true;
+      if (player) { player.play(); return; }
+      if (loading) return;
+      figure.setAttribute('aria-busy', 'true');
+      loading = (async () => {
+        try {
+          await loadKit();
+          // A quick pass over the photo must not start playback later.
+          if (!active) return;
+          const element = document.createElement('div');
+          element.className = 'live-photo-player';
+          const api = (window as unknown as { LivePhotosKit: { Player(el: HTMLElement): LivePlayer } }).LivePhotosKit;
+          player = api.Player(element);
+          player.showsNativeControls = false;
+          player.addEventListener('error', reset, { once: true });
+          player.photoSrc = `/assets/album/${figure.dataset.photo}.jpg`;
+          player.videoSrc = `/assets/album/${figure.dataset.photo}.MOV`;
+          figure.append(player);
+          player.play();
+        } catch {
+          reset();
+        } finally {
+          loading = undefined;
+          figure.removeAttribute('aria-busy');
+        }
+      })();
+      await loading;
+    };
+    const stop = () => {
+      active = false;
+      // pause clears pending playback even if the video is still loading.
+      player?.pause();
+      player?.stop();
+    };
+    figure.addEventListener('pointerenter', event => {
+      if (event.pointerType !== 'touch') void start();
+    });
+    figure.addEventListener('pointerleave', event => {
+      if (event.pointerType !== 'touch') stop();
+    });
+    figure.addEventListener('focus', () => {
+      if (figure.matches(':focus-visible')) void start();
+    });
+    figure.addEventListener('blur', stop);
+    figure.addEventListener('click', () => void start());
+    figure.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      void start();
+    });
+  }
 </script>
