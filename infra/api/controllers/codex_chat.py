@@ -8,14 +8,14 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from api.codex_runner import codex_is_ready, run_codex_prompt
+from api.codex_runner import DEFAULT_CODEX_MODEL, codex_is_ready, run_codex_prompt
 
 router = APIRouter(tags=["codex"])
 
 
 class ChatRequest(BaseModel):
     message: str
-    model: str = "gpt-5.5"
+    model: str = DEFAULT_CODEX_MODEL
 
 
 @router.get("/codex/health")

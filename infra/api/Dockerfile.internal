@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certifi
     apt-get install -y --no-install-recommends docker-ce-cli && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN npm install -g @augmentcode/auggie @openai/codex
+RUN npm install -g @augmentcode/auggie @openai/codex@0.162.1
 
 ARG INSTALL_EMBEDDINGS=0
 

@@ -12,7 +12,7 @@ from api.agents.common import (
     env,
     is_duplicate_message,
 )
-from api.codex_runner import codex_is_ready, run_codex_prompt
+from api.codex_runner import DEFAULT_CODEX_MODEL, codex_is_ready, run_codex_prompt
 
 _logger = logging.getLogger("api.agents.codex")
 if not _logger.handlers:
@@ -29,9 +29,6 @@ class CodexAgent(BaseAgent):
 
     def __init__(self, config: AgentConfig):
         super().__init__(config, _logger)
-        self.workdir = env("CODEX_WORKDIR", "/app")
-        self.sandbox = env("CODEX_SANDBOX_MODE", "read-only")
-        self.approval_policy = env("CODEX_APPROVAL_POLICY", "never")
         self.timeout_sec = int(env("CODEX_TIMEOUT_SEC", "300"))
 
     async def _call_api(self, prompt: str) -> str | None:
@@ -40,9 +37,8 @@ class CodexAgent(BaseAgent):
                 run_codex_prompt,
                 prompt,
                 model=self.config.model,
-                workdir=self.workdir,
-                sandbox=self.sandbox,
-                approval_policy=self.approval_policy,
+                workdir="/tmp",
+                chat_only=True,
                 timeout_sec=self.timeout_sec,
             )
         except Exception as exc:
@@ -61,12 +57,13 @@ class CodexAgent(BaseAgent):
         )
         prompt = prompt.replace(
             "- **RUN CODE FREQUENTLY.** Use run_python to verify claims, compute probabilities, simulate scenarios, measure performance. Don't speculate—compute. Show outputs.",
-            "- Use Codex's read-only workspace access when it helps. Don't claim you ran code unless you actually did.",
+            "- You can only reply in chat. You cannot inspect files, run code, or use tools. "
+            "Do not claim to have performed those actions.",
         )
 
         tools_list = (
-            "**Workspace:** You can inspect files in the configured workdir through Codex CLI "
-            f"({self.workdir}). Keep replies concise and grounded in what you can verify."
+            "**Capabilities:** Chat replies only. No workspace, command execution, or integrations. "
+            "Keep replies concise and be clear about what you cannot verify."
         )
         if "**Recent:**" in prompt:
             prompt = prompt.replace("**Recent:**", f"{tools_list}\n\n**Recent:**")
@@ -94,11 +91,28 @@ def _create_agent_config(agent_index: int, persona_key: str | None) -> AgentConf
         global_cooldown_sec=float(env("CODEX_AGENT_GLOBAL_COOLDOWN_SEC", "120")),
         token_limit=int(env("CODEX_AGENT_HISTORY_TOKEN_LIMIT", "10000")),
         max_daily_requests=int(env("CODEX_AGENT_MAX_DAILY_REQUESTS", "100")),
-        model=env("CODEX_AGENT_MODEL", "gpt-5.5"),
+        model=env("CODEX_AGENT_MODEL", DEFAULT_CODEX_MODEL),
     )
 
 
 async def start_codex_agents(stop_event: asyncio.Event) -> list[asyncio.Task]:
-    # Public chat must not reach a shell process carrying model or infrastructure credentials.
-    _logger.warning("Public Codex chat agent disabled until a credential-isolated worker is configured")
-    return []
+    ready, message = codex_is_ready()
+    if not ready:
+        _logger.info("%s; skipping codex agent", message)
+        return []
+
+    num_agents = max(1, min(int(env("CODEX_AGENT_COUNT", "2")), 5))
+    persona_keys = list(PERSONAS)
+    tasks = []
+    for i in range(num_agents):
+        persona_key = persona_keys[i % len(persona_keys)] if persona_keys else None
+        config = _create_agent_config(i, persona_key)
+        agent = CodexAgent(config)
+        _logger.info(
+            "Starting chat-only Codex agent sender=%s channels=%s model=%s",
+            config.effective_sender,
+            config.channels,
+            config.model,
+        )
+        tasks.append(asyncio.create_task(agent.run(stop_event)))
+    return tasks

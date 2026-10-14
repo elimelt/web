@@ -133,8 +133,9 @@ def test_fetch_pins_dns_and_blocks_redirect_to_internal(monkeypatch):
     assert destinations==['93.184.216.34']
 
 
-def test_public_codex_agent_cannot_start():
+def test_public_codex_agent_skips_start_without_auth(monkeypatch):
     from api.agents.codex_agent import start_codex_agents
+    monkeypatch.setattr("api.agents.codex_agent.codex_is_ready", lambda: (False, "No auth"))
     assert asyncio.run(start_codex_agents(asyncio.Event())) == []
 
 

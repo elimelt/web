@@ -18,6 +18,11 @@ def _env_enabled(name: str, default: str = "0") -> bool:
 @router.get("/status")
 async def agents_status() -> dict[str, Any]:
     codex_ready, codex_message = codex_is_ready()
+    codex_enabled = get_settings().features.codex_agent == "1"
+    codex_status = "ok" if codex_ready else "unconfigured"
+    if not codex_enabled:
+        codex_status = "disabled"
+        codex_message = "Codex chat agent disabled (ENABLE_CODEX_AGENT=0)"
 
     augment_status = "ok"
     augment_message = "Augment SDK available"
@@ -73,8 +78,10 @@ async def agents_status() -> dict[str, Any]:
     return {
         "agents": {
             "codex": {
-                "status": "ok" if codex_ready else "unconfigured",
+                "status": codex_status,
                 "message": codex_message,
+                "enabled": codex_enabled,
+                "mode": "chat-only",
             },
             "augment": {"status": augment_status, "message": augment_message},
             "gemini": {"status": gemini_status, "message": gemini_message},

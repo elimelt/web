@@ -95,6 +95,27 @@ docker exec -it redis redis-cli
 
 ## Backend Auto-Deploy
 
+### Codex chat
+
+The public Codex agent runs in chat-only mode: each invocation uses an empty,
+read-only workspace, disables shell tools and integrations, and excludes server
+credentials from its environment. The CLI version is pinned in
+`api/Dockerfile.internal`; `api/tests/test_codex_chat_cli.py` checks the actual CLI
+when installed, including rejection of a model-requested shell command.
+
+Set `ENABLE_CODEX_AGENT=1` and configure either `OPENAI_API_KEY` or
+`CODEX_AUTH_FILE=/absolute/path/to/.codex/auth.json` in the production Compose env
+file. Only that login file is mounted read-only; local configuration, plugins,
+and session history are not mounted. Without a login file, `CODEX_AUTH_FILE`
+defaults to `/dev/null`. `CODEX_AGENT_MODEL` defaults to `gpt-6-sol` because
+`gpt-5.5` retired from Codex with ChatGPT sign-in on October 14, 2026.
+
+Rebuild/recreate `internal-api` after changing these settings. `/agents/status`
+reports whether the agent is disabled or lacks authentication; `/codex/health`
+checks CLI/auth availability, not whether a live model request will succeed.
+
+### Deployment workflow
+
 The backend deploy workflow runs from `.github/workflows/backend-deploy.yml`.
 
 The active deploy target is the existing `elimelt.com` self-hosted runner with labels
