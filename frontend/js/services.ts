@@ -101,10 +101,17 @@ function renderServices(data) {
   return renderTable(services);
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
+let servicesInitialized = false;
+
+async function initServices() {
+  if (servicesInitialized) return;
+  servicesInitialized = true;
   const statsEl = (document.getElementById('services-stats') as HTMLDivElement);
   const container = (document.getElementById('services-content') as HTMLDivElement);
-  if (!container || !statsEl) return;
+  if (!container || !statsEl) {
+    servicesInitialized = false;
+    return;
+  }
 
   if (!(await isApiAvailable())) {
     hideOfflineSection('services', 'nav:services');
@@ -139,4 +146,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   load();
   setInterval(load, 10000);
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initServices);
+} else {
+  initServices();
+}

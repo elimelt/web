@@ -1,5 +1,5 @@
-import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-import html2canvas from "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/+esm";
+import * as THREE from "three";
+import html2canvas from "html2canvas";
 
 const PHYSICS_CONFIG = {
   DAMPING: 0.87,
@@ -348,6 +348,7 @@ class ClothContent extends HTMLElement {
   }
 
   _setupToggle() {
+    if (this.hasAttribute("external-toggle")) return;
     const isMobile =
       /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
       (navigator.maxTouchPoints > 1 &&

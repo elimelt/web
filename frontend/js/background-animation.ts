@@ -31,6 +31,7 @@ for (let x = -1; x <= 1; x += 2)
       LOCAL_CORNERS.push(new THREE.Vector3(x * HALF, y * HALF, z * HALF));
 
 export const DiceGame = {
+  initialized: false,
   scene: null,
   camera: null,
   renderer: null,
@@ -44,6 +45,8 @@ export const DiceGame = {
   settleFrames: 0,
 
   init() {
+    if (this.initialized) return;
+    this.initialized = true;
     this.overlay = (document.getElementById('dice-overlay') as HTMLDivElement);
     this.canvas = (document.getElementById('dice-canvas') as HTMLCanvasElement);
     this.popup = (document.getElementById('dice-popup') as HTMLDivElement);
@@ -54,16 +57,8 @@ export const DiceGame = {
     this._initThree();
     this._loadTextures();
 
-    const hasRolled = localStorage.getItem('diceRolled') === 'true';
-
-    if (hasRolled) {
-      this.popup.style.display = 'none';
-      this.sidebarBtn.style.display = '';
-    } else {
-      this.popup.style.display = '';
-      this.sidebarBtn.style.display = 'none';
-      this._showOverlay();
-    }
+    this.popup.style.display = 'none';
+    this.sidebarBtn.style.display = '';
 
     this.overlay.addEventListener('click', () => {
       if (this.popup.style.display !== 'none') {
@@ -72,7 +67,11 @@ export const DiceGame = {
         this._hideOverlay();
       }
     });
-    this.sidebarBtn.addEventListener('click', () => this._showAndRoll());
+  },
+
+  roll() {
+    localStorage.setItem('diceRolled', 'true');
+    this._showAndRoll();
   },
 
   _initThree() {
@@ -171,11 +170,13 @@ export const DiceGame = {
   },
 
   _showOverlay() {
+    this.overlay.hidden = false;
     this.overlay.classList.add('dice-visible');
   },
 
   _hideOverlay() {
     this.overlay.classList.remove('dice-visible');
+    this.overlay.hidden = true;
     this._stopAnimation();
   },
 

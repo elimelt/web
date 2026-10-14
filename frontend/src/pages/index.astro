@@ -1,0 +1,32 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import IconSprite from '../components/IconSprite.astro';
+import LeftSidebar from '../components/LeftSidebar.astro';
+import IntroAndLiveSections from '../components/IntroAndLiveSections.astro';
+import NotesEducation from '../components/NotesEducation.astro';
+import Experience from '../components/Experience.astro';
+import RightSidebar from '../components/RightSidebar.astro';
+import Overlays from '../components/Overlays.astro';
+---
+
+<BaseLayout
+  title="Elijah Melton | Software Engineer, Distributed Systems"
+  description="Elijah Melton is a software engineer working on distributed systems, AI infrastructure, cloud platforms, reliability, and developer automation."
+>
+  <IconSprite />
+  <div class="site-container">
+    <LeftSidebar />
+    <main class="main-content">
+      <IntroAndLiveSections />
+      <NotesEducation />
+      <Experience />
+    </main>
+    <RightSidebar />
+  </div>
+  <Overlays />
+
+  <script>
+    import '../../js/click-tracking.ts';
+    import '../../js/main.ts';
+  </script>
+</BaseLayout>

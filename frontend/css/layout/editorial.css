@@ -1,3 +1,11 @@
+@font-face {
+  font-family: 'Crimson Pro';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('/assets/fonts/crimson-pro-latin.woff2') format('woff2');
+}
+
 /* Open, typographic layout. Structure comes from spacing, not panel chrome. */
 body {
   font-family: var(--font);
