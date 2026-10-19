@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Address Resolution Protocol (ARP)</title>
+    <meta name="description" content="Covers the Address Resolution Protocol (ARP), a discovery protocol used to map network layer addresses (such as IP addresses) to data link layer addresses (such">
+    <link rel="canonical" href="https://notes.elimelt.com/networks/3-network/ARP.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Address Resolution Protocol (ARP)", "dateModified": "2025-12-29T22:39:59.769090", "description": "Covers the Address Resolution Protocol (ARP), a discovery protocol used to map network layer addresses (such as IP addresses) to data link layer addresses (such", "url": "https://notes.elimelt.com/networks/3-network/ARP.html", "articleSection": "Networks", "keywords": "address resolution protocol,arp,discovery protocol,arp table,arp request,arp reply"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/networks.html">Networks</a> » Address Resolution Protocol (ARP)</div>
+    </header>
+    <main class="content">
+        <h1>Address Resolution Protocol (ARP)</h1>
+        <h1 id="address-resolution-protocol-arp"><a class="toclink" href="#address-resolution-protocol-arp">Address Resolution Protocol (ARP)</a></h1>
+<p><strong>ARP</strong> is used to map IP addresses to MAC addresses. It sits directly on top of the link layer, without using any servers or routers. ARP is just one example of a <strong>discovery protocol</strong>, which are used to find devices on a network. Other examples include <strong>Zeroconf</strong> and <strong>Bonjour</strong>. Discovery protocols more often than not use broadcast messages to find devices on the network.</p>
+<h3 id="arp-table"><a class="toclink" href="#arp-table">ARP Table</a></h3>
+<p>ARP maintains a table of IP addresses and their corresponding MAC addresses. This is typically stored in a given host's memory. You can see your ARP table with the <code>arp</code> command.</p>
+<pre><code class="language-bash">arp -a
+</code></pre>
+<h3 id="arp-request"><a class="toclink" href="#arp-request">ARP Request</a></h3>
+<p>When a device wants to send a packet to another device on the same network, it first checks its ARP table to see if it knows the MAC address of the destination IP address. If it doesn't, it sends an ARP request to the broadcast MAC address <code>FF:FF:FF:FF:FF:FF</code> asking for the MAC address of the destination IP address.</p>
+<pre><code class="language-plaintext">ARP Request Packet:
+
+  ....Link layer.....
++----------+----------+----------+----------+----------+
+| SRC MAC  | DST MAC  | SRC IP   | DST IP   | Payload  |
++----------+----------+----------+----------+----------+
+ from NIC    From ARP   From DHCP
+</code></pre>
+<h3 id="arp-reply"><a class="toclink" href="#arp-reply">ARP Reply</a></h3>
+<p>Although the ARP request is broadcast, only nodes that already have an entry, or the destination IP address itself, will act on the request (ie refresh tables/learn MAC address). Other nodes will ignore the request. The destination IP address will then send an ARP reply to the source IP address with its MAC address.</p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

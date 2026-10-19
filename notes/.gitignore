@@ -26,3 +26,6 @@ embeddings.jsonl
 # The repository root ignores these; notes tracks its committed plugin builds.
 !quartz-site/**/dist/
 !.python-version
+
+# Legacy pre-Quartz pages published at /docs by scripts/quartz.sh.
+!docs/**/*.html

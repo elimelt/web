@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capacitors</title>
+    <meta name="description" content="Covers the fundamental concepts of capacitors, including capacitance, energy storage, and their behavior in AC and DC circuits. Provides a review of complex num">
+    <link rel="canonical" href="https://notes.elimelt.com/signal-conditioning/lecture-notes/lecture-6.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Capacitors", "dateModified": "2025-12-29T22:39:59.774517", "description": "Covers the fundamental concepts of capacitors, including capacitance, energy storage, and their behavior in AC and DC circuits. Provides a review of complex num", "url": "https://notes.elimelt.com/signal-conditioning/lecture-notes/lecture-6.html", "articleSection": "Hardware", "keywords": "capacitance,inductance,impedance,complex numbers,phasors,energy storage,ac/dc signals"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/hardware.html">Hardware</a> » Capacitors</div>
+    </header>
+    <main class="content">
+        <h1>Capacitors</h1>
+        <h2 id="capacitors"><a class="toclink" href="#capacitors">Capacitors</a></h2>
+<p>Stores energy in electric field between two plates.</p>
+<p>Passes AC, blocks DC. "High pass filter"</p>
+<p>Capacitance is the ratio of charge to voltage, measured in Farads.
+$$
+C = \frac{Q}{V}
+$$</p>
+<p>The energy stored in a capacitor is
+$$
+E = \frac{1}{2}CV^2
+$$</p>
+<p>$$
+\frac{d}{dt}Q = \frac{d}{dt}CV
+$$</p>
+<p>$$
+I_C = C\frac{dV}{dt}
+$$</p>
+<h2 id="inductors"><a class="toclink" href="#inductors">Inductors</a></h2>
+<p>Stores energy in magnetic field around a coil of wire due to current flowing through it. Units are Henrys (H).</p>
+<p>Passes DC, blocks AC. "Low pass filter"</p>
+<p>Energy stored in an inductor is
+$$
+E = \frac{1}{2}LI^2
+$$</p>
+<p>$$
+V_L = L\frac{dI}{dt}
+$$</p>
+<h2 id="complex-numbers-review"><a class="toclink" href="#complex-numbers-review">Complex Numbers Review</a></h2>
+<p>$$e = 2.71828...$$</p>
+<p>$$
+j \cdot j = -1 \to j = \sqrt{-1}
+$$</p>
+<p>$$
+e^{jq} = \cos(q) + j\sin(q)
+$$</p>
+<h2 id="complex-numbers-for-ac-signals"><a class="toclink" href="#complex-numbers-for-ac-signals">Complex Numbers for AC Signals</a></h2>
+<ul>
+<li>Pretend signals are complex during analysis, then take real part at the end.</li>
+<li>Multiplying by real number is scaling (magnitude/amplitude)</li>
+<li>Multiplying by imaginary number is phase shift</li>
+<li>Multiplying by complex number is scaling and phase shift</li>
+</ul>
+<p>EX:</p>
+<p>$$
+cos(2\pi ft + \phi) = e^{j\phi}e^{j2\pi ft}
+$$</p>
+<h2 id="impedance"><a class="toclink" href="#impedance">Impedance</a></h2>
+<p>The AC version of resistance.</p>
+<p>$$
+Z_{cap} = \frac{1}{j\omega C}
+$$</p>
+<p>$$
+Z_{ind} = j\omega L
+$$</p>
+<p>$$
+Z_{res} = R
+$$</p>
+<h2 id="phasors"><a class="toclink" href="#phasors">Phasors</a></h2>
+<p>Complex numbers that represent the amplitude and phase of a sinusoidal signal. Can be used to represent AC signals and greatly simplify analysis by </p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

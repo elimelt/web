@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parallel Reductions Benchmarks</title>
+    <meta name="description" content="Comprehensive benchmarking of array reduction techniques including ILP with multiple accumulators, SIMD vectorization, and multi-threading, with detailed assemb">
+    <link rel="canonical" href="https://notes.elimelt.com/operating-systems/benchmarks/reductions.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Parallel Reductions Benchmarks", "dateModified": "2025-12-29T22:39:59.771101", "description": "Comprehensive benchmarking of array reduction techniques including ILP with multiple accumulators, SIMD vectorization, and multi-threading, with detailed assemb", "url": "https://notes.elimelt.com/operating-systems/benchmarks/reductions.html", "articleSection": "Operating Systems", "keywords": "simd,avx2,ilp,multi-threading,vectorization,memory bandwidth,benchmarks"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/operating%20systems.html">Operating Systems</a> » Parallel Reductions Benchmarks</div>
+    </header>
+    <main class="content">
+        <h1>Parallel Reductions Benchmarks</h1>
+        <h1 id="parallel-reductions-benchmark"><a class="toclink" href="#parallel-reductions-benchmark">Parallel Reductions Benchmark</a></h1>
+<h2 id="the-problem-with-naive-reduction"><a class="toclink" href="#the-problem-with-naive-reduction">The Problem with Naive Reduction</a></h2>
+<p>A naive reduction creates a <strong>dependency chain</strong>:</p>
+<pre><code class="language-c">uint64_t sum = 0;
+for (size_t i = 0; i &lt; n; i++) {
+    sum += array[i];  // Each add depends on the previous!
+}
+</code></pre>
+<p>Each addition must wait for the previous one to complete. On a modern CPU that can execute 4+ adds per cycle, this leaves most execution units idle.</p>
+<h2 id="benchmark-variants"><a class="toclink" href="#benchmark-variants">Benchmark Variants</a></h2>
+<table>
+<thead>
+<tr>
+<th>Variant</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>red_naive</code></td>
+<td>Single accumulator - creates dependency chain</td>
+</tr>
+<tr>
+<td><code>red_ilp</code></td>
+<td>8 independent accumulators - breaks dependency chain</td>
+</tr>
+<tr>
+<td><code>red_simd</code></td>
+<td>AVX2 vector adds (4 × 64-bit per instruction)</td>
+</tr>
+<tr>
+<td><code>red_thread</code></td>
+<td>8 pthreads, each summing a portion</td>
+</tr>
+<tr>
+<td><code>red_ilp_simd</code></td>
+<td>4 independent AVX2 accumulators</td>
+</tr>
+<tr>
+<td><code>red_all</code></td>
+<td>Threads + ILP + SIMD combined</td>
+</tr>
+<tr>
+<td><code>red_opt</code></td>
+<td>Simple loop - compiler free to auto-vectorize</td>
+</tr>
+</tbody>
+</table>
+<h2 id="results"><a class="toclink" href="#results">Results</a></h2>
+<h3 id="performance-by-array-size-ns-per-element"><a class="toclink" href="#performance-by-array-size-ns-per-element">Performance by Array Size (ns per element)</a></h3>
+<table>
+<thead>
+<tr>
+<th>Size</th>
+<th>naive</th>
+<th>ilp</th>
+<th>simd</th>
+<th>thread</th>
+<th>ilp+simd</th>
+<th>all</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1 MB</strong></td>
+<td>0.41</td>
+<td>0.21</td>
+<td>0.17</td>
+<td>1.70</td>
+<td>0.15</td>
+<td>1.40</td>
+</tr>
+<tr>
+<td><strong>4 MB</strong></td>
+<td>0.21</td>
+<td>0.19</td>
+<td>0.18</td>
+<td>0.37</td>
+<td>0.21</td>
+<td>0.35</td>
+</tr>
+<tr>
+<td><strong>16 MB</strong></td>
+<td>0.35</td>
+<td>0.27</td>
+<td>0.24</td>
+<td>0.18</td>
+<td>0.25</td>
+<td>0.15</td>
+</tr>
+<tr>
+<td><strong>64 MB</strong></td>
+<td>0.41</td>
+<td>0.31</td>
+<td>0.30</td>
+<td>0.19</td>
+<td>0.30</td>
+<td>0.17</td>
+</tr>
+<tr>
+<td><strong>256 MB</strong></td>
+<td>0.40</td>
+<td>0.31</td>
+<td>0.33</td>
+<td>0.17</td>
+<td>0.32</td>
+<td>0.14</td>
+</tr>
+<tr>
+<td><strong>1024 MB</strong></td>
+<td>0.39</td>
+<td>0.31</td>
+<td>0.32</td>
+<td>0.15</td>
+<td>0.32</td>
+<td>0.13</td>
+</tr>
+</tbody>
+</table>
+<h3 id="speedup-vs-naive-1024-mb"><a class="toclink" href="#speedup-vs-naive-1024-mb">Speedup vs Naive (1024 MB)</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variant</th>
+<th>Time (ms)</th>
+<th>ns/elem</th>
+<th>Speedup</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>red_naive</code></td>
+<td>52.8</td>
+<td>0.39</td>
+<td>1.0×</td>
+</tr>
+<tr>
+<td><code>red_ilp</code></td>
+<td>41.8</td>
+<td>0.31</td>
+<td><strong>1.3×</strong></td>
+</tr>
+<tr>
+<td><code>red_simd</code></td>
+<td>43.3</td>
+<td>0.32</td>
+<td><strong>1.2×</strong></td>
+</tr>
+<tr>
+<td><code>red_thread</code></td>
+<td>19.5</td>
+<td>0.15</td>
+<td><strong>2.7×</strong></td>
+</tr>
+<tr>
+<td><code>red_ilp_simd</code></td>
+<td>42.4</td>
+<td>0.32</td>
+<td><strong>1.2×</strong></td>
+</tr>
+<tr>
+<td><code>red_all</code></td>
+<td>16.9</td>
+<td>0.13</td>
+<td><strong>3.1×</strong></td>
+</tr>
+</tbody>
+</table>
+<h2 id="key-observations"><a class="toclink" href="#key-observations">Key Observations</a></h2>
+<h3 id="1-ilp-benefit-13-speedup"><a class="toclink" href="#1-ilp-benefit-13-speedup">1. ILP Benefit (~1.3× speedup)</a></h3>
+<p>The 8-accumulator version tries to break the dependency chain:</p>
+<pre><code class="language-c">// 8 independent chains - maybe CPU can execute in parallel?
+sum0 += array[i+0];
+sum1 += array[i+1];
+sum2 += array[i+2];
+</code></pre>
+<p>The ~1.3× speedup (not 8×) indicates the workload is <strong>memory-bandwidth bound</strong>, not compute-bound.</p>
+<h3 id="2-small-arrays-and-threading"><a class="toclink" href="#2-small-arrays-and-threading">2. Small Arrays and Threading</a></h3>
+<p>At 1-4 MB (fits in cache), threading overhead dominates:
+- <code>red_naive</code>: 0.21-0.41 ns
+- <code>red_thread</code>: 0.37-1.70 ns (slower!)</p>
+<h3 id="3-large-arrays-threading-wins"><a class="toclink" href="#3-large-arrays-threading-wins">3. Large Arrays: Threading Wins</a></h3>
+<p>At 64+ MB (exceeds cache), threading provides the biggest benefit:
+- <code>red_naive</code>: 0.39-0.41 ns
+- <code>red_thread</code>: 0.15-0.19 ns (<strong>2.5-2.7× faster</strong>)</p>
+<p>Multiple threads can saturate memory bandwidth from different memory controllers/channels.</p>
+<h3 id="4-simd-approx-ilp-for-this-workload"><a class="toclink" href="#4-simd-approx-ilp-for-this-workload">4. SIMD \approx ILP for this Workload</a></h3>
+<p>SIMD and scalar ILP show similar performance because:
+- Both break the dependency chain
+- Memory bandwidth is the bottleneck, not ALU throughput
+- AVX2 loads 32 bytes/instruction, but memory can't keep up</p>
+<h3 id="5-cache-effects"><a class="toclink" href="#5-cache-effects">5. Cache Effects</a></h3>
+<p>Performance varies with array size due to cache hierarchy:</p>
+<table>
+<thead>
+<tr>
+<th>Size</th>
+<th>Likely Location</th>
+<th>Observed Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 MB</td>
+<td>L2/L3 cache</td>
+<td>Fastest single-thread; threading hurts</td>
+</tr>
+<tr>
+<td>4 MB</td>
+<td>L3 cache</td>
+<td>ILP/SIMD help; threading overhead visible</td>
+</tr>
+<tr>
+<td>16+ MB</td>
+<td>Main memory</td>
+<td>Threading helps; memory-bound</td>
+</tr>
+</tbody>
+</table>
+<h2 id="assembly"><a class="toclink" href="#assembly">Assembly</a></h2>
+<p>Compiled with <code>gcc -O3 -march=native</code>. The compiler auto-vectorizes all variants</p>
+<h3 id="red_naive-compiler-auto-vectorizes"><a class="toclink" href="#red_naive-compiler-auto-vectorizes">red_naive (compiler auto-vectorizes)</a></h3>
+<pre><code class="language-asm">.L25:
+    vpaddq  (%rax), %ymm0, %ymm0      ; AVX2: add 4 x 64-bit from memory to ymm0
+    addq    $32, %rax                  ; advance pointer by 32 bytes (4 elements)
+    cmpq    %rdx, %rax
+    jne     .L25
+; horizontal reduction:
+    vextracti128  $0x1, %ymm0, %xmm1  ; extract high 128 bits
+    vpaddq  %xmm0, %xmm1, %xmm0       ; add high + low halves
+    vpsrldq $8, %xmm0, %xmm1          ; shift right 8 bytes
+    vpaddq  %xmm1, %xmm0, %xmm0       ; final sum
+</code></pre>
+<p>Even though source has single accumulator, compiler vectorizes to <strong>1 AVX2 accumulator</strong> (4 parallel adds).</p>
+<h3 id="red_ilp-8-scalar-2-avx2-accumulators"><a class="toclink" href="#red_ilp-8-scalar-2-avx2-accumulators">red_ilp (8 scalar → 2 AVX2 accumulators)</a></h3>
+<pre><code class="language-asm">.L42:
+    addq    $1, %rdx
+    vpaddq  (%rax), %ymm1, %ymm1      ; accumulator 1: 4 x 64-bit
+    vpaddq  32(%rax), %ymm0, %ymm0    ; accumulator 2: 4 x 64-bit
+    addq    $64, %rax                  ; 64 bytes = 8 elements per iteration
+    cmpq    %rsi, %rdx
+    jb      .L42
+</code></pre>
+<p>Compiler recognizes 8 independent accumulators and converts to <strong>2 AVX2 accumulators</strong> (8 parallel adds).</p>
+<h3 id="red_simd-hand-written-avx2"><a class="toclink" href="#red_simd-hand-written-avx2">red_simd (hand-written AVX2)</a></h3>
+<pre><code class="language-asm">.L54:
+    vpaddq  (%rax), %ymm0, %ymm0      ; 1 AVX2 accumulator
+    addq    $32, %rax
+    cmpq    %rax, %rcx
+    jne     .L54
+</code></pre>
+<p>Same as naive! Hand-written SIMD with 1 accumulator matches compiler's auto-vectorization.</p>
+<h3 id="red_ilp_simd-4-avx2-accumulators-16-parallel-adds"><a class="toclink" href="#red_ilp_simd-4-avx2-accumulators-16-parallel-adds">red_ilp_simd (4 AVX2 accumulators = 16 parallel adds)</a></h3>
+<pre><code class="language-asm">.L79:
+    vpaddq  (%rax), %ymm1, %ymm1      ; accumulator 1
+    vpaddq  32(%rax), %ymm2, %ymm2    ; accumulator 2
+    subq    $-128, %rax               ; advance 128 bytes (16 elements)
+    vpaddq  -64(%rax), %ymm0, %ymm0   ; accumulator 3
+    vpaddq  -32(%rax), %ymm3, %ymm3   ; accumulator 4
+    cmpq    %rcx, %rax
+    jne     .L79
+</code></pre>
+<p><strong>4 independent AVX2 accumulators</strong> = 16 parallel 64-bit adds per iteration.</p>
+<h3 id="red_opt-compiler-completely-free"><a class="toclink" href="#red_opt-compiler-completely-free">red_opt (compiler completely free)</a></h3>
+<pre><code class="language-asm">.L116:
+    vpaddq  (%rax), %ymm0, %ymm0      ; identical to red_naive!
+    addq    $32, %rax
+    cmpq    %rdx, %rax
+    jne     .L116
+</code></pre>
+<p>Identical to naive - compiler auto-vectorizes the simple loop.</p>
+<h3 id="thread-workers"><a class="toclink" href="#thread-workers">Thread workers</a></h3>
+<p><strong>ThreadSum</strong> (naive per-thread):</p>
+<pre><code class="language-asm">    vpaddq  ...  ; compiler auto-vectorizes each thread's work
+</code></pre>
+<p><strong>ThreadSumILPSimd</strong> (optimized per-thread):</p>
+<pre><code class="language-asm">.L17:
+    vpaddq  -64(%rcx,%rax,8), %ymm0, %ymm0  ; 2 AVX2 accumulators
+    vpaddq  -32(%rcx,%rax,8), %ymm1, %ymm1
+    ...
+</code></pre>
+<h3 id="key-instructions-summary"><a class="toclink" href="#key-instructions-summary">Key Instructions Summary</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variant</th>
+<th>Main Loop Instruction</th>
+<th>Accumulators</th>
+<th>Elements/Iteration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>red_naive</code></td>
+<td><code>vpaddq (%rax), %ymm0, %ymm0</code></td>
+<td>1 × ymm</td>
+<td>4</td>
+</tr>
+<tr>
+<td><code>red_ilp</code></td>
+<td>2 × <code>vpaddq</code></td>
+<td>2 × ymm</td>
+<td>8</td>
+</tr>
+<tr>
+<td><code>red_simd</code></td>
+<td><code>vpaddq (%rax), %ymm0, %ymm0</code></td>
+<td>1 × ymm</td>
+<td>4</td>
+</tr>
+<tr>
+<td><code>red_ilp_simd</code></td>
+<td>4 × <code>vpaddq</code></td>
+<td>4 × ymm</td>
+<td>16</td>
+</tr>
+<tr>
+<td><code>red_opt</code></td>
+<td><code>vpaddq (%rax), %ymm0, %ymm0</code></td>
+<td>1 × ymm</td>
+<td>4</td>
+</tr>
+</tbody>
+</table>
+<h3 id="why-similar-performance"><a class="toclink" href="#why-similar-performance">Why Similar Performance?</a></h3>
+<p>All variants use AVX2 <code>vpaddq</code> (4 × 64-bit add). However, <strong>More accumulators</strong> = more ILP = fewer stalls waiting for previous add, but <strong>memory bandwidth</strong> is the real bottleneck at large sizes. That's why <code>red_naive</code> ≈ <code>red_ilp_simd</code> for 256+ MB arrays. The only major win is <strong>threading</strong> which saturates multiple memory channels.</p>
+<h2 id="conclusion"><a class="toclink" href="#conclusion">Conclusion</a></h2>
+<p>For <strong>memory-bound</strong> workloads like large array reduction, the bottleneck is memory bandwidth, not CPU compute. Multi-threading helps by utilizing multiple memory channels, while ILP/SIMD provide modest benefits.</p>
+<h2 id="running-the-benchmarks"><a class="toclink" href="#running-the-benchmarks">Running the Benchmarks</a></h2>
+<pre><code class="language-bash"># Build
+make
+
+# Run individual benchmark
+./bench red_naive 256    # 256 MB array
+./bench red_ilp 256
+./bench red_all 256
+
+# Compare all variants
+for v in red_naive red_ilp red_simd red_thread red_ilp_simd red_all; do
+    ./bench $v 256 2&gt;&amp;1 | grep &quot;Time per&quot;
+done
+</code></pre>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

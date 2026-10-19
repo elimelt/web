@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Systems, Introduction and Overview</title>
+    <meta name="description" content="Covers the implementation of file systems, a key component of operating systems that provides a standardized interface for managing nonvolatile storage. Discuss">
+    <link rel="canonical" href="https://notes.elimelt.com/operating-systems/v4-persistent-storage/11-file-systems-overview.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "File Systems, Introduction and Overview", "dateModified": "2025-12-29T22:39:59.773732", "description": "Covers the implementation of file systems, a key component of operating systems that provides a standardized interface for managing nonvolatile storage. Discuss", "url": "https://notes.elimelt.com/operating-systems/v4-persistent-storage/11-file-systems-overview.html", "articleSection": "Operating Systems", "keywords": "file systems,nonvolatile storage,metadata,executable files,file streams"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/operating%20systems.html">Operating Systems</a> » File Systems, Introduction and Overview</div>
+    </header>
+    <main class="content">
+        <h1>File Systems, Introduction and Overview</h1>
+        <h1 id="file-systems-introduction-and-overview"><a class="toclink" href="#file-systems-introduction-and-overview">File Systems: Introduction and Overview</a></h1>
+<p>What do we need in a filesystem?</p>
+<ul>
+<li><strong>Reliability</strong></li>
+<li><strong>Large capacity and low cost</strong></li>
+<li><strong>High performance</strong></li>
+<li><strong>Named data</strong></li>
+<li><strong>Controlled sharing</strong></li>
+</ul>
+<h3 id="nonvolatile-storage"><a class="toclink" href="#nonvolatile-storage">Nonvolatile Storage</a></h3>
+<p>As opposed to DRAM, nonvolatile storage is persistent. It is also generally cheaper and can have higher capacity. However, it is also orders of magnitude (~5 in the case of magnetic disk accesses) slower than DRAM. Current nonvolatile storage technologies don't allow random access to words of data, but instead require that data be read and written in blocks of a fixed size (e.g. 512 bytes).</p>
+<h2 id="the-file-system-abstraction"><a class="toclink" href="#the-file-system-abstraction">The File System Abstraction</a></h2>
+<p>A <strong>File</strong> is a named collection of data in a file system. Files are made of metadata and data. I won't go into what those are. Files can be "<em>executable</em>", and executable files on Linux begin with a magic number that tells the OS how to run the file. Scripts can also be executable, and they begin with a "shebang" (<code>#!</code>), following by the interpreter which tells the OS how to run the script.</p>
+<p>Traditional files can be thought of as a signle logical stream of bytes. However, MacOS's Extended File System (HFS+) and Windows NTFS support multiple streams (forks) for a signle file. In these contexts, you need to specify which stream you want to read from/write to in the corresponding system calls.</p>
+<p>I won't define them, but you should also know and understand the following terms:</p>
+<ul>
+<li><strong>Directory</strong></li>
+<li><strong>Root Directory</strong></li>
+<li><strong>Home Directory</strong></li>
+<li><strong>Current Working Directory</strong></li>
+<li><strong>Path</strong></li>
+<li><strong>Absolute Path</strong></li>
+<li><strong>Relative Path</strong></li>
+</ul>
+<h4 id="links"><a class="toclink" href="#links">Links</a></h4>
+<p>The mapping between a name and file is called a <strong>hard link</strong>. File systems that allow multiple hard links aren't a tree, and are instead usually a directed acyclic graph (DAG). A <strong>symbolic link</strong> is a mapping from a name to another file name. These are useful since they allow you to reference files that are stored on other systems/volumes. Some OS's support features managed outside of the file system. Windows has <strong>shortcuts</strong>, which are really just files that Windows recognizes and redirects from. MacOS has <strong>aliases</strong>, which are similar to symbolic links, but also refactor themselves when the target file is moved.</p>
+<h4 id="volumes"><a class="toclink" href="#volumes">Volumes</a></h4>
+<p>A <strong>volume</strong> is a collection of physical storage resources that form a logical storage device. In the simplest case, a volume is a single disk. However, a disk can be partitioned into multiple volumes, and a single volume can be made of multiple disks.</p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

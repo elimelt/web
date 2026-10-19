@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>False Sharing Benchmarks</title>
+    <meta name="description" content="Demonstrating the performance impact of false sharing in multi-threaded programs, where threads access different variables that share a cache line, causing exce">
+    <link rel="canonical" href="https://notes.elimelt.com/operating-systems/benchmarks/false_sharing.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "False Sharing Benchmarks", "dateModified": "2025-12-29T22:39:59.770966", "description": "Demonstrating the performance impact of false sharing in multi-threaded programs, where threads access different variables that share a cache line, causing exce", "url": "https://notes.elimelt.com/operating-systems/benchmarks/false_sharing.html", "articleSection": "Operating Systems", "keywords": "false sharing,cache coherence,mesi,multi-threading,cache line,performance,benchmarks"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/operating%20systems.html">Operating Systems</a> » False Sharing Benchmarks</div>
+    </header>
+    <main class="content">
+        <h1>False Sharing Benchmarks</h1>
+        <h1 id="false-sharing"><a class="toclink" href="#false-sharing">False Sharing</a></h1>
+<h2 id="the-problem"><a class="toclink" href="#the-problem">The Problem</a></h2>
+<p>Multiple threads access <strong>different variables</strong> that share a <strong>cache line</strong>:</p>
+<pre><code class="language-c">uint64_t counters[8];  // All 64 bytes = 1 cache line!
+
+void thread_n() {
+    for (int i = 0; i &lt; N; i++)
+        counters[n]++;  // Writes to MY counter
+}
+</code></pre>
+<p>Each thread owns a <em>different</em> element, but they all share one cache line. Every write invalidates the entire line on other cores.</p>
+<h2 id="mesi-protocol"><a class="toclink" href="#mesi-protocol">MESI Protocol</a></h2>
+<ol>
+<li><strong>Thread 0</strong> writes <code>counters[0]</code> → cache line enters <strong>Modified</strong> state on Core 0</li>
+<li><strong>Thread 1</strong> writes <code>counters[1]</code> → must <strong>invalidate</strong> Core 0's copy first</li>
+<li><strong>Thread 0</strong> writes again → must <strong>invalidate</strong> Core 1's copy</li>
+<li>Repeat... cache line "ping-pongs" between cores</li>
+</ol>
+<p>Each invalidation costs ~40-100 cycles.</p>
+<h2 id="padding"><a class="toclink" href="#padding">Padding</a></h2>
+<p>Ensure each thread's data is on its own cache line:</p>
+<pre><code class="language-c">struct {
+    uint64_t count;
+    char pad[56];  // Pad to 64 bytes
+} counters[8];
+</code></pre>
+<p>No sharing = no coherency traffic.</p>
+<h2 id="results-16-mb-167m-iterationsthread"><a class="toclink" href="#results-16-mb-167m-iterationsthread">Results (16 MB = 167M iterations/thread)</a></h2>
+<table>
+<thead>
+<tr>
+<th>Variant</th>
+<th>Total time</th>
+<th>ns/op</th>
+<th>Speedup</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fs_bad</code> (packed)</td>
+<td>57.8 ms</td>
+<td>0.34 ns</td>
+<td>1.0×</td>
+</tr>
+<tr>
+<td><code>fs_good</code> (padded)</td>
+<td>6.8 ms</td>
+<td>0.04 ns</td>
+<td><strong>8.5×</strong></td>
+</tr>
+</tbody>
+</table>
+<h2 id="why-85-faster"><a class="toclink" href="#why-85-faster">Why 8.5× Faster?</a></h2>
+<p>Packed version spends most time in coherency stalls - 8 threads contending for 1 cache line, each increment requires exclusive ownership.</p>
+<p>Padded version has zero coherency traffic - each core owns its cache line exclusively.</p>
+<h2 id="real-world-occurrences"><a class="toclink" href="#real-world-occurrences">Real-World Occurrences</a></h2>
+<ol>
+<li><strong>Counters/statistics</strong>: Thread-local counters in a global array</li>
+<li><strong>Locks</strong>: Multiple locks packed in same cache line</li>
+<li><strong>Work queues</strong>: Head/tail pointers updated by different threads</li>
+</ol>
+<h2 id="detection"><a class="toclink" href="#detection">Detection</a></h2>
+<pre><code class="language-bash">perf c2c record ./bench fs_bad 16
+perf c2c report
+</code></pre>
+<p>Look for "Shared Data Cache Line" events and high "Snoop" counts.</p>
+<h2 id="solutions"><a class="toclink" href="#solutions">Solutions</a></h2>
+<ol>
+<li><strong>Padding</strong>: Add dummy bytes to force cache line boundaries</li>
+<li><strong>Alignment</strong>: Use <code>__attribute__((aligned(64)))</code></li>
+<li><strong>Thread-local storage</strong>: <code>__thread</code> or <code>thread_local</code></li>
+</ol>
+<h2 id="running"><a class="toclink" href="#running">Running</a></h2>
+<pre><code class="language-bash">./bench fs_bad 16   # False sharing (packed)
+./bench fs_good 16  # No false sharing (padded)
+</code></pre>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

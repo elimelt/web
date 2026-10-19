@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Greedy Algorithms for Interval Scheduling and Partitioning</title>
+    <meta name="description" content="This document explores greedy algorithms for interval scheduling and partitioning problems. It provides detailed explanations of the algorithms, including Pytho">
+    <link rel="canonical" href="https://notes.elimelt.com/algorithms/greedy-algorithms.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Greedy Algorithms for Interval Scheduling and Partitioning", "dateModified": "2025-12-29T22:39:59.760413", "description": "This document explores greedy algorithms for interval scheduling and partitioning problems. It provides detailed explanations of the algorithms, including Pytho", "url": "https://notes.elimelt.com/algorithms/greedy-algorithms.html", "articleSection": "Algorithm Analysis", "keywords": "algorithms,interval,scheduling,partitioning,greedy"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/algorithm%20analysis.html">Algorithm Analysis</a> » Greedy Algorithms for Interval Scheduling and Partitioning</div>
+    </header>
+    <main class="content">
+        <h1>Greedy Algorithms for Interval Scheduling and Partitioning</h1>
+        <h1 id="greedy-algorithms"><a class="toclink" href="#greedy-algorithms">Greedy Algorithms</a></h1>
+<p>Choose the most attractive choice at each step, and hope that this will lead to the optimal solution. Proofs of correctness are particularly important for greedy algorithms.</p>
+<h2 id="interval-scheduling"><a class="toclink" href="#interval-scheduling">Interval Scheduling</a></h2>
+<p>Job $j$ starts at $s(j)$ and finishes at $f(j)$. Two jobs are compatible if they don't overlap. The goal is to schedule as many jobs as possible without overlapping.</p>
+<p>Start by sorting the jobs with $f(j)$, and iterate over the jobs in order and choose as many jobs as you can.</p>
+<pre><code class="language-python">def interval_scheduling(jobs):
+  jobs.sort(key=lambda x: x[1])
+  last = 0
+  S = []
+  for job in jobs:
+    if job[0] &gt;= last:
+      S.append(job)
+      last = job[1]
+  return S
+</code></pre>
+<h3 id="greedy-stays-ahead-proof"><a class="toclink" href="#greedy-stays-ahead-proof">Greedy Stays Ahead Proof</a></h3>
+<p>Suppose the above algorithm has chosen jobs $f(i_1) \le f(i_2) \le \ldots \le f(i_k)$, and suppose $f(j_1) \le f(j_2) \le \ldots \le f(j_m)$.</p>
+<p><em>Goal:</em> $m \le k$</p>
+<p><em>Lemma</em>: $\forall r$, $f(i_r) \le f(j_r)$</p>
+<p><em>Proof</em>: Induction, $P(r) := f(i_r) \le f(j_r)$</p>
+<p><em>Base Case</em>: $P(1)$. $i_1$ has the smallest finishing time.</p>
+<p><em>IH</em>: Assume $P(r - 1)$</p>
+<p><em>IS</em>: Goal $P(r)$</p>
+<p>Applying $P(r - 1)$, and using the fact that both sets of jobs chosen are non-overlapping within themselves, we have...</p>
+<p>$$
+f(i_{r - 1}) \le f(j_{r - 1}) \le s(j_r)
+$$</p>
+<p>So $j_r$ is a candidate for $i_r$. However, greedy chose $i_r$, which implies $f(i_r) \le $f(j_r)$. (induction over)</p>
+<p>Now, we want to show that $m \le k$. Suppose for contradiction that $m &gt; k$.</p>
+<p>We know $f(i_k) \le f(j_k) \le s(j_{k + 1})$, so greedy could have executed $j_{k + 1}$ after $i_k$, which is a contradiction.</p>
+<h3 id="exchange-argument"><a class="toclink" href="#exchange-argument">Exchange Argument</a></h3>
+<p>Make the optimal solution similar to greedy without changing its value.</p>
+<p>This would look like removing $j_1$ from the optimal solution, adding $i_1$ instead. Then this optimal solution still has the same number of jobs, and is thus still optimal, but also shares $i_1$ in common with the greedy solution. Continue this into the general case where the first $k$ jobs are in common, and we can use the previous lemma to show that we can continue this exchange, until the greedy solution becomes the optimal.</p>
+<h2 id="interval-partitioning"><a class="toclink" href="#interval-partitioning">Interval Partitioning</a></h2>
+<p>Given a set of intervals $I$, partition them into the minimum number of sets $S_1, S_2, \ldots, S_k$ such that each $S_i$ contains no overlapping intervals.</p>
+<pre><code class="language-python">def partition_intervals(I: list[tuple[int, int]]):
+  # sort by start time
+  I.sort(key=lambda x: x[0])
+  d = 0
+  S = []
+  for itvl in I:
+    # if some partition works, add itvl to it
+    for i, S_i in enumerate(S):
+      if itvl[0] &gt;= S_i[-1][1]:
+        S[i].append(itvl)
+        break
+    # otherwise, allocate new partition with itvl
+    else:
+      S[d] = [itvl]
+      d += 1
+  return S
+</code></pre>
+<h3 id="proof-of-correctness"><a class="toclink" href="#proof-of-correctness">Proof of Correctness</a></h3>
+<p><strong>Observation</strong>: The algorithm never schedules two incompatible lectures in the same classroom.</p>
+<p><strong>Lemma</strong>: The algorithm is optimal.</p>
+<p><strong>Proof</strong>: using structural property</p>
+<p>Let $d$ be the number of classrooms the greedy algorithm uses. Classroom $d$ is then allocated because we needed to schedule a job, $j$, that is incompatible with all $d - 1$ previously allocated classrooms.</p>
+<p>Since we sorted by start time, all these incompatible jobs must have started before $s(j)$, and thus we have $d$ lectures overlapping at time $s(j) + \epsilon$, so our maximum depth is $\ge d$.</p>
+<p>Since we have that the optimal solution must schedule at least depth number of classrooms, we have that the greedy algorithm is optimal.</p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

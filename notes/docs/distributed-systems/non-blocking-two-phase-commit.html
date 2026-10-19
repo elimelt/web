@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Non-Blocking Two Phase Commit</title>
+    <meta name="description" content="Explains the concept of non-blocking two phase commit using Paxos">
+    <link rel="canonical" href="https://notes.elimelt.com/distributed-systems/non-blocking-two-phase-commit.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Non-Blocking Two Phase Commit", "dateModified": "2025-12-29T22:39:59.764193", "description": "Explains the concept of non-blocking two phase commit using Paxos", "url": "https://notes.elimelt.com/distributed-systems/non-blocking-two-phase-commit.html", "articleSection": "Distributed Systems", "keywords": "paxos,two-phase commit,distributed transactions,consistency models"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/distributed%20systems.html">Distributed Systems</a> » Non-Blocking Two Phase Commit</div>
+    </header>
+    <main class="content">
+        <h1>Non-Blocking Two Phase Commit</h1>
+        <h1 id="non-blocking-two-phase-commit"><a class="toclink" href="#non-blocking-two-phase-commit">Non-Blocking Two Phase Commit</a></h1>
+<p>Regular 2PC is blocking because we need to wait for <strong>all</strong> nodes to agree that an operation is commit-able. There are massive performance implications to read-only transactions (could fix with snapshot reads) and lock contention. We can fix this by relying on Paxos.</p>
+<p>We make the coordinator as well as each participant a Paxos group with its own shard, and then we can just wait until all groups agree to an operation.</p>
+<h2 id="2pc-on-paxos"><a class="toclink" href="#2pc-on-paxos">2PC on Paxos</a></h2>
+<ol>
+<li>Client requests multi-key operation at coordinator</li>
+<li>Coordinator logs request</li>
+<li>Coordinator sends prepare</li>
+<li>Participants decide to commit/abort, and log result</li>
+<li>Coordinator sends a commit/abort</li>
+<li>Participants record results</li>
+</ol>
+<h2 id="multi-key-transactions-in-a-kv-store"><a class="toclink" href="#multi-key-transactions-in-a-kv-store">Multi-Key Transactions in a KV Store</a></h2>
+<p>Assuming reader-writer locking scheme, and that the application code runs on the client:</p>
+<ul>
+<li>RPCs to storage layer to start/end transactions, and read/write values</li>
+<li>KV store acquires/releases locks and does read/write operations</li>
+<li>Keep KV store simple so application logic is easy to change</li>
+<li>Server can abandon transaction and release locks if needed (e.g. if the client fails)</li>
+</ul>
+<p>The basic approach is to:</p>
+<ul>
+<li>Read and write objects during execution</li>
+<li>Contact the appropriate paxos group leader and acquire any locks</li>
+<li>Client decides to commit and notifies coordinator</li>
+<li>Coordinator contacts all shards and sends <code>prepare</code> message</li>
+<li>Prepare log entry is replicated throughout group</li>
+<li>Group votes to either send <code>ok</code> or <code>abort</code></li>
+<li>If all contacted shards vote <code>ok</code>, coordinator sends <code>commit</code> message</li>
+<li>Each shard replicates <code>commit</code> entry in log</li>
+<li>Leader released locks</li>
+</ul>
+<h2 id="caution-deadlocks"><a class="toclink" href="#caution-deadlocks">Caution: Deadlocks</a></h2>
+<p>Deadlocks are very easy to trigger when performing operations across shards. A general solution is to always kill things that need to wait. For instance, with a checking/savings account at a bank:</p>
+<ul>
+<li>Two clients execute the same exact transaction concurrently</li>
+<li>Both get read locks on accounts, so neither can acquire write locks and the transaction stalls</li>
+<li>Two clients, one moves from savings to checking, and the other from checking to savings</li>
+<li>Each gets read lock, neither can get write lock, so transaction stalls</li>
+</ul>
+<p>Deadlocks can be an issue in sharded systems when moving shards across groups.</p>
+<h2 id="googles-bigtable-in-retrospect"><a class="toclink" href="#googles-bigtable-in-retrospect">Google's Bigtable in Retrospect</a></h2>
+<p>Jeff Dean of Google said that not supporting distributed transactions was the biggest mistake in the the design of Bigtable. Incremental updates make it a very important feature, so users really wanted them and often tried to implement it themselves on top of Bigtable</p>
+<p>Spanner, Google's multi-datacenter KV store uses 2PC over Paxos, and is one of the backbones of Google's ad service.</p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breadth First Search Algorithm Implementation and Analysis</title>
+    <meta name="description" content="A comprehensive explanation of the Breadth First Search (BFS) algorithm, including implementation, complexity analysis, and mathematical proofs. The document co">
+    <link rel="canonical" href="https://notes.elimelt.com/algorithms/BFS.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Breadth First Search Algorithm Implementation and Analysis", "dateModified": "2025-12-29T22:39:59.759128", "description": "A comprehensive explanation of the Breadth First Search (BFS) algorithm, including implementation, complexity analysis, and mathematical proofs. The document co", "url": "https://notes.elimelt.com/algorithms/BFS.html", "articleSection": "Algorithms", "keywords": "graph traversal,shortest paths,graph theory,complexity analysis"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/algorithms.html">Algorithms</a> » Breadth First Search Algorithm Implementation and Analysis</div>
+    </header>
+    <main class="content">
+        <h1>Breadth First Search Algorithm Implementation and Analysis</h1>
+        <h1 id="breadth-first-search"><a class="toclink" href="#breadth-first-search">Breadth First Search</a></h1>
+<p>Completely explore the vertices of a graph in order of their distance from the starting node.</p>
+<p>There are three states of a vertex in BFS:
+- <strong>Undiscovered</strong>: The vertex has not been seen yet.
+- <strong>Discovered</strong>: The vertex has been seen, but its neighbors have not been explored yet.
+- <strong>Explored</strong>: The vertex has been seen and its neighbors have been explored.</p>
+<h3 id="algorithm"><a class="toclink" href="#algorithm">Algorithm</a></h3>
+<pre><code class="language-plaintext">BFS(G, s):
+  mark all vertices as undiscovered
+
+  mark s as discovered
+  q = queue({s})
+  while q is not empty:
+    u = poll(q)
+    for each edge (u, v) in G:
+      if v is undiscovered:
+        mark v as discovered
+        add v to q
+    mark u as explored
+</code></pre>
+<h3 id="analysis"><a class="toclink" href="#analysis">Analysis</a></h3>
+<p>The outer while loop runs once for each vertex in the graph, and the inner for loop runs once for each edge of the current node. Remembering that the sum of the degrees of all vertices is equal to twice the number of edges in the graph, we have...</p>
+<p>$$
+O(|V|) + O(\sum_{v \in V} deg(v)) = O(|V| + |E|)
+$$</p>
+<h3 id="lemmas"><a class="toclink" href="#lemmas">Lemmas</a></h3>
+<ol>
+<li>$BFS(s)$ visits a vertex $v$ if and only if there is a path from $s$ to $v$.</li>
+<li>Edges into then-unexplored vertices form a tree rooted at $s$ (the <strong>BFS spanning tree</strong>).</li>
+<li>Level $i$ in the tree are exactly all vertices $v$ stuch that the shortest path from $s$ to $v$ has $i$ edges.</li>
+<li>All non-tree edges from $G$ connect vertices in the same level or adjacent levels.</li>
+</ol>
+<h3 id="difference-in-levels"><a class="toclink" href="#difference-in-levels">Difference in levels</a></h3>
+<p>Let $L(v)$ be the level of vertex $v$ in a BFS tree of interest.</p>
+<p>Claim:
+$$
+\forall (x, y) \in E, |L(x) - L(y)| \le 1
+$$</p>
+<p>Proof:
+Suppose $L(x) = i$ and $L(y) = j$. Without loss of generality, assume $x$ is explored before $y$.</p>
+<p>Consider the iteration where we process $x$.</p>
+<p>Case 1: $y$ is still undiscovered. Since there is an edge between $x$ and $y$, we will discover $y$ in the next iteration, and so $L(y) = i + 1$.</p>
+<p>Case 2: $y$ is discovered. Then $y$ is already in the queue, somewhere before $x$. We know $L(y) \ge i$ because $x$ was discovered before $y$. Since the levels are non-decreasing, and $L(x) = i$, we have $L(y) \le i + 1$.</p>
+<p>Thus, $|L(x) - L(y)| \le 1$.</p>
+<h3 id="shortest-paths"><a class="toclink" href="#shortest-paths">Shortest paths</a></h3>
+<p>Claim:</p>
+<p>For every vertex $v \in V$ reachable from $s$, $L(v)$ is the length of the shortest path from $s$ to $v$.</p>
+<p>Proof:</p>
+<p>Let $l(v)$ be the length of the shortest path from $s$ to $v$.</p>
+<p>We have that $L(v) \ge l(v)$, since $L(v)$ is the length of a valid path from $s$ to $v$, so the shortest path must be at least as short.</p>
+<p>Next, we must show that $L(v) \le l(v)$.</p>
+<p>Let $v_0, v_1, \ldots, v_k$ be the shortest path from $s$ to $v$ (with $v_0 = s$).</p>
+<p>$$
+\forall v \in BFS(G, s), L(v) = \text{length of the shortest path from } s \text{ to } v
+$$</p>
+<pre><code class="language-python">from collections import deque
+
+def bfs(graph, start):
+    visited = set()
+    queue = deque([start])
+    visited.add(start)
+    while queue:
+        vertex = queue.popleft()
+        print(vertex)
+        for neighbor in graph[vertex]:
+            if neighbor not in visited:
+                visited.add(neighbor)
+                queue.append(neighbor)
+</code></pre>
+<p>Or a reusable level-order iterator over a graph using BFS:</p>
+<pre><code class="language-python">from collections import deque
+
+def level_order_traversal(graph, start):
+    queue = deque([(start, 0)])
+    while queue:
+        vertex, level = queue.popleft()
+        yield vertex, level
+        for neighbor in graph[vertex]:
+            queue.append((neighbor, level + 1))
+</code></pre>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

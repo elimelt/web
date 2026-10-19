@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Delivery Networks (CDNs)</title>
+    <meta name="description" content="Covers the implementation of content delivery networks (CDNs) and how they place content closer to clients. Discusses browser caching, proxy caches, and the use">
+    <link rel="canonical" href="https://notes.elimelt.com/networks/5-application/CDNs.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Content Delivery Networks (CDNs)", "dateModified": "2025-12-29T22:39:59.770228", "description": "Covers the implementation of content delivery networks (CDNs) and how they place content closer to clients. Discusses browser caching, proxy caches, and the use", "url": "https://notes.elimelt.com/networks/5-application/CDNs.html", "articleSection": "Networks", "keywords": "content delivery networks,web caching,proxy servers,edge locations,dns resolution,cache control headers"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/networks.html">Networks</a> » Content Delivery Networks (CDNs)</div>
+    </header>
+    <main class="content">
+        <h1>Content Delivery Networks (CDNs)</h1>
+        <h1 id="content-delivery-networks-cdns"><a class="toclink" href="#content-delivery-networks-cdns">Content Delivery Networks (CDNs)</a></h1>
+<h2 id="how-do-you-place-content-near-clients"><a class="toclink" href="#how-do-you-place-content-near-clients">How do you place content near clients?</a></h2>
+<h3 id="browser-cache"><a class="toclink" href="#browser-cache">Browser Cache</a></h3>
+<p>Web browsers can cache static content such as stylesheets, scripts, images, and some AJAX requests. This caching can speed up page load time on subsequent page views.</p>
+<p>When a web server returns a response, it sends a <code>Cache-Control</code> header. This header specifies the amount of time that a file should be cached. Once a file is cached in the browser, the browser will not request the file from the server until the file has expired.</p>
+<h2 id="proxy-caches"><a class="toclink" href="#proxy-caches">Proxy Caches</a></h2>
+<p>A proxy server is a server that sits between a client application, such as a web browser, and a real server. It intercepts all requests to the real server to see if it can fulfill the requests itself. If not, it forwards the request to the real server.</p>
+<h2 id="content-delivery-networks-cdns_1"><a class="toclink" href="#content-delivery-networks-cdns_1">Content Delivery Networks (CDNs)</a></h2>
+<p>A CDN is a system of distributed servers that deliver web content to a user based on the geographic locations of the user. Each region will have a number of edge locations, which are data centers that cache the content of the main server.</p>
+<p>The DNS resolution of a CDN URL will direct the user to the nearest edge location, which will then deliver the cached content. This process reduces the load on the original server and speeds up the delivery of the content to the user.</p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

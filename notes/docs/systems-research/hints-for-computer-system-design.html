@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hints for Computer System Design</title>
+    <meta name="description" content="A review of the paper "Hints for Computer System Design" by Butler Lampson.">
+    <link rel="canonical" href="https://notes.elimelt.com/systems-research/hints-for-computer-system-design.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Hints for Computer System Design", "dateModified": "2025-12-29T22:39:59.774908", "description": "A review of the paper \"Hints for Computer System Design\" by Butler Lampson.", "url": "https://notes.elimelt.com/systems-research/hints-for-computer-system-design.html", "articleSection": "System Design", "keywords": "systems,scaling,review,paper,caching"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/system%20design.html">System Design</a> » Hints for Computer System Design</div>
+    </header>
+    <main class="content">
+        <h1>Hints for Computer System Design</h1>
+        <h6 id="hints-for-computer-system-design"><a class="toclink" href="#hints-for-computer-system-design"><a href="https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/acrobat-17.pdf">Hints for Computer System Design</a></a></h6>
+<hr />
+<h3 id="key-insights"><a class="toclink" href="#key-insights">Key Insights</a></h3>
+<h4 id="caching"><a class="toclink" href="#caching">Caching</a></h4>
+<p>Store $[f, x, f(x)]$ tuples in a cache.</p>
+<p>If $f$ isn't a pure function, invalidate with the following:</p>
+<p>$$
+f(x + \Delta) = g(x, \Delta, f(x))
+$$</p>
+<p>For example, $x$ is an <code>int[]</code>, $\Delta$ is a write $(i, v)$, and $f$ is a function <code>int sum(int[] x)</code>. Then $g(x, \Delta, f(x))$ is <code>f(x) + v - x[i]</code>.</p>
+<p>Caches should ideally have adaptive sizes.</p>
+<p>A classic example is the caching in hardware that uses $[Fetch, \text{address}, \text{content of address}]$ tuples. Similarly, virtual memory uses $[Page, \text{address}, \text{content of address}]$ tuples.</p>
+<p>However, more complicated applications of caching exist. In real-time systems, you're often trying to cache the state of a system given small changes corresponding to events. The key here is to try and invalidate as few entries as possible in response to events.</p>
+<h3 id="lecture-review-notes"><a class="toclink" href="#lecture-review-notes">Lecture Review Notes</a></h3>
+<h4 id="why-is-system-design-hard"><a class="toclink" href="#why-is-system-design-hard">Why is system design hard?</a></h4>
+<ul>
+<li>external interface isn't well defined<ul>
+<li>requirements aren't clear</li>
+<li>Things are often not well-designed</li>
+</ul>
+</li>
+<li>The measure of success is not very clear<ul>
+<li>Many different ways to interact with a system</li>
+<li>Many systems, even in production, have bugs</li>
+</ul>
+</li>
+</ul>
+<h4 id="throw-one-away"><a class="toclink" href="#throw-one-away">Throw one away</a></h4>
+<ul>
+<li>Always be prepared to discard your prototype</li>
+<li>Throw ideas at the wall and go with what sticks</li>
+</ul>
+<h4 id="interface-design"><a class="toclink" href="#interface-design">Interface Design</a></h4>
+<p>Conflicting requirements:
+- Simple
+- Complete
+- Efficient</p>
+<p>In a way it's a lot like PL design; exposing new abstractions, objects and operations, manipulating them, etc.</p>
+<p>KISS; Do one thing at a time and do it well.</p>
+<ul>
+<li>Don't over-promise</li>
+<li>Get it right, but beware the dangers of abstractions (especially performance)</li>
+<li>Make it fast rather than general and complete. You should keep scope small so that it's easy to optimize, and also to compose with other systems/components</li>
+<li>Procedure args let you keep it general but extendable<ul>
+<li>C function pointers, C++ functions</li>
+<li><code>LD_PRELOAD</code> trick: override calls by providing a wrapper that calls the original function, but with some extra functionality</li>
+</ul>
+</li>
+<li>Leave it to the client (check Exokernel paper)<ul>
+<li>Unix pipes</li>
+</ul>
+</li>
+<li>Keep interfaces stable<ul>
+<li>Counterexample LLVM</li>
+</ul>
+</li>
+<li>Keep a place to stand<ul>
+<li>Virtualization!!!</li>
+</ul>
+</li>
+</ul>
+<h4 id="implementation"><a class="toclink" href="#implementation">Implementation</a></h4>
+<p>Plan to throw one away - learn from prototyping</p>
+<p>Keep secrets - impl details hidden from clients. Can be tradeoff for performance optimizations</p>
+<p>Handle normal and worst cases separately</p>
+<ul>
+<li>Might be OK to crash a few processes if it means the system can recover</li>
+<li>Caches in processors are optimized for common case (principle of locality)</li>
+<li>Paging in virtual memory is optimized for common case (principle of locality)</li>
+</ul>
+<h4 id="efficiency"><a class="toclink" href="#efficiency">Efficiency</a></h4>
+<ul>
+<li>Split resources<ul>
+<li>Faster to allocate a new resource than to wait for one to be freed</li>
+<li>Heterogeneous systems<ul>
+<li>Specialized hardware like FPGA or GPU to run specialized tasks</li>
+<li>E.G. Google's TPU, Microsoft Azure FPGAs</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Use static analysis</li>
+</ul>
+<h4 id="reliability"><a class="toclink" href="#reliability">Reliability</a></h4>
+<ul>
+<li>Log updates<ul>
+<li>Can recover</li>
+<li>Append only is efficient</li>
+<li>Can be used for replication</li>
+</ul>
+</li>
+<li>Atomic transactions<ul>
+<li>E.G. ACID</li>
+</ul>
+</li>
+</ul>
+<h4 id="takeaways"><a class="toclink" href="#takeaways">Takeaways</a></h4>
+<ul>
+<li>Most successful systems are built with particular themes, many of which are discussed in this paper</li>
+<li>When reading papers, look for what you can apply, and ignore irrelevant details.</li>
+<li>Hints can be added, e.g. approximation vs precision</li>
+</ul>
+<h3 id="further-reading"><a class="toclink" href="#further-reading">Further Reading</a></h3>
+<ul>
+<li>MicroLog</li>
+<li>https://github.com/DPDK/dpdk</li>
+</ul>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synchronizing Access to Shared Objects</title>
+    <meta name="description" content="Covers the implementation of mutual exclusion mechanisms for synchronizing access to shared objects in operating systems. Discusses formal properties of locks, ">
+    <link rel="canonical" href="https://notes.elimelt.com/operating-systems/v2-concurrency/5-synchronizing-access-to-shared-objects.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Synchronizing Access to Shared Objects", "dateModified": "2025-12-29T22:39:59.773278", "description": "Covers the implementation of mutual exclusion mechanisms for synchronizing access to shared objects in operating systems. Discusses formal properties of locks, ", "url": "https://notes.elimelt.com/operating-systems/v2-concurrency/5-synchronizing-access-to-shared-objects.html", "articleSection": "Operating Systems", "keywords": "mutual exclusion,locks,thread-safe,bounded queue,atomic operation"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/operating%20systems.html">Operating Systems</a> » Synchronizing Access to Shared Objects</div>
+    </header>
+    <main class="content">
+        <h1>Synchronizing Access to Shared Objects</h1>
+        <h1 id="synchronizing-access-to-shared-objects"><a class="toclink" href="#synchronizing-access-to-shared-objects">Synchronizing Access to Shared Objects</a></h1>
+<h2 id="locks-mutual-exclusion"><a class="toclink" href="#locks-mutual-exclusion">Locks: Mutual Exclusion</a></h2>
+<p>Locks enable mutual exclusion with two operations: <code>acquire</code> and <code>release</code>.</p>
+<ul>
+<li>A lock can be in one of two states: <code>BUSY</code> or <code>FREE</code>.</li>
+<li>Initially, the lock is <code>FREE</code>.</li>
+<li><code>acquire</code> waits until the lock is <code>FREE</code>, then sets it to <code>BUSY</code>.</li>
+<li>This needs to be an atomic operation, and is typically implemented to be so in hardware.</li>
+<li><code>release</code> sets the lock to <code>FREE</code>. If there are processes waiting to acquire the lock, one of them is able to proceed after the lock is released.</li>
+</ul>
+<h3 id="formal-properties"><a class="toclink" href="#formal-properties">Formal Properties</a></h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mutual Exclusion</td>
+<td>At most one process can hold the lock at a time.</td>
+</tr>
+<tr>
+<td>Progress</td>
+<td>If no process holds the lock and some process wants to acquire it, then some process will eventually acquire the lock.</td>
+</tr>
+<tr>
+<td>Bounded Waiting</td>
+<td>There is a bound on the number of times that other processes can acquire the lock after a process has requested to acquire the lock.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="case-study-thread-safe-bounded-queue"><a class="toclink" href="#case-study-thread-safe-bounded-queue">Case Study: Thread-Safe Bounded Queue</a></h3>
+<pre><code class="language-cpp">// Thread-safe queue interface
+const int MAX = 10;
+class ConcurrentQueue {
+  // Synchronization variables
+  Lock lock;
+  // State variables
+  int items[MAX];
+  int front;
+  int nextEmpty;
+
+  public:
+    ConcurrentQueue();
+    ~ConcurrentQueue(){};
+    bool tryInsert(int item);
+    bool tryRemove(int *item);
+};
+
+// Initialize the queue to empty
+// and the lock to free.
+ConcurrentQueue::ConcurrentQueue() {
+  front = nextEmpty = 0;
+}
+
+// Try to insert an item. If the queue is
+// full, return false; otherwise return true.
+bool ConcurrentQueue::tryInsert(int item) {
+  bool success = false;
+  lock.acquire();
+
+  if ((nextEmpty - front) &lt; MAX) {
+    items[nextEmpty % MAX] = item;
+    nextEmpty++;
+    success = true;
+  }
+
+  lock.release();
+  return success;
+}
+// Try to remove an item. If the queue is
+// empty, return false; otherwise return true.
+bool ConcurrentQueue::tryRemove(int *item) {
+  bool success = false;
+  lock.acquire();
+
+  if (front &lt; nextEmpty) {
+    *item = items[front % MAX];
+    front++;
+    success = true;
+  }
+
+  lock.release();
+  return success;
+}
+</code></pre>
+<p>And here is a simple test program that uses the queue:</p>
+<pre><code class="language-cpp">int main(int argc, char **argv) {
+  ConcurrentQueue *queues[3];
+  sthread_t workers[3];
+  int i, j;
+  // Start worker threads to insert.
+  for (i = 0; i &lt; 3; i++) {
+    queues[i] = new ConcurrentQueue();
+    thread_create_p(&amp;workers[i],
+    putSome, queues[i]);
+  }
+
+  // Wait for some items to be put.
+  thread_join(workers[0]);
+
+  // Remove 20 items from each queue.
+  for (i = 0; i &lt; 3; i++) {
+    printf(&quot;Queue %d:\n&quot;, i);
+    testRemoval(&amp;queues[i]);
+  }
+}
+
+// Insert 50 items into a queue.
+void *putSome(void *p) {
+  ConcurrentQueue *queue = (ConcurrentQueue *)p;
+  for (int i = 0; i &lt; 50; i++)
+    queue-&gt;tryInsert(i);
+
+  return NULL;
+}
+// Remove 20 items from a queue.
+void testRemoval(ConcurrentQueue *queue) {
+  int item;
+  for (int i = 0; i &lt; 20; j++) {
+    if (queue-&gt;tryRemove(&amp;item))
+      printf(&quot;Removed %d\n&quot;, item);
+    else
+      printf(&quot;Nothing there.\n&quot;);
+  }
+}
+ ```
+
+## Spinlocks
+
+A spinlock is a lock that causes a process trying to acquire it to simply wait in a loop while repeatedly checking if the lock is available. They should be used only when the lock is expected to be held for a short period of time, ie. when the time to acquire the lock is less than the time to context switch. While waiting for the lock, the process continues to run and waste CPU cycles.
+
+### Implementing Multiprocessor Spinlocks
+
+Most processor architectures provide atomic `read-modify-write` instructions that acquires an exclusive copy of a given physical memory location, similar to underlying mechanisms for cache coherence among multiple processors. These instructions are used to implement spinlocks. For example, the `test-and-set` instruction atomically sets a memory location to 1 and returns its previous value. This can be used to implement a lock as follows:
+
+```cpp
+struct spinlock {
+  int held = 0;
+}
+void acquire(lock) {
+  while(test_and_set(&amp;lock-&gt;held));
+}
+
+void release(lock) {
+  lock-&gt;held = 0;
+}
+</code></pre>
+<h2 id="queuing-locks"><a class="toclink" href="#queuing-locks">Queuing Locks</a></h2>
+<p>Sometimes want to accommodate both short and long critical sections while still minimizing overhead. It is not possible to completely avoid busy waiting on a multiprocessor, but you can minimize it by using a queuing lock.</p>
+<p>With a queuing lock, access to the underlying data structure is controlled by a spinlock. On <code>acquire</code>, if the lock is <code>FREE</code>, the process can proceed. If the lock is <code>BUSY</code>, the process is added to a queue and suspended. When the lock is released, the next process in the queue is resumed.</p>
+<p>To suspend a thread on a multiprocessor using this type of lock, first need to disable interrupts so it isn't preempted while holding the ready lists spinlock. Then, acquire the ready list spinlock, and then release the queuing lock's spinlock. Finally, switch to the next thread in the ready list and release the ready list spinlock.</p>
+<pre><code class="language-cpp">class Lock {
+ private:
+  int value = FREE;
+  SpinLock spinLock;
+  Queue waiting;
+ public:
+  void acquire();
+  void release();
+};
+
+Lock::acquire() {
+  spinLock.acquire();
+  if (value != FREE) {
+    waiting.add(runningThread);
+    scheduler.suspend(&amp;spinLock);
+    // scheduler releases spinLock
+  } else {
+    value = BUSY;
+    spinLock.release();
+  }
+}
+
+void Lock::release() {
+  TCB *next;
+  spinLock.acquire();
+  if (waiting.notEmpty()) {
+    next = waiting.remove();
+    scheduler.makeReady(next);
+  } else {
+    value = FREE;
+  }
+  spinLock.release();
+}
+
+class Scheduler {
+ private:
+  Queue readyList;
+  SpinLock schedulerSpinLock;
+ public:
+  void suspend(SpinLock *lock);
+  void makeReady(Thread *thread);
+}
+
+void Scheduler::suspend(SpinLock *lock) {
+  TCB *chosenTCB;
+  disableInterrupts();
+  schedulerSpinLock.acquire();
+  lock-&gt;release();
+  runningThread-&gt;state = WAITING;
+  chosenTCB = readyList.getNextThread();
+  thread_switch(runningThread, chosenTCB);
+  runningThread-&gt;state = RUNNING;
+  schedulerSpinLock.release();
+  enableInterrupts();
+}
+
+void Scheduler::makeReady(TCB *thread) {
+  disableInterrupts();
+  schedulerSpinLock.acquire();
+  readyList.add(thread);
+  thread-&gt;state = READY;
+  schedulerSpinLock.release();
+  enableInterrupts();
+}
+ ```
+
+ ### Case Study: Linux 2.6 Kernel Mutex Lock
+
+ In Linux, most locks are `FREE` most of the time. Additionally, if a lock is `BUSY`, it is still likely that no other locks are waiting for it. THe Linux implementation of a mutex lock optimizes for this commone case by providing a fast path for the case where threads don't need to wait.
+
+ Linux utilizes x86 specific instructions that allow the lock to be acquired and released on the fast path *without* first acquiring the spinlock or disabling interrupts. Mutexes have 3 possible states:
+
+ ```c
+ struct mutex {
+  /* 1: unlocked, 0: locked, negative: locked, possible waiters */
+  atomic_t count;
+  spinlock_t wait_lock;
+  struct list_head wait_list;
+ };
+ ```
+
+ The Linux lock `acquire` code is a macro to avoid the overhead of a function call on the fast path.
+
+```asm
+      lock decl (%eax)      // atomic decrement of a memory location
+                            // address in %eax is pointer to lock-&gt;count
+      jns 1f                // jump if not signed (if value is now 0)
+      call slowpath_acquire
+</code></pre>
+<p>```c
+  for (;;) {
+  /<em>
+  * Lets try to take the lock again - this is needed even if
+  * we get here for the first time (shortly after failing to
+  * acquire the lock), to make sure that we get a wakeup once
+  * it's unlocked. Later on, if we sleep, this is the
+  * operation that gives us the lock. We xchg it to -1, so
+  * that when we release the lock, we properly wake up the
+  * other waiters:
+  </em>/
+  if (atomic_xchg(&amp;lock-&gt;count, -1) == 1)
+    break;</p>
+<p>/<em> didn't get the lock, go to sleep: </em>/
+  ...
+ }
+ ```</p>
+<h2 id="condition-variables"><a class="toclink" href="#condition-variables">Condition Variables</a></h2>
+<p>Condition variables are used to wait for a particular condition to become true. They are used in conjunction with locks to provide a way for a thread to be woken up when a condition becomes true. The condition variable is associated with a lock, and the lock must be held when waiting on the condition variable.</p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

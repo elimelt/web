@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Software Prefetching Benchmarks</title>
+    <meta name="description" content="Comparing hardware and software prefetching effectiveness for sequential and random access patterns, demonstrating when explicit prefetch instructions can outpe">
+    <link rel="canonical" href="https://notes.elimelt.com/operating-systems/benchmarks/prefetch.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Software Prefetching Benchmarks", "dateModified": "2025-12-29T22:39:59.771045", "description": "Comparing hardware and software prefetching effectiveness for sequential and random access patterns, demonstrating when explicit prefetch instructions can outpe", "url": "https://notes.elimelt.com/operating-systems/benchmarks/prefetch.html", "articleSection": "Operating Systems", "keywords": "prefetching,cache,memory latency,hardware prefetcher,performance optimization,benchmarks"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/operating%20systems.html">Operating Systems</a> » Software Prefetching Benchmarks</div>
+    </header>
+    <main class="content">
+        <h1>Software Prefetching Benchmarks</h1>
+        <h1 id="software-prefetching"><a class="toclink" href="#software-prefetching">Software Prefetching</a></h1>
+<h2 id="hardware-vs-software"><a class="toclink" href="#hardware-vs-software">Hardware vs Software</a></h2>
+<p>Modern CPUs have <strong>hardware prefetchers</strong> that detect access patterns and speculatively fetch cache lines. Great for sequential/strided access, but fail for random patterns.</p>
+<p><strong>Software prefetching</strong> explicitly tells the CPU to fetch data before you need it:</p>
+<pre><code class="language-c">__builtin_prefetch(&amp;array[i + 64], 0, 0);  // Prefetch 64 elements ahead
+sum += array[i];                            // Use current element
+</code></pre>
+<h2 id="results-256-mb-array"><a class="toclink" href="#results-256-mb-array">Results (256 MB array)</a></h2>
+<h3 id="random-access"><a class="toclink" href="#random-access">Random Access</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variant</th>
+<th>Distance</th>
+<th>ns/access</th>
+<th>vs baseline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pf_none</code></td>
+<td>0</td>
+<td>7.61 ns</td>
+<td>1.0×</td>
+</tr>
+<tr>
+<td><code>pf_8</code></td>
+<td>+8</td>
+<td>6.23 ns</td>
+<td>1.2×</td>
+</tr>
+<tr>
+<td><code>pf_32</code></td>
+<td>+32</td>
+<td>5.91 ns</td>
+<td>1.3×</td>
+</tr>
+<tr>
+<td><code>pf_128</code></td>
+<td>+128</td>
+<td>5.99 ns</td>
+<td>1.3×</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sequential-access"><a class="toclink" href="#sequential-access">Sequential Access</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variant</th>
+<th>Distance</th>
+<th>ns/access</th>
+<th>vs baseline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pf_seq</code></td>
+<td>0 (hw only)</td>
+<td>1.37 ns</td>
+<td>1.0×</td>
+</tr>
+<tr>
+<td><code>pf_seq64</code></td>
+<td>+64</td>
+<td>0.54 ns</td>
+<td>2.5×</td>
+</tr>
+</tbody>
+</table>
+<h2 id="observations"><a class="toclink" href="#observations">Observations</a></h2>
+<h3 id="1-random-prefetch-helps-modestly-25"><a class="toclink" href="#1-random-prefetch-helps-modestly-25">1. Random Prefetch Helps Modestly (~25%)</a></h3>
+<p>For random access, we know the <em>sequence</em> of indices but not their <em>values</em>. We can prefetch <code>array[indices[i+N]]</code> while processing <code>array[indices[i]]</code>.</p>
+<p>Limited improvement because:
+- Prefetch distance must be large enough to hide DRAM latency (~300 cycles)
+- But not so large that prefetched data gets evicted before use
+- Memory bandwidth becomes the bottleneck, not latency</p>
+<h3 id="2-sequential-sw-prefetch-beats-hardware"><a class="toclink" href="#2-sequential-sw-prefetch-beats-hardware">2. Sequential SW Prefetch Beats Hardware</a></h3>
+<p>Surprisingly, software prefetching beats the hardware prefetcher for sequential access. The hardware prefetcher is <em>conservative</em> - it doesn't fetch too far ahead to avoid cache pollution. Our explicit prefetch with distance +64 (512 bytes ahead) is more aggressive and wins when we know the pattern perfectly.</p>
+<h3 id="3-optimal-prefetch-distance"><a class="toclink" href="#3-optimal-prefetch-distance">3. Optimal Prefetch Distance</a></h3>
+<p>Depends on memory latency (~75ns), loop iteration time, and cache capacity. For random access, +32 to +128 works well. For sequential, +64 (512 bytes = 8 cache lines) is effective.</p>
+<h2 id="when-prefetching-doesnt-help"><a class="toclink" href="#when-prefetching-doesnt-help">When Prefetching Doesn't Help</a></h2>
+<ol>
+<li><strong>Pointer chasing</strong>: Can't prefetch <code>array[array[i]]</code> because you don't know <code>array[i]</code> yet</li>
+<li><strong>Unpredictable patterns</strong>: If you don't know future addresses, you can't prefetch them</li>
+<li><strong>Cache-resident data</strong>: Prefetching hurts if data is already in cache (extra instructions)</li>
+<li><strong>Bandwidth-bound</strong>: If memory bandwidth is saturated, prefetching adds pressure</li>
+</ol>
+<h2 id="the-instruction"><a class="toclink" href="#the-instruction">The Instruction</a></h2>
+<pre><code class="language-c">__builtin_prefetch(addr, rw, locality);
+// rw: 0 = read, 1 = write
+// locality: 0 = no temporal locality, 3 = high temporal locality
+</code></pre>
+<p>Compiles to x86 <code>prefetchnta</code> (non-temporal) or <code>prefetcht0/t1/t2</code> (temporal).</p>
+<h2 id="running"><a class="toclink" href="#running">Running</a></h2>
+<pre><code class="language-bash">./bench pf_none 256   # Random baseline
+./bench pf_32 256     # Random prefetch +32
+./bench pf_seq 256    # Sequential hw prefetch only
+./bench pf_seq64 256  # Sequential sw prefetch +64
+</code></pre>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

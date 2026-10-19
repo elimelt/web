@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creating Collections and Data Types in Modern Java</title>
+    <meta name="description" content="Covers the implementation of modern Java collections and data types, including the use of Arrays.asList, Java 9+ factory methods for creating immutable collecti">
+    <link rel="canonical" href="https://notes.elimelt.com/teaching/modern-java/collections-and-records.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Creating Collections and Data Types in Modern Java", "dateModified": "2025-12-29T22:39:59.775565", "description": "Covers the implementation of modern Java collections and data types, including the use of Arrays.asList, Java 9+ factory methods for creating immutable collecti", "url": "https://notes.elimelt.com/teaching/modern-java/collections-and-records.html", "articleSection": "Software Engineering", "keywords": "java,collections,data structures,immutable,records"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/software%20engineering.html">Software Engineering</a> » Creating Collections and Data Types in Modern Java</div>
+    </header>
+    <main class="content">
+        <h1>Creating Collections and Data Types in Modern Java</h1>
+        <h1 id="creating-collections-and-data-types-in-modern-java"><a class="toclink" href="#creating-collections-and-data-types-in-modern-java">Creating Collections and Data Types in Modern Java</a></h1>
+<h2 id="motivation"><a class="toclink" href="#motivation">Motivation</a></h2>
+<p>Often while testing your code or implementing common algorithms, you'll want to specify an immutable collection of elements. The UW intro series as (as far as I'm aware) doesn't teach you some pretty useful java features that can make this a lot easier.</p>
+<p>Furthermore, java can be a little verbose when it comes to defining new data types to hold structured data. This is where the <code>record</code> keyword comes in.</p>
+<h2 id="arraysaslist"><a class="toclink" href="#arraysaslist">Arrays.asList</a></h2>
+<p>The most basic way to create a list in Java is to use the <code>Arrays.asList</code> method. This method takes a variable number of arguments and returns a fixed-size list backed by the specified array. This means that you can't add or remove elements from the list, but you can modify the elements themselves.</p>
+<pre><code class="language-java">List&lt;Integer&gt; list = Arrays.asList(1, 2, 3, 4, 5);
+</code></pre>
+<h2 id="java-9-factory-methods"><a class="toclink" href="#java-9-factory-methods">Java 9+ Factory Methods</a></h2>
+<p>Java 9 introduced a new way to create immutable collections using factory methods. These methods are available in the <code>List</code>, <code>Set</code>, and <code>Map</code> interfaces. Here are some examples:</p>
+<pre><code class="language-java">List&lt;Integer&gt; list = List.of(1, 2, 3, 4, 5);
+Set&lt;Integer&gt; set = Set.of(1, 2, 3, 4, 5);
+Map&lt;Integer, String&gt; map = Map.of(
+  1, &quot;one&quot;,
+  2, &quot;two&quot;,
+  3, &quot;three&quot;
+);
+</code></pre>
+<h2 id="records"><a class="toclink" href="#records">Records</a></h2>
+<p>Records are a new feature in Java 14 that allow you to define simple data classes with minimal boilerplate. On top of being far more concise than traditional classes, records also provide a <code>toString</code>, <code>equals</code>, and <code>hashCode</code> method by default.</p>
+<pre><code class="language-java">// With classes
+class Point {
+  int x;
+  int y;
+
+  Point(int x, int y) {
+    this.x = x;
+    this.y = y;
+  }
+
+  public String toString() {
+    return String.format(&quot;(%d, %d)&quot;, x, y);
+  }
+
+  public boolean equals(Object o) {
+    if (o == this) return true;
+    if (!(o instanceof Point)) return false;
+    Point p = (Point) o;
+    return p.x == x &amp;&amp; p.y == y;
+  }
+
+  public int hashCode() {
+    return Objects.hash(x, y);
+  }
+}
+
+// With records
+record Point(int x, int y) {}
+</code></pre>
+<h2 id="using-this-in-practice"><a class="toclink" href="#using-this-in-practice">Using this in Practice</a></h2>
+<p>Say we're implementing a poker game and we want to represent a card. With introductory Java knowledge, you might define a class like this:</p>
+<pre><code class="language-java">enum Suit {
+  HEARTS, DIAMONDS, CLUBS, SPADES
+}
+
+class Card {
+  private final Suit suit;
+  private final int rank;
+
+  Card(Suit suit, int rank) {
+    this.suit = suit;
+    this.rank = rank;
+  }
+
+  public Suit getSuit() {
+    return suit;
+  }
+
+  public int getRank() {
+    return rank;
+  }
+
+  public String toString() {
+    return String.format(&quot;%d of %s&quot;, rank, suit);
+  }
+
+  public boolean equals(Object o) {
+    if (o == this) return true;
+    if (!(o instanceof Card)) return false;
+    Card c = (Card) o;
+    return c.suit == suit &amp;&amp; c.rank == rank;
+  }
+
+  public int hashCode() {
+    return Objects.hash(suit, rank);
+  }
+}
+</code></pre>
+<p>With records, you can define the same class in a much more concise way:</p>
+<pre><code class="language-java">enum Suit {
+  HEARTS, DIAMONDS, CLUBS, SPADES
+}
+
+record Card(Suit suit, int rank) {}
+</code></pre>
+<p>We can even add methods to records, like so:</p>
+<pre><code class="language-java">record Card(Suit suit, int rank) implements Comparable&lt;Card&gt; {
+  public int compareTo(Card other) {
+    return Integer.compare(rank, other.rank);
+  }
+}
+</code></pre>
+<p>Now say we wanted to test our new <code>Card</code> object. We could do something like this:</p>
+<pre><code class="language-java">public static void main(String[] args) {
+  var cards = List.of(
+    new Card(Suit.CLUBS, 4),
+    new Card(Suit.DIAMONDS, 3),
+    new Card(Suit.HEARTS, 2),
+    new Card(Suit.SPADES, 5)
+  );
+
+  var expected = List.of(
+    new Card(Suit.HEARTS, 2),
+    new Card(Suit.DIAMONDS, 3),
+    new Card(Suit.CLUBS, 4),
+    new Card(Suit.SPADES, 5)
+  );
+
+  cards.stream()
+    .sorted()
+    .toList();
+
+  assert cards.equals(expected);
+}
+</code></pre>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

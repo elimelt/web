@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Combinational Logic</title>
+    <meta name="description" content="Explains the concept of combinatorial logic, its differences with sequential logic, and various techniques for minimizing boolean expressions.">
+    <link rel="canonical" href="https://notes.elimelt.com/hardware-design/369/combinational-logic.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Combinational Logic", "dateModified": "2025-12-29T22:39:59.764951", "description": "Explains the concept of combinatorial logic, its differences with sequential logic, and various techniques for minimizing boolean expressions.", "url": "https://notes.elimelt.com/hardware-design/369/combinational-logic.html", "articleSection": "Hardware", "keywords": "combinational logic,sequential logic,boolean algebra,logic gates,minimization"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/hardware.html">Hardware</a> » Combinational Logic</div>
+    </header>
+    <main class="content">
+        <h1>Combinational Logic</h1>
+        <h1 id="combinational-logic"><a class="toclink" href="#combinational-logic">Combinational Logic</a></h1>
+<h2 id="combinational-logic-vs-sequential-logic"><a class="toclink" href="#combinational-logic-vs-sequential-logic">Combinational Logic vs. Sequential Logic</a></h2>
+<ul>
+<li><strong>Combinational Logic</strong>:</li>
+<li>Output depends only on the current input.</li>
+<li>No feedback.</li>
+<li>Examples: Multiplexers, decoders, adders, etc.</li>
+<li><strong>Sequential Logic</strong>:<ul>
+<li>Output depends on the current input and the state of the circuit.</li>
+</ul>
+</li>
+</ul>
+<h2 id="representation"><a class="toclink" href="#representation">Representation</a></h2>
+<p>Can represent logic with text, circuits, truth tables, or equations.</p>
+<p>For example:</p>
+<p>Door is ajar if driver door is open OR passenger door is open.</p>
+<p><code>plaintext</code>
+DoorAjar = DriverDoorOpen OR PassengerDoorOpen</p>
+<pre><code>Seat belt light is on if driver seat belt is not fastened OR passenger seat belt is not fastened AND the passenger is present.
+
+```plaintext```
+SeatBeltLight = (NOT DriverSeatBeltFastened) OR (NOT PassengerSeatBeltFastened AND PassengerPresent)
+</code></pre>
+<h2 id="translating-truth-table-to-boolean-expressions"><a class="toclink" href="#translating-truth-table-to-boolean-expressions">Translating Truth Table to Boolean Expressions</a></h2>
+<ul>
+<li><strong>Sum of products</strong>: Take the rows where the output is 1 and OR the inputs.</li>
+<li><strong>Product of sums</strong>: Take the rows where the output is 0 and AND the complements of the inputs.</li>
+</ul>
+<h2 id="boolean-identities"><a class="toclink" href="#boolean-identities">Boolean Identities</a></h2>
+<table>
+<thead>
+<tr>
+<th>Identity</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>A + 0 = A</code></td>
+<td>Identity</td>
+</tr>
+<tr>
+<td><code>A + A = A</code></td>
+<td>Idempotent</td>
+</tr>
+<tr>
+<td><code>A + 1 = 1</code></td>
+<td>Identity</td>
+</tr>
+<tr>
+<td><code>A + A' = 1</code></td>
+<td>Complement</td>
+</tr>
+<tr>
+<td><code>A + B = B + A</code></td>
+<td>Commutative</td>
+</tr>
+<tr>
+<td><code>A + (B + C) = (A + B) + C</code></td>
+<td>Associative</td>
+</tr>
+<tr>
+<td><code>A(B + C) = AB + AC</code></td>
+<td>Distributive</td>
+</tr>
+<tr>
+<td><code>A + AB = A</code></td>
+<td>Absorption</td>
+</tr>
+</tbody>
+</table>
+<h2 id="logic-minimalization"><a class="toclink" href="#logic-minimalization">Logic Minimalization</a></h2>
+<p>It is nice to reduce complexity at the gate level. This allows us to build smaller and faster hardware. We care about...</p>
+<ul>
+<li>number of gates: fewer gates is better</li>
+<li>number of literals (gate inputs): fewer literals is better</li>
+<li>number of levels: able to parallelize better using fewer levels/depenencies</li>
+<li>types of logic gates: some gates are faster than others</li>
+</ul>
+<p>Generally, simpler boolean expressions lead to smaller transistor networks, and smaller circuit delays/faster hardware.</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>CMOS required</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NOT</td>
+<td>2</td>
+</tr>
+<tr>
+<td>AND</td>
+<td>6</td>
+</tr>
+<tr>
+<td>OR</td>
+<td>6</td>
+</tr>
+<tr>
+<td>NAND</td>
+<td>4</td>
+</tr>
+<tr>
+<td>NOR</td>
+<td>4</td>
+</tr>
+<tr>
+<td>XOR</td>
+<td>8</td>
+</tr>
+<tr>
+<td>XNOR</td>
+<td>8</td>
+</tr>
+</tbody>
+</table>
+<p>You can recreate EVERY gate type using just NAND and NOR (universal gates). e.g. <code>AND = NAND(NAND(A, B))</code></p>
+<h2 id="demorgans-law"><a class="toclink" href="#demorgans-law">DeMorgan's Law</a></h2>
+<pre><code class="language-plaintext">NOT(A AND B) = NOT(A) OR NOT(B)
+NOT(A OR B) = NOT(A) AND NOT(B)
+</code></pre>
+<p>$$
+\overline{A \cdot B} = \overline{A} + \overline{B}
+$$</p>
+<p>$$
+\overline{A + B} = \overline{A} \cdot \overline{B}
+$$</p>
+<p>In a circuit, the more general rule is that if you have an AND or OR gate with some inverted terminals, to apply demorgans law, you just change the type of gate (ie AND to OR or OR to AND) and invert the inputs (ie change all the points that are inverted to not inverted and vice versa).</p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

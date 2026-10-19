@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resistance</title>
+    <meta name="description" content="Covers the implementation of Ohm's law, power calculations, and the behavior of resistors in series and parallel circuits. Discusses the fundamental concepts of">
+    <link rel="canonical" href="https://notes.elimelt.com/signal-conditioning/lecture-notes/lecture-3.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Resistance", "dateModified": "2025-12-29T22:39:59.774420", "description": "Covers the implementation of Ohm's law, power calculations, and the behavior of resistors in series and parallel circuits. Discusses the fundamental concepts of", "url": "https://notes.elimelt.com/signal-conditioning/lecture-notes/lecture-3.html", "articleSection": "Hardware", "keywords": "resistance,ohm's law,power,series resistors,parallel resistors"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/hardware.html">Hardware</a> » Resistance</div>
+    </header>
+    <main class="content">
+        <h1>Resistance</h1>
+        <h1 id="lecture-3"><a class="toclink" href="#lecture-3">Lecture 3</a></h1>
+<h2 id="resistance"><a class="toclink" href="#resistance">Resistance</a></h2>
+<p>Resistance is the opposition to the flow of current. It is measured in Ohms (<code>\Omega</code>), and is the ratio of voltage to current. Is usually an intrinsic property of the material.</p>
+<h4 id="ohms-law"><a class="toclink" href="#ohms-law">Ohm's Law</a></h4>
+<p>$$V = IR$$</p>
+<h2 id="power"><a class="toclink" href="#power">Power</a></h2>
+<p>The rate of change of energy, measured in Joules/sec -&gt; Watts (W)</p>
+<p>$$1$$</p>
+<h4 id="power-and-resistance"><a class="toclink" href="#power-and-resistance">Power and Resistance</a></h4>
+<p>The power dissipated by a resistor is the product of the voltage across it and the current through it. Intuitively, this makes sense because it takes energy to push electrons through a resistor, and the more electrons you push through, the more energy you use. Similarly, holding I constant, the power is directly proportional to the resistance. </p>
+<p>$ P = IV = I^2R = V^2/R $</p>
+<h2 id="resistors-in-series-and-parallel"><a class="toclink" href="#resistors-in-series-and-parallel">Resistors in Series and Parallel</a></h2>
+<h4 id="series"><a class="toclink" href="#series">Series</a></h4>
+<p>Resistors in series are connected end-to-end. The total resistance is the sum of the individual resistances.</p>
+<p>$$R_t = R_1 + R_2 + \ldots + R_n$$</p>
+<p>The current through each resistor is the same because the current is the flow of electrons, and the electrons can't go anywhere else. </p>
+<p>The voltage across each resistor can be different, but the total voltage is the sum of all the voltages across each resistor. This can be derived from the above two properties and Ohm's law.</p>
+<p>$$V_t = V_1 + V_2 + \ldots + V_n$$</p>
+<p>$$V_t = IR_t = I(R_1 + R_2 + \ldots + R_n) = IR_1 + IR_2 + \ldots + IR_n = V_1 + V_2 + \ldots + V_n$$</p>
+<h4 id="parallel"><a class="toclink" href="#parallel">Parallel</a></h4>
+<p>Connected such that both ends of each resistor are connected to the same two points of the circuit. The resistance of the circuit is the reciprocal of the sum of the reciprocals of the individual resistances.</p>
+<p>$$R_t = 1/(1/R_1 + 1/R_2 + \ldots + 1/R_n)$$</p>
+<p>The voltage across each resistor is the same because the voltage is the difference in potential between two points, and the two points are the same for each resistor (equal to the source voltage).</p>
+<p>The current through each resistor can be different, but the total current from the two endpoints is the sum of all the currents through each resistor. This can be derived from the above two properties and Ohm's law, but also from the fact that the current is the flow of electrons, and the electrons can't go anywhere else.</p>
+<p>$$I_t = I_1 + I_2 + \ldots + I_n$$</p>
+<p>$$I_t = V_t/R_t = V_t/(1/(1/R_1 + 1/R_2 + \ldots + 1/R_n)) = V_t/(R_1 + R_2 + \ldots + R_n) = V_t/R_1 + V_t/R_2 + \ldots + V_t/R_n = I_1 + I_2 + \ldots + I_n$$</p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

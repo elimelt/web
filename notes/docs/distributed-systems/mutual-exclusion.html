@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distributed Mutual Exclusion</title>
+    <meta name="description" content="Explains a distributed mutual exclusion algorithm using timestamps and sequence numbers.">
+    <link rel="canonical" href="https://notes.elimelt.com/distributed-systems/mutual-exclusion.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Distributed Mutual Exclusion", "dateModified": "2025-12-29T22:39:59.764154", "description": "Explains a distributed mutual exclusion algorithm using timestamps and sequence numbers.", "url": "https://notes.elimelt.com/distributed-systems/mutual-exclusion.html", "articleSection": "Distributed Systems", "keywords": "distributed systems,mutual exclusion,locking,ordering,consistency"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/distributed%20systems.html">Distributed Systems</a> » Distributed Mutual Exclusion</div>
+    </header>
+    <main class="content">
+        <h1>Distributed Mutual Exclusion</h1>
+        <h1 id="distributed-mutual-exclusion"><a class="toclink" href="#distributed-mutual-exclusion">Distributed Mutual Exclusion</a></h1>
+<p>We want the same old mutual exclusion via locking, but in a distributed system. The trick is to keep a consistent ordering of locking events on every node in the system.</p>
+<h2 id="implementation"><a class="toclink" href="#implementation">Implementation</a></h2>
+<p>Each message carries a timestamp $T_m$, and a sequence number $s$.</p>
+<p>There are three message types:</p>
+<ul>
+<li><code>request</code> (broadcast)</li>
+<li><code>release</code> (broadcast)</li>
+<li><code>acknowledge</code> (on receipt)</li>
+</ul>
+<p>Each node maintains:</p>
+<ul>
+<li>a <code>queue&lt;request&gt;</code> ordered by $T_m$</li>
+<li>a <code>map</code> of the last message received on each node in the system</li>
+</ul>
+<p>On request receive:</p>
+<ul>
+<li>Record $T_m$</li>
+<li>Add request to queue</li>
+</ul>
+<p>On receiving release:</p>
+<ul>
+<li>Record $T_m$</li>
+<li>Remove request from queue</li>
+</ul>
+<p>On acknowledge receive:</p>
+<ul>
+<li>Record $T_m$</li>
+</ul>
+<p>To acquire the lock:</p>
+<ul>
+<li>Broadcast <code>request</code> message</li>
+<li>Acquired once...</li>
+<li><code>request</code> at head of queue</li>
+<li>Everyone else has sent a later-timestamped message</li>
+<li>so <code>request</code> is the earliest in the queue</li>
+</ul>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

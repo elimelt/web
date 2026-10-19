@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Branch Prediction Benchmarks</title>
+    <meta name="description" content="Measuring the cost of branch misprediction on modern CPUs, comparing sorted vs random data patterns, and exploring branchless programming techniques to avoid mi">
+    <link rel="canonical" href="https://notes.elimelt.com/operating-systems/benchmarks/branch.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Branch Prediction Benchmarks", "dateModified": "2025-12-29T22:39:59.770928", "description": "Measuring the cost of branch misprediction on modern CPUs, comparing sorted vs random data patterns, and exploring branchless programming techniques to avoid mi", "url": "https://notes.elimelt.com/operating-systems/benchmarks/branch.html", "articleSection": "Operating Systems", "keywords": "branch prediction,cpu,pipeline,branchless,performance,benchmarks"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/operating%20systems.html">Operating Systems</a> » Branch Prediction Benchmarks</div>
+    </header>
+    <main class="content">
+        <h1>Branch Prediction Benchmarks</h1>
+        <h1 id="branch-prediction"><a class="toclink" href="#branch-prediction">Branch Prediction</a></h1>
+<h2 id="the-problem"><a class="toclink" href="#the-problem">The Problem</a></h2>
+<p>Modern CPUs speculatively execute past branches before knowing the outcome. When the prediction is wrong, the pipeline flushes - typically 15-20 cycles wasted.</p>
+<h2 id="the-benchmark"><a class="toclink" href="#the-benchmark">The Benchmark</a></h2>
+<p>Conditionally sum array elements:</p>
+<pre><code class="language-c">for (size_t i = 0; i &lt; n; i++) {
+    if (array[i] &lt; threshold)
+        sum += array[i];
+}
+</code></pre>
+<p>Three variants:
+- <strong>Sorted</strong>: First half below threshold, second half above. Predictor learns the pattern.
+- <strong>Random</strong>: 50% probability per element. Predictor wrong ~50% of the time.
+- <strong>Branchless</strong>: Use bit manipulation instead of a branch.</p>
+<h2 id="results-64-mb-array"><a class="toclink" href="#results-64-mb-array">Results (64 MB array)</a></h2>
+<table>
+<thead>
+<tr>
+<th>Variant</th>
+<th>ns/element</th>
+<th>vs sorted</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>br_sort</code> (sorted)</td>
+<td>0.85 ns</td>
+<td>1.0×</td>
+</tr>
+<tr>
+<td><code>br_less</code> (branchless)</td>
+<td>1.41 ns</td>
+<td>1.7×</td>
+</tr>
+<tr>
+<td><code>br_rand</code> (random)</td>
+<td>2.75 ns</td>
+<td>3.2×</td>
+</tr>
+</tbody>
+</table>
+<h2 id="observations"><a class="toclink" href="#observations">Observations</a></h2>
+<h3 id="1-misprediction-penalty-2-ns-6-cycles"><a class="toclink" href="#1-misprediction-penalty-2-ns-6-cycles">1. Misprediction Penalty: ~2 ns / ~6 cycles</a></h3>
+<p>Random data causes ~50% misprediction. The 1.9 ns difference (2.75 - 0.85) amortized over 50% mispredictions suggests ~4 ns per misprediction, or ~12 cycles at 3 GHz.</p>
+<h3 id="2-branchless-trades-alu-for-predictability"><a class="toclink" href="#2-branchless-trades-alu-for-predictability">2. Branchless Trades ALU for Predictability</a></h3>
+<p>The branchless version:</p>
+<pre><code class="language-c">uint64_t mask = -(array[i] &lt; threshold);  // 0 or 0xFFFFFFFFFFFFFFFF
+sum += array[i] &amp; mask;
+</code></pre>
+<p>More instructions, but no branch. Faster than mispredicted branches, slower than predicted ones.</p>
+<h3 id="3-when-to-use-branchless"><a class="toclink" href="#3-when-to-use-branchless">3. When to Use Branchless</a></h3>
+<ul>
+<li><strong>Predictable data</strong> (sorted, patterns): Use branches</li>
+<li><strong>Unpredictable data</strong> (random, hashed): Use branchless</li>
+<li><strong>Mixed</strong>: Profile and measure</li>
+</ul>
+<h3 id="4-modern-compilers"><a class="toclink" href="#4-modern-compilers">4. Modern Compilers</a></h3>
+<p>GCC/Clang may auto-convert branches to conditional moves (<code>cmov</code>) with <code>-O3</code>. Check the assembly if results seem off.</p>
+<h2 id="branch-predictor-basics"><a class="toclink" href="#branch-predictor-basics">Branch Predictor Basics</a></h2>
+<p>Modern predictors use:
+- <strong>Local history</strong>: Pattern of recent outcomes for this branch
+- <strong>Global history</strong>: Pattern of recent branches (any branch)
+- <strong>Hybrid</strong>: Combines both with neural-network-like structures (TAGE)</p>
+<p>Predictors can learn patterns like "taken 3×, not taken 1×, repeat". They fail on truly random data.</p>
+<h2 id="running"><a class="toclink" href="#running">Running</a></h2>
+<pre><code class="language-bash">./bench br_sort 64   # Predictable (sorted)
+./bench br_rand 64   # Unpredictable (random)
+./bench br_less 64   # Branchless (mask)
+</code></pre>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

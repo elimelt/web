@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring Boot Annotations</title>
+    <meta name="description" content="A documentation on the Spring Boot annotations used for configuration, auto-configuration, component scanning, and more.">
+    <link rel="canonical" href="https://notes.elimelt.com/cheatsheets/java-spring-boot/reference.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Spring Boot Annotations", "dateModified": "2025-12-29T22:39:59.762005", "description": "A documentation on the Spring Boot annotations used for configuration, auto-configuration, component scanning, and more.", "url": "https://notes.elimelt.com/cheatsheets/java-spring-boot/reference.html", "articleSection": "Software Engineering", "keywords": "spring-boot,annotations,java,configuration"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/software%20engineering.html">Software Engineering</a> » Spring Boot Annotations</div>
+    </header>
+    <main class="content">
+        <h1>Spring Boot Annotations</h1>
+        <h3 id="annotations-and-their-meanings"><a class="toclink" href="#annotations-and-their-meanings">Annotations and their meanings</a></h3>
+<ul>
+<li><code>@SpringBootApplication</code>:
+    marks the main class of the application. a combination of three other annotations: @Configuration, @EnableAutoConfiguration, and @ComponentScan.</li>
+<li><code>@Configuration</code>:
+    used to mark a class as a configuration class. This class will contain the bean definitions for the application context.</li>
+<li><code>@EnableAutoConfiguration</code>:
+    used to enable auto-configuration in the application. This annotation tells Spring Boot to start adding beans based on classpath settings, other beans, and various property settings.</li>
+<li><code>@ComponentScan</code>:
+    used to enable component scanning in the application. This allows Spring to scan packages to find and configure beans.</li>
+<li><code>@RestController</code>:
+    used to mark a class as a controller where every method returns a domain object instead of a view. It is shorthand for @Controller and @ResponseBody.</li>
+<li><code>@RequestMapping</code>:
+    used to map web requests onto specific handler classes and/or handler methods.</li>
+<li><code>@RequestParam</code>:
+    used to bind the web request parameter to a method parameter.</li>
+</ul>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

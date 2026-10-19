@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Two Phase Commit</title>
+    <meta name="description" content="Explains the concept of two phase commit in distributed systems and its implications.">
+    <link rel="canonical" href="https://notes.elimelt.com/distributed-systems/two-phase-commit.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Two Phase Commit", "dateModified": "2025-12-29T22:39:59.764853", "description": "Explains the concept of two phase commit in distributed systems and its implications.", "url": "https://notes.elimelt.com/distributed-systems/two-phase-commit.html", "articleSection": "Distributed Systems", "keywords": "two-phase commit,distributed transactions,atomicity,durability,consistency,isolation,deadlock prevention,distributed systems"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/distributed%20systems.html">Distributed Systems</a> » Two Phase Commit</div>
+    </header>
+    <main class="content">
+        <h1>Two Phase Commit</h1>
+        <h1 id="two-phase-commit"><a class="toclink" href="#two-phase-commit">Two Phase Commit</a></h1>
+<h2 id="acid"><a class="toclink" href="#acid">ACID</a></h2>
+<p>For updates that span multiple keys, or even multiple updates across different storage systems, we need all-or-nothing semantics so errors can be properly handled. Two-phase commit (2PC) is a protocol that ensures <strong>distributed transactions</strong>, i.e. groups of operations, are atomic, consistent, isolated, and durable (ACID).</p>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Atomic</td>
+<td>operations appear to either happen as a group, or not at all</td>
+</tr>
+<tr>
+<td>Durable</td>
+<td>Operations that complete stay completed</td>
+</tr>
+<tr>
+<td>Isolation</td>
+<td>Other transactions don't see the results until of earlier transactions unless they were already committed</td>
+</tr>
+<tr>
+<td>Consistency</td>
+<td>linearizability (or some other consistency model)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="two-phase-locking-2pl-consistency-and-isolation"><a class="toclink" href="#two-phase-locking-2pl-consistency-and-isolation">Two Phase Locking (2PL) - Consistency and Isolation</a></h2>
+<p>In <strong>2PL</strong>, locks are acquired on all structures touched during the transaction, and are only released upon commit or abort. This provides isolation and consistency for multi-key transactions.</p>
+<pre><code class="language-plaintext">- start transaction -
+Phase 1: acquire locks
+- commit or abort -
+Phase 2: release locks
+</code></pre>
+<h2 id="redo-logging-atomicity-and-durability"><a class="toclink" href="#redo-logging-atomicity-and-durability">Redo Logging - Atomicity and Durability</a></h2>
+<p>Log all changes to disk, followed by a log commit. If there is a crash before the log commit, abandon the transaction. If it was committed in the log, we can just redo the changes.</p>
+<h2 id="deadlock"><a class="toclink" href="#deadlock">Deadlock</a></h2>
+<p>Deadlock is when two or more transactions are waiting for locks held by each other in a cycle. To solve this you can stop one of the transactions to break the cycle.</p>
+<p>Deadlock prevention is generally a better idea, and you can achieve it by always ordering lock acquisition consistently.</p>
+<h2 id="distributed-transactions"><a class="toclink" href="#distributed-transactions">Distributed Transactions</a></h2>
+<p>From the <em>two generals problem</em>, it is theoretically impossible to agree on performing some action at the same time. Instead, we agree in <strong>virtual time</strong> when an operation happens.</p>
+<h3 id="atomic-commit-protocol-acp"><a class="toclink" href="#atomic-commit-protocol-acp">Atomic Commit Protocol (ACP)</a></h3>
+<ul>
+<li>Every node arrives at the same decision</li>
+<li>Once a node decides, it never changes</li>
+<li>Transaction is committed only if all nodes vote yes</li>
+<li>If all processes vote yes the transaction is usually committed</li>
+<li>If all failures are eventually repaired, the transaction is eventually either committed or aborted</li>
+</ul>
+<h2 id="2pc-in-detail"><a class="toclink" href="#2pc-in-detail">2PC in Detail</a></h2>
+<p><strong>2PC</strong> is a blocking protocol, meaning that it makes no progress if some participants are unavailable. It has fault tolerance, but is not highly available, which is a fundamental limit of the protocol.</p>
+<ul>
+<li>For a given transaction a central coordinator sends a prepare</li>
+<li>Participants commit to commit</li>
+<li>Acquires locks, prevent/delay conflicting operations</li>
+<li>Abort if deadlock or if any of the operations cannot be completed</li>
+<li>Central coordinator decides and tells everyone, then releases all locks</li>
+</ul>
+<h3 id="handling-failures"><a class="toclink" href="#handling-failures">Handling Failures</a></h3>
+<h4 id="participant-fails-before-sending-response"><a class="toclink" href="#participant-fails-before-sending-response">Participant Fails Before Sending Response</a></h4>
+<p>You can maintain a timer on the coordinator to retry prepares. If some threshold is reached, just log a no and abort</p>
+<p>If the participant then comes back online, they will need to ask the coordinator for the decision, at which point the coordinator sends an abort to the participant</p>
+<h4 id="participant-fails-before-after-sending-vote"><a class="toclink" href="#participant-fails-before-after-sending-vote">Participant Fails Before After Sending Vote</a></h4>
+<p>If the participant crashes immediately after sending their response. Then either they come back online before the commit is sent, at which point the protocol continues, or they will need to check their log and request the decision from the coordinator, which will resent the commit and the protocol continues.</p>
+<h4 id="coordinator-fails-before-sending-prepare"><a class="toclink" href="#coordinator-fails-before-sending-prepare">Coordinator Fails Before Sending Prepare</a></h4>
+<p>They would have logged the prepare request, so when they come back online and execute the transaction.</p>
+<h4 id="coordinator-fails-after-sending-prepare"><a class="toclink" href="#coordinator-fails-after-sending-prepare">Coordinator Fails After Sending Prepare</a></h4>
+<p>If the coordinator fails after sending prepares, but before receiving responses, they must have logged the prepared already, and they need to be resent.</p>
+<h3 id="roles"><a class="toclink" href="#roles">Roles</a></h3>
+<ul>
+<li>Participants: Nodes that must update data relevant to the transaction</li>
+<li>Coordinator: node responsible for executing the protocol (might also be a participant)</li>
+</ul>
+<h3 id="messages"><a class="toclink" href="#messages">Messages</a></h3>
+<ul>
+<li>Prepare: Can you commit the transaction?</li>
+<li>Commit: commit the transaction</li>
+<li>Abort: abort the transaction</li>
+</ul>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

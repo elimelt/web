@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Measuring Algorithm Efficiency with Asymptotic Notation</title>
+    <meta name="description" content="This document introduces methods for measuring algorithm efficiency using asymptotic notation. It defines O-notation, Omega-notation, and Theta-notation, and pr">
+    <link rel="canonical" href="https://notes.elimelt.com/algorithms/runtime.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Measuring Algorithm Efficiency with Asymptotic Notation", "dateModified": "2025-12-29T22:39:59.761372", "description": "This document introduces methods for measuring algorithm efficiency using asymptotic notation. It defines O-notation, Omega-notation, and Theta-notation, and pr", "url": "https://notes.elimelt.com/algorithms/runtime.html", "articleSection": "Computer Science", "keywords": "algorithm,time complexity,asymptotic notation,efficiency"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/computer%20science.html">Computer Science</a> » Measuring Algorithm Efficiency with Asymptotic Notation</div>
+    </header>
+    <main class="content">
+        <h1>Measuring Algorithm Efficiency with Asymptotic Notation</h1>
+        <h1 id="measuring-efficiency"><a class="toclink" href="#measuring-efficiency">Measuring Efficiency</a></h1>
+<p>Time is roughly proportional to the number of operations performed. Generally, this holds for simple operations. As a side note, you should avoid hashing.</p>
+<h2 id="o-notation-definition"><a class="toclink" href="#o-notation-definition">O-Notation Definition</a></h2>
+<p>Given two functions $f(n)$ and $g(n)$, we say that $f(n)$ is $O(g(n))$ if there exist constants $c$ and $n_0$ such that $0 \leq f(n) \leq c \cdot g(n)$ for all $n \geq n_0$.</p>
+<h2 id="omega-notation-definition"><a class="toclink" href="#omega-notation-definition">Omega-Notation Definition</a></h2>
+<p>Given two functions $f(n)$ and $g(n)$, we say that $f(n)$ is $\Omega(g(n))$ if there exist constants $c$ and $n_0$ such that $0 \leq c \cdot g(n) \leq f(n)$ for all $n \geq n_0$.</p>
+<h2 id="theta-notation-definition"><a class="toclink" href="#theta-notation-definition">Theta-Notation Definition</a></h2>
+<p>Given two functions $f(n)$ and $g(n)$, we say that $f(n)$ is $\Theta(g(n))$ if there exist constants $c_1$, $c_2$, and $n_0$ such that $0 \leq c_1 \cdot g(n) \leq f(n) \leq c_2 \cdot g(n)$ for all $n \geq n_0$.</p>
+<h2 id="common-bounds"><a class="toclink" href="#common-bounds">Common Bounds</a></h2>
+<p>Logarithms <strong>always</strong> grow slower than polynomial functions.</p>
+<h3 id="polynomial"><a class="toclink" href="#polynomial">Polynomial</a></h3>
+<p>$$
+a_0 + a_1n + a_2n^2 + \ldots + a_kn^k \in O(n^k)
+$$</p>
+<h3 id="logarithmic"><a class="toclink" href="#logarithmic">Logarithmic</a></h3>
+<p>$$
+\log_a n \in O(\log_b n) \text{ for all } a, b &gt; 1
+$$</p>
+<h3 id="exponential"><a class="toclink" href="#exponential">Exponential</a></h3>
+<p>$$
+a^n \in O(b^n) \text{ for all } a, b &gt; 1
+$$</p>
+<h3 id="factorial"><a class="toclink" href="#factorial">Factorial</a></h3>
+<p>$$
+n! \in O(n^n)
+$$</p>
+<h2 id="efficient-algorithms"><a class="toclink" href="#efficient-algorithms">"Efficient" Algorithms</a></h2>
+<p>A CPU typically does less than $2^30$ operations per second. For this reason, some things just aren't computable.</p>
+<p>Polynomial time algorithms are great, since if a problem size grows by at most a constant factor, then so does its run-time. </p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

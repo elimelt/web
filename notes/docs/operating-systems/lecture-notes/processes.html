@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Processes</title>
+    <meta name="description" content="Covers the implementation of processes in operating systems, including the concept of a process, its address space, and the OS process namespace. Discusses the ">
+    <link rel="canonical" href="https://notes.elimelt.com/operating-systems/lecture-notes/processes.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Processes", "dateModified": "2025-12-29T22:39:59.771803", "description": "Covers the implementation of processes in operating systems, including the concept of a process, its address space, and the OS process namespace. Discusses the ", "url": "https://notes.elimelt.com/operating-systems/lecture-notes/processes.html", "articleSection": "Operating Systems", "keywords": "operating systems,processes,address space,cpu state,namespace"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/operating%20systems.html">Operating Systems</a> » Processes</div>
+    </header>
+    <main class="content">
+        <h1>Processes</h1>
+        <h1 id="processes"><a class="toclink" href="#processes">Processes</a></h1>
+<h2 id="what-is-a-process"><a class="toclink" href="#what-is-a-process">What is a process?</a></h2>
+<p>The OS's abstraction of a running program. A process is a program in execution.</p>
+<p>Simplest case:</p>
+<ul>
+<li>An address space</li>
+<li>A sinle thread of execution</li>
+</ul>
+<h2 id="whats-in-a-process"><a class="toclink" href="#whats-in-a-process">What's "in" a process?</a></h2>
+<p>Consists of (at least)</p>
+<ul>
+<li>An address space, containing the code (instructions) and data of the running program</li>
+<li>(At least one) CPU state, consisting of the instruction pointer (EIP), stack pointer (ESP), and other general purpose registers.</li>
+<li>A set of OS resources, including open files, open pipes, open network connections, etc.</li>
+</ul>
+<h3 id="address-space"><a class="toclink" href="#address-space">Address Space</a></h3>
+<p>Remember stack grows down (ie push decrements ESP, pop increments ESP). Stack contains all runtime frames.</p>
+<p>A processes address space (idealized):</p>
+<pre><code class="language-txt">+----------------------+ &lt;- 0x7FFFFFFF
+|        Stack         |
+|   (dynamic memory)   |
++----------------------+ &lt;- ESP
+|          |           |
+|          v           |
+|                      |
+|          ^           |
+|          |           |
++----------------------+
+|        Heap          |
+|   (dynamic memory)   |
++----------------------+
+|        Data          |
+|   (data segment)     |
++----------------------+
+|        Code          | &lt;- EIP
+|   (text segment)     |
++----------------------+ 0x00000000
+</code></pre>
+<h2 id="os-process-namespace"><a class="toclink" href="#os-process-namespace">OS Process Namespace</a></h2>
+<ul>
+<li>Each process has a unique identifier (PID)</li>
+<li>The PID namespace is global to the OS</li>
+<li>Operations that create processes (e.g. <code>fork</code>) returns the pid</li>
+<li>Operations on processes take pid as an argument (e.g. <code>kill</code>)</li>
+</ul>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

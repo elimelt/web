@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Objects Handles and Reference Counts</title>
+    <meta name="description" content="Covers the implementation of object handles and reference counting in operating systems, with a focus on the Windows object manager. Discusses the role of the o">
+    <link rel="canonical" href="https://notes.elimelt.com/operating-systems/lecture-notes/windows-objects-handles-refcounts.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Objects Handles and Reference Counts", "dateModified": "2025-12-29T22:39:59.772028", "description": "Covers the implementation of object handles and reference counting in operating systems, with a focus on the Windows object manager. Discusses the role of the o", "url": "https://notes.elimelt.com/operating-systems/lecture-notes/windows-objects-handles-refcounts.html", "articleSection": "Operating Systems", "keywords": "object manager,handles,reference counts,windows,c programming,operating systems"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/operating%20systems.html">Operating Systems</a> » Objects Handles and Reference Counts</div>
+    </header>
+    <main class="content">
+        <h1>Objects Handles and Reference Counts</h1>
+        <h1 id="obects-handles-and-reference-counts"><a class="toclink" href="#obects-handles-and-reference-counts">Obects Handles and Reference Counts</a></h1>
+<h2 id="object-manager"><a class="toclink" href="#object-manager">Object Manager</a></h2>
+<p>Windows was written in C, which doesn't have a notion of "objects". Early Windows had its own <strong>Object Manager</strong>, which was responsible for defining object types, naming objects, handling handles for users etc. </p>
+<p>For example, there were objects for threads, processes, files, semaphores, etc.</p>
+<p>Each object had a <strong>handle count</strong>, the number of handles the user has to the object, and the <strong>ref count</strong>, the number of references to the object within the kernel (which also includes handles).</p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

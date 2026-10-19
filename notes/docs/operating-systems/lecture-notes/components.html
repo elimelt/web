@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Components of an OS</title>
+    <meta name="description" content="Covers the implementation of key components in an operating system, including process operations, memory management, and I/O. Discusses device drivers, file sys">
+    <link rel="canonical" href="https://notes.elimelt.com/operating-systems/lecture-notes/components.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Components of an OS", "dateModified": "2025-12-29T22:39:59.771274", "description": "Covers the implementation of key components in an operating system, including process operations, memory management, and I/O. Discusses device drivers, file sys", "url": "https://notes.elimelt.com/operating-systems/lecture-notes/components.html", "articleSection": "Operating Systems", "keywords": "process operations,memory management,i/o,device drivers,file systems,process creation,process synchronization,virtual memory"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/operating%20systems.html">Operating Systems</a> » Components of an OS</div>
+    </header>
+    <main class="content">
+        <h1>Components of an OS</h1>
+        <h1 id="components-of-an-os"><a class="toclink" href="#components-of-an-os">Components of an OS</a></h1>
+<h2 id="process-operations"><a class="toclink" href="#process-operations">Process Operations</a></h2>
+<p>OS provides the following kinds of operations:</p>
+<ul>
+<li><em>Create</em> a process</li>
+<li><em>Delete</em> a process</li>
+<li><em>Suspend</em> a process</li>
+<li><em>Resume</em> a process</li>
+<li><em>Clone</em> a process</li>
+<li>Inter-process <em>communication</em></li>
+<li>Inter-process <em>synchronization</em></li>
+<li>Create/delete <em>child</em> processes (<em>subprocess</em>)</li>
+</ul>
+<h2 id="memory-management"><a class="toclink" href="#memory-management">Memory Management</a></h2>
+<p>primary memory is directly accessible to the CPU.</p>
+<ul>
+<li>Programs must be in memory to execute</li>
+<li>Memory access is fast</li>
+<li>Memory is non-persistent (volatile)</li>
+</ul>
+<p>OS must:</p>
+<ul>
+<li>Allocate memory for process</li>
+<li>deallocate memory when process terminates</li>
+<li>maintain mappings from physical -&gt; virtual memory though <em>page tables</em></li>
+<li>decide how much memory to allocate to each process</li>
+</ul>
+<h2 id="io"><a class="toclink" href="#io">I/O</a></h2>
+<ul>
+<li>a "big" chunk of kernel deals with I/O. Soft of like the "glue" that connects devices to the rest of the system.</li>
+<li>OS must provide a uniform interface to devices</li>
+</ul>
+<h3 id="device-drivers"><a class="toclink" href="#device-drivers">Device Drivers</a></h3>
+<p>Routines that interact with specific device types. <strong>Encapsulate</strong> the details of the device.</p>
+<ul>
+<li>e.g. how to initialize the device, how to request I/O, how to handle interrupts, etc.</li>
+<li>ex: SCSI device drivers, Ethernet card drivers, video card drivers.</li>
+</ul>
+<p>Note: Windows has ~35,000 device drivers.</p>
+<h3 id="file-systems"><a class="toclink" href="#file-systems">File Systems</a></h3>
+<p>A nice abstraction on top of physica storage device drivers. Provides the usual list of operations (open, close, read, write, seek, etc.), but also higher level operations on the fs itself:</p>
+<ul>
+<li>create/delete files</li>
+<li>create/delete directories</li>
+<li>accounting and quotas</li>
+<li>backup and restore</li>
+<li>(sometimes) indexing and searching</li>
+<li>(sometimes) file versioning</li>
+</ul>
+<h3 id="structure"><a class="toclink" href="#structure">Structure</a></h3>
+<pre><code class="language-txt">Monolith:
+
++----------------------+
+|    User Programs     |
++----------------------+
+|      Everything      |
+|      Else in OS      |
++----------------------+
+|     Device Driver/   |
+|     hardware stuff   |
++----------------------+
+
+</code></pre>
+<p>advantages:
+- cost of module interaction is low (procedure call)</p>
+<p>disadvantages:
+- hard to maintain
+- hard to extend</p>
+<h3 id="layering"><a class="toclink" href="#layering">Layering</a></h3>
+<h4 id="dikjstras-the-multiprogramming-system"><a class="toclink" href="#dikjstras-the-multiprogramming-system">Dikjstra's "THE" multiprogramming system:</a></h4>
+<p>Each layer presents a "virtual machine" to the layer above it. Each layer only uses the services of the layer below it.</p>
+<ul>
+<li>Layer 5: Job Managers, execute user programs</li>
+<li>Layer 4: Device Managers, handle devices and provide buffering</li>
+<li>Layer 3: Console Manager, implements virtual consoles</li>
+<li>Layer 2: Page Manager, implements virtual memory</li>
+<li>Layer 1: Kernel, implements virtual processor for each process</li>
+<li>Layer 0: Hardware</li>
+</ul>
+<p>Each layer can be tested and verified independently.</p>
+<h4 id="hardware-abstraction-layer"><a class="toclink" href="#hardware-abstraction-layer">Hardware Abstraction Layer</a></h4>
+<p>Goal: seperate hardwarte-specific routines from the "core" OS. Provides protability and improves readability.</p>
+<h3 id="microkernels"><a class="toclink" href="#microkernels">Microkernels</a></h3>
+<p>Introduced in the late 80s, early 90s. Goal: minimize the kernel, move as much as possible into user space.</p>
+<p>Results in:
+- better reliability (isolation between components)
+- better portability (less code to port)
+- better extensibility (easier to add new features)</p>
+<p>OS is split into two parts:</p>
+<ul>
+<li>microkernel: provides basic OS services (process management, memory management, I/O, etc.)</li>
+<li>system processes (servers): provide higher level services (file system, networking, scheduling, etc.)</li>
+</ul>
+<p>Probably slower than monolithic kernel because of all the expensive context switches.</p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>
