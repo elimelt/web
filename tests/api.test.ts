@@ -64,7 +64,7 @@ await test('each service has required fields', async () => {
   assert(service, 'Expected at least one service');
   assertType(service.name, 'string', 'service.name');
   assertType(service.status, 'string', 'service.status');
-  assertType(service.image, 'string', 'service.image');
+  assert(!('image' in service), 'image must not be exposed');
 });
 
 console.log('\nGET /visitors');
@@ -80,7 +80,8 @@ await test('recent visits have location data', async () => {
   const { data } = await fetchJson('/visitors');
   if (data.recent_visits.length > 0) {
     const visit = data.recent_visits[0];
-    assertType(visit.ip, 'string', 'visit.ip');
+    assertType(visit.id, 'string', 'visit.id');
+    assert(!('ip' in visit), 'raw ip must not be exposed');
     assertType(visit.location, 'object', 'visit.location');
     assertType(visit.timestamp, 'string', 'visit.timestamp');
   }
@@ -126,7 +127,8 @@ await test('analytics entries have metrics', async () => {
   const { data } = await fetchJson('/visitor-analytics?limit=1');
   if (data.visitors.length > 0) {
     const v = data.visitors[0];
-    assertType(v.visitor_ip, 'string', 'visitor_ip');
+    assertType(v.id, 'string', 'id');
+    assert(!('visitor_ip' in v), 'raw ip must not be exposed');
     assertType(v.total_visits, 'number', 'total_visits');
     assertType(v.total_time_seconds, 'number', 'total_time_seconds');
   }

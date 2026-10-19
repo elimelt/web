@@ -17,7 +17,7 @@ test('visitor globe uses the complete local MapLibre runtime and remains interac
   });
   const timestamp = new Date().toISOString();
   const visitor = {
-    ip: '203.0.113.7',
+    id: 'a1b2c3d4e5f60718',
     location: { city: 'London', country: 'Testland', lat: 51.5072, lon: -0.1276 },
     timestamp,
   };
@@ -75,7 +75,7 @@ test('visitor globe uses the complete local MapLibre runtime and remains interac
         count: 1,
         filters: {},
         visitors: [{
-          visitor_ip: visitor.ip,
+          id: visitor.id,
           total_visits: 1,
           total_time_seconds: 30,
           avg_session_duration_seconds: 30,
@@ -152,9 +152,9 @@ test('visitor globe uses the complete local MapLibre runtime and remains interac
   await page.getByRole('button', { name: 'Reset view' }).click();
   await expect(marker).toBeVisible();
   await marker.click();
-  await popup.getByRole('button', { name: visitor.ip }).click();
+  await popup.getByRole('button', { name: 'Visitor a1b2c3' }).click();
   await expect(page.locator('#visitor-modal-overlay')).toHaveClass(/active/);
-  await expect(page.locator('#visitor-modal-title')).toHaveText(`Activity for ${visitor.ip}`);
+  await expect(page.locator('#visitor-modal-title')).toHaveText(`Activity for Visitor a1b2c3`);
   await expect(page.locator('#visitor-analytics-summary')).toContainText('Analytics Visits');
 
   expect(unpkgRequests).toEqual([]);

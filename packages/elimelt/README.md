@@ -77,7 +77,7 @@ const summary = await client.visitors.analyticsSummary();
 // Real-time visitor updates
 const subscription = client.visitors.subscribe({
   onJoin: (visitor) => console.log('New visitor:', visitor),
-  onLeave: (ip) => console.log('Visitor left:', ip),
+  onLeave: (id) => console.log('Visitor left:', id),
   onOpen: () => console.log('Connected'),
   onClose: () => console.log('Disconnected'),
 });
