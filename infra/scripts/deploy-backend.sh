@@ -24,11 +24,16 @@ HEALTH_RETRIES="${HEALTH_RETRIES:-12}"
 
 log() { printf '==> %s\n' "$*"; }
 
-# Image repository (no tag) that Compose uses for a service.
+# Image repository (no tag) that Compose uses for a service: its `image:` if set,
+# otherwise Compose's default "<project>-<service>" for built images.
+# (`docker compose config --images <svc>` also lists dependencies, in no fixed order.)
 image_repo() {
-  local ref
-  ref="$(docker compose config --images "$1" | head -n1)"
-  printf '%s\n' "${ref%:*}"
+  docker compose config --format json | python3 -c '
+import json, sys
+config, svc = json.load(sys.stdin), sys.argv[1]
+image = config["services"][svc].get("image") or config["name"] + "-" + svc
+print(image.rsplit(":", 1)[0] if ":" in image.rsplit("/", 1)[-1] else image)
+' "$1"
 }
 
 # Tag whatever is running (or, failing that, the current :latest) as :previous.
