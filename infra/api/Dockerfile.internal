@@ -25,7 +25,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 COPY main_internal.py main_worker.py .
 RUN mkdir -p /app/api
-COPY __init__.py bus.py events.py state.py middleware.py redis_debug.py redis_pubsub.py notes_sync.py notes_embeddings.py config.py dependencies.py errors.py lifespan.py codex_runner.py security.py safe_fetch.py /app/api/
+COPY __init__.py bus.py events.py state.py middleware.py redis_debug.py redis_pubsub.py notes_sync.py notes_embeddings.py config.py dependencies.py errors.py lifespan.py codex_runner.py security.py safe_fetch.py visitor_id.py /app/api/
 COPY controllers /app/api/controllers
 COPY agents /app/api/agents
 COPY producers /app/api/producers
