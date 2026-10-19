@@ -123,6 +123,12 @@ test('visitor globe uses the complete local MapLibre runtime and remains interac
     const mapBounds = element.closest('#visitor-map')!.getBoundingClientRect();
     return { x: bounds.x - mapBounds.x, y: bounds.y - mapBounds.y };
   });
+  // MapLibre starts with a default 400x300 canvas until its ResizeObserver fits it to the
+  // container, so the baseline must be taken only after the canvas matches the host.
+  await expect.poll(() => map.evaluate(host => {
+    const canvas = host.querySelector('canvas')!;
+    return Math.abs(canvas.clientWidth - host.clientWidth) <= 1 && Math.abs(canvas.clientHeight - host.clientHeight) <= 1;
+  })).toBe(true);
   const initialPosition = await markerPosition();
   const distanceFromInitial = async () => {
     const current = await markerPosition();
