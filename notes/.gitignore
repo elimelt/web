@@ -1,0 +1,29 @@
+*.swp
+*~
+.vscode
+.DS_Store
+venv
+.venv
+.ipynb_checkpoints
+*.pyc
+search_index.db
+search_embeddings.jsonl
+site
+public
+.quartz
+embeddings.jsonl
+*.sqlite
+*.bak
+*.tmp
+*.sed
+*.html
+*.htm
+/work/notebook-data
+
+# Exception: track template HTML files
+!scripts/template/*.html
+!quartz-site/routes/**/*.html
+
+# The repository root ignores these; notes tracks its committed plugin builds.
+!quartz-site/**/dist/
+!.python-version

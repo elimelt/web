@@ -1,0 +1,49 @@
+name: Publish static site
+
+# Called by web-deploy.yml and notes-deploy.yml after they upload a build
+# artifact named "<site>-site". Caddy serves the result from the homelab.
+on:
+  workflow_call:
+    inputs:
+      site:
+        description: "Site directory name under SITES_PATH (web or notes)"
+        required: true
+        type: string
+      host:
+        description: "Hostname Caddy serves the site on"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish to homelab
+    runs-on: [self-hosted, blink]
+    env:
+      SITE: ${{ inputs.site }}
+      SITE_HOST: ${{ inputs.host }}
+      SITES_PATH: ${{ vars.SITES_PATH || '/home/elimelt/sites' }}
+    steps:
+      - name: Checkout publish script
+        uses: actions/checkout@v5
+        with:
+          sparse-checkout: infra/sites
+
+      - name: Download build
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.site }}-site
+          path: ${{ runner.temp }}/site-build
+
+      - name: Publish release
+        run: |
+          set -euo pipefail
+          infra/sites/publish.sh "$SITE" "$RUNNER_TEMP/site-build" \
+            "$(date -u +%Y%m%dT%H%M%SZ)-${GITHUB_SHA::12}"
+
+      - name: Verify Caddy serves it
+        run: |
+          set -euo pipefail
+          docker exec caddy wget -q -O /dev/null --header "Host: ${SITE_HOST}" http://127.0.0.1/

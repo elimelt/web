@@ -1,0 +1,54 @@
+name: Deploy elimelt.com
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "**"
+      - "!notes/**"
+      - "!docs/**"
+      - "!infra/**"
+      - "infra/sites/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-deploy
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install build dependencies
+        run: npm ci
+      - name: Check TypeScript
+        run: npm run typecheck
+      - name: Build site
+        run: npm run build
+      - name: Verify build and music logic
+        run: npm run test:unit
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-site
+          path: dist/frontend/
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: build
+    uses: ./.github/workflows/publish-site.yml
+    with:
+      site: web
+      host: elimelt.com

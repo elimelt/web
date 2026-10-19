@@ -106,6 +106,22 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "homelab" {
       service  = "http://caddy:80"
     }
 
+    # Static sites, published by .github/workflows/{web,notes}-deploy.yml
+    ingress_rule {
+      hostname = var.domain
+      service  = "http://caddy:80"
+    }
+
+    ingress_rule {
+      hostname = "www.${var.domain}"
+      service  = "http://caddy:80"
+    }
+
+    ingress_rule {
+      hostname = "notes.${var.domain}"
+      service  = "http://caddy:80"
+    }
+
     # Catch-all rule (required)
     ingress_rule {
       service = "http_status:404"
@@ -144,6 +160,34 @@ resource "cloudflare_record" "transcribe" {
   comment = "Speaches - Whisper transcription API"
 }
 
+# Apex domain (elimelt.com); Cloudflare flattens the CNAME at the apex.
+resource "cloudflare_record" "apex" {
+  zone_id = data.cloudflare_zone.main.id
+  name    = var.domain
+  type    = "CNAME"
+  content = "${var.tunnel_id}.cfargotunnel.com"
+  proxied = true
+  comment = "Astro site (homelab)"
+}
+
+resource "cloudflare_record" "www" {
+  zone_id = data.cloudflare_zone.main.id
+  name    = "www"
+  type    = "CNAME"
+  content = "${var.tunnel_id}.cfargotunnel.com"
+  proxied = true
+  comment = "Redirects to apex (homelab)"
+}
+
+resource "cloudflare_record" "notes" {
+  zone_id = data.cloudflare_zone.main.id
+  name    = "notes"
+  type    = "CNAME"
+  content = "${var.tunnel_id}.cfargotunnel.com"
+  proxied = true
+  comment = "Quartz notes (homelab)"
+}
+
 resource "cloudflare_record" "llm" {
   zone_id = data.cloudflare_zone.main.id
   name    = "llm"
@@ -165,38 +209,6 @@ locals {
     "185.199.110.153",
     "185.199.111.153",
   ]
-}
-
-# Apex domain (elimelt.com)
-resource "cloudflare_record" "apex" {
-  for_each = toset(local.github_pages_ips)
-  zone_id  = data.cloudflare_zone.main.id
-  name     = var.domain
-  type     = "A"
-  content  = each.value
-  proxied  = true
-  comment  = "GitHub Pages"
-}
-
-# www subdomain
-resource "cloudflare_record" "www" {
-  zone_id = data.cloudflare_zone.main.id
-  name    = "www"
-  type    = "CNAME"
-  content = "elimelt.github.io"
-  proxied = true
-  comment = "GitHub Pages"
-}
-
-# notes subdomain
-resource "cloudflare_record" "notes" {
-  for_each = toset(local.github_pages_ips)
-  zone_id  = data.cloudflare_zone.main.id
-  name     = "notes"
-  type     = "A"
-  content  = each.value
-  proxied  = true
-  comment  = "GitHub Pages - Notes app"
 }
 
 # music subdomain

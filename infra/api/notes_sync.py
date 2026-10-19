@@ -14,7 +14,10 @@ from api import db
 
 logger = logging.getLogger(__name__)
 
-GITHUB_REPO = "elimelt/notes"
+GITHUB_REPO = "elimelt/web"
+# Notes live under notes/ in the monorepo. Stored paths stay relative to it
+# (content/...) so documents synced before the move keep the same keys.
+NOTES_ROOT = "notes"
 CONTENT_PATH = "content"
 GITHUB_API_BASE = "https://api.github.com"
 
@@ -247,12 +250,18 @@ def parse_tags(tags_value: str | list | None) -> list[str]:
 
 
 async def get_repo_latest_commit(client: GitHubClient) -> tuple[str | None, str | None]:
-    resp = await client.get(f"{GITHUB_API_BASE}/repos/{GITHUB_REPO}/commits/main")
+    # Only commits touching note content count, so site-only changes do not trigger a resync.
+    resp = await client.get(
+        f"{GITHUB_API_BASE}/repos/{GITHUB_REPO}/commits"
+        f"?sha=main&path={NOTES_ROOT}/{CONTENT_PATH}&per_page=1"
+    )
     if not resp.success:
         if resp.is_rate_limited:
             return None, "Rate limited while fetching commit"
         return None, f"Failed to get latest commit: {resp.status_code}"
-    return resp.data.get("sha"), None
+    if not resp.data:
+        return None, "No commits found for notes content"
+    return resp.data[0].get("sha"), None
 
 
 async def get_content_tree(client: GitHubClient) -> tuple[list[str], str | None]:
@@ -265,10 +274,10 @@ async def get_content_tree(client: GitHubClient) -> tuple[list[str], str | None]
     tree = resp.data.get("tree", [])
 
     md_files = [
-        item["path"]
+        item["path"].removeprefix(f"{NOTES_ROOT}/")
         for item in tree
         if item["type"] == "blob"
-        and item["path"].startswith(f"{CONTENT_PATH}/")
+        and item["path"].startswith(f"{NOTES_ROOT}/{CONTENT_PATH}/")
         and item["path"].endswith(".md")
     ]
     return md_files, None
@@ -280,7 +289,7 @@ async def fetch_and_process_file(
     commit_sha: str,
 ) -> tuple[bool, str | None, bool]:
     try:
-        resp = await client.get(f"{GITHUB_API_BASE}/repos/{GITHUB_REPO}/contents/{path}")
+        resp = await client.get(f"{GITHUB_API_BASE}/repos/{GITHUB_REPO}/contents/{NOTES_ROOT}/{path}")
 
         if not resp.success:
             if resp.is_rate_limited:

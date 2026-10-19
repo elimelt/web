@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="description"
+      content="Explore the links among Elijah's technical notes on systems, machine learning, algorithms, hardware, and software engineering."
+    />
+    <link rel="canonical" href="https://notes.elimelt.com/graph/" />
+    <meta property="og:url" content="https://notes.elimelt.com/graph/" />
+    <meta property="og:title" content="Elijah's Notes Graph" />
+    <meta
+      property="og:description"
+      content="Explore the links among Elijah's technical notes on systems, machine learning, algorithms, hardware, and software engineering."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,100..900;1,100..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" type="image/png" href="/static/portfolio-icon-b2e02b34.png" />
+    <link rel="apple-touch-icon" href="/static/portfolio-icon-b2e02b34.png" />
+    <title>Notes Graph</title>
+    <script>
+      if (window.self !== window.top) document.documentElement.classList.add("embedded")
+    </script>
+    <link rel="stylesheet" href="./graph.css?v=3" />
+  </head>
+  <body>
+    <main class="graph-shell">
+      <header class="graph-header">
+        <div>
+          <p class="eyebrow">Elijah's Notes</p>
+          <h1>Graph</h1>
+        </div>
+        <div class="graph-meta">
+          <span id="graph-status" role="status">Loading notes...</span>
+          <button id="fit-graph" type="button">Fit graph</button>
+        </div>
+      </header>
+      <canvas id="notes-graph" aria-label="Interactive graph of linked notes"></canvas>
+      <div id="graph-tooltip" class="graph-tooltip" hidden></div>
+      <p class="graph-help">Drag to pan, scroll to zoom, select a node to open its note.</p>
+    </main>
+    <script type="module" src="./graph.js?v=2"></script>
+  </body>
+</html>

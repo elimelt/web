@@ -6,7 +6,10 @@ import pytest
 
 from api.notes_sync import (
     GitHubClient,
+    GitHubResponse,
     RateLimitInfo,
+    get_content_tree,
+    get_repo_latest_commit,
     parse_frontmatter,
     parse_tags,
     sync_notes,
@@ -195,3 +198,39 @@ class TestSyncNotesLegacyWrapper:
         result = await sync_notes()
 
         assert result["success"] is False
+
+
+class FakeGitHubClient:
+    def __init__(self, data):
+        self.data = data
+        self.urls = []
+
+    async def get(self, url):
+        self.urls.append(url)
+        return GitHubResponse(status_code=200, data=self.data, rate_limit=None)
+
+
+class TestMonorepoPaths:
+    @pytest.mark.asyncio
+    async def test_latest_commit_only_counts_note_content(self):
+        client = FakeGitHubClient([{"sha": "abc123"}])
+
+        sha, error = await get_repo_latest_commit(client)
+
+        assert (sha, error) == ("abc123", None)
+        assert "/repos/elimelt/web/commits?" in client.urls[0]
+        assert "path=notes/content" in client.urls[0]
+
+    @pytest.mark.asyncio
+    async def test_content_tree_keeps_paths_relative_to_notes(self):
+        client = FakeGitHubClient({"tree": [
+            {"type": "blob", "path": "notes/content/systems/raft.md"},
+            {"type": "blob", "path": "notes/content/systems/diagram.png"},
+            {"type": "blob", "path": "notes/README.md"},
+            {"type": "blob", "path": "frontend/content/other.md"},
+        ]})
+
+        paths, error = await get_content_tree(client)
+
+        assert error is None
+        assert paths == ["content/systems/raft.md"]

@@ -1,0 +1,56 @@
+name: Deploy notes.elimelt.com
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "notes/**"
+      - "infra/sites/**"
+      - ".github/workflows/notes-deploy.yml"
+      - ".github/workflows/publish-site.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "notes/**"
+      - ".github/workflows/notes-deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: notes-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build notes
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: notes
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Build Quartz site
+        run: npm run build
+      - name: Upload build
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: notes-site
+          path: notes/public/
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    if: github.event_name != 'pull_request'
+    needs: build
+    uses: ./.github/workflows/publish-site.yml
+    with:
+      site: notes
+      host: notes.elimelt.com

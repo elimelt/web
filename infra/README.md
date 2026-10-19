@@ -9,6 +9,8 @@ the public Cloudflare Tunnel.
 ```
 Internet → Cloudflare Tunnel → Caddy (reverse proxy) → Docker services
                                     ↓
+                            elimelt.com        → static site (sites/)
+                            notes.elimelt.com  → static site (sites/)
                             status.elimelt.com → Uptime Kuma
                             api.elimelt.com    → Public API
 ```

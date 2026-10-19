@@ -56,6 +56,18 @@
 	header @cors_allowed Access-Control-Allow-Origin "{http.request.header.Origin}"
 }
 
+# Static sites published by infra/sites/publish.sh into /srv/sites/<site>/current.
+# Pretty URLs resolve like GitHub Pages: /foo serves foo.html, directories get a
+# trailing-slash redirect and their index.html.
+(static_site) {
+	encode zstd gzip
+	# Astro fingerprints everything under /_astro/; other files may change in place.
+	header /_astro/* Cache-Control "public, max-age=31536000, immutable"
+	header ?Cache-Control "public, max-age=600"
+	try_files {path} {path}.html
+	file_server
+}
+
 (rate_limit_api) {
 	rate_limit {
 		zone api_ip {
@@ -200,6 +212,39 @@
 		header Access-Control-Allow-Headers "Content-Type"
 		root * /static
 		file_server browse
+	}
+
+	# ============ STATIC SITES ============
+	# elimelt.com → Astro site (.github/workflows/web-deploy.yml)
+	@web host elimelt.com
+	handle @web {
+		root * /srv/sites/web/current
+		import static_site
+	}
+
+	@www host www.elimelt.com
+	handle @www {
+		redir https://elimelt.com{uri} permanent
+	}
+
+	# notes.elimelt.com → Quartz notes (.github/workflows/notes-deploy.yml)
+	@notes host notes.elimelt.com
+	handle @notes {
+		root * /srv/sites/notes/current
+		import static_site
+	}
+
+	# Quartz ships a styled 404 page; other hosts keep the plain response.
+	handle_errors 404 {
+		@notes_missing host notes.elimelt.com
+		handle @notes_missing {
+			root * /srv/sites/notes/current
+			rewrite * /404.html
+			file_server
+		}
+		handle {
+			respond "Not Found" 404
+		}
 	}
 
 	# Default: 404
