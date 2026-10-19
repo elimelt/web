@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practical Lessons from Predicting Clicks on Ads at Facebook</title>
+    <meta name="description" content="A review/summary of the paper "Practical Lessons from Predicting Clicks on Ads at Facebook", covering foundational concepts of ads modeling/ranking systems.">
+    <link rel="canonical" href="https://notes.elimelt.com/recc-sys/predicting-clicks-on-ads-at-facebook.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Practical Lessons from Predicting Clicks on Ads at Facebook", "dateModified": "2025-12-29T22:39:59.774204", "description": "A review/summary of the paper \"Practical Lessons from Predicting Clicks on Ads at Facebook\", covering foundational concepts of ads modeling/ranking systems.", "url": "https://notes.elimelt.com/recc-sys/predicting-clicks-on-ads-at-facebook.html", "articleSection": "Machine Learning Systems", "keywords": "recommender systems,machine learning,ads,facebook"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/machine%20learning%20systems.html">Machine Learning Systems</a> » Practical Lessons from Predicting Clicks on Ads at Facebook</div>
+    </header>
+    <main class="content">
+        <h1>Practical Lessons from Predicting Clicks on Ads at Facebook</h1>
+        <h1 id="practical-lessons-from-predicting-clicks-on-ads-at-facebook"><a class="toclink" href="#practical-lessons-from-predicting-clicks-on-ads-at-facebook">Practical Lessons from Predicting Clicks on Ads at Facebook</a></h1>
+<blockquote>
+<p>Disclaimer: This is not affiliated with my work at Meta. This paper is publicly available at https://research.facebook.com/file/273183074306353/practical-lessons-from-predicting-clicks-on-ads-at-facebook.pdf</p>
+</blockquote>
+<h2 id="background"><a class="toclink" href="#background">Background</a></h2>
+<p>The overall ads ranking system is composed of two main components: the <strong>ranking</strong> and <strong>bidding</strong>. Ranking is performed by a series of models that increase in complexity and cost as they progress through the pipeline, progressively filtering out the majority of ads, since most are not relevant to the user. Then, an "auction" is performed to determine which ad will be shown to the user based on the bids from advertisers, e.g. how much they are willing to pay for a click.</p>
+<p>This paper is primarily focused on the ranking component, particularly the final layer of the ranking system where higher accuracy over a smaller dataset is required.</p>
+<h2 id="normalized-entropy"><a class="toclink" href="#normalized-entropy">Normalized Entropy</a></h2>
+<p>Normalized entropy is used to measure the discriminative power of a model. It is defined as:</p>
+<p>$$
+\text{Normalized Entropy} = \frac{H}{H_{\text{max}}}
+$$</p>
+<p>Where $H$ is the entropy of the model and $H_{\text{max}}$ is the maximum possible entropy, e.g. the average CTR of the dataset.</p>
+<p>Given a dataset labeled $1, \ldots, n$ with outputs $y_i \in {-1, 1}$, with a background CTR $p$ and a predicted click probability $p_i$, the entropy is defined as:</p>
+<p>$$
+\text{Entropy} = -\frac{1}{n} \sum_{i=1}^{n} \left( \frac{1 + y_i}{2} \log(p_i) + \frac{1 - y_i}{2} \log(1 - p_i) \right)
+$$</p>
+<p>The maximum possible entropy is given by $Ber(p)$, i.e.:
+$$
+H_{\text{max}} = -(p \log(p) + (1 - p) \log(1 - p))
+$$.</p>
+<p>So we have the normalized entropy as:</p>
+<p>$$
+\text{NE} = \frac{-\frac{1}{n} \sum_{i=1}^{n} \left( \frac{1 + y_i}{2} \log(p_i) + \frac{1 - y_i}{2} \log(1 - p_i) \right)}{-(p \log(p) + (1 - p) \log(1 - p))}
+$$</p>
+<p>Intuitively, the closer the background CTR is, the easier it is for the model to discriminate. This metric is nice for a few reasons:</p>
+<ul>
+<li>It is interpretable, as 1 means the model is no better than using the average CTR to predict clicks, and anything lower than 1 means the model is performing better than the average CTR.</li>
+<li>It helps compare models, since normalizing makes it insensitive to the background CTR.</li>
+</ul>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

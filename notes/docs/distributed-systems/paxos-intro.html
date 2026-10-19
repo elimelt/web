@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paxos Introduction</title>
+    <meta name="description" content="Explains the Paxos consensus algorithm for ensuring consistency in a distributed system.">
+    <link rel="canonical" href="https://notes.elimelt.com/distributed-systems/paxos-intro.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Paxos Introduction", "dateModified": "2025-12-29T22:39:59.764412", "description": "Explains the Paxos consensus algorithm for ensuring consistency in a distributed system.", "url": "https://notes.elimelt.com/distributed-systems/paxos-intro.html", "articleSection": "Distributed Systems", "keywords": "paxos,consensus algorithm,distributed systems,asynchronous systems,state machine replication"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/distributed%20systems.html">Distributed Systems</a> » Paxos Introduction</div>
+    </header>
+    <main class="content">
+        <h1>Paxos Introduction</h1>
+        <h1 id="paxos-introduction"><a class="toclink" href="#paxos-introduction">Paxos Introduction</a></h1>
+<h2 id="flp-impossibility-result"><a class="toclink" href="#flp-impossibility-result">FLP Impossibility Result</a></h2>
+<p>It's impossible for a deterministic protocol to guarantee consensus in bounded time in an asynchronous distributed system. The progress and safety of a system are at odds with each other.</p>
+<p>Paxos makes the decision to always be safe, and is able to make progress and avoid blocking as long as the majority of nodes are up and there aren't further failures.</p>
+<h2 id="state-machine-replication"><a class="toclink" href="#state-machine-replication">State Machine Replication</a></h2>
+<p>Order events/operations into an append-only log. Consensus is easy if only one client request is handled at a time.</p>
+<p>Select a leader for clients to send requests to, and define the ordering at that leader. If any leader fails or is slow, elect a new leader (can keep doing this repeatedly). Then, each leader proposes a value that all nodes should agree on.</p>
+<p>Leader election is where Paxos comes in.</p>
+<h2 id="paxos-the-algorithm"><a class="toclink" href="#paxos-the-algorithm">Paxos, the algorithm</a></h2>
+<pre><code class="language-plaintext">Proposer:
+  Prepare(n) -&gt; Promise(n, n', v')
+  Accept(n, v) -&gt; Accepted(n, v)
+
+Acceptor:
+  Promise(n, n', v') -&gt; Prepare(n)
+  Accepted(n, v) -&gt; Accept(n, v)
+</code></pre>
+<h3 id="phase-1-prepare"><a class="toclink" href="#phase-1-prepare">Phase 1: Prepare</a></h3>
+<ul>
+<li>Proposer selects a proposal number $n$ and sends <code>Prepare(n)</code> to all (or a majority) of acceptors.</li>
+<li>Acceptors respond with <code>Promise(n, n', v')</code> where $n'$ is the highest proposal number it has accepted, and $v'$ is the value associated with that proposal number.</li>
+<li>If $n &gt; n'$, the acceptor promises not to accept any proposal with a number less than $n$.</li>
+<li>Proposer must wait for a majority of responses before proceeding.</li>
+</ul>
+<h3 id="phase-2-accept"><a class="toclink" href="#phase-2-accept">Phase 2: Accept</a></h3>
+<ul>
+<li>If the proposer receives a majority of promises, it sends <code>Accept(n_max, v_max)</code> to all acceptors (the maximal value received in reply).</li>
+<li>Each acceptor that is able to accept the proposal responds with <code>Accepted(n_max, v_max)</code>.</li>
+<li>If a majority of acceptors respond, the proposal is chosen.</li>
+</ul>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

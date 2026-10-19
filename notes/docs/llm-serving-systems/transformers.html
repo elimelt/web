@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transformer Architecture and Implementation</title>
+    <meta name="description" content="Overview of transformer architecture (specifically Llama) and its implementation details for LLM serving systems">
+    <link rel="canonical" href="https://notes.elimelt.com/llm-serving-systems/transformers.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Transformer Architecture and Implementation", "dateModified": "2025-12-29T22:39:59.767361", "description": "Overview of transformer architecture (specifically Llama) and its implementation details for LLM serving systems", "url": "https://notes.elimelt.com/llm-serving-systems/transformers.html", "articleSection": "Machine Learning Systems", "keywords": "transformers,architecture,implementation,attention,prefill,decode,feedforward,normalization,machine learning"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/machine%20learning%20systems.html">Machine Learning Systems</a> » Transformer Architecture and Implementation</div>
+    </header>
+    <main class="content">
+        <h1>Transformer Architecture and Implementation</h1>
+        <h2 id="transformer-architecture-overview"><a class="toclink" href="#transformer-architecture-overview">Transformer Architecture Overview</a></h2>
+<blockquote>
+<p>Disclaimer: These are notes for CSE 599K "LLM Serving Systems" at the University of Washington, Spring 2025 instructed by both Prof. Baris Kasikci and TA Kan Zhu</p>
+</blockquote>
+<h3 id="prefill-vs-decode-phases"><a class="toclink" href="#prefill-vs-decode-phases">Prefill vs. Decode Phases</a></h3>
+<p><strong>Prefill Phase:</strong></p>
+<ul>
+<li>Processes entire input prompt at once</li>
+<li>All tokens processed in parallel</li>
+<li>Compute-bound operation</li>
+</ul>
+<p><strong>Decode Phase:</strong></p>
+<ul>
+<li>Generates one token at a time</li>
+<li>Sequential generation process</li>
+<li>Memory-bound operation (utilizes KV cache)</li>
+</ul>
+<h3 id="transformer-layers-and-iterations"><a class="toclink" href="#transformer-layers-and-iterations">Transformer Layers and Iterations</a></h3>
+<ul>
+<li><strong>Inference Iteration:</strong> Complete forward pass through all layers to generate one output token</li>
+<li><strong>Inference Layer:</strong> Single transformer layer containing attention and FFN components</li>
+<li><strong>Activations:</strong> Intermediate representations passed between layers</li>
+</ul>
+<hr />
+<h2 id="core-transformer-components"><a class="toclink" href="#core-transformer-components">Core Transformer Components</a></h2>
+<h3 id="1-embedding-layer"><a class="toclink" href="#1-embedding-layer">1. Embedding Layer</a></h3>
+<p><strong>Purpose:</strong> Convert token IDs to dense vector representations</p>
+<pre><code class="language-python">input_ids: [The, University, ...]
+embeddings: {
+    The: [0, 1, 0, 1, ...],  # 4096 elements in Llama
+    University: [0, 0, 0, ...]
+}
+</code></pre>
+<h3 id="2-attention-mechanism"><a class="toclink" href="#2-attention-mechanism">2. Attention Mechanism</a></h3>
+<h4 id="self-attention-formula"><a class="toclink" href="#self-attention-formula">Self-Attention Formula</a></h4>
+<p>$$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$$</p>
+<p>Where:</p>
+<ul>
+<li><strong>Q (Query):</strong> What the transformer is looking for</li>
+<li><strong>K (Key):</strong> What's available in the sequence</li>
+<li><strong>V (Value):</strong> What needs to be updated to assimilate context</li>
+<li><strong>$d_k$:</strong> Head dimension for scaling</li>
+</ul>
+<h4 id="causal-self-attention"><a class="toclink" href="#causal-self-attention">Causal Self-Attention</a></h4>
+<ul>
+<li><strong>Causal Mask:</strong> Prevents tokens from attending to future tokens</li>
+<li>Uses $-\infty$ values in attention matrix for future positions</li>
+<li>When $x_i \to -\infty$, $\text{softmax}(x_i) \to 0$</li>
+</ul>
+<h4 id="grouped-query-attention-gqa"><a class="toclink" href="#grouped-query-attention-gqa">Grouped Query Attention (GQA)</a></h4>
+<ul>
+<li><strong>Purpose:</strong> Reduce KV cache memory usage</li>
+<li><strong>Mechanism:</strong> Multiple query heads share the same key and value heads</li>
+<li><strong>Group Size:</strong> Number of query heads per key/value head (e.g., group size = 4)</li>
+<li><strong>Benefit:</strong> Allows increasing batch size by factor of group size</li>
+</ul>
+<h3 id="3-multi-head-attention"><a class="toclink" href="#3-multi-head-attention">3. Multi-Head Attention</a></h3>
+<h4 id="head-separation-process"><a class="toclink" href="#head-separation-process">Head Separation Process</a></h4>
+<pre><code class="language-python"># Original query tensor
+q = [[1, 2, 3, 4, 5, 6],    # Token 1
+     [7, 8, 9, 10, 11, 12]] # Token 2
+# Shape: (seq_len, hidden_dim) = (2, 6)
+
+# Separated into heads
+sub_q = [[[1, 2, 3],   # Head 1 for Token 1
+          [4, 5, 6]],  # Head 2 for Token 1
+         [[7, 8, 9],   # Head 1 for Token 2
+          [10, 11, 12]]] # Head 2 for Token 2
+# Shape: (seq_len, num_heads, head_dim) = (2, 2, 3)
+</code></pre>
+<h3 id="4-feed-forward-network-ffn"><a class="toclink" href="#4-feed-forward-network-ffn">4. Feed Forward Network (FFN)</a></h3>
+<p><strong>Architecture:</strong> Two linear transformations with activation function</p>
+<ul>
+<li><strong>Up Projection:</strong> Expands hidden dimension</li>
+<li><strong>Gate Projection:</strong> Controls information flow</li>
+<li><strong>Activation Function:</strong> SwiGLU (Swish-Gated Linear Unit)</li>
+<li><strong>Down Projection:</strong> Returns to original dimension</li>
+</ul>
+<p><strong>Mathematical representation:</strong>
+$$\text{FFN}(x) = \text{Down}(\text{SwiGLU}(\text{Up}(x)) \odot \text{Gate}(x))$$</p>
+<h3 id="5-normalization"><a class="toclink" href="#5-normalization">5. Normalization</a></h3>
+<h4 id="rmsnorm-root-mean-square-normalization"><a class="toclink" href="#rmsnorm-root-mean-square-normalization">RMSNorm (Root Mean Square Normalization)</a></h4>
+<p>$$\text{RMSNorm}(x) = \frac{x}{\sqrt{\frac{1}{n}\sum_{i=1}^n x_i^2 + \epsilon}} \odot g$$</p>
+<p>Where:</p>
+<ul>
+<li><strong>x:</strong> Input vector of size n</li>
+<li><strong>epsilon:</strong> Small constant for numerical stability (e.g., $10^{-8}$)</li>
+<li><strong>g:</strong> Learned scaling parameter (element-wise multiplication)</li>
+</ul>
+<h3 id="6-residual-connections"><a class="toclink" href="#6-residual-connections">6. Residual Connections</a></h3>
+<ul>
+<li><strong>Purpose:</strong> Enable gradient flow in deep networks</li>
+<li><strong>Implementation:</strong> Add input to output of each major component</li>
+<li><strong>Formula:</strong> $\text{output} = \text{input} + \text{component}(\text{input})$</li>
+</ul>
+<hr />
+<h2 id="multi-gpu-implementation"><a class="toclink" href="#multi-gpu-implementation">Multi-GPU Implementation</a></h2>
+<h3 id="tensor-parallelism"><a class="toclink" href="#tensor-parallelism">Tensor Parallelism</a></h3>
+<ul>
+<li><strong>Weight Distribution:</strong> Split weight matrices across GPUs</li>
+<li><strong>Query/Key/Value:</strong> Distributed across different GPUs</li>
+<li><strong>Computation:</strong> Parallel matrix multiplications</li>
+</ul>
+<h3 id="communication-operations"><a class="toclink" href="#communication-operations">Communication Operations</a></h3>
+<h4 id="allgather"><a class="toclink" href="#allgather">AllGather</a></h4>
+<ul>
+<li><strong>Purpose:</strong> Collect partial results from all GPUs</li>
+<li><strong>Usage:</strong> After attention computation to gather all head outputs</li>
+<li><strong>Operation Type:</strong> Network-bound</li>
+</ul>
+<h4 id="allreduce"><a class="toclink" href="#allreduce">AllReduce</a></h4>
+<ul>
+<li><strong>Purpose:</strong> Sum partial results across GPUs</li>
+<li><strong>Composition:</strong> ReduceScatter + AllGather</li>
+<li><strong>Usage:</strong> After FFN down projection</li>
+<li><strong>Operation Type:</strong> Network-bound</li>
+</ul>
+<hr />
+<h2 id="resource-utilization-patterns"><a class="toclink" href="#resource-utilization-patterns">Resource Utilization Patterns</a></h2>
+<h3 id="compute-bound-operations"><a class="toclink" href="#compute-bound-operations">Compute-Bound Operations</a></h3>
+<ul>
+<li>Query, Key, Value projections</li>
+<li>Up and Gate projections in FFN</li>
+<li>Output projections</li>
+<li>Prefill attention computation</li>
+</ul>
+<h3 id="memory-bound-operations"><a class="toclink" href="#memory-bound-operations">Memory-Bound Operations</a></h3>
+<ul>
+<li>Decode attention (KV cache access)</li>
+<li>Reading cached key-value pairs</li>
+</ul>
+<h3 id="network-bound-operations"><a class="toclink" href="#network-bound-operations">Network-Bound Operations</a></h3>
+<ul>
+<li>AllGather communications</li>
+<li>AllReduce communications</li>
+</ul>
+<hr />
+<h2 id="key-implementation-details"><a class="toclink" href="#key-implementation-details">Key Implementation Details</a></h2>
+<h3 id="kv-cache-management"><a class="toclink" href="#kv-cache-management">KV Cache Management</a></h3>
+<ul>
+<li><strong>Storage:</strong> Unique per batch, shared across layers</li>
+<li><strong>Purpose:</strong> Avoid recomputing key-value pairs during decode</li>
+<li><strong>Memory Impact:</strong> Major contributor to GPU memory usage</li>
+</ul>
+<h3 id="rotary-positional-encoding"><a class="toclink" href="#rotary-positional-encoding">Rotary Positional Encoding</a></h3>
+<ul>
+<li><strong>Application:</strong> Applied to query and key vectors</li>
+<li><strong>Purpose:</strong> Encode relative position information</li>
+<li><strong>Advantage:</strong> Better handling of variable sequence lengths</li>
+</ul>
+<h3 id="softmax-computation"><a class="toclink" href="#softmax-computation">Softmax Computation</a></h3>
+<p>$$\text{softmax}(x_i) = \frac{e^{x_i}}{\sum_j e^{x_j}}$$
+- <strong>Numerical Stability:</strong> Often implemented with temperature scaling
+- <strong>Attention Weights:</strong> Output represents attention distribution</p>
+<hr />
+<h2 id="architecture-comparison"><a class="toclink" href="#architecture-comparison">Architecture Comparison</a></h2>
+<h3 id="original-transformer-vs-llama-architecture"><a class="toclink" href="#original-transformer-vs-llama-architecture">Original Transformer vs. Llama Architecture</a></h3>
+<ul>
+<li><strong>Original:</strong> Encoder-decoder with cross-attention</li>
+<li><strong>Llama:</strong> Decoder-only architecture</li>
+<li><strong>Normalization:</strong> LayerNorm  o RMSNorm</li>
+<li><strong>Activation:</strong> ReLU  o SwiGLU</li>
+<li><strong>Position Encoding:</strong> Absolute   o Rotary (RoPE)</li>
+<li><strong>Attention:</strong> Multi-head     o Grouped Query Attention</li>
+</ul>
+<p>This architecture forms the foundation for modern large language models and understanding these components is crucial for optimizing LLM serving systems.</p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

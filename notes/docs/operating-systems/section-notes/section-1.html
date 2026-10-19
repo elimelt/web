@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C and GDB Review</title>
+    <meta name="description" content="Covers the implementation of C programming language concepts such as static, extern, and pointers. Also reviews the usage of the GNU Debugger (GDB) for debuggin">
+    <link rel="canonical" href="https://notes.elimelt.com/operating-systems/section-notes/section-1.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "C and GDB Review", "dateModified": "2025-12-29T22:39:59.772241", "description": "Covers the implementation of C programming language concepts such as static, extern, and pointers. Also reviews the usage of the GNU Debugger (GDB) for debuggin", "url": "https://notes.elimelt.com/operating-systems/section-notes/section-1.html", "articleSection": "Computer Science", "keywords": "static,extern,pointers,gdb,printf debugging,backtrace,watch"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/computer%20science.html">Computer Science</a> » C and GDB Review</div>
+    </header>
+    <main class="content">
+        <h1>C and GDB Review</h1>
+        <h1 id="section-1-c-and-gdb-review"><a class="toclink" href="#section-1-c-and-gdb-review">Section 1 - C and GDB review</a></h1>
+<h2 id="c-review"><a class="toclink" href="#c-review">C Review</a></h2>
+<p><strong>static</strong>: has different meanings</p>
+<ul>
+<li>static functions indicate it can't be used outside of the file (like private)</li>
+<li>static variables are similar to other. ie only one</li>
+</ul>
+<p><strong>extern</strong>: declares variable without allocating any memory for it</p>
+<ul>
+<li>variables must be defined somewhere else</li>
+<li>allows you to use variables from other files</li>
+</ul>
+<pre><code class="language-c">
+void change(char** s) { *c = &quot;class&quot;; }
+
+int main() {
+   char* s = &quot;hello&quot;;
+   char* w = s;
+
+   change(&amp;w);
+}
+</code></pre>
+<p>When you use an uninitialized pointer, the address that the pointer stores is the uninitialized part, and will probably lead to errors when it is interpreted as an address.</p>
+<h2 id="gdb-review"><a class="toclink" href="#gdb-review">GDB Review</a></h2>
+<p><code>printf</code> debugging are useful, but limited when it comes to debugging concurrent code</p>
+<p>Enter <code>GDB</code></p>
+<p><code>run &lt;...args&gt;</code>: start execution</p>
+<p><code>n</code>: next instruction</p>
+<p><code>bt</code>: backtrace</p>
+<p><code>watch &lt;variable&gt;</code>:  breakpoint when it changes</p>
+<p><code>p &lt;opt&gt; &lt;arg&gt;</code>: print arg</p>
+<p>`x <opt> <arg>: dereference and print arg</p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

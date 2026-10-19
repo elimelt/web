@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waveform Diagrams</title>
+    <meta name="description" content="Explains the concept of waveform diagrams in digital design, and how to use them to visualize the state of a system.">
+    <link rel="canonical" href="https://notes.elimelt.com/hardware-design/369/waveform-diagram.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Waveform Diagrams", "dateModified": "2025-12-29T22:39:59.765119", "description": "Explains the concept of waveform diagrams in digital design, and how to use them to visualize the state of a system.", "url": "https://notes.elimelt.com/hardware-design/369/waveform-diagram.html", "articleSection": "Hardware", "keywords": "waveform diagrams,bit vectors,bus,circuit timing behavior"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/hardware.html">Hardware</a> » Waveform Diagrams</div>
+    </header>
+    <main class="content">
+        <h1>Waveform Diagrams</h1>
+        <h1 id="waveform-diagrams"><a class="toclink" href="#waveform-diagrams">Waveform Diagrams</a></h1>
+<p>Group bits of values into a <strong>bus</strong> or a <strong>bit vector</strong>. You can view the state of your system as slices of a waveform for each bit, corresponding to a number.</p>
+<h2 id="circuit-timing-behavior"><a class="toclink" href="#circuit-timing-behavior">Circuit Timing Behavior</a></h2>
+<p>Every gate has some fixed delay. In reality, you can look them up in their data sheet. However, for simplicity assume delay of all gates is 1 ns ( = 3 ticks).</p>
+<h1 id="verilog-stuff"><a class="toclink" href="#verilog-stuff">Verilog stuff</a></h1>
+<h2 id="verilog-bus"><a class="toclink" href="#verilog-bus">Verilog bus</a></h2>
+<p>Defining them: <code>[n-1:0]</code> is an $n$-bit bus. Access with array syntax. Can access sub-bus using <code>bus[start:size]</code>.</p>
+<h2 id="multi-bit-constants"><a class="toclink" href="#multi-bit-constants">Multi-bit constants</a></h2>
+<p><code>n'b#...#</code> is a constant with width $n$.</p>
+<h2 id="concat"><a class="toclink" href="#concat">Concat</a></h2>
+<p><code>{A, B, C, ...}</code></p>
+<pre><code class="language-verilog">// SystemVerilog code for AND-OR-INVERT circuit
+module AOI (F, A, B, C, D);
+    output logic F;
+    input logic A, B, C, D;
+    logic [2:0] w; // necessary
+    assign w[0] = A &amp; B;
+    assign w[1] = C &amp; D;
+    assign w[2] = w[0] | w[1];
+    assign F = ~w[2];
+endmodule
+</code></pre>
+<h2 id="test-benches"><a class="toclink" href="#test-benches">Test Benches</a></h2>
+<p>Create emulated inputs for all of the FPGA's physical connections.</p>
+<pre><code class="language-verilog">module MUX2_tb ();
+    logic SEL, I, J; // simulated inputs
+    logic V; // net for reading output
+
+    // instance of module we want to test (&quot;device under test&quot;)
+    MUX2 dut (.V(V), .SEL(SEL), .I(I), .J(J));
+
+    initial // build stimulus (test vectors)
+    begin // start of &quot;block&quot; of code
+      {SEL, I, J} = 3'b100; #10; // t=0: S=1, I=0, J=0 -&gt; V=0
+      I = 1; #10; // t=10: S=1, I=1, J=0 -&gt; V=1
+      SEL = 0; #10; // t=20: S=0, I=1, J=0 -&gt; V=0
+      J = 1; #10; // t=30: S=0, I=1, J=1 -&gt; V=1
+      end // end of &quot;block&quot; of code
+endmodule // MUX2_tb
+</code></pre>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

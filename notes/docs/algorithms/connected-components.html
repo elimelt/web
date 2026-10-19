@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finding Connected Components in Undirected Graphs Using BFS/DFS</title>
+    <meta name="description" content="Explains how to partition an undirected graph into connected components using BFS or DFS algorithms in O(|V| + |E|) time complexity. Includes Python implementat">
+    <link rel="canonical" href="https://notes.elimelt.com/algorithms/connected-components.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Finding Connected Components in Undirected Graphs Using BFS/DFS", "dateModified": "2025-12-29T22:39:59.759374", "description": "Explains how to partition an undirected graph into connected components using BFS or DFS algorithms in O(|V| + |E|) time complexity. Includes Python implementat", "url": "https://notes.elimelt.com/algorithms/connected-components.html", "articleSection": "Algorithms", "keywords": "graph theory,connected components,breadth-first search,depth-first search"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/algorithms.html">Algorithms</a> » Finding Connected Components in Undirected Graphs Using BFS/DFS</div>
+    </header>
+    <main class="content">
+        <h1>Finding Connected Components in Undirected Graphs Using BFS/DFS</h1>
+        <h1 id="connected-components"><a class="toclink" href="#connected-components">Connected Components</a></h1>
+<p>Given an undirected graph $G = (V, E)$, you can find partition $V$ into sets of connected components $C_1, C_2, \ldots$ in $O(|V| + |E|)$ using breadth-first search (BFS) or depth-first search (DFS).</p>
+<p>In other words, we can create a data structure from $G$ such that given two vertices $u, v \in V$, we  we answer whether there exists a path from $u \to v$ in $O(1)$ time and $O(|V|)$ space.</p>
+<p>The basic idea is to run a BFS/DFS starting at every vertex, and to assign a label to each vertex we visit during this traversal. We can use an array (if vertices are numbered) or hash map to store the vertex to component set mapping $V \to C_i$</p>
+<pre><code class="language-python">import networkx as nx
+import random
+from collections import deque, defaultdict
+
+def connected_components(graph):
+  a = [None] * len(graph)
+
+  def bfs(label, G, src):
+    q = deque()
+    vis = set()
+
+    q.append(src)
+    while q:
+      curr = q.popleft()
+      vis.add(curr)
+      a[curr] = label
+      for v in G[curr]:
+        if v not in vis:
+          q.append(v)
+
+  curr_label = 0
+
+  for v in range(len(graph)):
+    bfs(curr_label, graph, v)
+    curr_label += 1
+  return a
+
+def component_sets(G):
+  n = len(G)
+  comp = connected_components(G)
+  component_dict = defaultdict(lambda: set())
+  for v, c in enumerate(comp):
+    component_dict[c].add(v)
+
+  return list(component_dict.values())
+</code></pre>
+<h2 id="strategy-for-unconnected-graph"><a class="toclink" href="#strategy-for-unconnected-graph">Strategy for Unconnected Graph</a></h2>
+<p>In general, if you are solving a graph problem you should first assume your graph is fully connected, and then after you've found a solution for connected graphs, you can run your algorithm on all the connected components of your graph.</p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

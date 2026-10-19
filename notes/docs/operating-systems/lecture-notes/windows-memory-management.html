@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows Memory Management</title>
+    <meta name="description" content="Covers the implementation of Windows memory management, including the page frame number database, various page states (active, transition, free, zeroed, standby">
+    <link rel="canonical" href="https://notes.elimelt.com/operating-systems/lecture-notes/windows-memory-management.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Windows Memory Management", "dateModified": "2025-12-29T22:39:59.771977", "description": "Covers the implementation of Windows memory management, including the page frame number database, various page states (active, transition, free, zeroed, standby", "url": "https://notes.elimelt.com/operating-systems/lecture-notes/windows-memory-management.html", "articleSection": "Operating Systems", "keywords": "page frame number database,active,transition,free,zeroed,standby,modified,modified no-write,rom,bad,local and global page replacement,lru list,fifo list,working set,cache manager"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/operating%20systems.html">Operating Systems</a> » Windows Memory Management</div>
+    </header>
+    <main class="content">
+        <h1>Windows Memory Management</h1>
+        <h1 id="windows-memory-management"><a class="toclink" href="#windows-memory-management">Windows Memory Management</a></h1>
+<p>Pages have one of the following states defined in the <strong>page frame number (PFN) database</strong>:</p>
+<ul>
+<li><strong>Active</strong>: The page is in use and its contents are valid.</li>
+<li><strong>Transition</strong>: The page is being moved from disk to memory or from memory to disk.</li>
+<li><strong>Free</strong>: The page is not in use. It should be contained in the free list.</li>
+<li><strong>Zeroed</strong>: The page is filled with zeros. This is used to support demand paging by maintaining a list of zeroed pages.</li>
+<li><strong>Standby</strong>: The page is not in use, but its contents are valid.</li>
+<li><strong>Modified</strong>: The page is in use and its contents are valid, but it has been modified since it was last read from disk.</li>
+<li><strong>Modified no-write</strong>: The page is in use and its contents are valid, but it has been modified since it was last read from disk and cannot be written to disk. This was used to support transactional memory.</li>
+<li><strong>Rom</strong>: The page is read-only memory.</li>
+<li><strong>Bad</strong>: The page is defective and cannot be used.</li>
+</ul>
+<p>Windows uses a mixture of local and global page replacement, and maintains an LRU list of pages on top of a FIFO list. The LRU list is used to select pages for replacement (working set), and the FIFO list (standby list) is used to select pages for trimming. The LRU list is maintained by the memory manager, and the FIFO list is maintained by the cache manager.</p>
+<h2 id="a-major-problem-with-page-replacement-in-early-windows"><a class="toclink" href="#a-major-problem-with-page-replacement-in-early-windows">A Major Problem with Page Replacement in Early Windows</a></h2>
+<p>Using a <strong>working set</strong> model for page replacement, when a user's process goes idle for long periods of time, all of the pages used by the process are removed from memory. Background processes like antivirus and indexing services exacerbate this problem. When the user returns to the process, it must wait for the pages to be read back into memory from disk.</p>
+<h2 id="an-interesting-exam-question-from-2013"><a class="toclink" href="#an-interesting-exam-question-from-2013">An Interesting Exam Question from 2013</a></h2>
+<p>Examine how long it takes a user mode program writing to an array of integers using various access patterns. Assume the entire array fits into memory, and that the system is idle besides this program. The <strong>Stride</strong> is the number of elements between each access. The array is a constant size of <code>PGSIZE</code> (4096 bytes).</p>
+<pre><code class="language-cpp">int access(int* arr, int size, int stride);
+</code></pre>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

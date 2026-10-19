@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disconnected Operation</title>
+    <meta name="description" content="Explains the concept of disconnected operation in distributed systems and its implications.">
+    <link rel="canonical" href="https://notes.elimelt.com/distributed-systems/disconnected-operation.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Disconnected Operation", "dateModified": "2025-12-29T22:39:59.763598", "description": "Explains the concept of disconnected operation in distributed systems and its implications.", "url": "https://notes.elimelt.com/distributed-systems/disconnected-operation.html", "articleSection": "Distributed Systems", "keywords": "disconnected operation,distributed systems,conflict resolution,eventual consistency"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/distributed%20systems.html">Distributed Systems</a> » Disconnected Operation</div>
+    </header>
+    <main class="content">
+        <h1>Disconnected Operation</h1>
+        <h1 id="disconnected-operation"><a class="toclink" href="#disconnected-operation">Disconnected Operation</a></h1>
+<p>Always available writes inherently pose a problem in distributed systems. To allow for disconnected operation, we need to be able to write to a local copy of the data, and then synchronize it with the rest of the system when we're back online. Many apps today are built to work with intermittent lack of connectivity, for example, file syncing apps/sourcing control systems. In many of these systems, writes can conflict, and need to be resolved either manually or automatically.</p>
+<h2 id="two-models"><a class="toclink" href="#two-models">Two Models</a></h2>
+<ul>
+<li>Applications only communicate with the cloud (Coda, SVN)</li>
+<li>Log changes, apply on reconnection</li>
+<li>Applications communicate with cloud and other clients (Git)</li>
+<li>Log changes and exchange with other clients</li>
+<li>Remerge changes when connected to a new client</li>
+</ul>
+<h2 id="coda"><a class="toclink" href="#coda">Coda</a></h2>
+<p>Coda lets you mount a remote file system as a local directory. The local file system is a partial replica of the global version. It makes extensive use of local caching to reduce latency. While disconnected, it uses a write ahead log to record changes. When reconnected, it replays the log to the server and merges changes atomically.</p>
+<p>When possible, Coda will merge changes automatically. If there are conflicts, i.e. two users edit the same file, Coda will create a conflict file and let the user resolve it.</p>
+<h2 id="gmailgoogle-docs"><a class="toclink" href="#gmailgoogle-docs">Gmail/Google Docs</a></h2>
+<p>Apps like Gmail and Google Docs allow for offline editing by using a local cache and log of changes. When reconnected, the changes are sent to the server and merged. In the case of conflicts, the application specifies a set of rules to resolve them automatically.</p>
+<p>One common general approach is to use a <strong>version vector</strong> to track changes. Each client has a unique ID, and each change is tagged with the client's ID. When changes are merged, the version vector is used to determine which changes are newer.</p>
+<h2 id="source-code-control"><a class="toclink" href="#source-code-control">Source Code Control</a></h2>
+<ul>
+<li>Eventual Consistency with read/write on a local copy, and occasional sync manually</li>
+<li>Track history of changes and metadata</li>
+<li>Multiple clients can edit their own copy of the code and merge changes later</li>
+</ul>
+<h2 id="interesting-application-model"><a class="toclink" href="#interesting-application-model">Interesting Application Model</a></h2>
+<p>Use local storage engines (like SQLite, LevelDB, etc.) for local writes and sync with the server when online. The key to making this strategy work is the synchronization mechanism, and how conflicts are resolved.</p>
+<h3 id="conflict-resolution"><a class="toclink" href="#conflict-resolution">Conflict Resolution</a></h3>
+<ul>
+<li><strong>Client wins</strong>: The client's changes are always accepted</li>
+<li><strong>Server wins</strong>: The server's changes are always accepted</li>
+<li><strong>Merge</strong>: Changes are combined, and conflicts are resolved manually or automatically</li>
+</ul>
+<h3 id="merge-strategies"><a class="toclink" href="#merge-strategies">Merge Strategies</a></h3>
+<ul>
+<li><strong>Last write wins</strong>: The last write is always accepted. This requires some form of timestamp or versioning.</li>
+<li><strong>Operation based</strong>: Changes are represented as operations (add, delete, etc.) and are applied in order. This is how CRDTs work.</li>
+</ul>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

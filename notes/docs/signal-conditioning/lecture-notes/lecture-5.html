@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thevenin's Theorem</title>
+    <meta name="description" content="Covers the implementation of Thevenin's and Norton's Theorems, which are fundamental techniques for analyzing electrical circuits. Describes how to derive the T">
+    <link rel="canonical" href="https://notes.elimelt.com/signal-conditioning/lecture-notes/lecture-5.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Thevenin's Theorem", "dateModified": "2025-12-29T22:39:59.774485", "description": "Covers the implementation of Thevenin's and Norton's Theorems, which are fundamental techniques for analyzing electrical circuits. Describes how to derive the T", "url": "https://notes.elimelt.com/signal-conditioning/lecture-notes/lecture-5.html", "articleSection": "Algorithms", "keywords": "thevenin's theorem,norton's theorem,equivalent circuit,resistor,voltage source,current source,kirchhoff's laws"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/algorithms.html">Algorithms</a> » Thevenin's Theorem</div>
+    </header>
+    <main class="content">
+        <h1>Thevenin's Theorem</h1>
+        <h2 id="thevenins-theorem"><a class="toclink" href="#thevenins-theorem">Thevenin's Theorem</a></h2>
+<p>Any two-terminal circuit with only linear elements (resistors) and sources can be replaced by an equivalent circuit consisting of a voltage source in series with a resistor.</p>
+<p>Voltage source represented as $V_{th}$, and resistor as $R_{th}$.</p>
+<h3 id="algorithm"><a class="toclink" href="#algorithm">Algorithm</a></h3>
+<ol>
+<li>Find $V_{th}$, the open circuit voltage from A to B using KCL and KVL.</li>
+<li>Find $R_{th}$, the equiv resistance between A and B by replacing voltage sources with short circuits and current sources with open circuits.</li>
+</ol>
+<h2 id="nortons-theorem"><a class="toclink" href="#nortons-theorem">Norton's Theorem</a></h2>
+<p>Any two-terminal circuit with only linear elements (resistors) and sources can be replaced by an equivalent circuit consisting of a current source in parallel with a resistor.</p>
+<p>Current source represented as $I_{no}$, and resistor as $R_{no}$.</p>
+<h3 id="algorithm_1"><a class="toclink" href="#algorithm_1">Algorithm</a></h3>
+<ol>
+<li>find $I_{no}$, the short circuit current from A to B using KCL and KVL.</li>
+<li>find $R_{no}$, the equiv shunt (parallel with source) resistance between A and B by replacing voltage sources with short circuits and current sources with open circuits.</li>
+</ol>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

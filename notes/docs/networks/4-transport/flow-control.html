@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flow Control</title>
+    <meta name="description" content="Covers the implementation of flow control mechanisms in computer networks, with a focus on the sliding window protocol. Discusses the sender and receiver-side o">
+    <link rel="canonical" href="https://notes.elimelt.com/networks/4-transport/flow-control.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Flow Control", "dateModified": "2025-12-29T22:39:59.770139", "description": "Covers the implementation of flow control mechanisms in computer networks, with a focus on the sliding window protocol. Discusses the sender and receiver-side o", "url": "https://notes.elimelt.com/networks/4-transport/flow-control.html", "articleSection": "Networks", "keywords": "flow control,sliding window,arq,bandwidth-delay product"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/networks.html">Networks</a> » Flow Control</div>
+    </header>
+    <main class="content">
+        <h1>Flow Control</h1>
+        <h1 id="flow-control"><a class="toclink" href="#flow-control">Flow Control</a></h1>
+<p>Recall <strong>stop and wait</strong> ARQ. This only allows a single packet to be transmitted at a time. This is inefficient, as the sender is often waiting for the receiver to acknowledge the packet.</p>
+<p>Next recall <strong>sliding window</strong> ARQ. This allows multiple packets to be transmitted at a time. The sender can keep sending packets until the window is full. The receiver can acknowledge packets in any order, and the sender can keep sending packets until the window is full. With a window size of $w$, you can send $w$ packets before waiting for an acknowledgement (ie $w$ packets per RTT).</p>
+<h3 id="sliding-window-example"><a class="toclink" href="#sliding-window-example">Sliding Window Example</a></h3>
+<p>Assuming $10$ kb packets, $R = 1$ Mbps, $d = 50$ ms, what window size $w$ do you need to use the network capacity?</p>
+<p>First, knowing RTT = $2d = 100$ ms, we can calculate the maximum throughput using the bandwidth-delay product:</p>
+<p>BD $= R \times d = 1 \times 10^6 \times 0.05 = 50,000$ bits</p>
+<p>so $100000$ bits per RTT can be stored in the network. Therefore, the window size $w$ is:</p>
+<p>$w = \frac{100000}{10000} = 10$</p>
+<h3 id="sliding-window-sender"><a class="toclink" href="#sliding-window-sender">Sliding Window Sender</a></h3>
+<p>Sender buffers up to $w$ segments until they are acked. LFS (Last Frame Sent) is the sequence number of the last frame sent. LAR (Last Ack Received) is the sequence number of the last frame acked. The sender can send up to $w$ frames, and the receiver can receive up to $w$ frames, where</p>
+<p>$w &gt; LFS - LAR$</p>
+<h3 id="sliding-window-receiver"><a class="toclink" href="#sliding-window-receiver">Sliding Window Receiver</a></h3>
+<h4 id="go-back-n-arq"><a class="toclink" href="#go-back-n-arq">Go-Back-N ARQ</a></h4>
+<p>In Go-Back-N ARQ, the sender can send multiple packets before waiting for an acknowledgement. The receiver can acknowledge packets in any order, and the sender can keep sending packets until the window is full. If a packet is lost, the sender will have to resend all packets from the lost packet onwards.</p>
+<p>The reciever keeps only a single packet buffer for the next segment. (ie keeps LAS = LAST ACK SENT). On receive, if seq number is LAS + 1, then accept, update LAS, and send ACK. Else, discard.</p>
+<p>Uses a single timer to detect lost packets. On timeout, resends buffered packets starting from LAS + 1.</p>
+<h4 id="selective-repeat-arq"><a class="toclink" href="#selective-repeat-arq">Selective Repeat ARQ</a></h4>
+<p>In Selective Repeat ARQ, the sender can send multiple packets before waiting for an acknowledgement. The receiver can acknowledge packets in any order, and the sender can keep sending packets until the window is full. If a packet is lost, the sender will only have to resend the lost packet.</p>
+<p>Receiver buffers $w$ segments, and keeps LAS = LAST ACK SENT. On reeive, buffer segments $\lbrack  LAS + 1, LAS + w  \rbrack$. If seq number is LAS + 1, then accept, update LAS, and send ACK.</p>
+<p>If it receives something out of order, it will buffer it and send an ACK for the last in-order segment. If it receives a duplicate, it will send an ACK for the last in-order segment.</p>
+<p>Uses a timer for each segment. On timeout, resends the segment.</p>
+<h3 id="sequence-numbers"><a class="toclink" href="#sequence-numbers">Sequence Numbers</a></h3>
+<p>For stop and wait, only need 0/1. For selective repeat, need $w$ numbers for packets, and $w$ numbers for acks of earlier packets. ($2w$ in total). For go-back-n, need $w$ numbers for packets, and 1 number for the ack of the last packet. ($w + 1$ in total).</p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

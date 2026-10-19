@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xen and the Art of Virtualization</title>
+    <meta name="description" content="Paper review of Xen and the Art of Virtualization">
+    <link rel="canonical" href="https://notes.elimelt.com/systems-research/xen.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Xen and the Art of Virtualization", "dateModified": "2025-12-29T22:39:59.775522", "description": "Paper review of Xen and the Art of Virtualization", "url": "https://notes.elimelt.com/systems-research/xen.html", "articleSection": "Operating Systems", "keywords": "virtualization,hypervisor,xen,operating system,systems"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/operating%20systems.html">Operating Systems</a> » Xen and the Art of Virtualization</div>
+    </header>
+    <main class="content">
+        <h1>Xen and the Art of Virtualization</h1>
+        <h6 id="xen-and-the-art-of-virtualization"><a class="toclink" href="#xen-and-the-art-of-virtualization"><a href="https://www.cl.cam.ac.uk/research/srg/netos/papers/2003-xensosp.pdf">Xen and the Art of Virtualization</a></a></h6>
+<hr />
+<h3 id="what-is-the-problem"><a class="toclink" href="#what-is-the-problem">What is the Problem?</a></h3>
+<p>Full virtualization, where you completely emulate the underlying hardware of a machine to run a guest OS, is not a very good solution. In particular, it is much slower due to overhead, and it doesn't guest OSes to access hardware features from the host OS.</p>
+<h3 id="summary"><a class="toclink" href="#summary">Summary</a></h3>
+<p>Xen is a hypervisor that allows multiple OSes to run on the same hardware through <strong>paravirtualization</strong>. This means that the guest OSes are modified to be aware of the hypervisor, and they can make calls to the hypervisor to access hardware features. It implements efficient mechanisms for memory management, scheduling, event delivery, and I/O that exist in the hypervisor, which are then used to delegate resources to the guest OSes. To this end, it achieves many performance improvements over traditional full virtualization systems on their port <strong>XenoLinux</strong>.</p>
+<h3 id="key-insights"><a class="toclink" href="#key-insights">Key Insights</a></h3>
+<ul>
+<li>Guest OSes benefit from being hypervisor-aware, both for correctness (clocks, paging), and performance (fast handlers).</li>
+<li>Paravirtualization provides huge performance improvements over full virtualization, but requires modifying the guest OSes. Xen was still able to minimize the amount of source code that needed to be changed by using a simple and clean interface that can easily be ported to new OSes.</li>
+</ul>
+<h3 id="notable-design-detailsstrengths"><a class="toclink" href="#notable-design-detailsstrengths">Notable Design Details/Strengths</a></h3>
+<ul>
+<li>Requires minimal changes to the guest OSes; only need to "port" new guest OSes, which involves modifying the OS to be aware of the hypervisor</li>
+<li>Very low overhead in terms of latency and throughput for most operations, since emulation is not needed in many cases</li>
+</ul>
+<h3 id="limitationsweaknesses"><a class="toclink" href="#limitationsweaknesses">Limitations/Weaknesses</a></h3>
+<ul>
+<li>Guest OSes still need to be modified, making adoption more difficult for new OSes</li>
+<li>Doesn't support SMP on guest OSes, meaning some workloads are still far more efficient on native hardware</li>
+</ul>
+<h3 id="summary-of-key-results"><a class="toclink" href="#summary-of-key-results">Summary of Key Results</a></h3>
+<ul>
+<li>Performance very close to native linux for many workloads, and even when it is not, it is still much better than full virtualization</li>
+<li>Many concurrent guest OSes can run with little memory imprint resulting from the hypervisor.</li>
+</ul>
+<h3 id="open-questions"><a class="toclink" href="#open-questions">Open Questions</a></h3>
+<ul>
+<li>Is there a way to automatically/programmatically port guest OSes to be hypervisor-aware? Is there some way we could make implementing a new OS conform to an interface that complies with the hypervisor automatically?</li>
+<li>Has there been any work in detecting "hot spots" for routines that that are called a lot, for which we could automatically register a fast handler in the hypervisor?</li>
+</ul>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

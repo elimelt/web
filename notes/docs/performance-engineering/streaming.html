@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streaming Data</title>
+    <meta name="description" content="Overview of streaming data processing techniques, focusing on memory efficiency and throughput optimization.">
+    <link rel="canonical" href="https://notes.elimelt.com/performance-engineering/streaming.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Streaming Data", "dateModified": "2025-12-29T22:41:20.440198", "description": "Overview of streaming data processing techniques, focusing on memory efficiency and throughput optimization.", "url": "https://notes.elimelt.com/performance-engineering/streaming.html", "articleSection": "Performance Engineering", "keywords": "streaming,memory,bandwidth,throughput,performance,data processing"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/performance%20engineering.html">Performance Engineering</a> » Streaming Data</div>
+    </header>
+    <main class="content">
+        <h1>Streaming Data</h1>
+        <h1 id="streaming-data"><a class="toclink" href="#streaming-data">Streaming Data</a></h1>
+<p>Streaming is a super common technique. The basic idea is you can't fit the entire dataset in memory, so you process it in a stream of chunks. For example, say we're uploading a massive file to cloud storage like S3. We don't want to read the entire thing into memory, and then pipe it out into the network in what would naturally be chunks. We'd be waiting to upload the entire file (the real bottleneck), while filling up all our memory, causing higher E2E latency while also resulting in a higher memory footprint.</p>
+<p>A lot of the time, you can rely on libraries to do this for you. For example, <code>Node.js</code> <code>stream</code>, Java <code>Stream</code> APIs, and such. Luckily, these are usually pretty efficient and optimized, but it's still fun, and sometimes necessary, to think about what's going on under the hood.</p>
+<p>The metrics I'll focus on the most are throughput + bandwidth, and memory usage. It turns out to be pretty natural to think about processing streams of data in terms of bytes/second, and peak memory usage.</p>
+<h2 id="a-basic-model-of-streaming"><a class="toclink" href="#a-basic-model-of-streaming">A basic model of streaming</a></h2>
+<p>There are two very different scenarios, with one overarching concept (bottleneck):</p>
+<ul>
+<li>Bottlenecked by processing: We have some long-running processing of each byte of input that has significant IO/latency, and potentially a lot of resource usage/contentions, limiting our ability to parallelize. This is the case for example when we're processing a file from disk, or a network stream. In this case, we seek to optimize for throughput in our ...business logic, with little consideration for the actual latency of the streaming itself, since our processing dwarfs the time spent on our streaming setup.</li>
+<li>Bottlenecked by I/O: We aren't doing anything particularly expensive to our data, e.g. we read it, and then do a lot of CPU-side computation like calculating metrics. A lot of times we'll be entirely bottlenecked by the raw movement of data, making any overhead much more important.</li>
+</ul>
+<p>Being bottlenecked by processing means you can probably just use a library for the actual streaming, and focus on your business logic without trying to micro-optimize the streaming itself. Being bottlenecked by I/O is more interesting:</p>
+<p>Say you're reading a dataset from memory, transforming it <code>n</code> times, and writing results back — that's <code>n + 2</code> memory operations per byte of input (read original, write temporary, write result). Under an idealized bandwidth model with memory bandwidth <code>B</code> (GB/s), the effective rate is approximately <code>B / (n + 2)</code>. The upper bound for a simple copy is about <code>B / 2</code> (one read + one write). Real systems will be below this due to caches, NUMA, contention, and software overheads.</p>
+<blockquote>
+<p>What determines <code>B</code>?</p>
+</blockquote>
+<p>It’s hard to approach peak bandwidth in practice. Modern CPUs move data in cache lines (typically 64 B), and access pattern dominates:</p>
+<ul>
+<li><code>seq8</code>: Sequential scan that touches only 8 B per 64 B line. Hardware pre-fetchers can keep lines flowing, but most of each line is unused, so effective bandwidth tracks the fraction consumed (~1/8 of peak).</li>
+<li><code>seq64</code>: Sequential scan consuming the whole 64 B line (e.g., via <code>memcpy</code>). Every byte brought in from DRAM is used, so measured throughput can approach the platform’s sustained memory bandwidth.</li>
+<li><code>rand8</code>: Random pointer chasing with one dependent 8 B load per line. With little prefetch and limited outstanding misses, throughput is latency-bound and much lower than sequential scans.</li>
+</ul>
+<p>Example relative outcomes (not absolute; highly system-dependent):</p>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Relative throughput</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>seq64</code></td>
+<td>~1.0x (approaches peak)</td>
+</tr>
+<tr>
+<td><code>seq8</code></td>
+<td>~0.125x (fraction of line used)</td>
+</tr>
+<tr>
+<td><code>rand8</code></td>
+<td>&lt;&lt; 0.01x (latency-bound)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="streaming-is-like-sequential-pagination"><a class="toclink" href="#streaming-is-like-sequential-pagination">Streaming Is Like Sequential Pagination</a></h2>
+<p>At its core, streaming is like sequential pagination where you process pages in order and discard them immediately. This constraint - sequential access with no retention - lets you process datasets larger than memory.</p>
+<p>Traditional pagination lets you process pages in any order. For example, REST APIs often include metadata that let you request an arbitrary page, e.g. <code>?page=10</code>. This random access is nice, but without either hash-based indexes or B-trees, you're likely to spend a lot of time scanning through the dataset to get this kind of random access.</p>
+<blockquote>
+<p>Some implementations of pagination rely on pointers to the next or previous page, which is closer to streaming.</p>
+</blockquote>
+<p>Streaming removes these freedoms. You get to process one page at a time in the order they come, and immediately discard them.</p>
+<p>In either case, we reduce our memory requirement from O(total_dataset_size) to O(page_size). However, with streaming, we don't need to worry about implementing any efficient lookup/index structure, since we're just processing sequential parts of our data. In many cases we only have huge files to process, and if we can do so by processing it in the order it's stored on disk, we get lots of performance for free.</p>
+<h2 id="file-formats"><a class="toclink" href="#file-formats">File Formats</a></h2>
+<p>Each format defines its page size differently:</p>
+<ul>
+<li><strong>Parquet</strong>: Pages are row groups (default 128MB uncompressed)</li>
+<li><strong>CSV</strong>: Pages are lines or batches of lines (e.g. 1000 lines)</li>
+<li><strong>Arrow</strong>: Pages are record batches (user-defined, often 64K records)</li>
+</ul>
+<p>The memory required for streaming is the page size times the number of concurrent pages being processed, plus any overhead for decompression or parsing.</p>
+<p><strong>Apache Parquet</strong> uses row groups as its unit of I/O. The default row group size is <code>128MB</code> of uncompressed data. With Snappy compression (typical ratio of <code>2-3x</code>), that's <code>43-64MB</code> on disk. To process this, you need:</p>
+<ul>
+<li>Compressed row group in memory: <code>64MB</code></li>
+<li>Decompression buffer: <code>128MB</code></li>
+<li>Decoded values buffer: <code>128MB</code> (Parquet stores definition levels, repetition levels, and values separately)</li>
+</ul>
+<p>Total working memory: <code>320MB</code> for a <code>64MB</code> disk chunk. If your schema has nested columns or variable-length strings, add another <code>1-2x</code> for materialization.</p>
+<p><strong>CSV</strong> processes line by line. A typical CSV row with <code>20</code> columns might be <code>200 bytes</code> (illustrative; actual sizes vary widely). With a read buffer of <code>8KB</code>, you're holding <code>40</code> rows in memory at once. Working memory is just your buffer size plus parsing overhead - call it <code>16KB</code> total.</p>
+<p><strong>Apache Arrow</strong> uses a columnar memory layout that matches its on-disk format exactly. A column of <code>1 million 64-bit integers</code> takes <code>8MB</code> on disk and <code>8MB</code> in memory. No decompression, no intermediate buffers. The memory requirement is exactly the size of the columns you're actively processing.</p>
+<p>For a <code>1GB</code> file with <code>10 million rows</code> and <code>20 columns</code>:</p>
+<ul>
+<li>Parquet: <code>320MB</code> working memory per row group × number of concurrent row groups</li>
+<li>CSV: <code>16KB</code> for streaming, or full file size if loaded entirely</li>
+<li>Arrow: Exactly the size of accessed columns (selective column reading is free)</li>
+</ul>
+<h2 id="algorithms"><a class="toclink" href="#algorithms">Algorithms</a></h2>
+<p>Consider a simple streaming pipeline that parses JSON, filters records, enriches with external data, and aggregates results. We can calculate the theoretical throughput limits.</p>
+<p>Each algorithm approach is really a different pagination strategy:</p>
+<ul>
+<li><strong>Pipeline parallelism</strong>: One page flows through all stages sequentially</li>
+<li><strong>Data parallelism</strong>: Multiple pages processed simultaneously, one per worker</li>
+<li><strong>Batch processing</strong>: Accumulate many pages, then process as a group</li>
+</ul>
+<p>The streaming constraint (sequential processing, immediate disposal) limits us to the first two, though in practice you'd likely combine them using windowing.</p>
+<p><strong>Pipeline parallelism</strong> processes one record through all stages sequentially. If stages take:</p>
+<ul>
+<li>Parse: <code>50μs</code></li>
+<li>Filter: <code>5μs</code></li>
+<li>Enrich: <code>200μs</code></li>
+<li>Aggregate: <code>20μs</code></li>
+</ul>
+<p>Total latency is <code>275μs</code> per record. But throughput is limited by the slowest stage: <code>1 ÷ 200μs = 5,000 records/second</code>. The other stages spend most of their time waiting.</p>
+<p><strong>Data parallelism</strong> runs the complete pipeline on different data chunks. With <code>8</code> workers:</p>
+<ul>
+<li>Throughput: <code>8 × 5,000 = 40,000 records/second</code></li>
+<li>Memory: <code>8 × working_set_size</code></li>
+<li>Coordination overhead: atomic counters, locks, or channels for aggregation</li>
+</ul>
+<p>The coordination becomes critical. If workers need to synchronize for aggregation (e.g. a global sum), that stage bottlenecks the whole pipeline. Applying Amdahl's law: if <code>5%</code> of your work is serial, maximum speedup is <code>1 ÷ 0.05 = 20x</code> regardless of worker count.</p>
+<p><strong>Windowing</strong> introduces time-based memory requirements. A time-based window of has a memory footprint of $W \times T \times R$, where $W$ is the window size in seconds, $T$ is the throughput in records/second, and $R$ is the record size in bytes. For example, a window of <code>10 seconds</code> at <code>5,000 records/second</code> needs to buffer <code>50,000 records</code>. At <code>200 bytes</code> per record, that's <code>10MB</code>.</p>
+<h2 id="linux-io-overhead"><a class="toclink" href="#linux-io-overhead">Linux I/O Overhead</a></h2>
+<p>Every <code>read</code> system call...</p>
+<ol>
+<li>Saves user-space registers</li>
+<li>Switches to kernel mode</li>
+<li>Executes kernel code</li>
+<li>Copies data from kernel to user buffer</li>
+<li>Switches back to user mode</li>
+<li>Restores registers</li>
+</ol>
+<p>On modern x86-64 processors, a minimal system call (like <code>getpid</code>) is on the order of hundreds of nanoseconds depending on CPU and kernel version. I/O system calls are more expensive because they involve actual work beyond the mode switch.</p>
+<p>Let's trace what happens with traditional <code>read</code> versus <code>io_uring</code> for reading <code>1000</code> 4KB blocks:</p>
+<p><strong>Traditional read():</strong></p>
+<pre><code class="language-c">for (int i = 0; i &lt; 1000; i++) {
+    read(fd, buffer, 4096);  // system call per read
+}
+// Many syscalls (O(N)); overhead scales with call count
+// Total data transfer: 4MB
+</code></pre>
+<p><strong><code>io_uring</code>:</strong></p>
+<pre><code class="language-c">// Setup submission queue entries
+for (int i = 0; i &lt; 1000; i++) {
+    io_uring_prep_read(sqe, fd, buffer, 4096);  // Just memory writes
+}
+io_uring_submit(ring);  // Single system call
+// Single system call; overhead roughly constant w.r.t N
+// Total data transfer: 4MB
+</code></pre>
+<p>The difference is dramatic for high-IOPS workloads. But <code>io_uring</code> adds complexity - you need to manage ring buffers, track completions, and handle partial reads. For simple sequential reading of large files, the overhead difference might not justify the complexity.</p>
+<p><strong>Memory mapping</strong> (mmap) amortizes system call cost differently. One <code>mmap</code> call maps the entire file into virtual address space. Page faults bring data into memory on demand:</p>
+<pre><code class="language-c">void* data = mmap(NULL, file_size, PROT_READ, MAP_PRIVATE, fd, 0);
+// No system call per read, just memory access
+// But: page fault on first access to each 4KB page
+</code></pre>
+<p>Page fault cost is similar in magnitude to a system call, but you get cache-line-level granularity after the initial fault. For random access patterns, this is often optimal. For sequential streaming, <code>read</code> with appropriate buffer sizes can trigger kernel read-ahead more effectively.</p>
+<h2 id="zero-copy-following-the-data-path"><a class="toclink" href="#zero-copy-following-the-data-path">Zero-Copy: Following the Data Path</a></h2>
+<p>Standard file-to-socket transfer involves multiple copies. Here's the exact path for <code>read</code> + <code>write</code>:</p>
+<ol>
+<li><strong>DMA from disk to kernel buffer</strong>: Hardware handles this, no CPU involvement</li>
+<li><strong>CPU copy from kernel to user buffer</strong>: <code>memcpy()</code> at memory bandwidth</li>
+<li><strong>CPU copy from user to kernel socket buffer</strong>: Another <code>memcpy()</code></li>
+<li><strong>DMA from kernel buffer to NIC</strong>: Hardware again</li>
+</ol>
+<p>For a <code>1GB</code> file, the CPU path performs two memory copies (kernel→user, user→kernel). If sustained memory bandwidth is <code>B_mem</code>, the copy time budget is roughly:</p>
+<ul>
+<li>Steps 2 + 3: <code>2 × 1GB ÷ B_mem</code></li>
+</ul>
+<p>With <code>sendfile</code>, those two copies are eliminated:</p>
+<ol>
+<li>DMA from disk to kernel buffer</li>
+<li>Direct DMA from kernel buffer to NIC</li>
+</ol>
+<p>The CPU never touches the data. This frees up memory bandwidth for other operations. The file transfer rate is then limited by the minimum of storage throughput, network throughput, and kernel path overheads, not memory bandwidth.</p>
+<h2 id="implementations"><a class="toclink" href="#implementations">Implementations</a></h2>
+<h3 id="java-virtual-threads"><a class="toclink" href="#java-virtual-threads">Java Virtual Threads</a></h3>
+<p>Java's virtual threads are user-mode threads multiplexed onto carrier threads. Each virtual thread requires only stack space for its current call chain - typically a few KB versus <code>1MB</code> for platform threads.</p>
+<pre><code class="language-java">public class StreamProcessor {
+    private static final int BUFFER_SIZE = 8192;
+    private static final int MAX_CONCURRENT = 100;
+
+    public void processLargeFile(Path inputPath, Path outputPath) throws Exception {
+        try (var input = FileChannel.open(inputPath, StandardOpenOption.READ);
+             var output = FileChannel.open(outputPath,
+                 StandardOpenOption.WRITE, StandardOpenOption.CREATE)) {
+
+            Semaphore backpressure = new Semaphore(MAX_CONCURRENT);
+            ByteBuffer buffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
+
+            long position = 0;
+            long fileSize = input.size();
+
+            try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+                while (position &lt; fileSize) {
+                    backpressure.acquire();
+
+                    buffer.clear();
+                    int bytesRead = input.read(buffer, position);
+                    if (bytesRead == -1) break;
+
+                    buffer.flip();
+                    byte[] data = new byte[bytesRead];
+                    buffer.get(data);
+
+                    long writePosition = position;
+                    executor.submit(() -&gt; {
+                        try {
+                            byte[] processed = transform(data);
+                            ByteBuffer writeBuffer = ByteBuffer.wrap(processed);
+                            output.write(writeBuffer, writePosition);
+                        } catch (Exception e) {
+                            // handle error
+                        } finally {
+                            backpressure.release();
+                        }
+                    });
+
+                    position += bytesRead;
+                }
+            }
+        }
+    }
+
+    private byte[] transform(byte[] data) {
+        // transformation logic
+        return data;
+    }
+}
+</code></pre>
+<p>The Semaphore limits concurrent operations to <code>100</code>, preventing unbounded task creation. Direct ByteBuffers avoid JVM heap allocation and enable potential zero-copy operations.</p>
+<h3 id="javascript-stream-back-pressure"><a class="toclink" href="#javascript-stream-back-pressure">JavaScript Stream Back-pressure</a></h3>
+<p><code>Node.js</code> streams use high water marks to control buffering. When a buffer fills, the stream emits 'drain' events to resume flow:</p>
+<pre><code class="language-javascript">const { Transform } = require('stream');
+const fs = require('fs');
+
+class ProcessingStream extends Transform {
+    constructor(options) {
+        super({
+            highWaterMark: 64 * 1024  // 64KB buffer
+        });
+        this.activeTransforms = 0;
+        this.maxConcurrent = 10;
+    }
+
+    async _transform(chunk, encoding, callback) {
+        // wait if too many transforms in progress
+        while (this.activeTransforms &gt;= this.maxConcurrent) {
+            await new Promise(resolve =&gt; setImmediate(resolve));
+        }
+
+        this.activeTransforms++;
+
+        try {
+            const processed = await this.processChunk(chunk);
+            callback(null, processed);
+        } catch (error) {
+            callback(error);
+        } finally {
+            this.activeTransforms--;
+        }
+    }
+
+    async processChunk(chunk) {
+        // async processing
+        return chunk;
+    }
+}
+
+const input = fs.createReadStream('large.file', { highWaterMark: 64 * 1024 });
+const processor = new ProcessingStream();
+const output = fs.createWriteStream('output.file');
+
+input.pipe(processor).pipe(output);
+</code></pre>
+<p>The <code>64KB</code> high water mark means Node buffers up to <code>64KB</code> before pausing the input stream. This prevents memory exhaustion while maintaining reasonable throughput.</p>
+<h3 id="python-asyncio-with-bounded-concurrency"><a class="toclink" href="#python-asyncio-with-bounded-concurrency">Python AsyncIO with Bounded Concurrency</a></h3>
+<p>Python's <code>asyncio</code> provides primitives for controlled concurrent execution:</p>
+<pre><code class="language-python">import asyncio
+import aiofiles
+
+class StreamProcessor:
+    def __init__(self, max_concurrent=10):
+        self.semaphore = asyncio.Semaphore(max_concurrent)
+        self.chunk_size = 8192
+
+    async def process_file(self, input_path, output_path):
+        async with aiofiles.open(input_path, 'rb') as input_file:
+            async with aiofiles.open(output_path, 'wb') as output_file:
+                tasks = []
+                position = 0
+
+                while True:
+                    chunk = await input_file.read(self.chunk_size)
+                    if not chunk:
+                        break
+
+                    task = asyncio.create_task(
+                        self.process_and_write(chunk, output_file, position)
+                    )
+                    tasks.append(task)
+                    position += len(chunk)
+
+                    # Process in batches to control memory
+                    if len(tasks) &gt;= 100:
+                        await asyncio.gather(*tasks)
+                        tasks = []
+
+                # Process remaining tasks
+                if tasks:
+                    await asyncio.gather(*tasks)
+
+    async def process_and_write(self, chunk, output_file, position):
+        async with self.semaphore:
+            processed = await self.transform(chunk)
+            await output_file.seek(position)
+            await output_file.write(processed)
+
+    async def transform(self, data):
+        # CPU-intensive work should be in thread pool
+        return data.upper()
+
+# Usage
+processor = StreamProcessor(max_concurrent=20)
+asyncio.run(processor.process_file('input.dat', 'output.dat'))
+</code></pre>
+<p>The semaphore ensures at most <code>20</code> chunks are processed concurrently. Batching tasks prevents unlimited growth of the task queue.</p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

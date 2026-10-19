@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consistent Global State in Distributed Systems</title>
+    <meta name="description" content="Explains the concept of maintaining a consistent global state in distributed systems and its implications.">
+    <link rel="canonical" href="https://notes.elimelt.com/distributed-systems/consistent-global-state.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Consistent Global State in Distributed Systems", "dateModified": "2025-12-29T22:39:59.763558", "description": "Explains the concept of maintaining a consistent global state in distributed systems and its implications.", "url": "https://notes.elimelt.com/distributed-systems/consistent-global-state.html", "articleSection": "Distributed Systems", "keywords": "consistent global state,distributed systems,global predicate evaluation,asynchronous distributed systems"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/distributed%20systems.html">Distributed Systems</a> » Consistent Global State in Distributed Systems</div>
+    </header>
+    <main class="content">
+        <h1>Consistent Global State in Distributed Systems</h1>
+        <h1 id="consistent-global-state-in-distributed-systems"><a class="toclink" href="#consistent-global-state-in-distributed-systems">Consistent Global State in Distributed Systems</a></h1>
+<p><a href="https://courses.cs.washington.edu/courses/csep552/18wi/papers/chapt4.pdf">reading</a></p>
+<h2 id="introduction"><a class="toclink" href="#introduction">Introduction</a></h2>
+<p>Many problems in distributed computing boil down to being able to maintain a consistent global state, and to run predicates on that state in order to trigger events. The true state of a distributed system is the union of all node's states. However, since nodes don't share memory, the actual state must be meaningful when inferred solely based on messages passed among nodes.</p>
+<p>A global state is said to be <em>inconsistent</em> if it never could have been constructed by an ideal external observer. This paper formalizes this concept into the context of a <strong>Global Predicate Evaluation (GPE)</strong>, which determines if the system satisfies some predicate $\Phi$.</p>
+<h2 id="asynchronous-distributed-systems"><a class="toclink" href="#asynchronous-distributed-systems">Asynchronous Distributed Systems</a></h2>
+<p>Define a distributed system as a set $P$ of <em>sequential</em> processes $p_1, p_2, \ldots, p_n$, and a network consisting of <em>channels</em> in which unidirectional communication is possible in the space of $P^2$. The network is assumed to be reliable, but may deliver messages out of order, and is taken to be <em>strongly connected</em>, but not necessarily <em>fully connected</em> (i.e. communication may require intermediate message passing).</p>
+<p>It is useful to reason about distributed systems with the weakest possible assumptions, such that results hold for arbitrary systems.</p>
+<h2 id="distributed-computations"><a class="toclink" href="#distributed-computations">Distributed Computations</a></h2>
+<p>A distributed computation is the execution of a distributed program over a collection of processes, each of which sequentially process a stream of <em>events</em>. Particularly, for two nodes to communicate, a message $m$ is enqueued on a channel via $send(m)$, and the message is dequeued via $receive(m)$. There is an obvious relationship between the happening of event $send(m)$ at process $p$, and the happening of event $receive(m)$ at process $q$, such that we can be sure $send(m)$ happened before $receive(m)$.</p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

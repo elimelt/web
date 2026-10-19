@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompting Language Models</title>
+    <meta name="description" content="All about prompting language models.">
+    <link rel="canonical" href="https://notes.elimelt.com/natural-language-processing/prompting.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Prompting Language Models", "dateModified": "2025-12-29T22:39:59.767534", "description": "All about prompting language models.", "url": "https://notes.elimelt.com/natural-language-processing/prompting.html", "articleSection": "Natural Language Processing", "keywords": "language-models,prompting,nlp,llm"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/natural%20language%20processing.html">Natural Language Processing</a> » Prompting Language Models</div>
+    </header>
+    <main class="content">
+        <h1>Prompting Language Models</h1>
+        <h2 id="basic-concepts"><a class="toclink" href="#basic-concepts">Basic Concepts</a></h2>
+<ul>
+<li><strong>Recency Effect</strong>: Place critical instructions at the end of your prompt where they'll have the strongest impact.</li>
+<li><strong>Output Formatting</strong>: Signal your expected response format through examples or explicit instructions. This doesn't work as well for chat-based models, since they're designed outside of the scope of basic auto-completion.</li>
+<li><strong>Persona Invocation</strong>: Direct the model to adopt a specific expertise or perspective.</li>
+<li><strong>Few-Shot Learning</strong>: Demonstrate desired outputs through examples before asking for a new response.</li>
+</ul>
+<pre><code class="language-python">prompt = lambda persona, context, query: \
+f&quot;&quot;&quot;&lt;Persona&gt;
+{persona}
+&lt;/Persona&gt;
+
+&lt;Context&gt;
+{context}
+&lt;/Context&gt;
+
+&lt;Query&gt;
+{query}
+&lt;/Query&gt;
+
+&lt;Response&gt;
+&quot;&quot;&quot;
+</code></pre>
+<h2 id="retrieval-augmented-generation"><a class="toclink" href="#retrieval-augmented-generation">Retrieval Augmented Generation</a></h2>
+<p>Enhance model responses by providing relevant external information:</p>
+<ul>
+<li>Retrieve pertinent documents or data based on the query.</li>
+<li>Incorporate this context into the prompt to ground the model's response in factual information.</li>
+</ul>
+<pre><code class="language-python">def rag_prompt(
+  query, retrieved_contexts=[],
+  instruction=&quot;Answer based on the provided context.&quot;
+):
+    context_section = &quot;\n\n&quot;.join([
+      f&quot;Context {i+1}:\n{context}&quot;
+      for i, context in enumerate(retrieved_contexts)
+    ])
+
+    return f&quot;&quot;&quot;Retrieved Information:
+    {context_section}
+
+    Question: {query}
+
+    {instruction}&quot;&quot;&quot;
+</code></pre>
+<h2 id="chain-of-thought"><a class="toclink" href="#chain-of-thought">Chain of Thought</a></h2>
+<p>Guide the model through complex reasoning:</p>
+<ul>
+<li>Break down problems into logical steps.</li>
+<li>Encourage methodical thinking by requesting explicit reasoning.</li>
+</ul>
+<pre><code class="language-python">def chain_of_thought_prompt(problem, steps_required=True):
+    return f&quot;&quot;&quot;Problem: {problem}
+
+{'Please think through this step-by-step and explain your reasoning for each step.' if steps_required else 'Solve this problem by showing your work.'}&quot;&quot;&quot;
+</code></pre>
+<h2 id="self-ask"><a class="toclink" href="#self-ask">Self-Ask</a></h2>
+<p>Enable recursive problem-solving:</p>
+<ul>
+<li>Instruct the model to decompose complex problems by asking itself sub-questions.</li>
+<li>Allow it to answer these questions sequentially to build toward a complete solution.</li>
+</ul>
+<pre><code class="language-python">def self_ask_prompt(question, allow_search_queries=True):
+    return f&quot;&quot;&quot;Question: {question}
+
+To solve this problem, I'll break it down into smaller questions and answer them one by one.
+
+{'''If you need to search for specific information, format search queries as [SEARCH: your query].''' if allow_search_queries else ''}
+
+Let me think through this carefully:&quot;&quot;&quot;
+</code></pre>
+<h2 id="self-improvement"><a class="toclink" href="#self-improvement">Self Improvement</a></h2>
+<p>Create a feedback loop for prompt optimization:</p>
+<ul>
+<li>Use the model to evaluate the effectiveness of existing prompts.</li>
+<li>Incorporate this critique as context for generating improved versions.</li>
+</ul>
+<pre><code class="language-python">def self_improvement_prompt(original_prompt, model_output, goal):
+    return f&quot;&quot;&quot;Original Prompt:
+\&quot;{original_prompt}\&quot;
+
+Output Received:
+\&quot;{model_output}\&quot;
+
+Desired Goal:
+\&quot;{goal}\&quot;
+
+What are the weaknesses of the original prompt? How could it be improved to better achieve the desired goal?
+
+After analyzing the weaknesses, provide an improved version of the prompt.&quot;&quot;&quot;
+</code></pre>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

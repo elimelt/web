@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media in Networks</title>
+    <meta name="description" content="Fundamental concepts of media in networks, including wired and wireless media, such as twisted pair, coaxial cable, fiber, and wireless. It covers the key chann">
+    <link rel="canonical" href="https://notes.elimelt.com/networks/1-physical/media.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Media in Networks", "dateModified": "2025-12-29T22:39:59.768384", "description": "Fundamental concepts of media in networks, including wired and wireless media, such as twisted pair, coaxial cable, fiber, and wireless. It covers the key chann", "url": "https://notes.elimelt.com/networks/1-physical/media.html", "articleSection": "Networks", "keywords": "media,wires,twisted pair,coaxial cable,fiber,wireless,channel properties,nyquist limit,shannon capacity"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/networks.html">Networks</a> » Media in Networks</div>
+    </header>
+    <main class="content">
+        <h1>Media in Networks</h1>
+        <h1 id="media"><a class="toclink" href="#media">Media</a></h1>
+<p><em>Media</em> propagates signals that carry information.</p>
+<h2 id="wires"><a class="toclink" href="#wires">Wires</a></h2>
+<h3 id="twisted-pair"><a class="toclink" href="#twisted-pair">Twisted Pair</a></h3>
+<ul>
+<li>Very common in LANs and phone lines. </li>
+<li>Two insulated copper wires twisted together to reduce radiation/crosstalk, leading to less interference.</li>
+</ul>
+<p>EX: Ethernet, DSL</p>
+<h3 id="coaxial-cable"><a class="toclink" href="#coaxial-cable">Coaxial Cable</a></h3>
+<ul>
+<li>Copper core, surrounded by insulating material, surrounded by braided metal shield, surrounded by protective outer layer of plastic.</li>
+<li>Support higher data rates than twisted pair.</li>
+<li>Longer distances and better shielding.</li>
+<li>More expensive and harder to install than twisted pair. They are pretty inflexible.</li>
+</ul>
+<p>EX: Cable TV, Internet</p>
+<h3 id="fiber"><a class="toclink" href="#fiber">Fiber</a></h3>
+<ul>
+<li>Long, thin, pure glass strands that carry modulated light.</li>
+<li>Very high data rates and long distances.</li>
+<li>Immune to electromagnetic interference.</li>
+<li>Expensive and hard to install.</li>
+<li>Muli-mode vs. single-mode fiber is just a matter of multiple or single paths for light to travel.</li>
+</ul>
+<p>EX: Internet backbone</p>
+<h2 id="wireless"><a class="toclink" href="#wireless">Wireless</a></h2>
+<p>Sends signals in all directions through a region of space. Nearby signals can <strong>interfere</strong> with each other, especially if they are on the same frequency; must coordinate use over time and frequency.</p>
+<p>Wifi largely uses unlicensed spectrum, which is free to use but can be crowded. Interference can be a big problem. For example, turning on your microwave can interfere with your wifi.</p>
+<p>Signals can take multiple paths (<strong>multipath</strong>), and are affected by physical barriers. The higher the frequency, the more easily it is absorbed by walls and other obstacles (this is why 5G sucks).</p>
+<h3 id="channel-properties"><a class="toclink" href="#channel-properties">Channel Properties</a></h3>
+<ul>
+<li><strong>Bandwidth (Hz)</strong>: The range of frequencies that the channel can carry. Note that bandwidth in this context is not the same as the <em>data-rate</em> of a link.</li>
+<li><strong>Signal Power (Watts)</strong>: The strength of the signal.</li>
+<li><strong>Noise Power (Watts)</strong>: The strength of the noise.</li>
+</ul>
+<h3 id="nyquist-limit"><a class="toclink" href="#nyquist-limit">Nyquist Limit</a></h3>
+<p>The max <strong>symbol-rate</strong> (rate at which symbols are sent) is twice the bandwidth. This would mean maintaining a maximum frequency, and sending a signal for each peak or trough of the wave.</p>
+<p>If there are $V$ signal levels, ignoring noise, the max data rate is $2B \log_2(V)$ bits/sec.</p>
+<h3 id="shannon-capacity"><a class="toclink" href="#shannon-capacity">Shannon Capacity</a></h3>
+<p>The number of levels we can distinguish is limited by the ratio of signal power to noise power. The signal-to-noise ratio (SNR) is the ratio of the signal power to the noise power, and the higher the SNR, the more levels we can distinguish. Usually measured in decibels (dB).</p>
+<p>$$
+SNR_{dB} = 10 \log_{10} \left( \frac{S}{N} \right)
+$$</p>
+<p>Capacity (C) is the max <strong>lossless</strong> data rate over a channel. Don't ask me how to derive this...</p>
+<p>$$
+C = B \log_2 \left( 1 + \frac{S}{N} \right)
+$$</p>
+<p>Note that increasing bandwidth increases the capacity linearly, but increasing SNR increases the capacity logarithmically.</p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

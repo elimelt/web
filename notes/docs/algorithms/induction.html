@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mathematical Induction and Pigeonhole Principle Proofs</title>
+    <meta name="description" content="This document presents detailed proofs using mathematical induction and the pigeonhole principle. It demonstrates the inductive proof for the sum of natural num">
+    <link rel="canonical" href="https://notes.elimelt.com/algorithms/induction.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Mathematical Induction and Pigeonhole Principle Proofs", "dateModified": "2025-12-29T22:39:59.760461", "description": "This document presents detailed proofs using mathematical induction and the pigeonhole principle. It demonstrates the inductive proof for the sum of natural num", "url": "https://notes.elimelt.com/algorithms/induction.html", "articleSection": "Algorithms", "keywords": "induction,pigeonhole principle,proof techniques"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/algorithms.html">Algorithms</a> » Mathematical Induction and Pigeonhole Principle Proofs</div>
+    </header>
+    <main class="content">
+        <h1>Mathematical Induction and Pigeonhole Principle Proofs</h1>
+        <h1 id="induction"><a class="toclink" href="#induction">Induction</a></h1>
+<p>Prove...</p>
+<p>$$
+\forall n \in \mathbb{N}, \sum^{n}_{i = 1} i = \frac{n(n + 1)}{2}
+$$</p>
+<p>$$
+P(n) = \sum^{n}_{i = 1} i = \frac{n(n + 1)}{2}
+$$</p>
+<h3 id="base-case"><a class="toclink" href="#base-case">Base Case</a></h3>
+<p>$$
+P(1) = 1 = \frac{1(1 + 2)}{2}
+$$</p>
+<h3 id="ih"><a class="toclink" href="#ih">IH</a></h3>
+<p>Assume $P(n)$ for some $n \ge 2$</p>
+<h3 id="is"><a class="toclink" href="#is">IS</a></h3>
+<p>$$
+1 + \ldots + n - 1 + n = \frac{(n - 1)(n)}{2} + n = \frac{n(n + 1)}{2}
+$$</p>
+<h1 id="pigeon-hole-principle"><a class="toclink" href="#pigeon-hole-principle">Pigeon Hole Principle</a></h1>
+<p>Suppose that we put $n + 1$ balls into $n$ bins. Prove that there is a bin with at least $2$ balls.</p>
+<p>$P(n) :=$ <em>For any possible way to put $n + 1$ balls into $n$ bins, there exists a bin with $\ge 2$ balls.</em></p>
+<h2 id="base-case_1"><a class="toclink" href="#base-case_1">Base Case</a></h2>
+<p>duh...</p>
+<h2 id="ih_1"><a class="toclink" href="#ih_1">IH</a></h2>
+<p>Assume $P(n - 1)$ holds for some $n \ge 2$</p>
+<h2 id="is_1"><a class="toclink" href="#is_1">IS</a></h2>
+<p>Suppose we are given $n + 1$ balls <em>arbitrarily</em> placed into $n$ bins, labeled $b_1, \ldots, b_{n}$.</p>
+<p>Consider $b_1$. If $b_1$ has 2 balls in it, we are done. If it has 1 ball, then throw away $b_1$ and call $P(n - 1)$ for $b_2, \ldots, b_{n}, so we are done.</p>
+<p>Finally, if $b_1$ has no balls, throw away an arbitrary ball and call $P(n - 1)$ on $b_2, \ldots, b_n$</p>
+<h3 id="generally"><a class="toclink" href="#generally">Generally</a></h3>
+<p>With this type of induction, start with $P(n)$, and reduce to $P(n - 1)$.</p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

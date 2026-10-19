@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Networking Services: Store-and-Forward Packet Switching and Datagrams vs. Virtual Circuits</title>
+    <meta name="description" content="Covers the implementation of store-and-forward packet switching, datagrams, and virtual circuits in networking services. Discusses the differences between conne">
+    <link rel="canonical" href="https://notes.elimelt.com/networks/3-network/networking-services.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Networking Services: Store-and-Forward Packet Switching and Datagrams vs. Virtual Circuits", "dateModified": "2025-12-29T22:39:59.769646", "description": "Covers the implementation of store-and-forward packet switching, datagrams, and virtual circuits in networking services. Discusses the differences between conne", "url": "https://notes.elimelt.com/networks/3-network/networking-services.html", "articleSection": "Networks", "keywords": "store-and-forward packet switching,datagrams,virtual circuits,routing,forwarding table,connection-oriented,connectionless"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/networks.html">Networks</a> » Networking Services: Store-and-Forward Packet Switching and Datagrams vs. Virtual Circuits</div>
+    </header>
+    <main class="content">
+        <h1>Networking Services: Store-and-Forward Packet Switching and Datagrams vs. Virtual Circuits</h1>
+        <h1 id="networking-services"><a class="toclink" href="#networking-services">Networking Services</a></h1>
+<h2 id="store-and-forward-packet-switching"><a class="toclink" href="#store-and-forward-packet-switching">Store-and-Forward Packet Switching</a></h2>
+<ul>
+<li>Routers receive a complete packet, storing it temporarily if necessary, before forwarding it to the next hop.</li>
+<li>Use statistical multiplexing to share link bandwidth over time.</li>
+<li>Switching element has internal buffering for contention. Buffer is typically a FIFO queue, where if full, packets are dropped.</li>
+</ul>
+<h2 id="datagrams-vs-virtual-circuits"><a class="toclink" href="#datagrams-vs-virtual-circuits">Datagrams vs. Virtual Circuits</a></h2>
+<p><strong>Datagrams</strong> are a connectionless service that sends packets from one host to another. Like postal letters. Each packet is independent and can take a different route to the destination. This is the most common service on the internet. Each packet contains destination address. Routers use this to forward packets, maybe on different paths for each subsequent message. Each router has a forwarding table keyed by destination address. The table contains the next hop for each destination, but the entries change over time as the network topology changes.</p>
+<p><strong>Virtual Circuits</strong> are a connection-oriented service that sets up a path between the source and destination before sending packets. Like a phone call. Each packet follows the same path and is identified by a connection ID. This is less common on the internet, but is used in technologies like ATM and Frame Relay.</p>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Datagram</th>
+<th>Virtual Circuit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Setup phase</td>
+<td>Not needed</td>
+<td>Required</td>
+</tr>
+<tr>
+<td>Router state</td>
+<td>Per destination</td>
+<td>Per connection</td>
+</tr>
+<tr>
+<td>Addresses</td>
+<td>Packet carries full destination address</td>
+<td>Short connection ID to label</td>
+</tr>
+<tr>
+<td>Routing</td>
+<td>Per packet</td>
+<td>Per circuit</td>
+</tr>
+<tr>
+<td>Failures</td>
+<td>Easy to mask</td>
+<td>Hard to mask</td>
+</tr>
+<tr>
+<td>QoS</td>
+<td>Hard to provide</td>
+<td>Easier to provide</td>
+</tr>
+</tbody>
+</table>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

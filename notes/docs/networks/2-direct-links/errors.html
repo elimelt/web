@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error Detection and Correction</title>
+    <meta name="description" content="An overview of error detection and correction techniques used in computer networks. It covers approaches such as adding redundancy to data, Hamming distance, in">
+    <link rel="canonical" href="https://notes.elimelt.com/networks/2-direct-links/errors.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Error Detection and Correction", "dateModified": "2025-12-29T22:39:59.768437", "description": "An overview of error detection and correction techniques used in computer networks. It covers approaches such as adding redundancy to data, Hamming distance, in", "url": "https://notes.elimelt.com/networks/2-direct-links/errors.html", "articleSection": "Networks", "keywords": "error detection,error correction,redundancy,codewords,probability"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/networks.html">Networks</a> » Error Detection and Correction</div>
+    </header>
+    <main class="content">
+        <h1>Error Detection and Correction</h1>
+        <h1 id="error-detection-and-correction"><a class="toclink" href="#error-detection-and-correction">Error Detection and Correction</a></h1>
+<p>Some bits will inevitably be recieved in error. Noise may flip the bits recieved over the network. We need to be able to...</p>
+<ul>
+<li>detect errors</li>
+<li>retransmit</li>
+<li>correct errors</li>
+</ul>
+<h2 id="approach-add-redundancy"><a class="toclink" href="#approach-add-redundancy">Approach: Add Redundancy</a></h2>
+<ul>
+<li>In error detection codes, add <em>check bits</em> to the message bits.</li>
+<li>In error correction codes, add <strong>more</strong> <em>check bits</em> to let some errors be corrected.</li>
+<li>Key issue is to design codes to detect as many errors as possible without having too much redundancy or computation required.</li>
+</ul>
+<p>Generally, a <strong>codeword</strong> is a $D$-bit message with $R$ check bits added to it. The sender computes the check bits and appends them to the message. The reciever then verifies the check bits by recomputing them and comparing them to the recieved check bits.</p>
+<h3 id="example-code"><a class="toclink" href="#example-code">Example Code:</a></h3>
+<p>$$
+1 \to 11\
+0 \to 00\
+x \to xx\
+$$</p>
+<p>For example:
+$$
+101110 \to 101110101110
+$$</p>
+<p>Can detect errors with this code up to 1 bit. However, no guarantee if more bits are flipped. Also cannot correct errors. This sucks.</p>
+<h2 id="intuition"><a class="toclink" href="#intuition">Intuition</a></h2>
+<p>Let $S$ be the set of all possible $n$-bit sequences, and let $C$ be the set of all $n$-bit code words with $D$ data bits and $R$ check bits. We have $C \subset S$, and we want to choose $C$ such that the probability of a random $D$-bit sequence being in $C$ is low.</p>
+<p>Consider a random $n$-bit sequence $x \in S$...</p>
+<p>$$
+\mathbb{P}(x \in C) = \frac{|C|}{|S|} = \frac{2^R}{2^n} = 2^{-D}
+$$</p>
+<p>Error correction/detection is hard because even the check bits can be corrupted. Given $d$ errors, we can detect and correct $d$ errors if the distance between any two code words is $2d + 1$.</p>
+<h2 id="hamming-distance"><a class="toclink" href="#hamming-distance">Hamming Distance</a></h2>
+<p>Distance: The number of bit flips needed to change from one valid code word to another. The distance of a code is the minimum distance between any two code words. Letting $C$ be the set of all code words, the distance is:</p>
+<p>$$
+\min_{x, y \in C, x \neq y} d(x, y)
+$$</p>
+<ul>
+<li>For a coding of distance $d + 1$, we can detect $d$ errors</li>
+<li>For a coding of distance $2d + 1$, we can correct $d$ errors by mapping to the closest code word.</li>
+</ul>
+<h2 id="internet-checksum"><a class="toclink" href="#internet-checksum">Internet Checksum</a></h2>
+<p>Sum up chunks of data and append the sum to the end of the data. If the sum is 0 on the recieving end, then the data is valid.</p>
+<p>This code has a distance of 2, so it can detect 1 bit errors, and can correct 0 bit errors (since it can't correct any errors)</p>
+<h3 id="internet-checksum-algorithm"><a class="toclink" href="#internet-checksum-algorithm">Internet Checksum Algorithm</a></h3>
+<h4 id="sender"><a class="toclink" href="#sender">sender</a></h4>
+<ol>
+<li>Split up data into 4 byte chunks.</li>
+<li>Sum up all the 4 byte chunks, wrapping around for carry beyond 4 bytes.</li>
+<li>netgate append the checksum to the end of the data.</li>
+</ol>
+<h4 id="reciever"><a class="toclink" href="#reciever">reciever</a></h4>
+<ol>
+<li>Split up data into 4 byte chunks.</li>
+<li>Sum up all the 4 byte chunks, wrapping around for carry beyond 4 bytes.</li>
+<li>netgate append the checksum to the end of the data.</li>
+<li>If the sum is 0, then the data is valid.</li>
+</ol>
+<pre><code class="language-python">def internet_checksum(data):
+    checksum = 0
+    for i in range(0, len(data), 4):
+        chunk = data[i:i+4]
+        checksum += int.from_bytes(chunk, 'big')
+    return checksum.to_bytes(4, 'big')
+</code></pre>
+<h2 id="cyclical-redundancy-check-crc"><a class="toclink" href="#cyclical-redundancy-check-crc">Cyclical Redundancy Check (CRC)</a></h2>
+<p>Given a generator polynomial $C$ and a message of $n$ bits, generate $k$ bits such that the $n + k$ bit message is divisible by $C$. Works with binary values that operate over the field $\mathbb{Z}_2$ (mod 2 arithmetic).</p>
+<h3 id="crc-algorithm"><a class="toclink" href="#crc-algorithm">CRC Algorithm</a></h3>
+<h4 id="sender_1"><a class="toclink" href="#sender_1">sender</a></h4>
+<ol>
+<li>create binary representation of polynomial as divisor</li>
+<li>append 0s to the end of the data to be sent, equal to the degree of the polynomial</li>
+<li>divide the data by the polynomial, using XOR</li>
+<li>change redundant bits to remainder</li>
+</ol>
+<h4 id="reciever_1"><a class="toclink" href="#reciever_1">reciever</a></h4>
+<ol>
+<li>create binary representation of polynomial as divisor</li>
+<li>divide the data by the polynomial, using XOR</li>
+<li>if the remainder is 0, then the data is valid</li>
+</ol>
+<h3 id="notes"><a class="toclink" href="#notes">Notes:</a></h3>
+<p>x + 1 as a generating polynomial is just a parity bit!</p>
+<h2 id="hamming-code"><a class="toclink" href="#hamming-code">Hamming Code</a></h2>
+<p>A code with distance 3. Can detect 2 bit errors and correct 1 bit errors.</p>
+<p>Uses $n = 2^k - k - 1$. Put check bits in positions that are powers of 2, and fill in the rest with data bits. Check bits are calculated by checking the bits in the ith position for all data bits whose ith bit is 1.</p>
+<pre><code class="language-python">def hamming_encode(data):
+    n = len(data)
+    k, acc = 0, 1
+    while acc &lt; n + k + 1:
+        k += 1
+        acc *= 2
+
+    code = [0] * (n + k)
+    j = 0
+    for i in range(1, n + k + 1):
+        if i &amp; (i - 1) == 0:
+            code[i - 1] = 0
+        else:
+            code[i - 1] = data[j]
+            j += 1
+    for i in range(k):
+        j = 2 ** i
+        for l in range(j, n + k + 1):
+            if l &amp; j:
+                code[j - 1] ^= code[l - 1]
+    return code
+</code></pre>
+<h3 id="algorithm"><a class="toclink" href="#algorithm">Algorithm</a></h3>
+<h4 id="send"><a class="toclink" href="#send">Send</a></h4>
+<ol>
+<li>Put all parity bits in positions that are powers of 2 (1, 2, 4, 8, 16, etc.)</li>
+<li>Fill in all other positions with data bits.</li>
+<li>calculate parity bits for each of the ith check bits. (check the bits in ith position for all data bits whose ith bit is 1)</li>
+</ol>
+<h4 id="recieve"><a class="toclink" href="#recieve">Recieve</a></h4>
+<ol>
+<li>calculate parity bits for each of the ith check bits. (check the bits in ith position for all data bits whose ith bit is 1 of its index is a power of 2)</li>
+<li>If the parity bits are all 0, then the data is valid (remove check bits from data bits)</li>
+<li>If the parity bits are not all 0, then the data is invalid. The syndrome (concat and reverse the parity bits) is the index of the bit that is wrong. Flip that bit.</li>
+</ol>
+<h2 id="detection-vs-correction"><a class="toclink" href="#detection-vs-correction">Detection vs. Correction</a></h2>
+<ul>
+<li>Error detection is easier than error correction. There is less overhead and computation required.</li>
+<li>Which is better depends on the pattern of errors. In general, error correction should be used when errors are detected and retransmission is expensive. Error detection should be used when errors are rare/unrecoverable, or when retransmission is cheap. Also used in application layer for physical storage (Reed-Solomon codes for CDs, DVDs, etc).</li>
+</ul>
+<p>Error correction is heavily used in the physical layer. Low Density Parity Check (LDPC) codes are used in 802.11, DVB, WiMAX etc, and convolutional codes are used a lot in practice. On the other hand, detection combined with retranmission is used in the data link layer and above for residual errors.</p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

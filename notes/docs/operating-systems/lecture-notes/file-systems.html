@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Systems</title>
+    <meta name="description" content="Covers the implementation of file systems, including the programming interface, differences between Windows and Unix file systems, and the on-disk structure of ">
+    <link rel="canonical" href="https://notes.elimelt.com/operating-systems/lecture-notes/file-systems.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "File Systems", "dateModified": "2025-12-29T22:39:59.771315", "description": "Covers the implementation of file systems, including the programming interface, differences between Windows and Unix file systems, and the on-disk structure of ", "url": "https://notes.elimelt.com/operating-systems/lecture-notes/file-systems.html", "articleSection": "Operating Systems", "keywords": "file systems,storage,hierarchical structure,programming interface,system calls"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/operating%20systems.html">Operating Systems</a> » File Systems</div>
+    </header>
+    <main class="content">
+        <h1>File Systems</h1>
+        <h1 id="file-systems"><a class="toclink" href="#file-systems">File Systems</a></h1>
+<p>A file system interacts with storage by reading/writing blocks (sectors) on a per-volume basis. It is basically a thick layer of abstraction over the raw storage device.</p>
+<h2 id="programming-interface"><a class="toclink" href="#programming-interface">Programming Interface</a></h2>
+<ul>
+<li>Naming: files and directories in a hierarchical structure.</li>
+<li>Operations: create, delete, open, close, read, write, seek, stat, etc.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Windows</th>
+<th>Unix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CreateFile(name, CREATE)</code></td>
+<td><code>open(name, O_CREAT)</code></td>
+</tr>
+<tr>
+<td><code>CreateFile(name, OPEN)</code></td>
+<td><code>open(name, O_RDONLY)</code></td>
+</tr>
+<tr>
+<td><code>ReadFile(handle, buffer, size)</code></td>
+<td><code>read(fd, buffer, size)</code></td>
+</tr>
+<tr>
+<td><code>WriteFile(handle, buffer, size)</code></td>
+<td><code>write(fd, buffer, size)</code></td>
+</tr>
+<tr>
+<td><code>CloseHandle(handle)</code></td>
+<td><code>close(fd)</code></td>
+</tr>
+<tr>
+<td><code>FlushFileBuffers(handle)</code></td>
+<td><code>fsync(fd)</code></td>
+</tr>
+<tr>
+<td><code>SetFilePointer(handle, offset, whence)</code></td>
+<td><code>lseek(fd, offset, whence)</code></td>
+</tr>
+<tr>
+<td><code>GetFileSize(handle)</code></td>
+<td><code>fstat(fd, &amp;buf)</code></td>
+</tr>
+<tr>
+<td><code>DeleteFile(name)</code></td>
+<td><code>unlink(name)</code></td>
+</tr>
+<tr>
+<td><code>MoveFile(old, new)</code></td>
+<td><code>rename(old, new)</code></td>
+</tr>
+</tbody>
+</table>
+<p>We all know about this and I'm not going to get into it.</p>
+<h3 id="windows-vs-unix"><a class="toclink" href="#windows-vs-unix">Windows vs. Unix</a></h3>
+<h4 id="moving-files"><a class="toclink" href="#moving-files">Moving Files</a></h4>
+<p>Windows and Unix have different ways of moving files. In Unix, you always use the <code>rename</code> system call. In Windows, moving a file within the same volume is a rename operation, whereas moving a file between volumes is a copy operation followed by a delete operation.</p>
+<h4 id="deleting-files"><a class="toclink" href="#deleting-files">Deleting Files</a></h4>
+<p>In Unix, a file is not actually deleted until all references to it are removed. In Windows, a file is deleted as soon as the last reference to it is removed. This is why you can't delete a file that is open in Windows.</p>
+<h2 id="files"><a class="toclink" href="#files">Files</a></h2>
+<p>A file is logically just a sequence of bytes, typically consisting of data and properties/metadata. Some file systems also have types (ie. regular file, directory, symbolic link, device, etc.). </p>
+<p>Some files are also understood to be executable by the OS. In Windows, the file type is determined by the file extension. In Unix, the file type is determined by the file's metadata.</p>
+<p>Shared file handles will also share the file's offset. This can be an issue if you have multiple threads or processes reading/writing to the same file handle.</p>
+<h2 id="directories"><a class="toclink" href="#directories">Directories</a></h2>
+<p>A directory is typically just a file that contains metadata about the files it contains in the form of <strong>directory entries</strong>. It is a mapping from file names to file metadata.</p>
+<h2 id="design-constriants"><a class="toclink" href="#design-constriants">Design Constriants</a></h2>
+<ul>
+<li>Want to support small and large files efficiently. Small files need small blocks for efficient storage, whereas large files need large blocks for contiguity</li>
+<li>Store actual file data within <strong>blocks</strong>. Need an indexing structure to retrieve the blocks of a file: <strong>inode</strong> in Unix, <strong>file control block</strong> in Windows.</li>
+<li>Also need to be able to efficiently locate free space. Often done with either a <strong>bitmap</strong> or a <strong>free list</strong> on disk.</li>
+<li>Want to maximize spatial locality and minimize seek time, while minimizing fragmentation.</li>
+<li>Need reliability and fault tolerance. Can use <strong>journaling</strong> to recover from crashes, and error detection/correction codes + redundancy to recover from disk errors (RAID).</li>
+</ul>
+<h2 id="on-disk-structure"><a class="toclink" href="#on-disk-structure">On-Disk Structure</a></h2>
+<p>There is typically a layer of storage that actually gets persisted on disk, as well as the in-memory representation of the file system that is manipulated by the OS.</p>
+<h3 id="fat-file-system"><a class="toclink" href="#fat-file-system">FAT File System</a></h3>
+<p>The <strong>File Allocation Table</strong> file system is a simple file system that was used in DOS and Windows. It has a simple on-disk structure that consists of a <strong>reserved area</strong>, a number of <strong>FAT areas</strong>, and a <strong>data area</strong>. The reserved area contains the boot sector and metadata about the file system/disk layout. The FAT areas contain the file allocation table, which is a table that maps file names to disk blocks. The data area contains the actual file data.</p>
+<pre><code>+-----------------+-----------------+-----------------+-----------------+
+| Reserved Area   | FAT Area 1      | FAT Area 2      | Data Area       |
++-----------------+-----------------+-----------------+-----------------+
+</code></pre>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

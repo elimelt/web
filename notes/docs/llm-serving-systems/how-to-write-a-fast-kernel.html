@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to write a fast kernel</title>
+    <meta name="description" content="Techniques to write fast CUDA kernels, including coalesced memory access and shared memory usage.">
+    <link rel="canonical" href="https://notes.elimelt.com/llm-serving-systems/how-to-write-a-fast-kernel.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "How to write a fast kernel", "dateModified": "2025-12-29T22:39:59.766220", "description": "Techniques to write fast CUDA kernels, including coalesced memory access and shared memory usage.", "url": "https://notes.elimelt.com/llm-serving-systems/how-to-write-a-fast-kernel.html", "articleSection": "Machine Learning Systems", "keywords": "cuda,gpu,pytorch,kernel"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/machine%20learning%20systems.html">Machine Learning Systems</a> » How to write a fast kernel</div>
+    </header>
+    <main class="content">
+        <h1>How to write a fast kernel</h1>
+        <h1 id="how-to-write-a-fast-kernel"><a class="toclink" href="#how-to-write-a-fast-kernel">How to write a fast kernel?</a></h1>
+<h2 id="matrix-transpose-kernel"><a class="toclink" href="#matrix-transpose-kernel">Matrix Transpose Kernel</a></h2>
+<h3 id="basic-way-with-torch"><a class="toclink" href="#basic-way-with-torch">Basic way with Torch</a></h3>
+<pre><code class="language-py">import torch
+
+num_rows = num_cols = 8192
+a = torch.randn(num_rows, num_cols)
+
+res = a.t().contiguous()
+
+start = torch.cuda.Event(enable_timing=True)
+
+end = torch.cuda.Event(enable_timing=True)
+
+start.record()
+
+for i in range(100):
+    res = a.t().contiguous()
+
+end.record()
+torch.cuda.synchronize()
+
+elapsed_time = start.elapsed_time(end)
+time_per_iter = elapsed_time / 100
+
+print(f&quot;Elapsed time: {elapsed_time} ms&quot;)
+print(f&quot;Time per iteration: {time_per_iter} ms&quot;)
+</code></pre>
+<h3 id="how-can-we-optimize"><a class="toclink" href="#how-can-we-optimize">How can we optimize?</a></h3>
+<p>Row-based partitioning in a CUDA kernel? But arrays can be very long. We can't load all the data into the shared memory. So, we need to partition the data into smaller chunks per-thread (since we have at most 1024 threads per block).</p>
+<h3 id="cuda-kernel"><a class="toclink" href="#cuda-kernel">CUDA Kernel</a></h3>
+<pre><code class="language-cpp">#include &lt;torch/extension.h&gt;
+#include &lt;stdio.h&gt;
+
+__global__ void transpose(float* input, float* output, int num_rows, int num_cols) {
+    int row = blockIdx.x;
+    int col_start = threadIdx.x * (num_cols / blockDim.x);
+    int col_end = col_start + (num_cols / blockDim.x);
+
+    for (int col = col_start; col &lt; col_end; ++col) {
+        if (col &lt; num_cols) {
+            output[col * num_rows + row] = input[row * num_cols + col];
+        }
+    }
+}
+
+</code></pre>
+<h2 id="coallesced-memory-access"><a class="toclink" href="#coallesced-memory-access">Coallesced Memory Access</a></h2>
+<ul>
+<li>Inside one warp, if memory accesses are coalesced, then the memory access is fast because it can be batched</li>
+<li>Data can then be retrieved in a single memory transaction</li>
+</ul>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

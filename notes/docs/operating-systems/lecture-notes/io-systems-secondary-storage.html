@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>I/O Systems and Secondary Storage</title>
+    <meta name="description" content="Covers the implementation of I/O systems and secondary storage in operating systems. Discusses the hardware environment of I/O systems, their role and structure">
+    <link rel="canonical" href="https://notes.elimelt.com/operating-systems/lecture-notes/io-systems-secondary-storage.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "I/O Systems and Secondary Storage", "dateModified": "2025-12-29T22:39:59.771482", "description": "Covers the implementation of I/O systems and secondary storage in operating systems. Discusses the hardware environment of I/O systems, their role and structure", "url": "https://notes.elimelt.com/operating-systems/lecture-notes/io-systems-secondary-storage.html", "articleSection": "Operating Systems", "keywords": "i/o systems,secondary storage,device controllers,dma,system bus,pci bus,programmed i/o,device drivers"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/operating%20systems.html">Operating Systems</a> » I/O Systems and Secondary Storage</div>
+    </header>
+    <main class="content">
+        <h1>I/O Systems and Secondary Storage</h1>
+        <h1 id="io-systems-and-secondary-storage"><a class="toclink" href="#io-systems-and-secondary-storage">I/O Systems and Secondary Storage</a></h1>
+<h2 id="io-system-hardware-environment"><a class="toclink" href="#io-system-hardware-environment">I/O System Hardware Environment</a></h2>
+<p>I/O devices are typically either <strong>block devices</strong>, which transfer data in fixed-size blocks, or <strong>character devices</strong>, which transfer data one character at a time in a stream.</p>
+<p><strong>Device controllers</strong> are the hardware (a mini-computer) that connects the CPU to the I/O devices. They are responsible for sending commands to the device, and for receiving and sending data to and from the device.</p>
+<p>The I/O devices communicate via controller registers/memory-mapped I/O, or direct memory access (DMA).</p>
+<p>Old computers typically had a single bus (the <strong>system bus</strong>) that connects the CPU, memory, and I/O devices. The topology of the computer was similar to old ethernet networks with a single broadcast domain.</p>
+<p>More modern and performant systems have multiple buses. The <strong>PCI</strong> bus is a high-speed backbone that all the other busses branch off of (<strong>memory</strong>, <strong>SCSI</strong>, <strong>USB</strong>, etc.).</p>
+<p>The I/O system needs to be able to handle a wide variety of devices with different data transfer rates, data formats, and control mechanisms.</p>
+<h2 id="io-systems-role-and-structure"><a class="toclink" href="#io-systems-role-and-structure">I/O System's Role and Structure</a></h2>
+<p>Needs to provide:</p>
+<ul>
+<li>A uniform interface to many devices, as well as device specific interfaces when necessary.</li>
+<li>Device-system communication and interaction through device drivers.</li>
+<li>Every device is given a unique id so it can be referenced by applications.</li>
+</ul>
+<h3 id="organization"><a class="toclink" href="#organization">Organization</a></h3>
+<ul>
+<li><strong>Programmed I/O with polling</strong>: CPU issues an I/O command for the process, and the process busy waits until the I/O is complete. Inefficient because the CPU is tied up waiting for the I/O to complete.</li>
+<li><strong>Interrupt-driven I/O</strong>: CPU issues an I/O command and continues to execute. When the I/O is complete, the device sends an interrupt to the CPU, which then handles the I/O completion. The process may or may not be blocked while waiting for the I/O to complete, but the processor is not tied up waiting for the I/O to complete.</li>
+<li><strong>Direct Memory Access (DMA)</strong>: The DMA module controls exchange of data between I/O module and main memory using physical addresses. The processor requests transfer of a block of data from DMA, and is interrupted when the transfer is complete. This saves the processor from having to handle the data transfer.</li>
+</ul>
+<h2 id="secondary-storage"><a class="toclink" href="#secondary-storage">Secondary Storage</a></h2>
+<p>Anything outside of <em>primary memory</em> (RAM) is considered <strong>secondary storage</strong>. This includes hard drives, SSDs, and other storage devices. SS doesn't allow direct execution of instructions or data access via load/store instructions, and is instead accessed via I/O operations.</p>
+<p>Secondary storage is...
+- <strong>Non-volatile</strong>: Data is retained even when the power is off.
+- Very slow compared to primary storage.
+- Failure-prone.
+- Giant and relatively cheap compared to primary storage. 2024 numbers:
+    - 2 TB HDD for $73 ($0.04/GB)
+    - 30 TB HDD for $700
+    - 500 GB SSD for $50 ($10/GB)
+    - 100 TB SSD for $40,000</p>
+<h3 id="memory-hierarchy"><a class="toclink" href="#memory-hierarchy">Memory Hierarchy</a></h3>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Speed</th>
+<th>Cost</th>
+<th>Size</th>
+<th>Volatility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Registers</td>
+<td>Fastest</td>
+<td>Most Expensive</td>
+<td>Smallest</td>
+<td>Volatile</td>
+</tr>
+<tr>
+<td>L1 Cache</td>
+<td>Fast</td>
+<td>Expensive</td>
+<td>Small</td>
+<td>Volatile</td>
+</tr>
+<tr>
+<td>L2 Cache</td>
+<td>Fast</td>
+<td>Less Expensive</td>
+<td>Still not a lot</td>
+<td>Volatile</td>
+</tr>
+<tr>
+<td>Main Memory</td>
+<td>Slower</td>
+<td>Less Expensive</td>
+<td>Larger</td>
+<td>Volatile</td>
+</tr>
+<tr>
+<td>Secondary Storage</td>
+<td>Slow</td>
+<td>Cheap</td>
+<td>Largest</td>
+<td>Non-Volatile</td>
+</tr>
+<tr>
+<td>Tertiary Storage</td>
+<td>Slowest</td>
+<td>Least Expensive</td>
+<td>Largest</td>
+<td>Non-Volatile</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hdds-and-sdds"><a class="toclink" href="#hdds-and-sdds">HDDs and SDDs</a></h3>
+<p><strong>HDDs</strong> are mechanical devices that store data on spinning disks. They have a read/write head that moves across the disk to read and write data. They are slow, but have a large capacity and are relatively cheap.</p>
+<p><strong>SSDs</strong> are solid-state devices that store data on flash memory. They are much faster than HDDs, but are more expensive. They are also more reliable and consume less power.</p>
+<h3 id="disks-and-the-os"><a class="toclink" href="#disks-and-the-os">Disks and the OS</a></h3>
+<p>Disks are messy, slow, error-prone, horrible devices, and its the OS's job to make them look like a nice, clean, fast, reliable, and easy-to-use device.</p>
+<p>The OS typically provides different levels of disk access to different clients, including:
+- <strong>physical block access</strong>: the ability to read and write blocks of data to the disk.
+- <strong>disk logical block access</strong>: the ability to read and write to a disk block number, without needing to know the physical location of the block.
+- <strong>file system</strong>: the ability to read and write files at a specified offset, block, or byte.</p>
+<p>With old disks, only physical block access was available. With modern disks, the controller provides a higher-level interface that maps physical regions on disk (cylinders, sectors, ect.) to logical block numbers from $\lbrack  0, n  \rbrack$, (ie a contiguous range of blocks to the OS).</p>
+<h3 id="performance-issues"><a class="toclink" href="#performance-issues">Performance Issues</a></h3>
+<p>The HDD's performance is affected by its mechanically moving parts. Limiting the amount of seeking and <strong>defragmenting</strong> help, but only to an extent.</p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

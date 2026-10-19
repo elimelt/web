@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automatic Repeat reQuest (ARQ)</title>
+    <meta name="description" content="Covers the implementation of Automatic Repeat reQuest (ARQ) protocols for reliable data transmission in computer networks. Discusses key concepts such as timeou">
+    <link rel="canonical" href="https://notes.elimelt.com/networks/2-direct-links/retransmission.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Automatic Repeat reQuest (ARQ)", "dateModified": "2025-12-29T22:39:59.768670", "description": "Covers the implementation of Automatic Repeat reQuest (ARQ) protocols for reliable data transmission in computer networks. Discusses key concepts such as timeou", "url": "https://notes.elimelt.com/networks/2-direct-links/retransmission.html", "articleSection": "Networks", "keywords": "automatic repeat request,stop-and-wait arq,sliding window arq,go-back-n arq,sequence numbers,timeouts,bandwidth-delay product"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/networks.html">Networks</a> » Automatic Repeat reQuest (ARQ)</div>
+    </header>
+    <main class="content">
+        <h1>Automatic Repeat reQuest (ARQ)</h1>
+        <h1 id="retransmission"><a class="toclink" href="#retransmission">Retransmission</a></h1>
+<p>Reliability is a key feature of a network, and there are measures in place accross the entire stack to ensure it.</p>
+<h2 id="automatic-repeat-request-arq"><a class="toclink" href="#automatic-repeat-request-arq">Automatic Repeat reQuest (ARQ)</a></h2>
+<p>Often used when errors are common or must be corrected (e.g. wireless links). Receiver automatically acknowledges correct frames, and sender retransmits frames that are not acknowledged by a certain timeout.</p>
+<ul>
+<li><strong>Stop and Wait ARQ</strong>: Sender sends one frame, waits for an ACK, and then sends the next frame.</li>
+<li><strong>Sliding Window ARQ</strong>: Sender can send multiple frames before waiting for an ACK. For a window size of $n$, the sender can send $n$ frames per RTT.</li>
+<li><strong>Go-Back-N ARQ</strong>: Sender can send multiple frames before waiting for an ACK, but if a frame is lost, the sender must retransmit all frames from the lost frame onwards.</li>
+</ul>
+<h3 id="timeouts"><a class="toclink" href="#timeouts">Timeouts</a></h3>
+<p>They need to be not too long (link is idle), but also not too short (link is busy). Timeouts are easy to set in a LAN, but harder over the internet where latency can vary greatly.</p>
+<h3 id="sequence-numbers"><a class="toclink" href="#sequence-numbers">Sequence Numbers</a></h3>
+<p>Both frames and ACKs are numbered, so that the sender knows which frames are acknowledged. In <strong>stop and wait ARQ</strong>, the sequence number is 0 or 1. In <strong>go-back-N ARQ</strong> and <strong>sliding-window ARQ</strong>, the sequence number is a number modulo $2^k$.</p>
+<h3 id="limitations-of-stop-and-wait-arq"><a class="toclink" href="#limitations-of-stop-and-wait-arq">Limitations of Stop and Wait ARQ</a></h3>
+<ul>
+<li>Allows for only a single frame to be outstanding at a time.</li>
+<li>Good for LAN, but bad for networks with high BD product (<em>bandwidth-delay product</em>).</li>
+</ul>
+<h3 id="examples"><a class="toclink" href="#examples">Examples</a></h3>
+<p>(These are just pseudocode examples)</p>
+<pre><code class="language-python"># Stop and Wait ARQ
+def sender():
+    while True:
+        frame = create_frame()
+        send_frame(frame)
+
+        ack_received = wait_for_ack()
+
+        if ack_received:
+            break
+
+def receiver():
+    while True:
+        frame = receive_frame()
+        process_frame(frame)
+
+        send_ack()
+
+</code></pre>
+<pre><code class="language-python"># Sliding Window ARQ
+def sender():
+    window_size = 3
+    frames = [create_frame() for _ in range(window_size)]
+    send_frames(frames)
+
+    acknowledged_frames = wait_for_acknowledgment()
+
+    # Move window forward
+    frames = frames[len(acknowledged_frames):] + [create_frame()]
+    send_frames(frames)
+
+def receiver():
+    while True:
+        frames = receive_frames()
+        process_frames(frames)
+
+        send_acknowledgment()
+</code></pre>
+<pre><code class="language-python"># Go-Back-N ARQ
+def sender():
+    window_size = 3
+    frames = [create_frame() for _ in range(window_size)]
+    send_frames(frames)
+
+    while True:
+        acknowledged_frames = wait_for_acknowledgment()
+
+        if not acknowledged_frames:
+            resend_frames(frames)
+
+def receiver():
+    expected_frame = 0
+
+    while True:
+        frames = receive_frames()
+
+        for frame in frames:
+            if frame.sequence_number == expected_frame:
+                process_frame(frame)
+                expected_frame += 1
+
+        send_acknowledgment()
+</code></pre>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Developing FPGA Designs with Quartus and ModelSim</title>
+    <meta name="description" content="Describes a structured approach to testing and verifying digital circuits using Quartus and ModelSim.">
+    <link rel="canonical" href="https://notes.elimelt.com/hardware-design/369/quartus-workflow.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Developing FPGA Designs with Quartus and ModelSim", "dateModified": "2025-12-29T22:39:59.765017", "description": "Describes a structured approach to testing and verifying digital circuits using Quartus and ModelSim.", "url": "https://notes.elimelt.com/hardware-design/369/quartus-workflow.html", "articleSection": "Hardware", "keywords": "quartus,modelsim,verilog,testing process,modular design"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/hardware.html">Hardware</a> » Developing FPGA Designs with Quartus and ModelSim</div>
+    </header>
+    <main class="content">
+        <h1>Developing FPGA Designs with Quartus and ModelSim</h1>
+        <ul>
+<li>Make a copy of a previous lab directory to build off of what you already have (Quartus project file, ModelSim files) while keeping the old design as a reference.</li>
+<li>For each module you need to write:</li>
+<li>Create and populate two new files, one for the module definition and one for that module's test bench.</li>
+<li>Set the new module file as the top-level module in Quartus.</li>
+<li>Run Analysis and Synthesis and fix any errors it finds.</li>
+<li>Edit runlab.do to include the new module and run its test bench and yet-to-be created simulation view.</li>
+<li>Start ModelSim and perform "do runlab.do." Fix any errors the compiler finds.</li>
+<li>When it complains about a missing *_wave.do file, set up the Wave pane by drag-and dropping signals from the Object pane. Save the waveform setup using File -&gt; "Save Formatting", then perform "do runlab.do" again.</li>
+<li>Check the simulation results, correct errors, and iterate until the module works as intended.This process has two major features: First, it has you test every module before you work on the larger  modules that call this unit. This will significantly simplify the design process. Second, you have a separate <em>_wave.do file for each Verilog file. This keeps a formatted test window for each module, which can help when you discover a fresh bug in a larger design later on. You can always go back and test a submodule by simply editing the runlab.do file to point to the testbench and </em>_wave.do file for the unit you want to test</li>
+</ul>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

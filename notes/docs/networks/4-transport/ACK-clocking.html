@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sliding Window Ack Clock</title>
+    <meta name="description" content="Covers the implementation of a sliding window-based acknowledgment (ACK) clocking mechanism for network congestion control. Discusses the problem at the receive">
+    <link rel="canonical" href="https://notes.elimelt.com/networks/4-transport/ACK-clocking.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Sliding Window Ack Clock", "dateModified": "2025-12-29T22:39:59.769909", "description": "Covers the implementation of a sliding window-based acknowledgment (ACK) clocking mechanism for network congestion control. Discusses the problem at the receive", "url": "https://notes.elimelt.com/networks/4-transport/ACK-clocking.html", "articleSection": "Networks", "keywords": "sliding window,ack clocking,tcp,network congestion control"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/networks.html">Networks</a> » Sliding Window Ack Clock</div>
+    </header>
+    <main class="content">
+        <h1>Sliding Window Ack Clock</h1>
+        <h1 id="ack-clocking"><a class="toclink" href="#ack-clocking">ACK Clocking</a></h1>
+<h2 id="sliding-window-ack-clock"><a class="toclink" href="#sliding-window-ack-clock">Sliding Window Ack CLock</a></h2>
+<p>Each in-order ACK advances the sliding window and lets a new segment enter the network. This prevents queuing buildups at slow links, and thus congestion. Segments are buffered and spread out on slow links.</p>
+<ul>
+<li>Helps run with low levels of loss and delay</li>
+<li>The network smooths out bursts of data segments</li>
+<li>ACK clock transfers smooth timing back to sender</li>
+<li>Subsequent data segments are not sent in burts so they don't queue up in the network.</li>
+</ul>
+<p>TCP uses sliding window, controlling the number of segments in the network. It ensures that only small bursts of segments are sent to keep traffic smooth.</p>
+<h2 id="problem-at-the-receiver"><a class="toclink" href="#problem-at-the-receiver">Problem at the Receiver</a></h2>
+<p>Sliding window has pipelining to keep network busy, but what if the receiver is overloaded?</p>
+<p>Consider receiver with $w$ buffers. Application <em>should</em> <code>recv</code> to accept packets, but if it didn't, then</p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket Reference</title>
+    <meta name="description" content="This document covers the implementation of sockets, a fundamental networking concept in system programming. It provides a reference for creating, configuring, a">
+    <link rel="canonical" href="https://notes.elimelt.com/networks/sockets.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Socket Reference", "dateModified": "2025-12-29T22:39:59.770566", "description": "This document covers the implementation of sockets, a fundamental networking concept in system programming. It provides a reference for creating, configuring, a", "url": "https://notes.elimelt.com/networks/sockets.html", "articleSection": "Networks", "keywords": "socket,networking,system programming,c,python"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/networks.html">Networks</a> » Socket Reference</div>
+    </header>
+    <main class="content">
+        <h1>Socket Reference</h1>
+        <h1 id="socket-reference"><a class="toclink" href="#socket-reference">Socket Reference</a></h1>
+<h2 id="creating-a-socket"><a class="toclink" href="#creating-a-socket">Creating a Socket</a></h2>
+<pre><code class="language-c">#include &lt;sys/types.h&gt;
+#include &lt;sys/socket.h&gt;
+
+
+/**
+ * @brief Creates a socket.
+ *
+ * @param domain specifies the protocol family to use.
+ *   ex: AF_INET, AF_INET6, AF_UNIX, etc.
+ * @param type The type of the socket.
+ *   ex: SOCK_STREAM, SOCK_DGRAM, SOCK_RAW, etc.
+ * @param protocol The protocol of the socket.
+ *   ex: (IPPROTO_TCP, IPPROTO_UDP, UNSPEC, etc.)
+ *
+ * @return The file descriptor of the socket.
+*/
+int socket(int domain, int type, int protocol);
+</code></pre>
+<pre><code class="language-python">import socket
+# TCP socket
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# UDP socket
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+</code></pre>
+<h2 id="server-side"><a class="toclink" href="#server-side">Server Side</a></h2>
+<h3 id="binding-a-socket"><a class="toclink" href="#binding-a-socket">Binding a Socket</a></h3>
+<pre><code class="language-c">#include &lt;sys/types.h&gt;
+#include &lt;sys/socket.h&gt;
+
+/**
+ *
+ * @brief Assigns the address specified by @p address to the socket
+ *   @p socket.
+ *
+ * @param socket The socket fd to bind.
+ * @param address The sockaddr struct containing the address and
+ *   port to bind to. Usually retrieved from a call to getaddrinfo().
+ * @param addr_len The length of the sockaddr struct.
+ *
+ * @return 0 on success, -1 on failure.
+*/
+int bind(int socket, struct sockaddr *address, int addr_len);
+</code></pre>
+<pre><code class="language-python"># ...
+port = 80
+
+# Bind the socket to an address
+serversock.bind((socket.gethostname(), port))
+</code></pre>
+<h3 id="listening-on-a-socket"><a class="toclink" href="#listening-on-a-socket">Listening on a Socket</a></h3>
+<pre><code class="language-c">#include &lt;sys/types.h&gt;
+#include &lt;sys/socket.h&gt;
+
+/**
+ * @brief Marks the socket @p socket as a passive socket, that is,
+ *   as a socket that will be used to accept incoming connection
+ *   requests using accept().
+ *
+ * @param socket The socket to listen on.
+ * @param backlog The maximum length of the queue of pending
+ *   connections.
+ *
+ * @return 0 on success, -1 on failure.
+*/
+int listen(int socket, int backlog);
+</code></pre>
+<pre><code class="language-python"># ...
+
+backlog = 5
+
+# Listen for connections
+serversock.listen(backlog)
+</code></pre>
+<h3 id="accepting-a-connection"><a class="toclink" href="#accepting-a-connection">Accepting a Connection</a></h3>
+<pre><code class="language-c">#include &lt;sys/types.h&gt;
+#include &lt;sys/socket.h&gt;
+
+/**
+ * @brief Accepts a connection on the socket @p socket.
+ *
+ * @param socket The socket to accept a connection on.
+ * @param address A pointer to a sockaddr struct that will be
+ *   filled with the address of the peer socket.
+ * @param addr_len A pointer to an int that will be filled with
+ *   the length of the sockaddr struct.
+ *
+ * @return The file descriptor of the new socket, or -1 on failure.
+*/
+int accept(int socket, struct sockaddr *address, int *addr_len);
+</code></pre>
+<pre><code class="language-python"># ...
+
+# Accept a connection
+clientsock, addr = serversock.accept()
+</code></pre>
+<h2 id="client-side"><a class="toclink" href="#client-side">Client Side</a></h2>
+<h3 id="connecting-to-a-server"><a class="toclink" href="#connecting-to-a-server">Connecting to a Server</a></h3>
+<pre><code class="language-c">#include &lt;sys/types.h&gt;
+#include &lt;sys/socket.h&gt;
+
+/**
+ * @brief Connects the socket @p socket to the address specified
+ *   by @p address.
+ *
+ * @param socket The socket to connect.
+ * @param address The sockaddr struct containing the address and
+ *   port to connect to. Usually retrieved from a call to getaddrinfo().
+ * @param addr_len The length of the sockaddr struct.
+ *
+ * @return 0 on success, -1 on failure.
+*/
+int connect(int socket, struct sockaddr *address, int addr_len);
+</code></pre>
+<pre><code class="language-python">import socket
+
+# create a socket
+clientsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+# connect to a server
+clientsock.connect(('http://elimelt.com', port))
+</code></pre>
+<h2 id="sending-and-receiving-data"><a class="toclink" href="#sending-and-receiving-data">Sending and Receiving Data</a></h2>
+<pre><code class="language-c">#include &lt;sys/types.h&gt;
+#include &lt;sys/socket.h&gt;
+
+/**
+ * @brief Sends @p len bytes from @p buf on the socket @p socket.
+ *
+ * @param socket The socket to send data on.
+ * @param buf The buffer containing the data to send.
+ * @param len The length of the data to send.
+ * @param flags Flags to modify the behavior of the send.
+ *
+ * @return The number of bytes sent, or -1 on failure.
+*/
+ssize_t send(int socket, const void *buf, size_t len, int flags);
+
+/**
+ * @brief Receives data from the socket @p socket and stores it
+ *   in @p buf.
+ *
+ * @param socket The socket to receive data on.
+ * @param buf The buffer to store the received data in.
+ * @param len The length of the buffer.
+ * @param flags Flags to modify the behavior of the receive.
+ *
+ * @return The number of bytes received, or -1 on failure.
+*/
+ssize_t recv(int socket, void *buf, size_t len, int flags);
+</code></pre>
+<pre><code class="language-python"># ...
+
+# Send data
+clientsock.send('Hello, world!')
+
+# Receive data
+data = clientsock.recv(1024)
+</code></pre>
+<h2 id="closing-a-socket"><a class="toclink" href="#closing-a-socket">Closing a Socket</a></h2>
+<pre><code class="language-c">#include &lt;sys/types.h&gt;
+#include &lt;sys/socket.h&gt;
+
+/**
+ * @brief Closes the socket @p socket.
+ *
+ * @param socket The socket to close.
+ *
+ * @return 0 on success, -1 on failure.
+*/
+int close(int socket);
+</code></pre>
+<pre><code class="language-python"># ...
+
+# Close the socket
+clientsock.close()
+</code></pre>
+<h2 id="simple-client"><a class="toclink" href="#simple-client">Simple Client</a></h2>
+<pre><code class="language-c">// from book.systemsapproach.org
+
+#include &lt;stdio.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;sys/socket.h&gt;
+#include &lt;netinet/in.h&gt;
+#include &lt;netdb.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;string.h&gt;
+
+#define SERVER_PORT 5432
+#define MAX_LINE 256
+
+int
+main(int argc, char * argv[])
+{
+  FILE *fp;
+  struct hostent *hp;
+  struct sockaddr_in sin;
+  char *host;
+  char buf[MAX_LINE];
+  int s;
+  int len;
+
+  if (argc==2) {
+    host = argv[1];
+  }
+  else {
+    fprintf(stderr, &quot;usage: simplex-talk host\n&quot;);
+    exit(1);
+  }
+
+  /* translate host name into peer's IP address */
+  hp = gethostbyname(host);
+  if (!hp) {
+    fprintf(stderr, &quot;simplex-talk: unknown host: %s\n&quot;, host);
+    exit(1);
+  }
+
+  /* build address data structure */
+  bzero((char *)&amp;sin, sizeof(sin));
+  sin.sin_family = AF_INET;
+  bcopy(hp-&gt;h_addr, (char *)&amp;sin.sin_addr, hp-&gt;h_length);
+  sin.sin_port = htons(SERVER_PORT);
+
+  /* active open */
+  if ((s = socket(PF_INET, SOCK_STREAM, 0)) &lt; 0) {
+    perror(&quot;simplex-talk: socket&quot;);
+    exit(1);
+  }
+  if (connect(s, (struct sockaddr *)&amp;sin, sizeof(sin)) &lt; 0)
+  {
+    perror(&quot;simplex-talk: connect&quot;);
+    close(s);
+    exit(1);
+  }
+  /* main loop: get and send lines of text */
+  while (fgets(buf, sizeof(buf), stdin)) {
+    buf[MAX_LINE-1] = '\0';
+    len = strlen(buf) + 1;
+    send(s, buf, len, 0);
+  }
+}
+</code></pre>
+<pre><code class="language-python">import socket
+import sys
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect((sys.argv[1], 5432))
+
+while 1:
+    line = sys.stdin.readline()
+    if not line:
+        break
+    s.send(line)
+s.close()
+</code></pre>
+<h2 id="simple-server"><a class="toclink" href="#simple-server">Simple Server</a></h2>
+<pre><code class="language-c">// from book.systemsapproach.org
+#include &lt;stdio.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;sys/socket.h&gt;
+#include &lt;netinet/in.h&gt;
+#include &lt;netdb.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;string.h&gt;
+
+#define SERVER_PORT  5432
+#define MAX_PENDING  5
+#define MAX_LINE     256
+
+int
+main()
+{
+  struct sockaddr_in sin;
+  char buf[MAX_LINE];
+  int buf_len, addr_len;
+  int s, new_s;
+
+  /* build address data structure */
+  bzero((char *)&amp;sin, sizeof(sin));
+  sin.sin_family = AF_INET;
+  sin.sin_addr.s_addr = INADDR_ANY;
+  sin.sin_port = htons(SERVER_PORT);
+
+  /* setup passive open */
+  if ((s = socket(PF_INET, SOCK_STREAM, 0)) &lt; 0) {
+    perror(&quot;simplex-talk: socket&quot;);
+    exit(1);
+  }
+  if ((bind(s, (struct sockaddr *)&amp;sin, sizeof(sin))) &lt; 0) {
+    perror(&quot;simplex-talk: bind&quot;);
+    exit(1);
+  }
+  listen(s, MAX_PENDING);
+
+ /* wait for connection, then receive and print text */
+  while(1) {
+    if ((new_s = accept(s, (struct sockaddr *)&amp;sin, &amp;addr_len)) &lt; 0) {
+      perror(&quot;simplex-talk: accept&quot;);
+      exit(1);
+    }
+    while (buf_len = recv(new_s, buf, sizeof(buf), 0))
+      fputs(buf, stdout);
+    close(new_s);
+  }
+}
+</code></pre>
+<pre><code class="language-python">import socket
+import sys
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.bind((socket.gethostname(), 5432))
+s.listen(5)
+
+while True:
+    clientsock, addr = s.accept()
+    while True:
+        data = clientsock.recv(1024)
+        if not data:
+            break
+        print(data)
+    clientsock.close()
+</code></pre>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

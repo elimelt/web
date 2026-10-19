@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graphs and Trees</title>
+    <meta name="description" content="A technical exploration of graphs and trees focusing on the properties and proofs of these fundamental data structures.">
+    <link rel="canonical" href="https://notes.elimelt.com/algorithms/problems/graphs-and-trees.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Graphs and Trees", "dateModified": "2025-12-29T22:39:59.761334", "description": "A technical exploration of graphs and trees focusing on the properties and proofs of these fundamental data structures.", "url": "https://notes.elimelt.com/algorithms/problems/graphs-and-trees.html", "articleSection": "Algorithms", "keywords": "graphs,trees,induction,proof by contradiction,cycle detection"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/algorithms.html">Algorithms</a> » Graphs and Trees</div>
+    </header>
+    <main class="content">
+        <h1>Graphs and Trees</h1>
+        <h1 id="graphs-and-trees"><a class="toclink" href="#graphs-and-trees">Graphs and Trees</a></h1>
+<h2 id="problem-1"><a class="toclink" href="#problem-1">Problem 1</a></h2>
+<p>Let $G$ be a tree. Use induction to prove that the number of leaves of $G$ is at least the number of vertices of degree at least $3$ in $G$.</p>
+<h4 id="solution"><a class="toclink" href="#solution">Solution</a></h4>
+<p>$P(n)$: The number of leaves of any graph $G$ with $n$ vertices is at least the number of vertices of degree at least $3$ in $G$.</p>
+<h4 id="base-case-p1"><a class="toclink" href="#base-case-p1">Base Case: $P(1)$</a></h4>
+<p>A tree with one vertex has no leaves or vertices of degree at least $3$, so the base case holds.</p>
+<h4 id="ih-assume-pk-holds-for-some-k-ge-1"><a class="toclink" href="#ih-assume-pk-holds-for-some-k-ge-1">IH: Assume $P(k)$ holds for some $k \ge 1$.</a></h4>
+<h4 id="is-we-want-to-show-that-pk-1-holds"><a class="toclink" href="#is-we-want-to-show-that-pk-1-holds">IS: We want to show that $P(k + 1)$ holds.</a></h4>
+<p>Let $G = (V, E)$ be a tree with $|V| = k + 1$.</p>
+<p>Choose some arbitrary leaf $l \in V$, and $(l, p) \in E$. Removing $l$ (and its corresponding edge) from $G$ results in a tree $G' = (V', E')$ with $|V'| = k$. By the IH, $G'$ satisfies $P(k)$.</p>
+<p><strong>Case 1</strong>: $p$ has degree $1$ in $G'$.</p>
+<p>Then $p$ is a leaf in $G'$, and $G'$ has the same number of leaves and vertices with degree 3 as $G$ (since we didn't remove any vertices of degree 3). Thus, $G$ has at least as many leaves as vertices of degree 3.</p>
+<p><strong>Case 2</strong>: $p$ has degree $2$ in $G'$.</p>
+<p>Then $p$ is not a leaf in $G'$, and $G'$ has one fewer leaf than $G$ (since we removed a leaf). However, we also removed a vertex of degree 3 from $G$, so the number of vertices of degree 3 in $G$ is still at least the number of leaves in $G$ (both increased by 1 from $G' \to G$).</p>
+<p><strong>Case 3</strong>: $p$ has degree at least $3$ in $G'$.</p>
+<p>Then $p$ is a vertex of degree at least $3$ in $G$, and $G$ has the same number of vertices of degree greater than or equal to $3$ as $G'$. Since we only add a leaf to $G'$ to get $G$, the number of leaves in $G$ is at least the number of leaves in $G'$, which is at least the number of vertices of degree at least $3$ in $G'$.</p>
+<p>In all cases, $G$ has at least as many leaves as vertices of degree at least $3$, so $P(k + 1)$ holds.</p>
+<h2 id="problem-2"><a class="toclink" href="#problem-2">Problem 2</a></h2>
+<p>Let $G$ be a graph with $n$ vertices and at least $n$ edges. Show that $G$ has a cycle.</p>
+<h4 id="solution_1"><a class="toclink" href="#solution_1">Solution</a></h4>
+<p>Let $G$ be a graph with $n$ vertices and at least $n$ edges. Suppose for the sake of contradiction that $G$ has no cycles.</p>
+<p>Since $G$ has no cycles, it is a tree.</p>
+<p>Claim: The sum of the degrees of all vertices in a graph is equal to twice the number of edges.</p>
+<p>Proof: Each edge contributes $1$ to the degree of two vertices, so the sum of the degrees of all vertices is twice the number of edges.</p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>

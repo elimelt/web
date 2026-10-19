@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bipartite Graphs Properties, Proofs, and Detection Algorithm</title>
+    <meta name="description" content="A comprehensive overview of bipartite graphs, including their formal definition and key properties related to vertex coloring and odd-length cycles. The documen">
+    <link rel="canonical" href="https://notes.elimelt.com/algorithms/bipartite-graphs.html">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Bipartite Graphs Properties, Proofs, and Detection Algorithm", "dateModified": "2025-12-29T22:39:59.759338", "description": "A comprehensive overview of bipartite graphs, including their formal definition and key properties related to vertex coloring and odd-length cycles. The documen", "url": "https://notes.elimelt.com/algorithms/bipartite-graphs.html", "articleSection": "Algorithms", "keywords": "bipartite graphs,graph coloring,odd cycles,breadth-first search"}</script>
+</head>
+<body>
+    <header>
+        <nav><a href="https://github.com/elimelt/notes" style="display:inline-flex;align-items:center;" title="View on GitHub"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+<a href="/index.html">Home</a>
+<a href="/categories/index.html">Categories</a>
+<a href="/tags/index.html">Tags</a></nav>
+        <div class="breadcrumbs"><a href="/index.html">Home</a> » <a href="/categories/algorithms.html">Algorithms</a> » Bipartite Graphs Properties, Proofs, and Detection Algorithm</div>
+    </header>
+    <main class="content">
+        <h1>Bipartite Graphs Properties, Proofs, and Detection Algorithm</h1>
+        <h1 id="bipartite-graphs"><a class="toclink" href="#bipartite-graphs">Bipartite Graphs</a></h1>
+<ul>
+<li><strong>Definition</strong>: An undirected graph $G = (V, E)$ is bipartite if there exists a partition of $V$ into two sets $V_1$ and $V_2$ such that every edge in $E$ has one endpoint in $V_1$ and the other in $V_2$.</li>
+<li><strong>Applications</strong>:</li>
+<li>Scheduling (machines = $V_1$, jobs = $V_2$)</li>
+<li>Stable matching (men = $V_1$, women = $V_2$)</li>
+</ul>
+<p>You can tell if a graph is bipartite if there is a proper coloring of vertices, i.e., you can assign one of two colors to each vertex such that no two adjacent vertices have the same color. Many problems become easier if the underlying graph is bipartite graphs.</p>
+<h2 id="odd-length-cycles"><a class="toclink" href="#odd-length-cycles">Odd-Length Cycles</a></h2>
+<p><strong>Lemma</strong>: If $G$ is bipartite, then it does not contain an odd-length cycle.
+<strong>Proof</strong>: You cannot 2-color an odd cycle, let alone $G$.</p>
+<p><strong>Lemma</strong>: Let $G$ be a connected graph, and let $L_0, \ldots, L_k$ be the layers produced by $BFS(s)$. Then exactly one of the following holds:</p>
+<ol>
+<li>No edges of $G$ joins two nodes of the same layer, and $G$ is bipartite.</li>
+<li>An edge of $G$ joins two nodes of the same layer, and $G$ contains an odd cycle (and is thus not bipartite).</li>
+</ol>
+<p><strong>Proof</strong>: If an edge joins two nodes of the same layer, then the path from the lowest common ancestor of the two nodes to each node forms an odd length cycle. This must be the case, since any edges between two vertices of the same level connects two paths of the same length back to their LCA of the BFS tree. The length of this cycle is thus $2k + 1$, where $k$ is the length of back to the LCA, and the $1$ comes from the edge between the two nodes in the same level.</p>
+<h2 id="algorithm"><a class="toclink" href="#algorithm">Algorithm</a></h2>
+<p><strong>Problem</strong>: Given a graph $G$, output <code>true</code> if it is bipartite, <code>false</code> otherwise.</p>
+    </main>
+    <footer>
+    </footer>
+</body>
+</html>
