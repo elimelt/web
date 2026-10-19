@@ -1,0 +1,57 @@
+name: homelab-pihole
+
+services:
+  pihole:
+    image: pihole/pihole:2026.09.0@sha256:5b9c8cf51de7d6d3f2240dbe72baf5f06e1fd39cb4d77a99fab4fa13e23bd1be
+    container_name: pihole
+    restart: unless-stopped
+    ports:
+      # Bind only to blink's Tailscale address and loopback.
+      # The override is used to test migrations before taking over port 53.
+      - "100.88.172.77:${PIHOLE_DNS_PORT:-53}:53/tcp"
+      - "100.88.172.77:${PIHOLE_DNS_PORT:-53}:53/udp"
+      - "127.0.0.1:8053:53/tcp"
+      - "127.0.0.1:8053:53/udp"
+      - "100.88.172.77:8081:80/tcp"
+      - "127.0.0.1:18081:80/tcp"
+    # Bootstrap downloads independently of the host's Tailscale DNS settings.
+    dns:
+      - 9.9.9.9
+      - 149.112.112.112
+    environment:
+      TZ: America/Los_Angeles
+      WEBPASSWORD_FILE: pihole_password
+      FTLCONF_dns_listeningMode: ALL
+      FTLCONF_dns_upstreams: "9.9.9.9;149.112.112.112"
+      # Honor record TTLs instead of serving expired answers while refreshing.
+      FTLCONF_dns_cache_optimizer: "-1"
+      # Preserve the existing private zone without forwarding public queries
+      # back through the host resolver (which could create a DNS loop).
+      # Send preview-domain lookups to Cloudflare; Quad9 retained an old
+      # NXDOMAIN for a newly created PR record after Cloudflare had updated.
+      # Keep positive caching, but do not retain upstream negative answers.
+      FTLCONF_misc_dnsmasq_lines: |-
+        server=/grep.elimelt.com/100.88.172.77#5354
+        server=/oasisdev.team/1.1.1.1
+        server=/oasisdev.team/1.0.0.1
+        no-negcache
+      FTLCONF_webserver_port: "80"
+      FTLCONF_ntp_ipv4_active: "false"
+      FTLCONF_ntp_ipv6_active: "false"
+      FTLCONF_ntp_sync_active: "false"
+    volumes:
+      - pihole_data:/etc/pihole
+    secrets:
+      - pihole_password
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+secrets:
+  pihole_password:
+    file: ./secrets/admin_password
+
+volumes:
+  pihole_data:

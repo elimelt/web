@@ -1,0 +1,18 @@
+[Unit]
+Description=Start Pi-hole after Docker and blink's Tailscale address are ready
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=%h/repos/web/infra/pihole
+ExecStartPre=/usr/bin/docker info --format {{.ServerVersion}}
+ExecStartPre=/usr/bin/bash -o pipefail -c '/usr/bin/ip -4 -o address show dev tailscale0 | /usr/bin/grep -q " 100.88.172.77/"'
+ExecStartPre=/usr/bin/docker start openclaw-private-dns-1
+ExecStart=/usr/bin/docker compose -f compose.yml up -d --wait --wait-timeout 60
+TimeoutStartSec=90
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target
