@@ -42,45 +42,18 @@
 }
 #visitors[data-view="map"] #recent-visitor-list,
 #visitors[data-view="list"] #visitor-map,
-#visitors[data-view="list"] #visitor-map-reset,
-#visitors[data-view="list"] .globe-hint { display: none; }
+#visitors[data-view="list"] #visitor-map-reset { display: none; }
 #visitors[data-view="list"] #recent-visitor-list {
   flex: none;
   height: 26rem;
 }
-.globe-marker {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border: 2px solid var(--bg);
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--bg);
-  font: 600 12px var(--font);
-  position: absolute;
-  transform: translate(-50%, -50%);
-  cursor: pointer;
-  pointer-events: auto;
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 15%, transparent);
-}
-.globe-marker[hidden] { display: none; }
-.globe-marker:focus-visible { outline: 3px solid var(--text); border-radius: 50%; }
 .visitor-map-popup { color: var(--text); }
 .visitor-map-popup ul { max-height: 210px; overflow: auto; padding: 0; list-style: none; }
 .visitor-map-popup li { margin: 0.75rem 0; }
 .visitor-map-popup button { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; overflow-wrap: anywhere; text-align: left; }
 .visitor-map-popup li div { font-size: 11px; color: var(--text-secondary); }
-.globe-markers { position: absolute; inset: 0; pointer-events: none; }
-.globe-popup { position: absolute; right: 1rem; top: 1rem; max-width: min(300px, calc(100% - 2rem)); padding: 1rem; background: var(--bg); box-shadow: 0 8px 32px #0003; border-radius: 8px; z-index: 3; }
-.globe-popup > button { display: block; margin: 0 0 0.75rem auto; }
-.globe-popup strong { display: block; font-size: 0.8125rem; }
-.globe-zoom { position: absolute; left: 1rem; bottom: 1rem; display: flex; gap: 0.5rem; }
-.globe-zoom button { width: 40px; height: 40px; border: 0; border-radius: 50%; font-size: 1.25rem; color: var(--text); background: var(--bg-secondary); cursor: pointer; }
 #visitor-map canvas { display: block; cursor: grab; }
 #visitor-map canvas:active { cursor: grabbing; }
-.globe-hint { font-size: 0.75rem; color: var(--text-secondary); }
-.globe-hint span { display: block; font-size: 0.625rem; margin-top: 0.25rem; }
 
 .world-visitor-marker {
   width: 32px; height: 32px; border: 2px solid var(--bg); border-radius: 50%;

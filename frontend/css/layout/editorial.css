@@ -76,11 +76,6 @@ body {
   max-width: 28ch;
 }
 
-.line-count-display {
-  margin: 0.75rem 0 1.25rem;
-  font-size: 0.75rem;
-}
-
 .main-content #services-content,
 .main-content #recent-visitor-list,
 .main-content .chat-messages {
