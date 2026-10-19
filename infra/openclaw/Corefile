@@ -1,0 +1,11 @@
+# Pi-hole owns port 53 and forwards this private zone to CoreDNS.
+grep.elimelt.com:5354 {
+    bind 100.88.172.77
+    errors
+    hosts {
+        {$PRIVATE_PROXY_IP} grep.elimelt.com
+        ttl 60
+        no_reverse
+    }
+    cache 60
+}

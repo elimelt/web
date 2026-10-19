@@ -1,0 +1,33 @@
+{
+	admin off
+	cert_issuer acme {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+		resolvers 1.1.1.1 1.0.0.1
+	}
+	auto_https disable_redirects
+	servers 127.0.0.1:18443 {
+		protocols h1 h2
+		listener_wrappers {
+			proxy_protocol {
+				allow 127.0.0.1/32
+				fallback_policy reject
+			}
+			tls
+		}
+	}
+}
+
+https://grep.elimelt.com:18443 {
+	# The dedicated userspace Tailscale node forwards its private TCP 443 here.
+	# PROXY v2 preserves the real tailnet client address before TLS is handled.
+	bind 127.0.0.1
+	@outside_tailnet not remote_ip 100.64.0.0/10 fd7a:115c:a1e0::/48
+	respond @outside_tailnet "Tailscale connection required" 403
+	reverse_proxy 127.0.0.1:18789 {
+		header_up -Tailscale-User-Login
+		header_up -Tailscale-User-Name
+		header_up -Tailscale-User-Profile-Pic
+		header_up -X-Real-IP
+		header_up -Forwarded
+	}
+}

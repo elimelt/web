@@ -1,5 +1,9 @@
 # Homelab Infrastructure
 
+Private OpenClaw access at **https://grep.elimelt.com** is managed separately
+in [openclaw/](openclaw/README.md). It requires Tailscale and is not routed through
+the public Cloudflare Tunnel.
+
 ## Architecture
 
 ```

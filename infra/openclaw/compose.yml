@@ -1,0 +1,48 @@
+name: openclaw-private
+services:
+  tailnet:
+    image: tailscale/tailscale:stable@sha256:8c42c4574ab066384fcb72f69e086a2ff1dd3652eb6f56856cee34bcf0d2f680
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      TS_HOSTNAME: grep-private
+      TS_AUTH_ONCE: "true"
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "true"
+      TS_EXTRA_ARGS: --accept-dns=false
+      TS_TAILSCALED_EXTRA_ARGS: --port=0
+    volumes:
+      - tailscale_state:/var/lib/tailscale
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+  proxy:
+    build: .
+    image: openclaw-private-caddy:2.11.4
+    restart: unless-stopped
+    # Linux host networking reaches the loopback-only OpenClaw gateway.
+    # Only the dedicated tailnet node forwards to Caddy's loopback listener.
+    network_mode: host
+    environment:
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:?Cloudflare DNS token required}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - data:/data
+      - config:/config
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+volumes:
+  tailscale_state:
+  data:
+  config:
