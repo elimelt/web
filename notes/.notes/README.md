@@ -1,4 +1,4 @@
-This directory is the authoring contract for the notes repository.
+This directory is the authoring contract for the notes.
 
 - `prose.yml` defines voice and sentence-level rules.
 - `content.yml` defines evidence, citation, and note-structure rules.

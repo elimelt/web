@@ -11,7 +11,7 @@ Operational knowledge recorded by agents working on this repo. Update as things 
 
 ### CORS / rate limiting (Caddyfile)
 - Allowed origins: `https://*.elimelt.com` and `http://localhost:5173` (exact spelling — `127.0.0.1` and other ports do NOT match).
-- Requests from allowed origins are exempt from rate limiting; all other traffic is limited to 100 req/min per IP.
+- All origins share one rate limit (20 req/min per `CF-Connecting-IP`); Origin is not authentication, so CORS does not exempt anyone.
 - Gotcha: Ollama validates the `Origin` header itself and returns 403 unless `OLLAMA_ORIGINS=*` is set. Origin policy is enforced by Caddy at the edge instead.
 
 ### Ollama container tuning (docker-compose.yml)

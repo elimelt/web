@@ -1,6 +1,6 @@
 #!/bin/bash
 # PostgreSQL backup script with 7-day rotation
-set -e
+set -eo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKUP_DIR="${SCRIPT_DIR}/backups"
@@ -17,7 +17,11 @@ BACKUP_FILE="${BACKUP_DIR}/backup_${TIMESTAMP}.sql.gz"
 echo "[$(date)] Starting backup..."
 
 # Dump and compress
-docker exec "$CONTAINER_NAME" pg_dump -U "$DB_USER" "$DB_NAME" | gzip > "$BACKUP_FILE"
+docker exec "$CONTAINER_NAME" pg_dump -U "$DB_USER" "$DB_NAME" | gzip > "$BACKUP_FILE" || {
+    echo "[$(date)] ERROR: pg_dump failed!"
+    rm -f "$BACKUP_FILE"
+    exit 1
+}
 
 # Verify backup is not empty
 if [ ! -s "$BACKUP_FILE" ]; then

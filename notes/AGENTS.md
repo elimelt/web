@@ -1,6 +1,6 @@
 # Agent Guide
 
-This repository is a Quartz-backed notes site. Most edits are content edits.
+This directory is a Quartz-backed notes site. Most edits are content edits.
 
 ## First reads
 
@@ -74,7 +74,7 @@ target for any new note or backfill pass.
 - Put publishable notes and attachments in `content/`.
 - `content/templates/` is for scaffolding and is ignored by Quartz.
 - Non-Markdown files inside `content/` are published as static assets by Quartz.
-- Repo-root `docs/` is mirrored into the built site for legacy URLs by
+- `docs/` is mirrored into the built site for legacy URLs by
   `scripts/quartz.sh`.
 - `npm run validate:notes` validates notebook wrappers, not raw `.ipynb` cells.
   If you change notebooks, regenerate the wrappers first.

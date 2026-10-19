@@ -151,24 +151,8 @@
 		request_body {
 			max_size 128KB
 		}
-		# Set CORS headers for allowed origins (non-terminal, always runs)
-		@cors_allowed {
-			expression {http.request.header.Origin}.matches("^https://[a-zA-Z0-9-]+\\.elimelt\\.com$") || {http.request.header.Origin} == "https://tech.sex" || {http.request.header.Origin} == "https://www.tech.sex" || {http.request.header.Origin} == "http://localhost:5173"
-		}
-		header @cors_allowed Access-Control-Allow-Origin "{http.request.header.Origin}"
-
-		# Handle CORS preflight
-		@cors_preflight method OPTIONS
-		handle @cors_preflight {
-			@cors_allowed_preflight {
-				expression {http.request.header.Origin}.matches("^https://[a-zA-Z0-9-]+\\.elimelt\\.com$") || {http.request.header.Origin} == "https://tech.sex" || {http.request.header.Origin} == "https://www.tech.sex" || {http.request.header.Origin} == "http://localhost:5173"
-			}
-			header @cors_allowed_preflight Access-Control-Allow-Methods "GET, POST, OPTIONS"
-			header @cors_allowed_preflight Access-Control-Allow-Headers "Content-Type, Authorization"
-			header @cors_allowed_preflight Access-Control-Max-Age "86400"
-			respond @cors_allowed_preflight 204
-			respond "Forbidden" 403
-		}
+		# CORS for *.elimelt.com and localhost
+		import cors_elimelt
 
 		# Block model management endpoints
 		@blocked path /api/pull /api/delete /api/copy /api/push /api/create
