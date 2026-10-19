@@ -23,7 +23,7 @@ Optional notebook tooling:
   current notebook stack uses `torch` and related wheels that are not equally
   available on newer Python releases.
 
-From the repository root, run:
+From `notes/`, run:
 
 ```sh
 npm run dev
@@ -34,7 +34,7 @@ directory and installs its locked dependencies. Quartz then serves the site at
 `http://localhost:8080` and rebuilds it as content changes. Stop it with
 <kbd>Ctrl</kbd>+<kbd>C</kbd>.
 
-Run these commands from `notes/`. To create the same production output that is deployed:
+To create the same production output that is deployed:
 
 ```sh
 npm run build
@@ -252,17 +252,17 @@ npm run new:note -- content/algorithms/example.md \
 
 ## Repo-specific gotchas
 
-- `scripts/quartz.sh` mirrors repo-root `docs/` into the built site for legacy
+- `scripts/quartz.sh` mirrors `docs/` into the built site for legacy
   URLs.
 - `npm run validate:notes` validates Markdown only, not raw `.ipynb` files.
 - Keep `.quartz/`, `public/`, `.venv/`, and `work/notebook-data/` out of Git.
 
 ## How the build works
 
-The repository keeps only site-specific Quartz configuration. The
+This directory keeps only site-specific Quartz configuration. The
 `scripts/quartz.sh` wrapper bootstraps a cached upstream Quartz checkout, syncs
 `content/` and the local configuration into it, and invokes the Quartz CLI. This
-keeps the notes repository small while avoiding a locally maintained static-site
+keeps this directory small while avoiding a locally maintained static-site
 generator.
 
 Pushes to `main` that touch `notes/` trigger `.github/workflows/notes-deploy.yml`
