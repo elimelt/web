@@ -1,6 +1,6 @@
 # Elijah's Notes
 
-This repository contains my technical notes and the source for
+This directory contains my technical notes and the source for
 [notes.elimelt.com](https://notes.elimelt.com). The notes are ordinary Markdown,
 can be edited as an [Obsidian](https://obsidian.md/) vault, and are published as
 a connected knowledge garden with [Quartz](https://quartz.jzhao.xyz/).
@@ -34,7 +34,7 @@ directory and installs its locked dependencies. Quartz then serves the site at
 `http://localhost:8080` and rebuilds it as content changes. Stop it with
 <kbd>Ctrl</kbd>+<kbd>C</kbd>.
 
-To create the same production output used by GitHub Pages:
+Run these commands from `notes/`. To create the same production output that is deployed:
 
 ```sh
 npm run build
@@ -265,9 +265,10 @@ The repository keeps only site-specific Quartz configuration. The
 keeps the notes repository small while avoiding a locally maintained static-site
 generator.
 
-Pushes to `main` trigger `.github/workflows/static.yml`, which builds `public/`
-and deploys it through the official GitHub Pages artifact actions. The custom
-domain is configured as `notes.elimelt.com` in `quartz.config.yaml`.
+Pushes to `main` that touch `notes/` trigger `.github/workflows/notes-deploy.yml`
+at the repository root. It builds `public/` and publishes it to the homelab,
+where Caddy serves notes.elimelt.com (see `infra/sites/README.md`). Pull requests
+that touch `notes/` run the same build without publishing.
 
 ## Optional research utilities
 

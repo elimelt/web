@@ -3,6 +3,9 @@ name: Run Tests
 on:
   pull_request:
     branches: ["main"]
+    # Notes PRs are validated by notes-deploy.yml.
+    paths-ignore:
+      - "notes/**"
 
   schedule:
     # Run daily at 8:00 AM UTC

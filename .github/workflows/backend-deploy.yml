@@ -104,6 +104,8 @@ jobs:
         run: |
           set -euo pipefail
           cd "${DEPLOY_PATH}/infra"
+          # Create the static sites mount as the runner user; Docker would create it root-owned.
+          mkdir -p "${SITES_PATH:-/home/elimelt/sites}"
           docker compose up -d --build public-api internal-api sandbox-worker python-sandbox
           docker compose up -d caddy
           # Read the checkout directly: replacing a bind-mounted file can leave the container on its old inode.

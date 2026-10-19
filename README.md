@@ -1,5 +1,7 @@
 # Personal Site
 
+This repository holds the public site (elimelt.com), the notes site in [`notes/`](notes/README.md) (notes.elimelt.com), and the homelab in [`infra/`](infra/README.md). The two sites build and deploy independently.
+
 The public frontend uses [Astro](https://astro.build) with TypeScript. Astro renders the portfolio and music pages to static HTML and bundles their interactive modules. The homelab homepage remains a separate TypeScript application.
 
 ## Development
@@ -31,4 +33,4 @@ Edit the component that owns a section instead of a monolithic HTML file. Browse
 - `npm run preview` previews the public production build.
 - `npm --prefix tests ci && npm --prefix tests test` runs the live API integration suite.
 
-Pushing to `main` builds and deploys `dist/frontend` to GitHub Pages at https://elimelt.com. The Astro output is static: no server adapter or new hosting service is needed. The standalone homepage is built for manual deployment; it has no configured production deployment target.
+Pushing to `main` builds `dist/frontend` and publishes it to the homelab, where Caddy serves https://elimelt.com (see `infra/sites/README.md`). The Astro output is static: no server adapter is needed. The standalone homepage is built for manual deployment; it has no configured production deployment target.

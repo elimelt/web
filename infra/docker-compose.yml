@@ -28,6 +28,8 @@ services:
       - caddy_data:/data
       - caddy_config:/config
       - ../static:/static:ro
+      # Published by infra/sites/publish.sh from the web/notes deploy workflows.
+      - ${SITES_PATH:-/home/elimelt/sites}:/srv/sites:ro
     networks:
       - dev_network
 
