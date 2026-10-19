@@ -1,0 +1,16 @@
+[Unit]
+Description=Encrypted homelab backup to Cloudflare R2
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=docker.service
+OnFailure=homelab-r2-backup-failed.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/homelab-r2-backup run
+UMask=0077
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+TimeoutStartSec=6h
+TimeoutStopSec=120

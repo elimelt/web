@@ -1,0 +1,10 @@
+[Unit]
+Description=Weekly encrypted homelab backup and verified three-snapshot retention
+
+[Timer]
+OnCalendar=Sun *-*-* 03:15:00
+RandomizedDelaySec=10m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

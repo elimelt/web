@@ -1,0 +1,163 @@
+BLINK HOMELAB BACKUPS TO CLOUDFLARE R2
+
+Setup
+-----
+Create the private R2 Standard bucket blink-homelab-backups in the default
+jurisdiction. Create an Object Read & Write token restricted to that bucket.
+Run locally:
+
+  python3 ~/repos/web/infra/backup-r2/configure.py
+
+Save ~/.config/homelab-backup/RECOVERY.txt in a password manager outside this
+machine. It contains the encryption password needed to restore any backup.
+The R2 API credentials can be replaced; the restic encryption password cannot.
+Neither secret belongs in git or chat.
+
+After configuration, the complete activation sequence is:
+
+  sudo python3 ~/repos/web/infra/backup-r2/activate.py
+
+This installs the scripts, initializes the encrypted repository, takes a fresh
+backup, uploads the original migration archives if present, runs the remote
+restore test, applies the three-snapshot cap, and only then enables the weekly
+timer. It stops on any failure.
+The manual commands below are also available for troubleshooting.
+
+Install the scripts (requires restic, Docker, Python 3, GNU tar, and btrfs-progs):
+
+  sudo bash ~/repos/web/infra/backup-r2/install.sh
+  sudo install -m 600 ~/.config/homelab-backup/r2.json /etc/homelab-backup/r2.json
+  sudo install -m 600 ~/.config/homelab-backup/password /etc/homelab-backup/password
+  sudo homelab-r2-backup init
+  sudo homelab-r2-backup run
+
+Only after upload and restore verification both succeed:
+
+  sudo systemctl enable --now homelab-r2-backup.timer
+
+Schedule and retention
+----------------------
+Weekly on Sunday at 03:15 local time, with up to ten minutes of random delay.
+Missed runs execute when the machine next starts.
+Every scheduled run uploads a fresh backup, completes the full remote restore
+test, and then removes superseded snapshots and their unreferenced data.
+The separate maintenance timer is disabled; testing is part of every backup.
+
+At most THREE snapshots are retained after a successful run:
+  - The newest weekly backup.
+  - The oldest available scheduled backup within 30 days of the newest.
+  - The oldest available scheduled backup within 90 days of the newest.
+One snapshot can cover multiple tiers, so there may be fewer than three.
+These are retention windows, not a promise of backups exactly 30/90 days old.
+Older checkpoints are kept as long as they fit their window; when one expires,
+the oldest remaining eligible point replaces it. Exact ages vary with only
+three slots, and historical checkpoints build up over time.
+
+The pre-upgrade migration archive counts toward the same cap. It occupies a
+spare slot until all three slots are needed for the normal checkpoints, then
+is eligible for removal. No permanent fourth archive is retained.
+During replacement, a fourth snapshot can temporarily exist: the previous
+ones remain intact until the new backup passes its restore test. If that test
+fails, deletion stops, so the temporary excess may remain until recovery.
+Unknown snapshot tags or hosts stop retention rather than risk deleting data.
+
+Weekly backups can lose up to a week's changes after a complete disk failure.
+Local staging retains the current and previous exports, and the old local
+validation repository/migration archives remain on this disk; the three-point
+cap is for off-machine R2 snapshots. Restic shares unchanged chunks between
+snapshots, so retained snapshots do not each require another full upload.
+No bucket-wide lifecycle deletion rule should be applied to a restic repository:
+old objects may still be needed by newer snapshots.
+
+Scope
+-----
+Both PostgreSQL servers: globals and every connectable non-template database.
+Redis: native RDB snapshot. Uptime Kuma and Pi-hole: online SQLite backups.
+Named volumes prefixed homelab_, homelab-pihole_, or openclaw-private_.
+Raw PostgreSQL and Redis files are omitted in favor of the native exports.
+SQLite files and journals are omitted from volume archives and restored from
+the individually checked SQLite exports, as mapped in manifest.json.
+Downloaded Ollama models and Speaches model cache are excluded.
+
+Configuration includes /etc, /boot, ~/.config, ~/.cloudflared, the authentication
+file bind-mounted into the internal API, and both web repository working trees.
+Git history, node_modules, Python environments, Terraform provider cache, old
+database export directories, browser caches, and this backup job's own secrets
+are excluded. Uncommitted source files are included.
+This is service recovery coverage, not an image of the whole computer or a
+backup of every development project and every Docker volume on the machine.
+
+Database exports are individually consistent. There is no global transaction
+across services. Other files are read from temporary read-only Btrfs snapshots.
+The production containers are never stopped or recreated by this job.
+This setup assumes / and /home are Btrfs subvolumes, and that Docker's named
+volumes are stored inside the root subvolume. It fails if volume paths are absent
+from that snapshot rather than silently omitting their data.
+
+On this host, full Btrfs quota accounting was disabled after temporary snapshot
+cleanup caused multi-minute filesystem stalls. No quota limits were configured.
+Existing snapshots and ordinary snapshot retention remain in place. The prior
+quota listing is saved in /var/lib/homelab-backup/qgroups-before.txt. Re-enabling
+full quota accounting can reintroduce this slowdown during snapshot deletion.
+
+Verification and status
+-----------------------
+  sudo homelab-r2-backup restic snapshots
+  sudo homelab-r2-backup run
+  sudo homelab-r2-backup verify
+  systemctl list-timers 'homelab-r2-*'
+  sudo journalctl -u homelab-r2-backup -u homelab-r2-maintain
+  sudo cat /var/lib/homelab-backup/last-success.json
+  sudo cat /var/lib/homelab-backup/last-restore-check.json
+  sudo cat /var/lib/homelab-backup/last-retention.json
+
+The lower-level "backup" action uploads only; "run" is the complete normal job.
+"maintain" verifies the latest remote backup and applies retention without
+creating another snapshot. "retain" requires proof that the latest snapshot
+already passed its restore test against the same remote repository.
+
+Private error details are in /var/lib/homelab-backup/last-error.log.
+Failure metadata is in last-failure.json; compare timestamps with last-success.
+Failures also trigger a local desktop notification when the user session is up.
+
+Every upload must return a completed snapshot and pass restic's structural
+check. Verification downloads and checks all repository data, restores the
+latest scheduled backup into an isolated directory, verifies every file hash,
+checks all SQLite databases, fully restores all PostgreSQL dumps in temporary
+containers with networking disabled, and validates the Redis RDB file.
+The temporary PostgreSQL instances use the original local image IDs. After a
+Docker image cleanup, recreate a fresh backup before testing an old snapshot,
+or make its original images available. Images themselves are not uploaded.
+
+Restore into a separate directory first
+--------------------------------------
+On a replacement machine install restic, obtain a new bucket-scoped R2 token,
+and recreate r2.json with repository/access_key_id/secret_access_key/region
+fields plus the exact original encryption password. Do not run configure.py
+as though this were a new backup if the original password has not been restored.
+
+Inspect available backups, then restore a chosen snapshot:
+
+  sudo homelab-r2-backup restic snapshots
+  sudo homelab-r2-backup restic restore SNAPSHOT_ID:/var/lib/homelab-backup/current --target /srv/homelab-restore --verify
+
+Never restore directly over a running database or the live /var/lib/docker.
+Use fresh database instances of the recorded major versions, restore PostgreSQL
+roles/globals as appropriate, then use pg_restore for each database dump.
+Volume tar archives contain paths relative to their volume root. Extract them
+with numeric ownership, ACLs and extended attributes into the intended new
+volume while its service is stopped. Place the SQLite files at the volume/path
+locations recorded in manifest.json before starting the respective service.
+For Redis, load redis.rdb as dump.rdb in an empty data directory. If the intended
+Redis configuration enables append-only persistence, load the RDB first with
+AOF disabled, then enable AOF to generate a matching append-only file.
+Review configuration archives before selectively restoring them. Do not blindly
+replace /etc or /boot on a different machine.
+
+Local validation without R2
+---------------------------
+  sudo homelab-r2-backup prepare
+  sudo bash ~/repos/web/infra/backup-r2/local-validate.sh
+
+This writes only to /var/lib/homelab-backup/test-repository and does not protect
+against disk loss. Success reports explicitly identify the repository used.

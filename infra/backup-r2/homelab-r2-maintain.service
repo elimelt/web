@@ -1,0 +1,16 @@
+[Unit]
+Description=Restore-test and retain homelab R2 backups
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=docker.service
+OnFailure=homelab-r2-backup-failed.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/homelab-r2-backup maintain
+UMask=0077
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+TimeoutStartSec=4h
+TimeoutStopSec=120
