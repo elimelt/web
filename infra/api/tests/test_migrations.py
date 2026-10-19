@@ -96,6 +96,11 @@ class TestMigrationSystem:
             sql_executed = any("CREATE TABLE test" in str(call) for call in execute_calls)
             assert sql_executed
 
+            # psycopg takes (query, params): %s placeholders and one params tuple
+            record = next(c for c in execute_calls if "INSERT INTO schema_migrations" in c.args[0])
+            assert "%s" in record.args[0]
+            assert record.args[1:] == ((3, "test migration"),)
+
     @pytest.mark.asyncio
     async def test_get_pending_migrations_finds_sql_files(
         self, mock_get_connection, mock_connection, mock_cursor

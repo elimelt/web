@@ -60,10 +60,9 @@ async def apply_migration(version: int, sql: str, description: str = "") -> bool
             await conn.execute(
                 """
                 INSERT INTO schema_migrations (version, description)
-                VALUES ($1, $2)
+                VALUES (%s, %s)
                 """,
-                version,
-                description,
+                (version, description),
             )
 
             logger.info("Applied migration %d: %s", version, description)
