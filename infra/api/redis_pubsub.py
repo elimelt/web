@@ -196,7 +196,7 @@ async def get_pubsub_stats() -> dict:
     async with _registry_lock:
         active_count = len(_pubsub_metadata)
         connections = []
-        for ps_id, meta in _pubsub_metadata.items():
+        for meta in _pubsub_metadata.values():
             connections.append(
                 {
                     "channel": meta.channel,
