@@ -206,7 +206,7 @@ plugins:
     enabled: true
     options:
       links:
-        GitHub: https://github.com/elimelt/notes
+        GitHub: https://github.com/elimelt/web/tree/main/notes
     layout:
       position: footer
       priority: 50

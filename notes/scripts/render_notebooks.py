@@ -34,7 +34,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--source-base-url",
-        default="https://github.com/elimelt/notes/blob/main",
+        default="https://github.com/elimelt/web/blob/main/notes",
         help="Public repository URL used by generated notebook links.",
     )
     return parser.parse_args()
