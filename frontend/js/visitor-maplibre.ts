@@ -26,7 +26,8 @@ export function createVisitorMap(onSelectVisitor) {
         layers: [{ id: 'streets', type: 'raster', source: 'streets', paint: { 'raster-saturation': -1 } }],
       },
     });
-  } catch {
+  } catch (error) {
+    console.error('Visitor globe initialization failed', error);
     host.textContent = 'Globe unavailable. Switch to List to explore visitors.';
     return { update() { } };
   }
