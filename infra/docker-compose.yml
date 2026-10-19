@@ -2,7 +2,8 @@ services:
   # Cloudflare Tunnel - exposes services to the internet
   # Requires CLOUDFLARE_TUNNEL_TOKEN from: https://one.dash.cloudflare.com/ → Networks → Tunnels
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    # Pinned to the running build; bump the tag and digest together.
+    image: cloudflare/cloudflared:2026.5.2@sha256:12ff5c6992a9863db4da270746af7c244bcaee49353039af8104268a18d6c4f0
     container_name: cloudflared
     restart: always
     command: tunnel run
@@ -227,7 +228,8 @@ services:
     container_name: minecraft
     restart: always
     ports:
-      - "${MINECRAFT_PORT:-25565}:25565"
+      # Tailscale only by default; set MINECRAFT_BIND=0.0.0.0 to open it to the internet.
+      - "${MINECRAFT_BIND:-100.88.172.77}:${MINECRAFT_PORT:-25565}:25565"
     environment:
       # Server type and version
       - TYPE=${MINECRAFT_TYPE:-PAPER}
@@ -304,7 +306,7 @@ services:
   # API: http://ollama:11434/v1/chat/completions (OpenAI-compatible)
   # Backpressure: OLLAMA_NUM_PARALLEL controls concurrent inference; excess requests queue.
   ollama:
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.32.14@sha256:9d30908e41144b1f1da89b9d8e33c07e4aeb43ff41a8660241b1686e2cc330ad
     container_name: ollama
     restart: always
     volumes:
@@ -339,7 +341,7 @@ services:
   # Uses faster-whisper for transcription, piper/kokoro for TTS
   # API: https://speaches.ai/
   speaches:
-    image: ghcr.io/speaches-ai/speaches:latest-cpu
+    image: ghcr.io/speaches-ai/speaches:latest-cpu@sha256:21e3df06d842fb7802ab470dd77c25f0e8c0d22950e8d8c6ae886e851af53ef8
     container_name: speaches
     restart: always
     volumes:
@@ -406,7 +408,7 @@ services:
       - ${BACKUP_PATH:-./backups}:/backups
     entrypoint: /bin/sh
     command: >
-      -c 'pg_dump -h postgres -U $${POSTGRES_USER} $${POSTGRES_DB} | gzip > /backups/backup_$$(date +%Y%m%d_%H%M%S).sql.gz &&
+      -c 'set -o pipefail; pg_dump -h postgres -U $${POSTGRES_USER} $${POSTGRES_DB} | gzip > /backups/backup_$$(date +%Y%m%d_%H%M%S).sql.gz &&
           echo "Backup complete: $$(ls -lh /backups/*.sql.gz | tail -1)" &&
           find /backups -name "backup_*.sql.gz" -mtime +7 -delete &&
           echo "Rotated old backups. Current backups:" &&
@@ -420,8 +422,14 @@ services:
 
 volumes:
   postgres_data:
+    # Created outside Compose (restored data); never let Compose recreate or remove it.
+    external: true
+    name: homelab_postgres_data
   postgres_inbox_data:
   redis_data:
+    # Created outside Compose (restored data); never let Compose recreate or remove it.
+    external: true
+    name: homelab_redis_data
   uptime_kuma_data:
   minecraft_data:
   caddy_data:
