@@ -55,7 +55,7 @@ Internet → Cloudflare Tunnel → Caddy (reverse proxy) → Docker services
 
 1. **Add to Terraform** (`terraform/main.tf`):
    ```hcl
-   # In cloudflare_tunnel_config.homelab.config:
+   # In cloudflare_zero_trust_tunnel_cloudflared_config.homelab.config:
    ingress_rule {
      hostname = "myservice.${var.domain}"
      service  = "http://caddy:80"
@@ -66,7 +66,7 @@ Internet → Cloudflare Tunnel → Caddy (reverse proxy) → Docker services
      zone_id = data.cloudflare_zone.main.id
      name    = "myservice"
      type    = "CNAME"
-     content = "${cloudflare_tunnel.homelab.id}.cfargotunnel.com"
+     content = "${var.tunnel_id}.cfargotunnel.com"
      proxied = true
    }
    ```
@@ -172,7 +172,7 @@ The TypeScript homepage in `infra/homepage/` builds with `npm run build` at the 
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  CLOUDFLARE TUNNEL                                                          │
 │  Handles TLS termination for *.elimelt.com                                  │
-│  Routes: status.elimelt.com, api.elimelt.com → localhost:8080               │
+│  Ingress rules (Terraform) send every hostname to caddy:80                  │
 └─────────────────────────────────┬───────────────────────────────────────────┘
                                   │
                                   ▼
