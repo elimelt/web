@@ -1,7 +1,4 @@
 {
-  "dependencies": {
-    "@augmentcode/auggie": "^0.28.0"
-  },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
     "@playwright/test": "^1.58.2",
