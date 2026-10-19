@@ -5,6 +5,8 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 // Bundle the worker and its shared imports instead of relying on a relative CDN URL.
 gl.setWorkerUrl(workerUrl);
 
+import { visitorLabel } from './utils.js';
+
 export function createVisitorMap(onSelectVisitor) {
   const host = (document.getElementById('visitor-map') as HTMLDivElement);
   const summary = document.getElementById('visitor-map-summary');
@@ -53,16 +55,16 @@ export function createVisitorMap(onSelectVisitor) {
       map.flyTo({ center: coordinates, zoom: 16, essential: false });
     });
     const hint = document.createElement('p');
-    hint.textContent = 'Approximate IP location, not a visitor’s address.';
+    hint.textContent = 'Approximate location, not a visitor’s address.';
     const list = document.createElement('ul');
     for (const visit of group) {
       const item = document.createElement('li');
       const button = document.createElement('button');
-      const ip = visit.ip || visit.address || visit.id;
+      const id = visit.id;
       button.type = 'button';
-      button.textContent = ip || 'Unknown visitor';
-      button.disabled = !ip;
-      button.addEventListener('click', () => onSelectVisitor(ip));
+      button.textContent = id ? visitorLabel(id) : 'Unknown visitor';
+      button.disabled = !id;
+      button.addEventListener('click', () => onSelectVisitor(id));
       const time = document.createElement('div');
       const date = new Date(visit.timestamp || visit.connected_at);
       time.textContent = Number.isNaN(date.getTime()) ? 'Time unavailable' : date.toLocaleString();

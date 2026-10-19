@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from api import db
 from api.models.analytics import ClickEventsResponse
+from api.visitor_id import check_iso_date, sanitize_payload
 
 router = APIRouter(tags=["clicks"])
 
@@ -47,6 +48,8 @@ async def get_click_events(
         description="Maximum number of events to return",
     ),
 ) -> dict:
+    check_iso_date("start_date", start_date)
+    check_iso_date("end_date", end_date)
     try:
         events = await db.fetch_click_events(
             start_date=start_date,
@@ -54,6 +57,7 @@ async def get_click_events(
             page_path=page_path,
             limit=limit,
         )
+        events = [{**e, "event": sanitize_payload(e["event"])} for e in events]
         return {
             "events": events,
             "count": len(events),
@@ -66,7 +70,7 @@ async def get_click_events(
         }
     except Exception as e:
         _logger.exception("Failed to fetch click events")
-        return {"events": [], "count": 0, "error": str(e)}
+        return {"events": [], "count": 0, "error": "Failed to fetch click events"}
 
 
 @router.post("/clicks/analytics", status_code=202)
@@ -89,4 +93,4 @@ async def receive_click_events(request: Request, body: ClickEventsBatchRequest) 
         return {"accepted": inserted, "message": "Events accepted"}
     except Exception as e:
         _logger.exception("Failed to insert click events")
-        return {"accepted": 0, "message": f"Events received but not stored: {e}"}
+        return {"accepted": 0, "message": "Events received but not stored"}

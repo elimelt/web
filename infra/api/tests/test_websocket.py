@@ -10,6 +10,9 @@ from api.controllers import ws_visitors
 from api.controllers.ws_visitors import _handle_analytics_batch
 
 
+from api.visitor_id import visitor_id
+
+
 def test_websocket_join_broadcast_and_leave(client, monkeypatch):
     headers = {"x-forwarded-for": "203.0.113.10"}
 
@@ -41,9 +44,9 @@ def test_websocket_join_broadcast_and_leave(client, monkeypatch):
         assert visitors_resp.status_code == 200
         visitors = visitors_resp.json()
         assert visitors["active_count"] >= 1
-        ips = [v["ip"] for v in visitors["active_visitors"]]
-        assert "unknown" in ips
-        assert "203.0.113.10" not in ips
+        assert all("ip" not in v for v in visitors["active_visitors"])
+        assert "203.0.113.10" not in visitors_resp.text
+        assert visitor_id("unknown") in [v["id"] for v in visitors["active_visitors"]]
 
         msg = ws.receive_text()
         received = json.loads(msg)

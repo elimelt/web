@@ -63,13 +63,13 @@ def test_system_with_mocked_subprocess(client, monkeypatch):
     names = {s["name"] for s in data["services"]}
     assert names == {"api", "redis"}
     api_service = next(s for s in data["services"] if s["name"] == "api")
-    assert api_service["cpu_percent"] == 12.3
-    assert api_service["memory_mb"] == 50.0
-    assert api_service["memory_percent"] == 5.0
+    assert set(api_service) == {"name", "status"}
+    assert api_service["status"] == "Up 5 minutes"
+    assert "myimage" not in res.text
 
 
-def test_system_gib_memory_parsing(client, monkeypatch):
-    """Test that containers using GiB of memory are parsed correctly."""
+def test_system_hides_resource_stats(client, monkeypatch):
+    """Public /system exposes only name and status, not resource stats."""
 
     class FakeCompleted:
         def __init__(self, returncode, stdout):
@@ -96,10 +96,5 @@ def test_system_gib_memory_parsing(client, monkeypatch):
     data = res.json()
     assert data["total_containers"] == 2
 
-    internal_api = next(s for s in data["services"] if s["name"] == "internal-api")
-    assert internal_api["cpu_percent"] == 0.5
-    assert internal_api["memory_mb"] == 17.2 * 1024  # 17612.8 MB
-    assert internal_api["memory_percent"] == 17.92
-
-    redis_service = next(s for s in data["services"] if s["name"] == "redis")
-    assert redis_service["memory_mb"] == 25.03
+    for svc in data["services"]:
+        assert set(svc) == {"name", "status"}

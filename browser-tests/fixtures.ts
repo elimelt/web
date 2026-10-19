@@ -9,7 +9,7 @@ const maliciousMarkdown = [
 ].join('\n\n');
 
 const visit = {
-  ip: '203.0.113.42',
+  id: '0123456789abcdef',
   type: 'join',
   timestamp: new Date(Date.now() - 60_000).toISOString(),
   location: {

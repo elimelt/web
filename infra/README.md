@@ -207,6 +207,10 @@ The TypeScript homepage in `infra/homepage/` builds with `npm run build` at the 
 | uptime-kuma | 3001 | Status monitoring |
 | ollama | 11434 | LLM API (llm.elimelt.com) |
 | speaches | 8000 | Whisper transcription API (transcribe.elimelt.com) |
+| sandbox-worker | 80 | Runs untrusted code for the internal API in python-sandbox containers |
+| inbox-agent | 8000 (127.0.0.1:8001) | Inbox Agent (inbox.elimelt.com, inbox-api.elimelt.com) |
+| postgres-inbox | 5432 | Inbox Agent database |
+| minecraft | 25565 (Tailscale only) | Paper server; set `MINECRAFT_BIND=0.0.0.0` to expose it |
 
 ### Environment Variables
 

@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import httpx
 import subprocess
@@ -9,6 +10,7 @@ from fastapi import APIRouter, HTTPException, Response
 from api.dependencies import OptionalRedis
 
 router = APIRouter(tags=["system"])
+logger = logging.getLogger("api.controllers.system")
 
 
 async def _get_system_stats(redis: OptionalRedis) -> dict[str, Any]:
@@ -134,13 +136,21 @@ async def _get_system_stats(redis: OptionalRedis) -> dict[str, Any]:
     except subprocess.TimeoutExpired:
         return {"error": "Docker command timed out"}
     except Exception as e:
-        return {"error": str(e)}
+        logger.exception("Failed to collect system stats")
+        return {"error": "Failed to get system stats"}
 
 
 @router.get("/system")
 async def get_system(redis: OptionalRedis) -> dict[str, Any]:
-    """Get system stats for all containers."""
-    return await _get_system_stats(redis)
+    """Public container overview: name and status only."""
+    stats = await _get_system_stats(redis)
+    if "error" in stats:
+        return {"total_containers": 0, "services": [], "error": stats["error"]}
+    services = [
+        {"name": s.get("name"), "status": s.get("status", "unknown")}
+        for s in stats.get("services", [])
+    ]
+    return {"total_containers": stats.get("total_containers", len(services)), "services": services}
 
 
 @router.get("/system/{service}")
@@ -164,6 +174,6 @@ async def get_system_service(
             # Set status code based on health
             if not svc.get("status", "").startswith("Up"):
                 response.status_code = 503
-            return svc
+            return {"name": svc.get("name"), "status": svc.get("status", "unknown")}
 
     raise HTTPException(status_code=404, detail=f"Service '{service}' not found")

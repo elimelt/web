@@ -51,13 +51,13 @@ export interface Location {
 }
 
 export interface Visitor {
-  ip: string;
+  id: string;
   location: Location;
   connected_at: string;
 }
 
 export interface VisitRecord {
-  ip: string;
+  id: string;
   location: Location;
   timestamp: string;
 }
@@ -76,7 +76,7 @@ export interface VisitorJoinEvent {
 
 export interface VisitorLeaveEvent {
   type: 'leave';
-  ip: string;
+  id: string;
   timestamp: string;
 }
 
@@ -207,7 +207,7 @@ export interface ClickEventsResponse {
 }
 
 export interface VisitorStats {
-  visitor_ip: string;
+  id: string;
   computed_at: string;
   period_start: string;
   period_end: string;
@@ -346,7 +346,7 @@ export interface ChatSubscriptionCallbacks {
 
 export interface VisitorSubscriptionCallbacks {
   onJoin?: (visitor: Visitor) => void;
-  onLeave?: (ip: string) => void;
+  onLeave?: (id: string) => void;
   onUpdate?: (data: unknown) => void;
   onOpen?: () => void;
   onClose?: () => void;

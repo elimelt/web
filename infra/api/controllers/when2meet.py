@@ -125,7 +125,7 @@ async def create_event(req: CreateEventRequest) -> dict[str, Any]:
         return event
     except Exception as e:
         logger.exception("Failed to create event")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
 @router.post("/events/{event_id}/availability")
@@ -161,4 +161,4 @@ async def submit_availability(event_id: str, req: AvailabilityRequest) -> dict[s
         return result
     except Exception as e:
         logger.exception("Failed to upsert availability")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise HTTPException(status_code=500, detail="Internal server error") from e

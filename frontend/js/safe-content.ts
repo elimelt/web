@@ -1,6 +1,6 @@
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
-import { getUserColor } from './utils.js';
+import { getUserColor, visitorLabel } from './utils.js';
 
 export function renderMarkdown(value: unknown): string {
   const escaped = document.createElement('div');
@@ -22,6 +22,6 @@ export function setIdentityText(container: HTMLElement, value: unknown, suffix: 
   const identity = typeof value === 'string' ? value : 'unknown';
   const label = document.createElement('span');
   label.style.color = getUserColor(identity);
-  label.textContent = identity;
+  label.textContent = visitorLabel(identity);
   container.replaceChildren(label, document.createTextNode(suffix));
 }

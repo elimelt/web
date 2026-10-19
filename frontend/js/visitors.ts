@@ -1,13 +1,13 @@
 import { getVisitors, getVisitorsAnalytics, getWsVisitors, isApiAvailable, hideOfflineSection } from './api.js';
 import { BASE_URL, PAGE_SIZE, RECONNECT } from './config.js';
 import { createVisitorMap } from './visitor-maplibre.js';
-import { toTimestampMs, debounce, getHumanReadableDateTimeString } from './utils.js';
+import { toTimestampMs, debounce, getHumanReadableDateTimeString, visitorLabel } from './utils.js';
 
 let visitorsInitialized = false;
 
 let allVisitorEvents = [];
 
-let ipActivityMap = new Map();
+let activityMap = new Map();
 
 const filterState = {
   time: '30d',
@@ -40,7 +40,7 @@ async function initVisitors() {
   const modalTitle = document.getElementById("visitor-modal-title");
   const modalContent = (document.getElementById("visitor-modal-content") as HTMLDivElement);
   const modalClose = document.getElementById("visitor-modal-close");
-  const visitorMap = createVisitorMap(showIpActivityModal);
+  const visitorMap = createVisitorMap(showActivityModal);
   const section = document.getElementById('visitors');
   document.querySelectorAll<HTMLButtonElement>('[data-visitor-view]').forEach(button => {
     button.addEventListener('click', () => {
@@ -68,7 +68,7 @@ async function initVisitors() {
         const { events, nextBefore } = await fetchPresenceEvents(before, request.signal);
         if (request.signal.aborted) return;
         allVisitorEvents = dedupeVisitorEvents([...allVisitorEvents, ...events]);
-        buildIpActivityMap(allVisitorEvents);
+        buildActivityMap(allVisitorEvents);
         applyFilters();
         const oldest = events.length ? toTimestampMs(events[events.length - 1].timestamp) : null;
         if (!events.length || !nextBefore || nextBefore === before || (oldest != null && oldest <= cutoff)) break;
@@ -111,21 +111,21 @@ async function initVisitors() {
     }
     const seen = new Set();
     return visitors.filter((v) => {
-      const ip = v?.ip || v?.address || v?.id;
-      if (!ip || seen.has(ip)) return false;
-      seen.add(ip);
+      const id = v?.id;
+      if (!id || seen.has(id)) return false;
+      seen.add(id);
       return true;
     });
   }
 
   function formatVisitor(visitor) {
     if (!visitor || typeof visitor !== "object") return "Unknown visitor";
-    const ip = visitor.ip || visitor.address || visitor.id || "unknown";
+    const id = visitor.id || "unknown";
     const city = visitor.location?.city || visitor.city;
     const country = visitor.location?.country || visitor.country;
     const ua = visitor.userAgent || visitor.ua;
     const parts = [];
-    parts.push(ip);
+    parts.push(visitorLabel(id));
     if (city || country) {
       parts.push(`— ${[city, country].filter(Boolean).join(", ")}`);
     }
@@ -151,17 +151,17 @@ async function initVisitors() {
     return `${base} — ${when}`;
   }
 
-  function getVisitorIp(visit) {
+  function getVisitorId(visit) {
     if (!visit || typeof visit !== "object") return null;
-    return visit.ip || visit.address || visit.id || null;
+    return visit.id || null;
   }
 
   function getEventDedupKey(event) {
-    const ip = getVisitorIp(event) || "unknown";
+    const id = getVisitorId(event) || "unknown";
     const tsMs = toTimestampMs(event?.timestamp ?? event?.connected_at);
     const bucket = tsMs == null ? "unknown" : Math.floor(tsMs / DEDUP_BUCKET_MS);
     const type = event.type || 'join';
-    return `${ip}:${bucket}:${type}`;
+    return `${id}:${bucket}:${type}`;
   }
 
   function dedupeVisitorEvents(events) {
@@ -184,8 +184,8 @@ async function initVisitors() {
 
   function getEventSearchText(event) {
     const parts = [];
-    const ip = getVisitorIp(event);
-    if (ip) parts.push(ip);
+    const id = getVisitorId(event);
+    if (id) parts.push(id, visitorLabel(id));
 
     const loc = event.location;
     if (loc) {
@@ -238,16 +238,16 @@ async function initVisitors() {
     });
   }
 
-  function buildIpActivityMap(events) {
-    ipActivityMap.clear();
+  function buildActivityMap(events) {
+    activityMap.clear();
 
     for (const event of events) {
-      const ip = getVisitorIp(event);
-      if (!ip) continue;
+      const id = getVisitorId(event);
+      if (!id) continue;
 
-      if (!ipActivityMap.has(ip)) {
-        ipActivityMap.set(ip, {
-          ip,
+      if (!activityMap.has(id)) {
+        activityMap.set(id, {
+          id,
           events: [],
           firstSeen: null,
           lastSeen: null,
@@ -257,7 +257,7 @@ async function initVisitors() {
         });
       }
 
-      const activity = ipActivityMap.get(ip);
+      const activity = activityMap.get(id);
       const eventTime = toTimestampMs(event.timestamp || event.connected_at);
 
       activity.events.push({
@@ -280,7 +280,7 @@ async function initVisitors() {
       }
     }
 
-    for (const activity of ipActivityMap.values()) {
+    for (const activity of activityMap.values()) {
       activity.events.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
     }
   }
@@ -316,12 +316,12 @@ async function initVisitors() {
     return `${rem}s`;
   }
 
-  function showIpActivityModal(ip) {
-    const activity = ipActivityMap.get(ip);
+  function showActivityModal(id) {
+    const activity = activityMap.get(id);
     if (!activity) return;
 
     if (modalTitle) {
-      modalTitle.textContent = `Activity for ${ip}`;
+      modalTitle.textContent = `Activity for ${visitorLabel(id)}`;
     }
 
     if (modalContent) {
@@ -351,7 +351,7 @@ async function initVisitors() {
       .then((analytics) => {
         const container = modalContent?.querySelector('#visitor-analytics-summary');
         if (!container) return;
-        const perIp = (analytics?.visitors || []).find(v => v.visitor_ip === ip);
+        const perIp = (analytics?.visitors || []).find(v => v.id === id);
         if (!perIp) {
           container.innerHTML = `
             <div class="visitor-modal-stat" style="grid-column: 1 / -1;">
@@ -466,19 +466,19 @@ async function initVisitors() {
 
   function createVisitorListItem(v) {
     const li = document.createElement("li");
-    const ip = getVisitorIp(v);
+    const id = getVisitorId(v);
     const eventType = v.type || 'join';
     const typeIndicator = eventType === 'join' ? '→' : '←';
     li.textContent = `${typeIndicator} ${formatRecentVisit(v)}`;
-    li.dataset.ip = ip;
+    li.dataset.visitorId = id;
     li.setAttribute('data-analytics', 'visitors.recent_item');
-    if (ip) {
-      li.setAttribute('data-analytics-id', `visitor:${ip}`);
-      li.setAttribute('data-analytics-label', `Recent visitor ${ip}`);
+    if (id) {
+      li.setAttribute('data-analytics-id', `visitor:${id}`);
+      li.setAttribute('data-analytics-label', `Recent visitor ${visitorLabel(id)}`);
     }
     li.addEventListener('click', () => {
-      if (ip) {
-        showIpActivityModal(ip);
+      if (id) {
+        showActivityModal(id);
       }
     });
     return li;
@@ -546,7 +546,7 @@ async function initVisitors() {
       type: v.type || 'join'
     }));
     allVisitorEvents = dedupeVisitorEvents([...allVisitorEvents, ...newEvents]);
-    buildIpActivityMap(allVisitorEvents);
+    buildActivityMap(allVisitorEvents);
 
     const filtered = filterEvents(allVisitorEvents);
     renderRecentWithFilters(filtered);
@@ -591,7 +591,7 @@ async function initVisitors() {
       type: v.type || 'join'
     }));
     allVisitorEvents = dedupeVisitorEvents([...allVisitorEvents, ...eventsWithType]);
-    buildIpActivityMap(allVisitorEvents);
+    buildActivityMap(allVisitorEvents);
 
     const filtered = filterEvents(allVisitorEvents);
     renderRecentWithFilters(filtered);
@@ -612,7 +612,7 @@ async function initVisitors() {
       <table>
         <thead>
           <tr>
-            <th>IP</th>
+            <th>Visitor</th>
             <th>Total Visits</th>
             <th>Total Time</th>
           </tr>
@@ -620,7 +620,7 @@ async function initVisitors() {
         <tbody>
           ${analytics.visitors.map(visitor => `
             <tr>
-              <td>${visitor.visitor_ip}</td>
+              <td>${visitorLabel(visitor.id)}</td>
               <td>${visitor.total_visits}</td>
               <td>${visitor.total_time_seconds}</td>
             </tr>
@@ -647,7 +647,7 @@ async function initVisitors() {
       const events = (body.events || []).map((e) => ({
         ...e,
         type: e.type,
-        ip: e.payload?.visitor?.ip || e.payload?.ip || e.visitor?.ip || e.ip,
+        id: e.payload?.visitor?.id || e.payload?.id || e.visitor?.id,
         timestamp: e.timestamp || e.payload?.visitor?.connected_at,
         location: e.payload?.visitor?.location || e.visitor?.location || e.location,
         userAgent: e.payload?.visitor?.userAgent || e.visitor?.userAgent || e.userAgent || e.ua,

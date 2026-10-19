@@ -274,13 +274,13 @@ export function recordClickEvent(clickPayload) {
   AnalyticsDelivery.enqueueClick(clickPayload);
 }
 
-const getWsVisitors = (callbacks: { onConnect?: (event: Event) => void; onVisitorJoin?: (visitor: any) => void; onVisitorLeave?: (ip: string) => void; onUpdate?: (data: any) => void; onError?: (event: Event) => void; onDisconnect?: (event: CloseEvent) => void } = {}) => {
+const getWsVisitors = (callbacks: { onConnect?: (event: Event) => void; onVisitorJoin?: (visitor: any) => void; onVisitorLeave?: (id: string) => void; onUpdate?: (data: any) => void; onError?: (event: Event) => void; onDisconnect?: (event: CloseEvent) => void } = {}) => {
   const ws = new WebSocket(`${WS_BASE_URL}/ws/visitors`);
 
   const {
     onConnect = () => {},
     onVisitorJoin = (_visitor) => {},
-    onVisitorLeave = (_ip) => {},
+    onVisitorLeave = (_id) => {},
     onUpdate = (_data) => {},
     onError = (error) => console.error('WebSocket error:', error),
     onDisconnect = () => {},
@@ -302,7 +302,7 @@ const getWsVisitors = (callbacks: { onConnect?: (event: Event) => void; onVisito
         onVisitorJoin(data.visitor);
         onUpdate(data);
       } else if (data.type === 'leave') {
-        onVisitorLeave(data.ip);
+        onVisitorLeave(data.id);
         onUpdate(data);
       } else {
         onUpdate(data);

@@ -77,3 +77,11 @@ export function debounce(fn, wait) {
   return debounced;
 }
 
+
+// Visitors are identified by an opaque 16-char hex id from the API. Show a short
+// friendly label instead of the raw id; other identities (e.g. "agent:codex")
+// are shown as-is.
+export function visitorLabel(id) {
+  if (typeof id === 'string' && /^[0-9a-f]{16}$/.test(id)) return `Visitor ${id.slice(0, 6)}`;
+  return id;
+}

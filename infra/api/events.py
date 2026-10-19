@@ -9,7 +9,7 @@ class Location(TypedDict, total=False):
 
 
 class Visitor(TypedDict):
-    ip: str
+    id: str
     location: Location
     connected_at: str
 
@@ -21,7 +21,7 @@ class JoinEvent(TypedDict):
 
 class LeaveEvent(TypedDict):
     type: Literal["leave"]
-    ip: str
+    id: str
 
 
 class PingEvent(TypedDict):

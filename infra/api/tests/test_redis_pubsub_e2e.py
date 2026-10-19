@@ -57,22 +57,10 @@ class TestHealthEndpoints:
         assert "redis" in data
         assert data["redis"] in ["healthy", "unhealthy", "disconnected"]
 
-    def test_health_pools_endpoint(self, client):
-        """GET /health/pools should return pool statistics."""
-        response = client.get("/health/pools")
-        assert response.status_code == 200
-        data = response.json()
-        assert "redis" in data
-        assert "postgres" in data
-
-    def test_health_redis_detailed_endpoint(self, client):
-        """GET /health/redis should return detailed Redis stats."""
-        response = client.get("/health/redis")
-        assert response.status_code == 200
-        data = response.json()
-        assert "status" in data
-        assert "pubsub" in data
-        assert "active_pubsub_count" in data["pubsub"]
+    def test_internals_not_exposed_publicly(self, client):
+        """Pool/pubsub internals must not be served by the public app."""
+        assert client.get("/health/pools").status_code == 404
+        assert client.get("/health/redis").status_code == 404
 
 
 class TestWebSocketConnectionTracking:
@@ -143,9 +131,7 @@ class TestConnectionCleanup:
         response = client.get("/visitors")
         assert response.status_code == 200
         visitors = response.json()
-        active_ips = [v["ip"] for v in visitors.get("active_visitors", [])]
-        # The IP should not be in active visitors after disconnect
-        # (may still be there briefly due to async cleanup)
+        assert all("ip" not in v for v in visitors.get("active_visitors", []))
 
     def test_multiple_connections_same_ip(self, client, monkeypatch):
         """Multiple connections from same IP should be tracked separately."""
@@ -261,18 +247,6 @@ class TestRateLimiting:
                     ws.__exit__(None, None, None)
                 except Exception:
                     pass
-
-
-class TestHealthStatusLevels:
-    """Test health status level calculations."""
-
-    def test_health_status_healthy(self, client, monkeypatch):
-        """Health status should be 'healthy' when utilization is low."""
-        response = client.get("/health/redis")
-        assert response.status_code == 200
-        data = response.json()
-        # With fake redis, utilization should be low
-        assert data["status"] in ["healthy", "elevated", "warning", "critical", "not_initialized"]
 
 
 @pytest.mark.asyncio

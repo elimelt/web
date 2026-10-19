@@ -59,12 +59,6 @@ variable "tunnel_id" {
   default     = "ecc58535-4890-4667-b78a-9d00e1a5034c"
 }
 
-# Reference to the existing tunnel (read-only)
-data "cloudflare_zero_trust_tunnel_cloudflared" "homelab" {
-  account_id = var.cloudflare_account_id
-  name       = "homelab"
-}
-
 # Tunnel configuration (ingress rules)
 resource "cloudflare_zero_trust_tunnel_cloudflared_config" "homelab" {
   account_id = var.cloudflare_account_id

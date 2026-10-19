@@ -79,16 +79,17 @@ const state = {
 const chatConn = new ConnectionState();
 const visitorConn = new ConnectionState();
 
-const lastPresenceByIp = new Map();
+const lastPresenceById = new Map();
 
-// Track recent presence events for deduplication: ip -> { type, timestamp, element, debounceTimer }
+// Track recent presence events for deduplication: visitorId -> { type, timestamp, element, debounceTimer }
 const presenceDebounce = new Map();
 const PRESENCE_DEBOUNCE_MS = 20 * 60 * 1000; // 20 minutes - collapse rapid connect/disconnect within this window
 
 let chatInitialized = false;
 
 function getMessageKey(msg) {
-  const id = msg.visitor?.ip || msg.ip || msg.sender || "";
+  const isPresence = msg.type === "join" || msg.type === "leave";
+  const id = msg.visitor?.id || (isPresence ? msg.id : msg.sender) || "";
   const content = msg.text || msg.type || "";
   return `${msg.timestamp}|${id}|${content}`;
 }
@@ -103,18 +104,18 @@ function isDuplicate(msg) {
 function isRedundantPresence(event) {
   const isPresence = event.type === "join" || event.type === "leave";
   if (!isPresence) {
-    lastPresenceByIp.clear();
+    lastPresenceById.clear();
     return false;
   }
 
-  const ip = event.visitor?.ip || event.ip || "unknown";
-  const lastType = lastPresenceByIp.get(ip);
+  const visitorId = event.visitor?.id || event.id || "unknown";
+  const lastType = lastPresenceById.get(visitorId);
 
   if (lastType === event.type) {
     return true;
   }
 
-  lastPresenceByIp.set(ip, event.type);
+  lastPresenceById.set(visitorId, event.type);
   return false;
 }
 
@@ -124,11 +125,11 @@ function checkPresenceDebounce(event) {
   const isPresence = event.type === "join" || event.type === "leave";
   if (!isPresence) return { suppress: false, updateExisting: null };
 
-  const ip = event.visitor?.ip || event.ip || "unknown";
+  const visitorId = event.visitor?.id || event.id || "unknown";
   const eventTime = new Date(
     event.timestamp || event.visitor?.connected_at || Date.now(),
   ).getTime();
-  const existing = presenceDebounce.get(ip);
+  const existing = presenceDebounce.get(visitorId);
 
   if (!existing) {
     return { suppress: false, updateExisting: null };
@@ -158,23 +159,23 @@ function registerPresenceEvent(event, element) {
   const isPresence = event.type === "join" || event.type === "leave";
   if (!isPresence) return;
 
-  const ip = event.visitor?.ip || event.ip || "unknown";
+  const visitorId = event.visitor?.id || event.id || "unknown";
   const eventTime = new Date(
     event.timestamp || event.visitor?.connected_at || Date.now(),
   ).getTime();
 
   // Clear any existing debounce timer for this IP
-  const existing = presenceDebounce.get(ip);
+  const existing = presenceDebounce.get(visitorId);
   if (existing && existing.debounceTimer) {
     clearTimeout(existing.debounceTimer);
   }
 
   // Set up cleanup after debounce window
   const debounceTimer = setTimeout(() => {
-    presenceDebounce.delete(ip);
+    presenceDebounce.delete(visitorId);
   }, PRESENCE_DEBOUNCE_MS);
 
-  presenceDebounce.set(ip, {
+  presenceDebounce.set(visitorId, {
     type: event.type,
     timestamp: eventTime,
     element,
@@ -185,8 +186,8 @@ function registerPresenceEvent(event, element) {
 // Dedupe presence events for historical data - collapse rapid connect/disconnect pairs
 function dedupePresenceEvents(items) {
   const result = [];
-  // Track last presence per IP: ip -> { index in result, item, timestamp }
-  const lastPresencePerIp = new Map();
+  // Track last presence per IP: visitorId -> { index in result, item, timestamp }
+  const lastPresencePerId = new Map();
 
   for (const item of items) {
     const isPresence = item.type === "join" || item.type === "leave";
@@ -196,11 +197,11 @@ function dedupePresenceEvents(items) {
       continue;
     }
 
-    const ip = item.visitor?.ip || item.ip || "unknown";
+    const visitorId = item.visitor?.id || item.id || "unknown";
     const itemTime = new Date(
       item.timestamp || item.visitor?.connected_at || Date.now(),
     ).getTime();
-    const last = lastPresencePerIp.get(ip);
+    const last = lastPresencePerId.get(visitorId);
 
     if (last) {
       const timeDiff = itemTime - last.timestamp;
@@ -208,7 +209,7 @@ function dedupePresenceEvents(items) {
       if (timeDiff >= 0 && timeDiff < PRESENCE_DEBOUNCE_MS) {
         // Within debounce window - update the existing entry instead of adding new one
         result[last.index] = item;
-        lastPresencePerIp.set(ip, {
+        lastPresencePerId.set(visitorId, {
           index: last.index,
           item,
           timestamp: itemTime,
@@ -220,7 +221,7 @@ function dedupePresenceEvents(items) {
     // Outside debounce window or first occurrence - add new entry
     const newIndex = result.length;
     result.push(item);
-    lastPresencePerIp.set(ip, { index: newIndex, item, timestamp: itemTime });
+    lastPresencePerId.set(visitorId, { index: newIndex, item, timestamp: itemTime });
   }
 
   return result;
@@ -265,12 +266,12 @@ function createMessageElement(msg) {
   item.className = isPresence ? "chat-event" : "chat-msg";
 
   if (isPresence) {
-    const ip = msg.visitor?.ip || msg.ip || "unknown";
+    const visitorId = msg.visitor?.id || msg.id || "unknown";
     const action = msg.type === "join" ? "connected" : "disconnected";
     const time = getHumanReadableDateTimeString(
       msg.timestamp || msg.visitor?.connected_at || Date.now(),
     );
-    setIdentityText(item, ip, ` ${action} • ${time}`);
+    setIdentityText(item, visitorId, ` ${action} • ${time}`);
   } else {
     const sender = msg.sender ?? "unknown";
     const meta = document.createElement("div");
@@ -317,12 +318,12 @@ function insertMessageSorted(msg, autoScroll = true) {
     if (debounceResult.suppress) {
       if (debounceResult.updateExisting && debounceResult.replaceWith) {
         // Update the existing element with the new state
-        const ip = msg.visitor?.ip || msg.ip || "unknown";
+        const visitorId = msg.visitor?.id || msg.id || "unknown";
         const action = msg.type === "join" ? "connected" : "disconnected";
         const time = getHumanReadableDateTimeString(
           msg.timestamp || msg.visitor?.connected_at || Date.now(),
         );
-        setIdentityText(debounceResult.updateExisting, ip, ` ${action} • ${time}`);
+        setIdentityText(debounceResult.updateExisting, visitorId, ` ${action} • ${time}`);
         // Update the debounce tracking
         registerPresenceEvent(msg, debounceResult.updateExisting);
       }
@@ -412,7 +413,7 @@ async function fetchPresenceEvents(before?: string) {
     const events = (await getEvents(params)).events.map((e) => ({
       ...e,
       type: e.type,
-      ip: e.payload?.visitor?.ip || e.payload?.ip || e.visitor?.ip || e.ip,
+      id: e.payload?.visitor?.id || e.payload?.id || e.visitor?.id,
       timestamp:
         e.timestamp ||
         e.payload?.visitor?.connected_at ||
@@ -478,7 +479,7 @@ function connectChat() {
     if (!data || data.type === "ping") return;
     if (data.type === "chat_message" && data.channel === state.channel) {
       if (!isDuplicate(data)) {
-        lastPresenceByIp.clear();
+        lastPresenceById.clear();
         insertMessageSorted(data);
       }
     }
@@ -526,11 +527,11 @@ function connectVisitors() {
     if (data.type === "join" || data.type === "leave") {
       const event = {
         ...data,
-        ip:
-          data.payload?.visitor?.ip ||
-          data.payload?.ip ||
-          data.visitor?.ip ||
-          data.ip,
+        id:
+          data.payload?.visitor?.id ||
+          data.payload?.id ||
+          data.visitor?.id ||
+          data.id,
         timestamp:
           data.timestamp ||
           data.visitor?.connected_at ||
@@ -630,7 +631,7 @@ async function initChat() {
   allItems.sort((a, b) => getMessageTimestamp(a) - getMessageTimestamp(b));
 
   msgsEl.innerHTML = "";
-  lastPresenceByIp.clear();
+  lastPresenceById.clear();
   presenceDebounce.clear();
   state.messages = [];
 

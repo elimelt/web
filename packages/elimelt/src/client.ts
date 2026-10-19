@@ -239,7 +239,7 @@ export class Client {
         if (data.type === 'join' && callbacks.onJoin) {
           callbacks.onJoin(data.visitor as Visitor);
         } else if (data.type === 'leave' && callbacks.onLeave) {
-          callbacks.onLeave(data.ip as string);
+          callbacks.onLeave(data.id as string);
         } else {
           callbacks.onUpdate?.(data);
         }

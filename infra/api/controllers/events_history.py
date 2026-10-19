@@ -3,6 +3,7 @@ from typing import Any
 from fastapi import APIRouter, Query
 
 from api import db
+from api.visitor_id import check_iso_date, sanitize_payload
 
 router = APIRouter(tags=["events"])
 
@@ -18,6 +19,8 @@ async def events_history(
     before: str | None = Query(None, description="ISO8601 timestamp; default now"),
     limit: int = Query(100, ge=1, le=500),
 ) -> dict[str, Any]:
+    check_iso_date("before", before)
     events = await db.fetch_events(topic, event_type, before, limit)
+    events = [{**e, "payload": sanitize_payload(e["payload"])} for e in events]
     next_before = events[-1]["timestamp"] if events else before
     return {"events": events, "next_before": next_before}

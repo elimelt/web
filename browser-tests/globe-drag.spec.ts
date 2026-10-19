@@ -9,11 +9,11 @@ const TILE_PNG = Buffer.from(
 test('street-level dragging tracks the pointer and culls remote markers', async ({ page }) => {
   const timestamp = new Date().toISOString();
   const visitors = [
-    { ip: '203.0.113.1', location: { city: 'London', country: 'United Kingdom', lat: 51.5072, lon: -0.1276 }, timestamp },
-    { ip: '203.0.113.2', location: { city: 'New York', country: 'United States', lat: 40.7128, lon: -74.006 }, timestamp },
-    { ip: '203.0.113.3', location: { city: 'Tokyo', country: 'Japan', lat: 35.6762, lon: 139.6503 }, timestamp },
-    { ip: '203.0.113.4', location: { city: 'Sydney', country: 'Australia', lat: -33.8688, lon: 151.2093 }, timestamp },
-    { ip: '203.0.113.5', location: { city: 'Cape Town', country: 'South Africa', lat: -33.9249, lon: 18.4241 }, timestamp },
+    { id: '0000000000000001', location: { city: 'London', country: 'United Kingdom', lat: 51.5072, lon: -0.1276 }, timestamp },
+    { id: '0000000000000002', location: { city: 'New York', country: 'United States', lat: 40.7128, lon: -74.006 }, timestamp },
+    { id: '0000000000000003', location: { city: 'Tokyo', country: 'Japan', lat: 35.6762, lon: 139.6503 }, timestamp },
+    { id: '0000000000000004', location: { city: 'Sydney', country: 'Australia', lat: -33.8688, lon: 151.2093 }, timestamp },
+    { id: '0000000000000005', location: { city: 'Cape Town', country: 'South Africa', lat: -33.9249, lon: 18.4241 }, timestamp },
   ];
 
   await mockFrontendNetwork(page);

@@ -17,7 +17,7 @@ test('visitor globe uses the complete local MapLibre runtime and remains interac
   });
   const timestamp = new Date().toISOString();
   const visitor = {
-    ip: '203.0.113.7',
+    id: 'a1b2c3d4e5f60718',
     location: { city: 'London', country: 'Testland', lat: 51.5072, lon: -0.1276 },
     timestamp,
   };
@@ -75,7 +75,7 @@ test('visitor globe uses the complete local MapLibre runtime and remains interac
         count: 1,
         filters: {},
         visitors: [{
-          visitor_ip: visitor.ip,
+          id: visitor.id,
           total_visits: 1,
           total_time_seconds: 30,
           avg_session_duration_seconds: 30,
@@ -123,6 +123,12 @@ test('visitor globe uses the complete local MapLibre runtime and remains interac
     const mapBounds = element.closest('#visitor-map')!.getBoundingClientRect();
     return { x: bounds.x - mapBounds.x, y: bounds.y - mapBounds.y };
   });
+  // MapLibre starts with a default 400x300 canvas until its ResizeObserver fits it to the
+  // container, so the baseline must be taken only after the canvas matches the host.
+  await expect.poll(() => map.evaluate(host => {
+    const canvas = host.querySelector('canvas')!;
+    return Math.abs(canvas.clientWidth - host.clientWidth) <= 1 && Math.abs(canvas.clientHeight - host.clientHeight) <= 1;
+  })).toBe(true);
   const initialPosition = await markerPosition();
   const distanceFromInitial = async () => {
     const current = await markerPosition();
@@ -146,9 +152,9 @@ test('visitor globe uses the complete local MapLibre runtime and remains interac
   await page.getByRole('button', { name: 'Reset view' }).click();
   await expect(marker).toBeVisible();
   await marker.click();
-  await popup.getByRole('button', { name: visitor.ip }).click();
+  await popup.getByRole('button', { name: 'Visitor a1b2c3' }).click();
   await expect(page.locator('#visitor-modal-overlay')).toHaveClass(/active/);
-  await expect(page.locator('#visitor-modal-title')).toHaveText(`Activity for ${visitor.ip}`);
+  await expect(page.locator('#visitor-modal-title')).toHaveText(`Activity for Visitor a1b2c3`);
   await expect(page.locator('#visitor-analytics-summary')).toContainText('Analytics Visits');
 
   expect(unpkgRequests).toEqual([]);

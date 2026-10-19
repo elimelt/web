@@ -5,7 +5,7 @@ const TABLE_STYLES = {
   th: 'text-align:left; padding: 6px 4px; border-bottom: 1px solid var(--border);'
 };
 
-const TABLE_COLUMNS = ['Service', 'Status', 'CPU', 'Memory'];
+const TABLE_COLUMNS = ['Service', 'Status'];
 
 const SKELETON_ROW_COUNT = 10;
 
@@ -17,8 +17,6 @@ function renderSkeletonLoading() {
     .fill('')
     .map(() => `
       <div class="services-skeleton-row">
-        <div class="services-skeleton-cell"></div>
-        <div class="services-skeleton-cell"></div>
         <div class="services-skeleton-cell"></div>
         <div class="services-skeleton-cell"></div>
       </div>
@@ -34,17 +32,6 @@ function renderSkeletonLoading() {
   `;
 }
 
-function formatPercent(value) {
-  if (typeof value !== 'number' || isNaN(value)) return '—';
-  const pct = value <= 1 ? value * 100 : value;
-  return `${pct.toFixed(1)}%`;
-}
-
-function formatMb(value) {
-  if (typeof value !== 'number' || isNaN(value)) return '—';
-  return `${value.toFixed(1)} MB`;
-}
-
 function stripHealthy(uptime) {
   if (typeof uptime !== 'string') return uptime;
   return uptime.replace(/\(healthy\)/g, '').trim();
@@ -53,9 +40,7 @@ function stripHealthy(uptime) {
 function serviceToRow(svc) {
   return [
     svc.name || 'unknown',
-    stripHealthy(svc.status) || 'unknown',
-    formatPercent(svc.cpu_percent),
-    `${formatMb(svc.memory_mb)} (${formatPercent(svc.memory_percent)})`
+    stripHealthy(svc.status) || 'unknown'
   ];
 }
 
