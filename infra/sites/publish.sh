@@ -35,8 +35,14 @@ target="$releases/$release"
 mkdir -p "$releases"
 
 rm -rf "$target.partial"
-cp -R "$source_dir/." "$target.partial"
-chmod -R a+rX "$target.partial"
+# Hardlink files whose content matches the live release (releases are never
+# modified in place), so unchanged assets don't take extra space. Checksums are
+# needed because downloaded artifacts carry fresh mtimes.
+link_dest=()
+if [[ -d "$site_dir/current/" ]]; then
+  link_dest=(--checksum --link-dest="$(readlink -f "$site_dir/current")")
+fi
+rsync -rlD "${link_dest[@]}" --chmod=a+rX "$source_dir/" "$target.partial/"
 rm -rf "$target"
 mv "$target.partial" "$target"
 

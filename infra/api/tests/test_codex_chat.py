@@ -25,7 +25,7 @@ def test_codex_health_reports_missing_auth(internal_client, monkeypatch):
     response = internal_client.get("/codex/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "unconfigured", "message": "Codex auth not configured"}
+    assert response.json() == {"status": "unconfigured", "message": "Codex unavailable: auth not configured"}
 
 
 def test_run_codex_prompt_prefers_api_key_over_stale_auth(tmp_path, monkeypatch):

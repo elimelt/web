@@ -110,10 +110,10 @@ credentials from its environment. The CLI version is pinned in
 when installed, including rejection of a model-requested shell command.
 
 Set `ENABLE_CODEX_AGENT=1` and configure either `OPENAI_API_KEY` or
-`CODEX_AUTH_FILE=/absolute/path/to/.codex/auth.json` in the production Compose env
-file. Only that login file is mounted read-only; local configuration, plugins,
-and session history are not mounted. Without a login file, `CODEX_AUTH_FILE`
-defaults to `/dev/null`. `CODEX_AGENT_MODEL` defaults to `gpt-6-sol` because
+a ChatGPT login: `mkdir -p ~/.codex-api && install -m 600 ~/.codex/auth.json ~/.codex-api/auth.json`
+(override the directory with `CODEX_AUTH_DIR`). Only that dedicated directory is mounted
+read-only; local configuration, plugins, and session history are not. If the directory or
+`auth.json` is missing, `internal-api` still starts and Codex reports itself unavailable. `CODEX_AGENT_MODEL` defaults to `gpt-6-sol` because
 `gpt-5.5` retired from Codex with ChatGPT sign-in on October 14, 2026.
 
 Rebuild/recreate `internal-api` after changing these settings. `/agents/status`

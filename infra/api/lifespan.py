@@ -18,6 +18,8 @@ from api.bus import EventBus
 from api.config import get_settings
 from api.redis_debug import wrap_redis_client
 
+_logger = logging.getLogger("api.lifespan")
+
 
 @dataclass
 class LifespanResources:
@@ -84,7 +86,7 @@ def init_geoip() -> geoip2.database.Reader | None:
 async def init_database() -> None:
     """Initialize database connection pool if ENABLE_CHAT_DB is "1".
 
-    Failures are swallowed silently, exactly like the entry points
+    Failures are logged but not raised, like the entry points
     historically did. Callers gate downstream features and teardown on
     the ENABLE_CHAT_DB flag, not on init success.
     """
@@ -93,7 +95,7 @@ async def init_database() -> None:
         try:
             await db.init_pool()
         except Exception:
-            pass
+            _logger.exception("Database pool initialization failed")
 
 
 async def setup_resources(
@@ -157,7 +159,7 @@ async def cleanup_resources(resources: LifespanResources) -> None:
         try:
             await db.close_pool()
         except Exception:
-            pass
+            _logger.warning("Failed to close database pool", exc_info=True)
 
     # Close Redis
     if resources.redis_client:

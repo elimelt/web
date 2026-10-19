@@ -60,7 +60,7 @@ def codex_is_ready() -> tuple[bool, str]:
     if not binary:
         return False, "Codex CLI is not installed"
     if not codex_has_auth():
-        return False, "Codex auth not configured"
+        return False, "Codex unavailable: auth not configured"
     return True, "Codex CLI available"
 
 
@@ -79,7 +79,7 @@ def run_codex_prompt(
     if not binary:
         raise RuntimeError("Codex CLI is not installed")
     if not codex_has_auth():
-        raise RuntimeError("Codex auth not configured")
+        raise RuntimeError("Codex unavailable: auth not configured")
 
     if not prompt.strip():
         raise RuntimeError("Prompt cannot be empty")

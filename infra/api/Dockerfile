@@ -17,14 +17,9 @@ RUN wget -O GeoLite2-City.mmdb "https://github.com/P3TERX/GeoLite.mmdb/raw/downl
     echo "GeoIP database not available, will use fallback"
 
 COPY main.py .
-RUN mkdir -p /app/api
-COPY __init__.py bus.py events.py state.py middleware.py redis_debug.py redis_pubsub.py notes_sync.py notes_embeddings.py config.py dependencies.py errors.py lifespan.py codex_runner.py security.py safe_fetch.py visitor_id.py /app/api/
-COPY controllers /app/api/controllers
-COPY producers /app/api/producers
-COPY agents /app/api/agents
-COPY batch /app/api/batch
-COPY db /app/api/db
-COPY models /app/api/models
+# Copy the whole package so new top-level modules are never left out of the image.
+# Excludes (tests, caches, requirements, Dockerfiles) live in .dockerignore.
+COPY . /app/api/
 
 USER 10001:10001
 

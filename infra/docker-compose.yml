@@ -125,14 +125,13 @@ services:
     ports:
       - "127.0.0.1:8080:80"
     volumes:
-      # Opt in to ChatGPT login by setting CODEX_AUTH_FILE to an existing auth.json.
-      # Never mount the full Codex home (history, plugins, and local configuration).
+      # Dedicated directory holding only auth.json (never the full ~/.codex). A directory mount
+      # starts fine when empty/missing auth; the Codex code path reports "unavailable" at request time.
+      # Enable with: mkdir -p ~/.codex-api && install -m 600 ~/.codex/auth.json ~/.codex-api/auth.json
       - type: bind
-        source: ${CODEX_AUTH_FILE:-/dev/null}
-        target: /run/codex-source/auth.json
+        source: ${CODEX_AUTH_DIR:-/home/elimelt/.codex-api}
+        target: /run/codex-source
         read_only: true
-        bind:
-          create_host_path: false
     ulimits:
       nofile:
         soft: 65536

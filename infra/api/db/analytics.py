@@ -78,16 +78,34 @@ async def upsert_visitor_stats(
         }
 
 
+VISITOR_ID_SQL_CLAUSE = (
+    "left(encode(hmac(convert_to(visitor_ip, 'UTF8'), %s::bytea, 'sha256'), 'hex'), 16) = %s"
+)
+
+
 async def fetch_visitor_stats(
     visitor_ip: str | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
     is_recurring: bool | None = None,
     limit: int = 100,
+    visitor_id: str | None = None,
+    visitor_key: bytes | None = None,
 ) -> list[dict[str, Any]]:
-    """Fetch visitor statistics with optional filters."""
+    """Fetch visitor statistics with optional filters.
+
+    ``visitor_id`` (with ``visitor_key``, the HMAC key) filters rows in SQL by
+    the pseudonymous id, computed with pgcrypto's hmac(). Raises
+    ``psycopg.errors.UndefinedFunction`` if pgcrypto is not installed.
+    """
     clauses: list[str] = []
     params: list[Any] = []
+
+    if visitor_id is not None:
+        if visitor_key is None:
+            raise ValueError("visitor_key is required with visitor_id")
+        clauses.append(VISITOR_ID_SQL_CLAUSE)
+        params.extend([visitor_key, visitor_id])
 
     if visitor_ip:
         clauses.append("visitor_ip = %s")

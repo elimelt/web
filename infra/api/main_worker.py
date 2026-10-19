@@ -45,8 +45,8 @@ async def execute(request: Execution, x_worker_token: str = Header(default="")):
         raise HTTPException(403, "Forbidden")
     try:
         await asyncio.wait_for(_slots.acquire(), timeout=0.1)
-    except TimeoutError:
-        raise HTTPException(429, "Sandbox busy")
+    except TimeoutError as e:
+        raise HTTPException(429, "Sandbox busy") from e
     try:
         output, success = await asyncio.to_thread(execute_python, request.code, "broker")
         return {"output": output, "success": success}

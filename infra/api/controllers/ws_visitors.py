@@ -180,7 +180,7 @@ async def _handle_visitor_connection(
         except asyncio.CancelledError:
             pass
         except Exception:
-            pass
+            _logger.debug("send_updates loop ended", exc_info=True)
 
     async def heartbeat():
         try:
@@ -191,7 +191,7 @@ async def _handle_visitor_connection(
         except asyncio.CancelledError:
             pass
         except Exception:
-            pass
+            _logger.debug("heartbeat loop ended", exc_info=True)
 
     update_task = asyncio.create_task(send_updates())
     heartbeat_task = asyncio.create_task(heartbeat())

@@ -1,0 +1,36 @@
+name: Uptime
+
+# Checks the public sites from outside the homelab. Uptime Kuma runs on the
+# same machine, so it can't report a full outage; a failed scheduled run here
+# sends GitHub's workflow-failure email instead.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check public endpoints
+        run: |
+          set -uo pipefail
+          failed=0
+          check() {
+            local url="$1" needle="$2" body
+            if body="$(curl -fsSL --retry 3 --retry-delay 10 --retry-all-errors --max-time 20 "$url")" \
+              && grep -qF -- "$needle" <<<"$body"; then
+              echo "ok    $url"
+            else
+              echo "::error::$url is down or missing \"$needle\""
+              failed=1
+            fi
+          }
+          check https://elimelt.com/ "<title>Elijah Melton"
+          check https://notes.elimelt.com/ "Technical Notes"
+          check https://api.elimelt.com/health '"status":"ok"'
+          exit "$failed"

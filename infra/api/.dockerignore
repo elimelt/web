@@ -1,0 +1,35 @@
+# Keep the image build context small and free of secrets/dev files.
+**/__pycache__
+**/*.py[cod]
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
+.venv
+venv
+env
+.git
+.gitignore
+.idea
+.vscode
+.DS_Store
+*.log
+*.mmdb
+
+# Secrets
+.env
+.env.*
+*.pem
+*.key
+auth.json
+credentials*.json
+
+# Tests and dev tooling
+tests
+requirements.dev.txt
+
+# Build files (not needed at runtime; requirements are installed via COPY in the Dockerfile)
+Dockerfile*
+.dockerignore
+sandbox/Dockerfile

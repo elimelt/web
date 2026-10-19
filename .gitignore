@@ -125,3 +125,6 @@ test-results/
 
 # Astro generated types
 .astro/
+
+# Claude Code agent worktrees
+.claude/worktrees/

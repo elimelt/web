@@ -105,7 +105,7 @@ async def _get_system_stats(redis: OptionalRedis) -> dict[str, Any]:
                                 "memory_mb": round(memory_mb, 2),
                                 "memory_percent": round(memory_percent, 2),
                             }
-                        except Exception:
+                        except (ValueError, IndexError):
                             pass
 
         services = []
