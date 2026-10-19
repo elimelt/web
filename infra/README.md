@@ -156,7 +156,6 @@ These pieces run only when someone starts them by hand:
 - `docker-compose.runner.yml` + `github-runner/`: self-hosted GitHub runner.
 - `systemd/homelab-backup.service` + `.timer` + `backup.sh`: host backups.
 - `terraform/`: DNS and tunnel config.
-- `.github/workflows/count-code.yaml`: manual dispatch.
 
 The TypeScript homepage in `infra/homepage/` builds with `npm run build` at the repository root. Serve `dist/infra/homepage/`; it has no configured production deployment target.
 
