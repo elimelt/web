@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import UTC, datetime
 from typing import Any
 
@@ -8,6 +9,8 @@ import redis.asyncio as redis
 from api import db
 from api.bus import EventBus
 from api.visitor_id import public_visitor, visitor_id
+
+_logger = logging.getLogger("api.producers.visitor_producer")
 
 
 def get_location(geoip_reader: geoip2.database.Reader | None, ip: str) -> dict[str, Any]:
@@ -55,7 +58,7 @@ async def join_visitor(
             "visitor_updates", "join", {"visitor": internal_data}, internal_data["connected_at"]
         )
     except Exception:
-        pass
+        _logger.warning("Failed to persist visitor join event", exc_info=True)
     return visitor_data
 
 
@@ -76,4 +79,4 @@ async def leave_visitor(
             "visitor_updates", "leave", {"ip": client_ip}, datetime.now(UTC).isoformat()
         )
     except Exception:
-        pass
+        _logger.warning("Failed to persist visitor leave event", exc_info=True)
