@@ -108,5 +108,10 @@ jobs:
           # Create the static sites mount as the runner user; Docker would create it root-owned.
           mkdir -p "${SITES_PATH:-/home/elimelt/sites}"
           # Optional Codex auth directory (see infra/README.md); keep it runner-owned if absent.
-          mkdir -p "${CODEX_AUTH_DIR:-/home/elimelt/.codex-api}"
+          codex_dir="${CODEX_AUTH_DIR:-/home/elimelt/.codex-api}"
+          mkdir -p "$codex_dir"
+          # Refresh the API's copy of the Codex login so a re-login on the host takes effect on deploy.
+          if [ -f "$HOME/.codex/auth.json" ]; then
+            install -m 600 "$HOME/.codex/auth.json" "$codex_dir/auth.json"
+          fi
           "${DEPLOY_PATH}/infra/scripts/deploy-backend.sh"

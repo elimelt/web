@@ -160,6 +160,7 @@ def prepare():
         archive(incoming / 'config/home.tar', home_snapshot, user_paths,
                 ['.git', 'node_modules', '.terraform', '__pycache__', '.venv', 'venv',
                  'elimelt/repos/*/dist', 'elimelt/repos/*/infra/backups',
+                 'elimelt/repos/*/notes/public', 'elimelt/repos/*/notes/.quartz',
                  'elimelt/.config/homelab-backup', 'elimelt/.config/.wrangler/logs',
                  '*/Cache', '*/Code Cache', '*/GPUCache'])
         manifest['config'] = [{'file': 'config/etc.tar', 'restore_root': '/'},

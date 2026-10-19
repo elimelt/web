@@ -193,7 +193,7 @@ async def search_notes(
         raise
     except Exception as e:
         logger.exception(f"Search error: {e}")
-        raise HTTPException(status_code=500, detail=f"Search failed: {e!s}") from e
+        raise HTTPException(status_code=500, detail="Search failed") from e
 
     paginated = results[offset : offset + limit]
 
