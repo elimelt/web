@@ -193,19 +193,6 @@ body:has(.right-sidebar.mobile-open) .main-content {
   background: rgba(255, 255, 255, 0.02);
 }
 
-#canvas {
-  display: flex;
-  flex-direction: column;
-}
-
-#canvas-section {
-  width: 100%;
-  height: 320px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
 #recent-visitor-list {
   flex: 1;
   overflow-y: auto;
