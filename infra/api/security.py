@@ -1,6 +1,7 @@
 """Trust boundaries and bounded, process-local WebSocket admission controls."""
 
 import ipaddress
+import hmac
 import os
 import socket
 import time
@@ -30,6 +31,11 @@ def client_ip(connection) -> str:
         return str(ipaddress.ip_address(candidate))
     except ValueError:
         return "unknown"
+
+
+def secret_matches(provided: str | None, expected: str) -> bool:
+    """Constant-time comparison of a client-supplied secret."""
+    return provided is not None and hmac.compare_digest(provided.encode(), expected.encode())
 
 
 def allowed_ws_origin(websocket) -> bool:

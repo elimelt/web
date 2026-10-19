@@ -7,6 +7,7 @@ from fastapi import APIRouter, Header, HTTPException, Query
 
 from api import db
 from api.config import get_settings
+from api.security import secret_matches
 
 logger = logging.getLogger(__name__)
 
@@ -245,7 +246,7 @@ async def generate_embeddings(
             detail="Endpoint not configured (NOTES_SYNC_SECRET not set)",
         )
 
-    if x_sync_secret != NOTES_SYNC_SECRET:
+    if not secret_matches(x_sync_secret, NOTES_SYNC_SECRET):
         raise HTTPException(status_code=401, detail="Invalid or missing sync secret")
 
     try:

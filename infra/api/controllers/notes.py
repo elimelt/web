@@ -15,6 +15,7 @@ from api.models.notes import (
     TagsResponse,
 )
 from api.notes_sync import retry_failed_items, sync_notes_with_job
+from api.security import secret_matches
 
 router = APIRouter(prefix="/notes", tags=["notes"])
 
@@ -29,7 +30,7 @@ def _validate_sync_secret(x_sync_secret: str | None) -> None:
             status_code=503,
             detail="Sync endpoint not configured (NOTES_SYNC_SECRET not set)",
         )
-    if x_sync_secret != NOTES_SYNC_SECRET:
+    if not secret_matches(x_sync_secret, NOTES_SYNC_SECRET):
         raise HTTPException(status_code=401, detail="Invalid or missing sync secret")
 
 
