@@ -1,3 +1,4 @@
+import logging
 import os
 
 from fastapi import APIRouter, HTTPException
@@ -6,6 +7,7 @@ from pydantic import BaseModel
 from api import db
 from api.models.chat import SoftDeleteResponse
 
+_logger = logging.getLogger("api.controllers.chat_admin")
 router = APIRouter(tags=["admin"])
 
 
@@ -22,4 +24,5 @@ async def soft_delete_chat(req: SoftDeleteRequest) -> SoftDeleteResponse:
         deleted = await db.soft_delete_chat_history(req.channel, req.before)
         return SoftDeleteResponse(deleted=deleted, channel=req.channel, before=req.before)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        _logger.exception("Failed to soft delete chat history")
+        raise HTTPException(status_code=500, detail="Internal server error") from e

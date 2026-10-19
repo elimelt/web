@@ -1,4 +1,5 @@
 import re
+from api.visitor_id import visitor_id
 from api.security import ConnectionLimits, RateLimiter, allowed_ws_origin
 from api.security import client_ip as trusted_client_ip
 import asyncio
@@ -47,7 +48,7 @@ async def _websocket_chat(websocket: WebSocket, channel: str) -> None:
     await websocket.accept()
 
     client_ip = trusted_client_ip(websocket)
-    sender = f"{client_ip}:{id(websocket)}"
+    sender = visitor_id(client_ip)
 
     # Check if Redis is available
     if state.redis_client is None:

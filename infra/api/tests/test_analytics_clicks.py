@@ -175,4 +175,4 @@ class TestGetAnalyticsClicks:
         assert body["events"] == []
         assert body["count"] == 0
         assert "error" in body
-        assert "Database query failed" in body["error"]
+        assert "Database query failed" not in body["error"]

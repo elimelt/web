@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from api.dependencies import Redis
 from api.models.visitors import VisitorsResponse
+from api.visitor_id import public_visitor
 
 router = APIRouter(tags=["visitors"])
 
@@ -14,10 +15,10 @@ async def get_visitors(redis: Redis) -> VisitorsResponse:
     active_visitors = []
     if visitor_keys:
         values = await redis.mget(*visitor_keys)
-        active_visitors = [json.loads(v) for v in values if v]
+        active_visitors = [public_visitor(json.loads(v)) for v in values if v]
 
     visit_log = await redis.lrange("visit_log", 0, 99)
-    visits = [json.loads(v) for v in visit_log]
+    visits = [public_visitor(json.loads(v)) for v in visit_log]
 
     return VisitorsResponse(
         active_count=len(active_visitors),

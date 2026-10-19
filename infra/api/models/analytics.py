@@ -38,7 +38,7 @@ class ClickEventsResponse(BaseModel):
 class VisitorStats(BaseModel):
     """Statistics for a single visitor."""
 
-    visitor_ip: str
+    id: str
     computed_at: str
     period_start: str
     period_end: str

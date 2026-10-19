@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from api.visitor_id import visitor_id
 from api.batch.visitor_analytics import (
     _extract_ip_from_payload,
     _extract_location_from_payload,
@@ -460,88 +461,71 @@ class TestStartAnalyticsScheduler:
             assert tasks[0].done()
 
 
+def _row(ip, visits=1, recurring=False):
+    return {
+        "visitor_ip": ip,
+        "computed_at": "2025-01-01T00:00:00+00:00",
+        "period_start": "2025-01-01T00:00:00+00:00",
+        "period_end": "2025-01-02T00:00:00+00:00",
+        "total_visits": visits,
+        "total_time_seconds": 1.0,
+        "avg_session_duration_seconds": 1.0,
+        "is_recurring": recurring,
+    }
+
+
 class TestVisitorAnalyticsAPI:
     @pytest.fixture
     def mock_db_module(self):
         with patch("api.controllers.visitor_analytics.db") as mock:
             yield mock
 
-    @pytest.mark.asyncio
-    async def test_get_visitor_analytics_empty(self, mock_db_module):
+    def test_empty(self, client, mock_db_module):
         mock_db_module.fetch_visitor_stats = AsyncMock(return_value=[])
+        body = client.get("/visitor-analytics").json()
+        assert body["visitors"] == []
+        assert body["count"] == 0
 
-        from api.controllers.visitor_analytics import get_visitor_analytics
-
-        result = await get_visitor_analytics()
-
-        assert result["visitors"] == []
-        assert result["count"] == 0
-
-    @pytest.mark.asyncio
-    async def test_get_visitor_analytics_with_data(self, mock_db_module):
+    def test_no_raw_ip_and_stable_ids(self, client, mock_db_module):
         mock_data = [
-            {"visitor_ip": "1.2.3.4", "total_visits": 5, "is_recurring": True},
-            {"visitor_ip": "5.6.7.8", "total_visits": 1, "is_recurring": False},
+            _row("1.2.3.4", 5, True),
+            _row("2001:db8::1"),
+            _row("1.2.3.4", 2, True),
         ]
         mock_db_module.fetch_visitor_stats = AsyncMock(return_value=mock_data)
+        res = client.get("/visitor-analytics")
+        assert res.status_code == 200
+        text = res.text
+        assert "1.2.3.4" not in text and "2001:db8" not in text
+        assert "visitor_ip" not in text
+        visitors = res.json()["visitors"]
+        assert visitors[0]["id"] == visitors[2]["id"] == visitor_id("1.2.3.4")
+        assert visitors[0]["id"] != visitors[1]["id"]
+        assert len(visitors[0]["id"]) == 16
 
-        from api.controllers.visitor_analytics import get_visitor_analytics
+    def test_filter_by_id(self, client, mock_db_module):
+        mock_data = [
+            _row("1.2.3.4", 5, True),
+            _row("5.6.7.8"),
+        ]
+        mock_db_module.fetch_visitor_stats = AsyncMock(return_value=mock_data)
+        vid = visitor_id("5.6.7.8")
+        res = client.get(f"/visitor-analytics?visitor_id={vid}&segment=false")
+        body = res.json()
+        assert body["count"] == 1
+        assert body["visitors"][0]["id"] == vid
+        assert body["filters"]["visitor_id"] == vid
+        kwargs = mock_db_module.fetch_visitor_stats.call_args.kwargs
+        assert "visitor_ip" not in kwargs
+        assert kwargs["is_recurring"] is False
 
-        result = await get_visitor_analytics()
+    def test_db_error_is_generic(self, client, mock_db_module):
+        mock_db_module.fetch_visitor_stats = AsyncMock(side_effect=Exception("DB down secret"))
+        res = client.get("/visitor-analytics")
+        assert res.status_code == 500
+        assert "secret" not in res.text
 
-        assert result["count"] == 2
-        assert len(result["visitors"]) == 2
-
-    @pytest.mark.asyncio
-    async def test_get_visitor_analytics_with_filters(self, mock_db_module):
-        mock_db_module.fetch_visitor_stats = AsyncMock(return_value=[])
-
-        from api.controllers.visitor_analytics import get_visitor_analytics
-
-        result = await get_visitor_analytics(
-            visitor_ip="1.2.3.4",
-            start_date="2025-01-01T00:00:00Z",
-            end_date="2025-01-31T23:59:59Z",
-            recurring_only=True,
-            limit=50,
-        )
-
-        assert result["filters"]["visitor_id"] == "1.2.3.4"
-        assert result["filters"]["segment"] == "recurring"
-        assert result["filters"]["limit"] == 50
-        mock_db_module.fetch_visitor_stats.assert_called_once_with(
-            visitor_ip="1.2.3.4",
-            start_date="2025-01-01T00:00:00Z",
-            end_date="2025-01-31T23:59:59Z",
-            is_recurring=True,
-            limit=50,
-        )
-
-    @pytest.mark.asyncio
-    async def test_get_visitor_analytics_non_recurring_filter(self, mock_db_module):
-        mock_db_module.fetch_visitor_stats = AsyncMock(return_value=[])
-
-        from api.controllers.visitor_analytics import get_visitor_analytics
-
-        result = await get_visitor_analytics(recurring_only=False)
-
-        assert result["filters"]["segment"] == "non-recurring"
-
-    @pytest.mark.asyncio
-    async def test_get_visitor_analytics_db_error(self, mock_db_module):
-        mock_db_module.fetch_visitor_stats = AsyncMock(side_effect=Exception("DB down"))
-
-        from fastapi import HTTPException
-
-        from api.controllers.visitor_analytics import get_visitor_analytics
-
-        with pytest.raises(HTTPException) as exc_info:
-            await get_visitor_analytics()
-
-        assert exc_info.value.status_code == 500
-
-    @pytest.mark.asyncio
-    async def test_get_visitor_analytics_summary(self, mock_db_module):
+    def test_summary(self, client, mock_db_module):
         mock_summary = {
             "unique_visitors": 10,
             "total_visits": 50,
@@ -551,121 +535,53 @@ class TestVisitorAnalyticsAPI:
             "avg_visit_frequency_per_day": 2.5,
         }
         mock_db_module.get_visitor_analytics_summary = AsyncMock(return_value=mock_summary)
+        body = client.get(
+            "/visitor-analytics/summary?start_date=2025-01-01T00:00:00Z"
+        ).json()
+        assert body["summary"] == mock_summary
+        assert body["filters"]["start_date"] == "2025-01-01T00:00:00Z"
 
-        from api.controllers.visitor_analytics import get_visitor_analytics_summary
+    def test_summary_db_error(self, client, mock_db_module):
+        mock_db_module.get_visitor_analytics_summary = AsyncMock(side_effect=Exception("x"))
+        assert client.get("/visitor-analytics/summary").status_code == 500
 
-        result = await get_visitor_analytics_summary(start_date=None, end_date=None)
-
-        assert result["summary"] == mock_summary
-        assert result["filters"]["start_date"] is None
-        assert result["filters"]["end_date"] is None
-
-    @pytest.mark.asyncio
-    async def test_get_visitor_analytics_summary_with_dates(self, mock_db_module):
-        mock_db_module.get_visitor_analytics_summary = AsyncMock(return_value={})
-
-        from api.controllers.visitor_analytics import get_visitor_analytics_summary
-
-        result = await get_visitor_analytics_summary(
-            start_date="2025-01-01T00:00:00Z",
-            end_date="2025-01-31T23:59:59Z",
+    def test_by_id(self, client, mock_db_module):
+        mock_db_module.fetch_visitor_stats = AsyncMock(
+            return_value=[_row("1.2.3.4", 3)]
         )
+        vid = visitor_id("1.2.3.4")
+        res = client.get(f"/visitor-analytics/{vid}")
+        body = res.json()
+        assert "1.2.3.4" not in res.text
+        assert body["visitor_id"] == vid
+        assert body["count"] == 1
+        assert body["records"][0]["id"] == vid
 
-        assert result["filters"]["start_date"] == "2025-01-01T00:00:00Z"
-        assert result["filters"]["end_date"] == "2025-01-31T23:59:59Z"
-
-    @pytest.mark.asyncio
-    async def test_get_visitor_analytics_summary_db_error(self, mock_db_module):
-        mock_db_module.get_visitor_analytics_summary = AsyncMock(side_effect=Exception("DB error"))
-
-        from fastapi import HTTPException
-
-        from api.controllers.visitor_analytics import get_visitor_analytics_summary
-
-        with pytest.raises(HTTPException) as exc_info:
-            await get_visitor_analytics_summary()
-
-        assert exc_info.value.status_code == 500
-
-    @pytest.mark.asyncio
-    async def test_get_visitor_analytics_by_id(self, mock_db_module):
-        mock_data = [{"visitor_ip": "1.2.3.4", "total_visits": 3}]
-        mock_db_module.fetch_visitor_stats = AsyncMock(return_value=mock_data)
-
-        from api.controllers.visitor_analytics import get_visitor_analytics_by_id
-
-        result = await get_visitor_analytics_by_id(visitor_id="1.2.3.4")
-
-        assert result["visitor_id"] == "1.2.3.4"
-        assert result["count"] == 1
-        assert result["records"] == mock_data
-
-    @pytest.mark.asyncio
-    async def test_get_visitor_analytics_by_id_not_found(self, mock_db_module):
+    def test_by_id_not_found(self, client, mock_db_module):
         mock_db_module.fetch_visitor_stats = AsyncMock(return_value=[])
+        body = client.get("/visitor-analytics/unknown").json()
+        assert body["count"] == 0
+        assert body["records"] == []
+        assert "message" in body
 
-        from api.controllers.visitor_analytics import get_visitor_analytics_by_id
+    def test_by_id_db_error(self, client, mock_db_module):
+        mock_db_module.fetch_visitor_stats = AsyncMock(side_effect=Exception("x"))
+        assert client.get("/visitor-analytics/abc").status_code == 500
 
-        result = await get_visitor_analytics_by_id(visitor_id="unknown")
-
-        assert result["visitor_id"] == "unknown"
-        assert result["count"] == 0
-        assert result["records"] == []
-        assert "message" in result
-
-    @pytest.mark.asyncio
-    async def test_get_visitor_analytics_by_id_db_error(self, mock_db_module):
-        mock_db_module.fetch_visitor_stats = AsyncMock(side_effect=Exception("DB error"))
-
-        from fastapi import HTTPException
-
-        from api.controllers.visitor_analytics import get_visitor_analytics_by_id
-
-        with pytest.raises(HTTPException) as exc_info:
-            await get_visitor_analytics_by_id(visitor_id="1.2.3.4")
-
-        assert exc_info.value.status_code == 500
-
-    @pytest.mark.asyncio
-    async def test_get_visitor_analytics_value_error(self, mock_db_module):
-        mock_db_module.fetch_visitor_stats = AsyncMock(side_effect=ValueError("Invalid date"))
-
-        from fastapi import HTTPException
-
-        from api.controllers.visitor_analytics import get_visitor_analytics
-
-        with pytest.raises(HTTPException) as exc_info:
-            await get_visitor_analytics()
-
-        assert exc_info.value.status_code == 400
-
-    @pytest.mark.asyncio
-    async def test_get_visitor_analytics_summary_value_error(self, mock_db_module):
-        mock_db_module.get_visitor_analytics_summary = AsyncMock(
-            side_effect=ValueError("Invalid date")
-        )
-
-        from fastapi import HTTPException
-
-        from api.controllers.visitor_analytics import get_visitor_analytics_summary
-
-        with pytest.raises(HTTPException) as exc_info:
-            await get_visitor_analytics_summary(start_date=None, end_date=None)
-
-        assert exc_info.value.status_code == 400
-
-    @pytest.mark.asyncio
-    async def test_get_visitor_analytics_by_id_value_error(self, mock_db_module):
-        mock_db_module.fetch_visitor_stats = AsyncMock(side_effect=ValueError("Invalid date"))
-
-        from fastapi import HTTPException
-
-        from api.controllers.visitor_analytics import get_visitor_analytics_by_id
-
-        with pytest.raises(HTTPException) as exc_info:
-            await get_visitor_analytics_by_id(visitor_id="1.2.3.4")
-
-        assert exc_info.value.status_code == 400
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "/visitor-analytics?start_date=nope",
+            "/visitor-analytics?end_date=nope",
+            "/visitor-analytics/summary?start_date=nope",
+            "/visitor-analytics/abc?end_date=nope",
+            "/events?before=nope",
+            "/chat/general/history?before=nope",
+            "/clicks/analytics?start_date=nope",
+        ],
+    )
+    def test_invalid_dates_return_422(self, client, path):
+        assert client.get(path).status_code == 422
 
 
 class TestRunBatchJobBranches:

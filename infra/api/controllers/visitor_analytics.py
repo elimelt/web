@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
@@ -9,14 +10,44 @@ from api.models.analytics import (
     VisitorAnalyticsSummaryResponse,
 )
 
+from api.visitor_id import check_iso_date, visitor_id
+
 router = APIRouter(tags=["visitors"])
+logger = logging.getLogger("api.controllers.visitor_analytics")
+
+# Ids are keyed hashes of IPs, so they cannot be pushed down into SQL; when
+# filtering by id we scan this many recent rows and filter in Python.
+ID_FILTER_SCAN_LIMIT = 10000
+
+
+async def _fetch_public_stats(
+    vid: str | None,
+    start_date: str | None,
+    end_date: str | None,
+    limit: int,
+    is_recurring: bool | None = None,
+) -> list[dict[str, Any]]:
+    """Fetch visitor stats with the IP replaced by the pseudonymous id."""
+    rows = await db.fetch_visitor_stats(
+        start_date=start_date,
+        end_date=end_date,
+        is_recurring=is_recurring,
+        limit=ID_FILTER_SCAN_LIMIT if vid else limit,
+    )
+    out = []
+    for row in rows:
+        row = dict(row)
+        row["id"] = visitor_id(row.pop("visitor_ip"))
+        if vid is None or row["id"] == vid:
+            out.append(row)
+    return out[:limit]
 
 
 @router.get("/visitor-analytics", response_model=VisitorAnalyticsResponse)
 async def get_visitor_analytics(
-    visitor_ip: str | None = Query(
+    visitor_id_filter: str | None = Query(
         None,
-        description="Filter by specific visitor IP address",
+        description="Filter by pseudonymous visitor id",
         alias="visitor_id",
     ),
     start_date: str | None = Query(
@@ -39,20 +70,18 @@ async def get_visitor_analytics(
         description="Maximum number of records to return",
     ),
 ) -> dict[str, Any]:
+    check_iso_date("start_date", start_date)
+    check_iso_date("end_date", end_date)
     try:
-        stats = await db.fetch_visitor_stats(
-            visitor_ip=visitor_ip,
-            start_date=start_date,
-            end_date=end_date,
-            is_recurring=recurring_only,
-            limit=limit,
+        stats = await _fetch_public_stats(
+            visitor_id_filter, start_date, end_date, limit, recurring_only
         )
 
         return {
             "visitors": stats,
             "count": len(stats),
             "filters": {
-                "visitor_id": visitor_ip,
+                "visitor_id": visitor_id_filter,
                 "start_date": start_date,
                 "end_date": end_date,
                 "segment": (
@@ -63,12 +92,9 @@ async def get_visitor_analytics(
                 "limit": limit,
             },
         }
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid date format: {e}") from e
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to fetch visitor analytics: {e}"
-        ) from e
+        logger.exception("Failed to fetch visitor analytics")
+        raise HTTPException(status_code=500, detail="Failed to fetch visitor analytics") from e
 
 
 @router.get("/visitor-analytics/summary", response_model=VisitorAnalyticsSummaryResponse)
@@ -82,6 +108,8 @@ async def get_visitor_analytics_summary(
         description="Filter by end date (ISO8601 format)",
     ),
 ) -> dict[str, Any]:
+    check_iso_date("start_date", start_date)
+    check_iso_date("end_date", end_date)
     try:
         summary = await db.get_visitor_analytics_summary(
             start_date=start_date,
@@ -95,12 +123,9 @@ async def get_visitor_analytics_summary(
                 "end_date": end_date,
             },
         }
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid date format: {e}") from e
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to fetch analytics summary: {e}"
-        ) from e
+        logger.exception("Failed to fetch analytics summary")
+        raise HTTPException(status_code=500, detail="Failed to fetch analytics summary") from e
 
 
 @router.get("/visitor-analytics/{visitor_id}", response_model=VisitorAnalyticsByIdResponse)
@@ -110,13 +135,10 @@ async def get_visitor_analytics_by_id(
     end_date: str | None = Query(None, description="Filter by end date (ISO8601)"),
     limit: int = Query(100, ge=1, le=1000),
 ) -> dict[str, Any]:
+    check_iso_date("start_date", start_date)
+    check_iso_date("end_date", end_date)
     try:
-        stats = await db.fetch_visitor_stats(
-            visitor_ip=visitor_id,
-            start_date=start_date,
-            end_date=end_date,
-            limit=limit,
-        )
+        stats = await _fetch_public_stats(visitor_id, start_date, end_date, limit)
 
         if not stats:
             return {
@@ -131,9 +153,6 @@ async def get_visitor_analytics_by_id(
             "records": stats,
             "count": len(stats),
         }
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid date format: {e}") from e
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to fetch visitor analytics: {e}"
-        ) from e
+        logger.exception("Failed to fetch visitor analytics")
+        raise HTTPException(status_code=500, detail="Failed to fetch visitor analytics") from e

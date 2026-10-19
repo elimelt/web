@@ -15,7 +15,7 @@ class Location(BaseModel):
 class Visitor(BaseModel):
     """Active visitor information."""
 
-    ip: str
+    id: str
     location: Location
     connected_at: str
 
@@ -23,7 +23,7 @@ class Visitor(BaseModel):
 class VisitRecord(BaseModel):
     """Record of a recent visit from the visit log."""
 
-    ip: str
+    id: str
     location: Location
     timestamp: str
 

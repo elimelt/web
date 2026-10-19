@@ -179,6 +179,14 @@ class NotesSyncSettings(BaseSettings):
     github_token: str | None = Field(default=None, alias="github_token")
 
 
+class VisitorIdSettings(BaseSettings):
+    """Pseudonymous visitor id configuration."""
+
+    model_config = SettingsConfigDict(extra="ignore")
+
+    secret: str = Field(default="", alias="visitor_id_secret")
+
+
 class Settings:
     """Main application settings combining all configuration sections.
 
@@ -200,6 +208,7 @@ class Settings:
         self.sandbox = SandboxSettings()
         self.geoip = GeoIPSettings()
         self.notes_sync = NotesSyncSettings()
+        self.visitor_id = VisitorIdSettings()
 
 
 @lru_cache

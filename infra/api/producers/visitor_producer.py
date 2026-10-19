@@ -7,6 +7,7 @@ import redis.asyncio as redis
 
 from api import db
 from api.bus import EventBus
+from api.visitor_id import public_visitor, visitor_id
 
 
 def get_location(geoip_reader: geoip2.database.Reader | None, ip: str) -> dict[str, Any]:
@@ -33,24 +34,25 @@ async def join_visitor(
     visitor_key: str,
 ) -> dict[str, Any]:
     location = get_location(geoip_reader, client_ip)
-    visitor_data = {
+    # Raw IPs stay internal (DB events feed the analytics batch job); Redis and
+    # the event bus only carry the public, pseudonymous form.
+    internal_data = {
         "ip": client_ip,
         "location": location,
         "connected_at": datetime.now(UTC).isoformat(),
     }
+    visitor_data = public_visitor(internal_data)
     await redis_client.setex(visitor_key, 30, json.dumps(visitor_data))
-    visit_entry = {
-        "ip": client_ip,
-        "location": location,
-        "timestamp": datetime.now(UTC).isoformat(),
-    }
+    visit_entry = public_visitor(
+        {"ip": client_ip, "location": location, "timestamp": datetime.now(UTC).isoformat()}
+    )
     await redis_client.lpush("visit_log", json.dumps(visit_entry))
     await redis_client.ltrim("visit_log", 0, 999)
     if event_bus:
         await event_bus.publish({"type": "join", "visitor": visitor_data})
     try:
         await db.insert_event(
-            "visitor_updates", "join", {"visitor": visitor_data}, visitor_data["connected_at"]
+            "visitor_updates", "join", {"visitor": internal_data}, internal_data["connected_at"]
         )
     except Exception:
         pass
@@ -66,7 +68,7 @@ async def leave_visitor(
 ) -> None:
     await redis_client.delete(visitor_key)
     if event_bus:
-        await event_bus.publish({"type": "leave", "ip": client_ip})
+        await event_bus.publish({"type": "leave", "id": visitor_id(client_ip)})
     try:
         from datetime import datetime
 

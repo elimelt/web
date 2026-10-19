@@ -233,7 +233,7 @@ async def get_embedding_status() -> dict[str, Any]:
         }
     except Exception as e:
         logger.exception(f"Error getting embedding stats: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/embeddings/generate")
@@ -284,4 +284,4 @@ async def generate_embeddings(
         raise
     except Exception as e:
         logger.exception(f"Error generating embeddings: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
