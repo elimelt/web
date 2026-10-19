@@ -84,6 +84,16 @@
 }
 
 :80 {
+	# Access log for every host, kept inside the caddy_data volume:
+	#   docker exec caddy tail -f /data/access.log
+	log {
+		output file /data/access.log {
+			roll_size 20MiB
+			roll_keep 5
+		}
+		format json
+	}
+
 	# ============ PUBLIC SERVICES ============
 	# status.elimelt.com → Uptime Kuma
 	@status host status.elimelt.com
