@@ -1,0 +1,188 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+QUARTZ_DIR="${QUARTZ_DIR:-$ROOT/.quartz}"
+QUARTZ_REPOSITORY="${QUARTZ_REPOSITORY:-https://github.com/jackyzha0/quartz.git}"
+QUARTZ_REF="${QUARTZ_REF:-v5}"
+
+usage() {
+  cat <<'EOF'
+Usage: scripts/quartz.sh <build|serve|sync>
+
+Environment overrides:
+  QUARTZ_DIR         Cached Quartz checkout (default: .quartz)
+  QUARTZ_REPOSITORY  Quartz Git repository
+  QUARTZ_REF         Quartz branch/tag/commit (default: v5)
+EOF
+}
+
+publish_legacy_docs() {
+  if [[ -d "$ROOT/public/static/docs" ]]; then
+    rm -rf "$ROOT/public/docs"
+    cp -R "$ROOT/public/static/docs" "$ROOT/public/docs"
+  fi
+}
+
+publish_standalone_routes() {
+  if [[ -d "$ROOT/quartz-site/routes" ]]; then
+    cp -R "$ROOT/quartz-site/routes/." "$ROOT/public/"
+  fi
+}
+
+bootstrap() {
+  local ref_stamp="$QUARTZ_DIR/.notes-quartz-ref"
+  if [[ ! -d "$QUARTZ_DIR/.git" ]] || [[ ! -f "$ref_stamp" ]] || [[ "$(<"$ref_stamp")" != "$QUARTZ_REF" ]]; then
+    rm -rf "$QUARTZ_DIR"
+    git clone --depth 1 --branch "$QUARTZ_REF" "$QUARTZ_REPOSITORY" "$QUARTZ_DIR"
+    printf '%s\n' "$QUARTZ_REF" > "$ref_stamp"
+  fi
+
+  if [[ ! -d "$QUARTZ_DIR/node_modules" ]]; then
+    npm --prefix "$QUARTZ_DIR" ci
+  fi
+}
+
+sync_site() {
+  rm -rf "$QUARTZ_DIR/content"
+  cp -R "$ROOT/content" "$QUARTZ_DIR/content"
+  python3 "$ROOT/scripts/prepare_content.py" "$QUARTZ_DIR/content"
+  cp "$ROOT/quartz.config.yaml" "$QUARTZ_DIR/quartz.config.yaml"
+  if [[ -f "$ROOT/quartz.lock.json" ]]; then
+    cp "$ROOT/quartz.lock.json" "$QUARTZ_DIR/quartz.lock.json"
+    python3 "$ROOT/scripts/materialize_quartz_lock.py" "$QUARTZ_DIR/quartz.lock.json" "$QUARTZ_DIR"
+  fi
+  cp "$ROOT/quartz-site/custom.scss" "$QUARTZ_DIR/quartz/styles/custom.scss"
+  cp "$ROOT/quartz-site/overrides/Head.tsx" "$QUARTZ_DIR/quartz/components/Head.tsx"
+  cp "$ROOT/quartz-site/overrides/DefaultFrame.tsx" \
+    "$QUARTZ_DIR/quartz/components/frames/DefaultFrame.tsx"
+  mkdir -p "$QUARTZ_DIR/quartz/static"
+  cp -R "$ROOT/quartz-site/static/." "$QUARTZ_DIR/quartz/static/"
+  if [[ -d "$ROOT/docs" ]]; then
+    rm -rf "$QUARTZ_DIR/quartz/static/docs"
+    cp -R "$ROOT/docs" "$QUARTZ_DIR/quartz/static/docs"
+  fi
+}
+
+enable_style_debug_panel() {
+  python3 "$ROOT/scripts/enable_style_debug_panel.py" "$QUARTZ_DIR/quartz.config.yaml"
+}
+
+install_plugins() {
+  (cd "$QUARTZ_DIR" && npx quartz plugin install --concurrency 2)
+  patch_mermaid_defaults
+  patch_graph_loading
+  patch_google_font_fetch
+  patch_component_css
+  patch_search_loading
+}
+
+sync_plugins() {
+  (cd "$QUARTZ_DIR" && npx quartz plugin install --from-config --concurrency 2)
+  cp "$QUARTZ_DIR/quartz.lock.json" "$ROOT/quartz.lock.json"
+  python3 "$ROOT/scripts/materialize_quartz_lock.py" \
+    "$ROOT/quartz.lock.json" "$QUARTZ_DIR" --portable
+  patch_mermaid_defaults
+  patch_graph_loading
+  patch_google_font_fetch
+  patch_component_css
+  patch_search_loading
+}
+
+# Mermaid only wraps sequence-diagram note/message text when the client
+# config sets sequence.wrap, and the obsidian-flavored-markdown plugin does
+# not expose mermaid options. It also renders before webfonts finish loading,
+# so box sizes get measured with a fallback font and the real (wider) code
+# font overflows them. Inject both fixes into the bundled client script after
+# every plugin install (the checkout is disposable).
+patch_mermaid_defaults() {
+  local ofm_dist="$QUARTZ_DIR/node_modules/@quartz-community/obsidian-flavored-markdown/dist/index.js"
+  if [[ ! -f "$ofm_dist" ]]; then
+    return
+  fi
+  if ! grep -q 'sequence:{wrap:!0}' "$ofm_dist"; then
+    sed -i.bak 's/initialize({startOnLoad:!1,/initialize({startOnLoad:!1,sequence:{wrap:!0},/' "$ofm_dist"
+    rm -f "$ofm_dist.bak"
+  fi
+  if ! grep -q 'document\.fonts\.ready' "$ofm_dist"; then
+    sed -i.bak 's/await t.run({nodes:e})/await document.fonts.ready,await t.run({nodes:e})/' "$ofm_dist"
+    rm -f "$ofm_dist.bak"
+  fi
+  if ! grep -q 'sequence:{wrap:!0}' "$ofm_dist" || ! grep -q 'document\.fonts\.ready' "$ofm_dist"; then
+    echo "warning: mermaid default patch did not apply cleanly to $ofm_dist" >&2
+  fi
+}
+
+# The graph component is desktop-only in this site layout, but the upstream
+# bundle immediately downloads D3 and the unminified Pixi build on every page,
+# including mobile pages where the graph is hidden. Keep the graph intact on
+# desktop while moving its large libraries off the initial render path.
+patch_graph_loading() {
+  python3 "$ROOT/scripts/patch_graph_loading.py" \
+    "$QUARTZ_DIR/node_modules/@quartz-community/graph/dist/index.js" \
+    "$QUARTZ_DIR/node_modules/@quartz-community/graph/dist/components/index.js"
+}
+
+# Google Fonts returns large TrueType files to Quartz's default server-side
+# fetch. Request the same CSS as a modern browser so the built-in self-hosting
+# path emits unicode-subsetted WOFF2 files instead.
+patch_google_font_fetch() {
+  python3 "$ROOT/scripts/patch_google_font_fetch.py" \
+    "$QUARTZ_DIR/quartz/plugins/emitters/componentResources.ts"
+}
+
+# Quartz v5 emits one render-blocking stylesheet for every component. All of
+# those styles are global and present on every page, so fold them into the
+# existing hashed core stylesheet while preserving their registry order and
+# @layer/custom.scss cascade semantics.
+patch_component_css() {
+  python3 "$ROOT/scripts/patch_component_css.py" \
+    "$QUARTZ_DIR/quartz/plugins/emitters/componentResources.ts"
+}
+
+# Search's full-text index covers the complete content corpus. Build it when a
+# visitor opens Search rather than on every initial page navigation.
+patch_search_loading() {
+  python3 "$ROOT/scripts/patch_search_loading.py" \
+    "$QUARTZ_DIR/node_modules/@quartz-community/search/dist/index.js" \
+    "$QUARTZ_DIR/node_modules/@quartz-community/search/dist/components/index.js"
+}
+
+prepare_notebooks() {
+  python3 "$ROOT/scripts/render_notebooks.py" \
+    --cache-dir "$QUARTZ_DIR/.quartz-cache/notebooks"
+}
+
+command="${1:-}"
+case "$command" in
+  build)
+    bootstrap
+    prepare_notebooks
+    sync_site
+    install_plugins
+    (cd "$QUARTZ_DIR" && npx quartz build --output "$ROOT/public")
+    publish_standalone_routes
+    python3 "$ROOT/scripts/prepare_graph_index.py" "$ROOT/public/static/contentIndex.json"
+    python3 "$ROOT/scripts/validate_graph_index.py" "$ROOT/public/static/contentIndex.json"
+    publish_legacy_docs
+    python3 "$ROOT/scripts/validate_seo_output.py" "$ROOT/public"
+    ;;
+  serve)
+    bootstrap
+    prepare_notebooks
+    sync_site
+    enable_style_debug_panel
+    install_plugins
+    (cd "$QUARTZ_DIR" && npx quartz build --serve --port "${QUARTZ_PORT:-8080}")
+    ;;
+  sync)
+    bootstrap
+    prepare_notebooks
+    sync_site
+    sync_plugins
+    ;;
+  *)
+    usage >&2
+    exit 2
+    ;;
+esac

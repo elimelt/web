@@ -1,0 +1,217 @@
+---
+title: Deep Neural Networks for YouTube Recommendations
+category: Recommender Systems
+tags:
+  - recommender systems
+  - youtube
+  - retrieval
+  - ranking
+  - deep learning
+  - candidate generation
+  - ann
+date: 2026-07-31
+updated: 2026-10-06
+status: evergreen
+description: How the 2016 YouTube recommender paper uses sampled-softmax candidate generation, approximate nearest-neighbor retrieval, and watch-time ranking.
+authors:
+  - elimelt
+  - gpt-5.6-sol
+sources:
+  - title: Covington, Adams, and Sargin (2016), Deep Neural Networks for YouTube Recommendations
+    url: https://research.google.com/pubs/archive/45530.pdf
+    type: paper
+---
+
+## Purpose
+
+This note explains the two-stage system in [Covington, Adams, and Sargin's 2016 paper](https://research.google.com/pubs/archive/45530.pdf). Candidate generation reduces millions of videos to hundreds through a sampled-softmax model served with approximate nearest-neighbor search. A separate neural ranker then uses hundreds of features and a watch-time-weighted objective to order those candidates. The design is a historical production case study, not a description of YouTube's current architecture.
+
+| Stage | Input scale | Model and objective | Serving output |
+| --- | ---: | --- | --- |
+| Candidate generation | Millions of videos | Feed-forward network trained to predict a future watch with sampled softmax | Hundreds of candidates retrieved by approximate nearest-neighbor search |
+| Ranking | Hundreds of candidates | Feed-forward network with rich user-video features and watch-time-weighted logistic loss | A few dozen ordered recommendations |
+
+## Citation
+
+- [Deep Neural Networks for YouTube Recommendations (Covington, Adams, and Sargin, RecSys 2016)](https://research.google.com/pubs/archive/45530.pdf)
+
+## The Setup
+
+YouTube has a huge corpus and a tight latency budget. The paper frames recommendation as two distinct problems:
+
+1. **Candidate generation** reduces the corpus from millions of videos to a few hundred.
+2. **Ranking** scores those candidates with a richer feature set and orders them for display.
+
+That split is the backbone of modern recommenders. You cannot afford the best model on the full catalog, so you use a cheaper model to decide where the expensive model is even allowed to look.
+
+```mermaid
+flowchart TD
+    C["Video corpus<br/>millions of videos"] -->|"sampled softmax training,<br/>ANN serving"| CG["Candidate generation<br/>coarse personalization"]
+    OS["Other candidate sources"] --> RK
+    CG -->|"hundreds of candidates"| RK["Ranking<br/>hundreds of features,<br/>watch-time-weighted logistic regression"]
+    RK -->|"dozens shown"| UI["Homepage recommendations"]
+
+    style C fill:#e3f2fd,stroke:#1565c0
+    style UI fill:#e8f5e9,stroke:#2e7d32
+```
+
+> [!quote] Why ranking gets richer features
+> "During ranking, we have access to many more features describing the video and the user's relationship to the video because only a few hundred videos are being scored rather than the millions scored in candidate generation."
+> — [Covington, Adams, and Sargin (2016)](https://research.google.com/pubs/archive/45530.pdf), section 4
+
+## Candidate Generation
+
+The candidate generator is trained as a multiclass classification problem over the video catalog. Given a user context, predict the next video the user will watch. At serving time, the softmax itself is not used directly. Instead, the trained model produces embeddings and an approximate nearest-neighbor lookup returns the top candidates.
+
+The paper is explicit about the computational reason. Full scoring over millions of items would blow the serving budget, so the model is trained with sampled softmax and served through nearest-neighbor search in dot-product space.
+
+### Candidate Model Architecture
+
+The candidate model is a feed-forward network built around learned ID embeddings.
+
+- video watches are represented as a variable-length bag of watched video IDs
+- searches are represented as a variable-length bag of unigram and bigram query tokens
+- each sparse ID space gets an embedding table
+- multivalent histories are averaged into fixed-width dense vectors before entering the MLP
+- demographic and device features are concatenated as additional dense inputs
+
+The paper's main experiment uses:
+
+- a vocabulary of **1M videos**
+- a vocabulary of **1M search tokens**
+- **256-dimensional** embeddings
+- a maximum bag size of **50 recent watches** and **50 recent searches**
+- a softmax over the same **1M** video classes, with output dimension **256**
+
+The hidden layers follow a tower pattern where width shrinks with depth:
+
+- depth 0: linear projection to the 256-dimensional softmax space
+- depth 1: `256 ReLU`
+- depth 2: `512 ReLU -> 256 ReLU`
+- depth 3: `1024 ReLU -> 512 ReLU -> 256 ReLU`
+- depth 4: `2048 ReLU -> 1024 ReLU -> 512 ReLU -> 256 ReLU`
+
+This is more specific than "a neural retriever." It is basically a bag-of-IDs encoder plus an MLP, trained end to end. The averaging step matters because it means the model is order-insensitive inside the watched-history bag. It captures coarse preference better than local sequence structure.
+
+### Training and Serving Path
+
+The training and serving story is part of the architecture, not just implementation detail.
+
+- During training, they use **sampled softmax** with **several thousand sampled negatives** per example.
+- They report this gives **more than 100x speedup** relative to a full softmax over the catalog.
+- At serving time, they discard the calibrated softmax view and do **approximate nearest-neighbor search in dot-product space**.
+
+That last point is the essential retrieval trick. The model is trained like an extreme multiclass classifier, but deployed like an embedding retriever.
+
+The user side is built from several signals:
+
+- watched video IDs
+- search tokens
+- demographics and geography
+- coarse context
+
+Those sparse features are embedded and averaged into fixed-width vectors before passing through a feed-forward network. That is a simple move, though it has a real consequence: the model sees a bag of interactions, not a richly ordered history.
+
+## Why the Surrogate Task Matters
+
+The paper spends unusual effort on label construction. That is the part worth remembering.
+
+The homepage problem is not naturally labeled. You only observe what users watched after exposure to a page that was already generated by some older policy. So the authors choose a surrogate objective: predict a future watch, then transfer that objective to homepage recommendation.
+
+They also warn that feeding too much information into the model can make it solve the wrong problem. If the current search query or page structure leaks the answer too directly, the classifier learns artifacts of the UI rather than the thing you care about. The paper gives a concrete example with search traffic: reproducing the user's last search page makes the surrogate metric look easier, but it performs poorly as a homepage recommender.
+
+That is the broader lesson. In recommenders, the cleanest supervised target is often not the one that transfers best online.
+
+## Freshness and Example Age
+
+The candidate model includes **example age**, roughly the gap between the training-window endpoint and the interaction time:
+
+$$
+\text{example age} = t_{\max} - t_N
+$$
+
+This fixes an otherwise built-in bias toward older videos. Without such a feature, the model tends to predict average popularity over the training window, which underrepresents recently uploaded items whose popularity is still moving.
+
+This is a small design choice with a large effect. Time-dependent popularity is not noise around the signal. It is part of the signal.
+
+## Ranking for Watch Time
+
+The ranking model is a separate deep network with a much richer feature set. The paper says that in practice it consumes **hundreds of features**, including:
+
+- impression video ID
+- watched video IDs
+- time since last watch
+- counts of prior impressions
+- normalized continuous features
+
+### Ranking Model Architecture
+
+The ranking network reuses the same broad recipe as candidate generation, though with a richer feature table because it only scores a few hundred candidates rather than millions.
+
+- categorical features are split into **univalent** features such as the impression video ID and **multivalent** features such as the bag of recently watched videos
+- each ID space gets its own learned embedding table
+- embedding dimension grows roughly with the **logarithm of vocabulary size**
+- multivalent categorical features are **averaged** before entering the network
+- features that share the same ID space also **share embeddings**
+
+That shared-embedding design is easy to miss, though it matters. The same global video-ID embedding table is reused across several features, such as:
+
+- the impression video ID
+- the last watched video ID
+- a seed video ID from an upstream candidate source
+
+The embeddings are shared, but the resulting feature channels are still fed separately so the upper layers can learn different roles for the same underlying ID space.
+
+The continuous side also gets special treatment:
+
+- each continuous feature is normalized to approximately uniform mass on $[0,1)$ using its empirical cumulative distribution
+- the model consumes not just $\tilde{x}$, but also $\tilde{x}^2$ and $\sqrt{\tilde{x}}$
+
+That is a small architecture detail with real effect. The paper reports a **0.2%** loss increase when those powers are removed from the best ranking model.
+
+For hidden layers, the best configuration in Table 1 is:
+
+- `1024 ReLU -> 512 ReLU -> 256 ReLU`
+
+The output layer is trained with logistic loss, then exponentiated at inference to produce odds that approximate expected watch time.
+
+The target here is not raw click probability. The system wants expected watch time. To get that, positive examples are weighted by watch time and negatives get unit weight. This turns logistic regression into a watch-time-sensitive classifier whose learned odds approximate expected watch time closely enough to optimize the real product metric better than CTR prediction alone.
+
+That choice matters because CTR can be gamed by short, low-value clicks. A recommender that optimizes CTR too directly will often drift toward clicky junk.
+
+> [!quote] The paper's argument against CTR
+> "Ranking by click-through rate often promotes deceptive videos that the user does not complete ('clickbait') whereas watch time better captures engagement."
+> — [Covington, Adams, and Sargin (2016)](https://research.google.com/pubs/archive/45530.pdf), section 4
+
+## What the Experiments Say
+
+The ranking experiments are not subtle. Hidden layers help a lot.
+
+On the paper's next-day holdout metric, the no-hidden-layer baseline has **41.6%** weighted per-user loss, while the best three-layer stack in Table 1 reaches **34.6%**. Equal weighting of positive and negative examples makes the loss much worse, by **4.1%** in the authors' comparison.
+
+The candidate-generation experiments tell a similar story. The depth-zero model, which the authors describe as effectively a linear factorization scheme, behaves much more like the older MF-style systems. Once they add search features, example age, and deeper ReLU stacks, holdout MAP rises materially. Their conclusion is that depth is not just adding capacity in the abstract. It lets the model use heterogeneous features by learning interactions between them.
+
+The main inference is simple:
+
+- depth helps because the feature interactions are not close to linear
+- watch-time weighting helps because the business objective is not simple CTR
+
+## What I Would Keep in My Head
+
+- Separate retrieval from ranking as early as possible in the design.
+- In paper notes, architecture details belong in the note, not just the high-level takeaway.
+- Treat the training label as a systems decision, not just a statistics decision.
+- Add freshness features explicitly when the catalog evolves fast.
+- Optimize a downstream value signal like watch time when clicks are a poor proxy.
+- Use simple serving paths when the catalog is huge. Train with softmax if useful, but serve through ANN search if that is what the latency budget allows.
+
+## Related Notes
+
+- [[ml/recommender-systems/retrieval-and-ranking|Retrieval and Ranking]]
+- [[ml/recommender-systems/two-tower-retrieval|Two-Tower Retrieval]]
+- [[ml/recommender-systems/wide-and-deep|Wide and Deep]]
+- [[ml/recommender-systems/predicting-clicks-on-ads-at-facebook|Practical Lessons from Predicting Clicks on Ads at Facebook]]
+
+## Sources
+
+- [Covington, Adams, and Sargin (2016), Deep Neural Networks for YouTube Recommendations](https://research.google.com/pubs/archive/45530.pdf)

@@ -1,0 +1,60 @@
+---
+title: SWECC Leadership Applications 2025-2026
+category: Thoughts
+tags:
+  - swecc
+  - leadership
+  - university-of-washington
+  - student-organizations
+date: 2025-03-05
+updated: 2026-07-31
+status: needs-review
+archive: true
+description: Archived announcement for the 2025-2026 Software Engineering Career Club officer applications.
+sources:
+  - https://forms.gle/1JaS7iSeJK6CFW329
+---
+
+## Purpose
+
+Keep a record of the 2025-2026 SWECC officer application announcement and timeline.
+
+## 2025-2026 Officer Applications
+
+Are you passionate about software engineering and helping others succeed in their careers? Do you want to be part of a team that organizes events/workshops, builds software for students, and facilitates community within the University of Washington? Apply to be an officer for the Software Engineering Career Club!
+
+### Timeline
+
+| Date | Stage |
+|------|-------|
+| March 21st | Applications Open |
+| April 21st | Applications Close |
+| April 22nd - May 8th | Interviews |
+| May 10th | Offers Extended |
+| May 14th | Officer Team Announced |
+
+### Roles
+
+- **President:** Leads the officer team, determines the club's direction
+- **Events:** Organizes club events and workshops
+- **External Outreach:** Manages relationships with guests, companies and other student organizations
+- **Marketing:** Manages the club's social media and marketing efforts
+- **Mentorship Programs:** Manages the Student Mentorship or Professional Mentorship Program
+- **Software Engineering:** Builds on top of and maintains the club's various software projects
+
+No experience required for any of the roles!
+
+### Application
+
+[Apply here](https://forms.gle/1JaS7iSeJK6CFW329)
+
+### Interview Process
+
+For those applying to be an officer, there is only one 30-minute interview. When answering questions, you'll want to highlight what you specifically want to do in the role you're applying for.
+
+For those applying for president, there will be two interview rounds. The first will be a 20-minute interview with the current president, and the second will be a 30-minute interview with a panel of current officers.
+
+## Related notes
+
+- [[reference/slides/getting-a-return-offer|How to Get a Return Offer]]
+- [[thoughts/engineering/onboarding|Onboarding]]
