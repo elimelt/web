@@ -35,6 +35,11 @@ def _key() -> bytes:
     return _fallback_key
 
 
+def hmac_key() -> bytes:
+    """Key used for visitor ids (needed to match ids inside SQL)."""
+    return _key()
+
+
 def visitor_id(ip: str) -> str:
     """Stable pseudonymous id (16 hex chars) for an IP address."""
     return hmac.new(_key(), ip.encode(), hashlib.sha256).hexdigest()[:16]

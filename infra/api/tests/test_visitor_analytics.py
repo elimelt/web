@@ -661,3 +661,77 @@ class TestCLIMain:
 
                 main()
                 mock_job.assert_called_once_with(days=1, dry_run=False)
+
+
+class TestVisitorIdLookup:
+    @pytest.fixture
+    def mock_db_module(self):
+        with patch("api.controllers.visitor_analytics.db") as mock:
+            yield mock
+
+    def test_id_is_pushed_down_to_sql(self, client, mock_db_module):
+        from api.visitor_id import hmac_key
+
+        vid = visitor_id("5.6.7.8")
+        mock_db_module.fetch_visitor_stats = AsyncMock(return_value=[_row("5.6.7.8")])
+        body = client.get(f"/visitor-analytics/{vid}").json()
+        kwargs = mock_db_module.fetch_visitor_stats.call_args.kwargs
+        assert kwargs["visitor_id"] == vid
+        assert kwargs["visitor_key"] == hmac_key()
+        assert kwargs["limit"] == 100  # no 10k scan
+        assert body["count"] == 1
+
+    def test_other_visitors_never_returned(self, client, mock_db_module):
+        vid = visitor_id("5.6.7.8")
+        mock_db_module.fetch_visitor_stats = AsyncMock(
+            return_value=[_row("1.2.3.4"), _row("5.6.7.8")]
+        )
+        body = client.get(f"/visitor-analytics?visitor_id={vid}").json()
+        assert [v["id"] for v in body["visitors"]] == [vid]
+
+    def test_falls_back_to_python_scan_without_pgcrypto(self, client, mock_db_module):
+        from psycopg.errors import UndefinedFunction
+
+        vid = visitor_id("5.6.7.8")
+        mock_db_module.fetch_visitor_stats = AsyncMock(
+            side_effect=[UndefinedFunction("hmac"), [_row("1.2.3.4"), _row("5.6.7.8")]]
+        )
+        body = client.get(f"/visitor-analytics/{vid}").json()
+        assert body["count"] == 1
+        assert body["records"][0]["id"] == vid
+        fallback = mock_db_module.fetch_visitor_stats.call_args_list[1].kwargs
+        assert "visitor_id" not in fallback
+        assert fallback["limit"] == 10000
+
+
+class TestFetchVisitorStatsSql:
+    @pytest.mark.asyncio
+    async def test_query_uses_hmac_clause_with_bound_params(self):
+        from unittest.mock import MagicMock
+
+        from api.db import analytics
+
+        async def _empty():
+            return
+            yield
+
+        conn = MagicMock()
+        conn.execute = AsyncMock(return_value=_empty())
+        cm = MagicMock()
+        cm.__aenter__ = AsyncMock(return_value=conn)
+        cm.__aexit__ = AsyncMock(return_value=None)
+        with patch.object(analytics, "_get_connection", return_value=cm):
+            await analytics.fetch_visitor_stats(
+                visitor_id="abc123", visitor_key=b"\x00key", limit=5
+            )
+        sql, params = conn.execute.call_args.args
+        assert "hmac(" in sql and "'sha256'" in sql
+        assert "abc123" not in sql  # bound, not interpolated
+        assert params == (b"\x00key", "abc123", 5)
+
+    @pytest.mark.asyncio
+    async def test_visitor_id_requires_key(self):
+        from api.db import analytics
+
+        with pytest.raises(ValueError):
+            await analytics.fetch_visitor_stats(visitor_id="abc")

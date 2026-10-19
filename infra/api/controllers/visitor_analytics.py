@@ -2,6 +2,7 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
+from psycopg.errors import UndefinedFunction
 
 from api import db
 from api.models.analytics import (
@@ -10,14 +11,23 @@ from api.models.analytics import (
     VisitorAnalyticsSummaryResponse,
 )
 
-from api.visitor_id import check_iso_date, visitor_id
+from api.visitor_id import check_iso_date, hmac_key, visitor_id
 
 router = APIRouter(tags=["visitors"])
 logger = logging.getLogger("api.controllers.visitor_analytics")
 
-# Ids are keyed hashes of IPs, so they cannot be pushed down into SQL; when
-# filtering by id we scan this many recent rows and filter in Python.
+# Fallback only (pgcrypto missing): scan this many recent rows, filter in Python.
 ID_FILTER_SCAN_LIMIT = 10000
+
+
+def _public_rows(rows: list[dict[str, Any]], vid: str | None) -> list[dict[str, Any]]:
+    out = []
+    for row in rows:
+        row = dict(row)
+        row["id"] = visitor_id(row.pop("visitor_ip"))
+        if vid is None or row["id"] == vid:
+            out.append(row)
+    return out
 
 
 async def _fetch_public_stats(
@@ -28,19 +38,19 @@ async def _fetch_public_stats(
     is_recurring: bool | None = None,
 ) -> list[dict[str, Any]]:
     """Fetch visitor stats with the IP replaced by the pseudonymous id."""
-    rows = await db.fetch_visitor_stats(
-        start_date=start_date,
-        end_date=end_date,
-        is_recurring=is_recurring,
-        limit=ID_FILTER_SCAN_LIMIT if vid else limit,
-    )
-    out = []
-    for row in rows:
-        row = dict(row)
-        row["id"] = visitor_id(row.pop("visitor_ip"))
-        if vid is None or row["id"] == vid:
-            out.append(row)
-    return out[:limit]
+    common = {"start_date": start_date, "end_date": end_date, "is_recurring": is_recurring}
+    if vid is None:
+        return _public_rows(await db.fetch_visitor_stats(limit=limit, **common), None)
+    try:
+        rows = await db.fetch_visitor_stats(
+            limit=limit, visitor_id=vid, visitor_key=hmac_key(), **common
+        )
+        # Re-check in Python as defense in depth; the SQL already filtered.
+        return _public_rows(rows, vid)[:limit]
+    except UndefinedFunction:
+        logger.warning("pgcrypto unavailable; scanning visitor stats in Python", exc_info=True)
+    rows = await db.fetch_visitor_stats(limit=ID_FILTER_SCAN_LIMIT, **common)
+    return _public_rows(rows, vid)[:limit]
 
 
 @router.get("/visitor-analytics", response_model=VisitorAnalyticsResponse)
