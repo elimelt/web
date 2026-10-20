@@ -311,6 +311,38 @@ resource "cloudflare_record" "tech_sex_www" {
 }
 
 # =============================================================================
+# CAA Records
+# =============================================================================
+# Only these CAs may issue for our zones. letsencrypt.org covers Caddy's ACME
+# certs; pki.goog and ssl.com are the other CAs Cloudflare uses for edge certs.
+
+locals {
+  caa_issuers = ["letsencrypt.org", "pki.goog", "ssl.com"]
+  caa_zones = {
+    main     = data.cloudflare_zone.main.id
+    tech_sex = data.cloudflare_zone.tech_sex.id
+  }
+  caa_records = {
+    for pair in setproduct(keys(local.caa_zones), local.caa_issuers) :
+    "${pair[0]}-${pair[1]}" => { zone = pair[0], issuer = pair[1] }
+  }
+}
+
+resource "cloudflare_record" "caa" {
+  for_each = local.caa_records
+  zone_id  = local.caa_zones[each.value.zone]
+  name     = "@"
+  type     = "CAA"
+  comment  = "Restrict certificate issuance"
+
+  data {
+    flags = 0
+    tag   = "issue"
+    value = each.value.issuer
+  }
+}
+
+# =============================================================================
 # Rate Limiting
 # =============================================================================
 # NOTE: Rate limiting requires additional API token permissions.
