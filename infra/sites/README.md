@@ -15,8 +15,15 @@ atomically repoints `$SITES_PATH/<site>/current`. Caddy mounts `$SITES_PATH`
 (default `/home/elimelt/sites`) read-only at `/srv/sites`. The last three
 releases are kept.
 
+Cloudflare caches both hosts at the edge for 4 hours (`cloudflare_ruleset.cache`
+in `infra/terraform/main.tf`), so they stay up through short homelab outages.
+After each publish, `purge-cache.sh` purges that hostname, so changes show up
+immediately. Purge by hand with
+`CLOUDFLARE_ENV_FILE=infra/.env infra/sites/purge-cache.sh <host>`, for example
+after a rollback.
+
 Roll back by repointing `current` at an earlier release; Caddy picks it up on
-the next request:
+the next request (then purge the edge cache):
 
 ```bash
 cd /home/elimelt/sites/notes

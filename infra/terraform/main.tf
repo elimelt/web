@@ -336,3 +336,47 @@ output "tunnel_cname" {
   value       = "${var.tunnel_id}.cfargotunnel.com"
   description = "CNAME target for tunnel DNS records"
 }
+
+# =============================================================================
+# Edge caching for the static sites
+# =============================================================================
+
+# HTML isn't cached by default. Keep both sites at the edge for 4 hours so
+# short homelab outages don't take them down; publish-site.yml purges the
+# host after every deploy, so updates still appear immediately. Browsers keep
+# the origin's Cache-Control (10 minutes, immutable for /_astro/).
+resource "cloudflare_ruleset" "cache" {
+  zone_id = data.cloudflare_zone.main.id
+  name    = "Static site caching"
+  kind    = "zone"
+  phase   = "http_request_cache_settings"
+
+  rules {
+    description = "Cache elimelt.com and notes.elimelt.com at the edge"
+    expression  = "(http.host in {\"${var.domain}\" \"notes.${var.domain}\"})"
+    action      = "set_cache_settings"
+    enabled     = true
+
+    action_parameters {
+      cache = true
+
+      edge_ttl {
+        mode    = "override_origin"
+        default = 14400
+
+        # Don't pin missing pages or origin errors at the edge for hours.
+        status_code_ttl {
+          status_code_range {
+            from = 400
+            to   = 599
+          }
+          value = 60
+        }
+      }
+
+      browser_ttl {
+        mode = "respect_origin"
+      }
+    }
+  }
+}

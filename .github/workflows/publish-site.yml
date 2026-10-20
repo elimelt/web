@@ -47,3 +47,9 @@ jobs:
         run: |
           set -euo pipefail
           docker exec caddy wget -q -O /dev/null --header "Host: ${SITE_HOST}" http://127.0.0.1/
+
+      # Both sites are cached at Cloudflare's edge for hours (infra/terraform/main.tf).
+      - name: Purge edge cache
+        env:
+          CLOUDFLARE_ENV_FILE: ${{ vars.BACKEND_DEPLOY_PATH || '/home/elimelt/repos/web-deploy' }}/infra/.env
+        run: infra/sites/purge-cache.sh "$SITE_HOST"
