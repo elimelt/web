@@ -12,7 +12,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certifi
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list && \
     apt-get update && \
     apt-get install -y --no-install-recommends docker-ce-cli && \
+    apt-get install -y --only-upgrade ca-certificates && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Node bundles its own root list; use the distro trust store, which picks up
+# CA distrusts (e.g. eMudhra, Oct 2026) as soon as ca-certificates updates.
+ENV NODE_OPTIONS=--use-openssl-ca
 
 RUN npm install -g @augmentcode/auggie @openai/codex@0.162.1
 

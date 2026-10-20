@@ -5,4 +5,5 @@ RUN xcaddy build v2.11.4 --with github.com/caddy-dns/cloudflare@v0.2.4
 RUN setcap -r /usr/bin/caddy
 
 FROM caddy:2.11.4
+RUN apk upgrade --no-cache ca-certificates
 COPY --from=builder /usr/bin/caddy /usr/bin/caddy
