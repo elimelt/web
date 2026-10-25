@@ -362,8 +362,8 @@ resource "cloudflare_record" "tech_sex_www" {
 locals {
   caa_issuers = ["letsencrypt.org", "pki.goog", "ssl.com"]
   caa_zones = {
-    main     = data.cloudflare_zone.main.id
-    tech_sex = data.cloudflare_zone.tech_sex.id
+    main     = data.cloudflare_zone.main
+    tech_sex = data.cloudflare_zone.tech_sex
   }
   caa_records = {
     for pair in setproduct(keys(local.caa_zones), local.caa_issuers) :
@@ -373,10 +373,12 @@ locals {
 
 resource "cloudflare_record" "caa" {
   for_each = local.caa_records
-  zone_id  = local.caa_zones[each.value.zone]
-  name     = "@"
-  type     = "CAA"
-  comment  = "Restrict certificate issuance"
+  zone_id  = local.caa_zones[each.value.zone].id
+  # The zone apex by its full name; Cloudflare stores "@" that way, so "@"
+  # here would force a replacement on every import.
+  name    = local.caa_zones[each.value.zone].name
+  type    = "CAA"
+  comment = "Restrict certificate issuance"
 
   data {
     flags = 0
