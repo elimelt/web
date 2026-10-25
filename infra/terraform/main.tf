@@ -9,7 +9,7 @@
 #   terraform apply
 #
 # Required environment variables:
-#   CLOUDFLARE_API_TOKEN - API token with Zone:Edit, Tunnel:Edit permissions
+#   CLOUDFLARE_API_TOKEN - API token with Zone:Edit, Tunnel:Edit, Pages:Edit permissions
 
 terraform {
   required_providers {
@@ -100,22 +100,6 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "homelab" {
       service  = "http://caddy:80"
     }
 
-    # Static sites, published by .github/workflows/{web,notes}-deploy.yml
-    ingress_rule {
-      hostname = var.domain
-      service  = "http://caddy:80"
-    }
-
-    ingress_rule {
-      hostname = "www.${var.domain}"
-      service  = "http://caddy:80"
-    }
-
-    ingress_rule {
-      hostname = "notes.${var.domain}"
-      service  = "http://caddy:80"
-    }
-
     # Catch-all rule (required)
     ingress_rule {
       service = "http_status:404"
@@ -154,33 +138,92 @@ resource "cloudflare_record" "transcribe" {
   comment = "Speaches - Whisper transcription API"
 }
 
+# =============================================================================
+# Static sites on Cloudflare Pages
+# =============================================================================
+# .github/workflows/{web,notes}-deploy.yml upload builds to these projects with
+# wrangler (direct upload, no Git integration).
+
+resource "cloudflare_pages_project" "web" {
+  account_id        = var.cloudflare_account_id
+  name              = "elimelt"
+  production_branch = "main"
+}
+
+resource "cloudflare_pages_project" "notes" {
+  account_id        = var.cloudflare_account_id
+  name              = "elimelt-notes"
+  production_branch = "main"
+}
+
+resource "cloudflare_pages_domain" "web" {
+  account_id   = var.cloudflare_account_id
+  project_name = cloudflare_pages_project.web.name
+  domain       = var.domain
+}
+
+resource "cloudflare_pages_domain" "notes" {
+  account_id   = var.cloudflare_account_id
+  project_name = cloudflare_pages_project.notes.name
+  domain       = "notes.${var.domain}"
+}
+
 # Apex domain (elimelt.com); Cloudflare flattens the CNAME at the apex.
 resource "cloudflare_record" "apex" {
   zone_id = data.cloudflare_zone.main.id
   name    = var.domain
   type    = "CNAME"
-  content = "${var.tunnel_id}.cfargotunnel.com"
+  content = cloudflare_pages_project.web.subdomain
   proxied = true
-  comment = "Astro site (homelab)"
+  comment = "Astro site (Cloudflare Pages)"
 }
 
+# Never reaches Pages: cloudflare_ruleset.www_redirect answers first.
 resource "cloudflare_record" "www" {
   zone_id = data.cloudflare_zone.main.id
   name    = "www"
   type    = "CNAME"
-  content = "${var.tunnel_id}.cfargotunnel.com"
+  content = cloudflare_pages_project.web.subdomain
   proxied = true
-  comment = "Redirects to apex (homelab)"
+  comment = "Redirects to apex"
 }
 
 resource "cloudflare_record" "notes" {
   zone_id = data.cloudflare_zone.main.id
   name    = "notes"
   type    = "CNAME"
-  content = "${var.tunnel_id}.cfargotunnel.com"
+  content = cloudflare_pages_project.notes.subdomain
   proxied = true
-  comment = "Quartz notes (homelab)"
+  comment = "Quartz notes (Cloudflare Pages)"
 }
+
+resource "cloudflare_ruleset" "www_redirect" {
+  zone_id = data.cloudflare_zone.main.id
+  name    = "Redirects"
+  kind    = "zone"
+  phase   = "http_request_dynamic_redirect"
+
+  rules {
+    description = "www.elimelt.com to elimelt.com"
+    expression  = "(http.host eq \"www.${var.domain}\")"
+    action      = "redirect"
+    enabled     = true
+
+    action_parameters {
+      from_value {
+        status_code           = 301
+        preserve_query_string = true
+        target_url {
+          expression = "concat(\"https://${var.domain}\", http.request.uri.path)"
+        }
+      }
+    }
+  }
+}
+
+# =============================================================================
+# More DNS Records for Tunnel
+# =============================================================================
 
 resource "cloudflare_record" "llm" {
   zone_id = data.cloudflare_zone.main.id
@@ -367,48 +410,4 @@ output "tunnel_id" {
 output "tunnel_cname" {
   value       = "${var.tunnel_id}.cfargotunnel.com"
   description = "CNAME target for tunnel DNS records"
-}
-
-# =============================================================================
-# Edge caching for the static sites
-# =============================================================================
-
-# HTML isn't cached by default. Keep both sites at the edge for 4 hours so
-# short homelab outages don't take them down; publish-site.yml purges the
-# host after every deploy, so updates still appear immediately. Browsers keep
-# the origin's Cache-Control (10 minutes, immutable for /_astro/).
-resource "cloudflare_ruleset" "cache" {
-  zone_id = data.cloudflare_zone.main.id
-  name    = "Static site caching"
-  kind    = "zone"
-  phase   = "http_request_cache_settings"
-
-  rules {
-    description = "Cache elimelt.com and notes.elimelt.com at the edge"
-    expression  = "(http.host in {\"${var.domain}\" \"notes.${var.domain}\"})"
-    action      = "set_cache_settings"
-    enabled     = true
-
-    action_parameters {
-      cache = true
-
-      edge_ttl {
-        mode    = "override_origin"
-        default = 14400
-
-        # Don't pin missing pages or origin errors at the edge for hours.
-        status_code_ttl {
-          status_code_range {
-            from = 400
-            to   = 599
-          }
-          value = 60
-        }
-      }
-
-      browser_ttl {
-        mode = "respect_origin"
-      }
-    }
-  }
 }

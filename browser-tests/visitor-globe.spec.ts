@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { liveFeatures } from './fixtures.js';
 
 const LOCAL_ORIGIN = 'http://127.0.0.1:4173';
 const MAPLIBRE_WORKER_PATH = /^\/_astro\/maplibre-gl-worker-[A-Za-z0-9_-]+\.js$/;
@@ -8,6 +9,7 @@ const TILE_PNG = Buffer.from(
 );
 
 test('visitor globe uses the complete local MapLibre runtime and remains interactive', async ({ page }) => {
+  test.skip(!liveFeatures, 'built without LIVE_FEATURES');
   await page.addInitScript(() => {
     try {
       localStorage.setItem('diceRolled', 'true');

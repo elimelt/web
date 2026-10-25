@@ -1,8 +1,7 @@
 name: Uptime
 
-# Checks the public sites from outside the homelab. Uptime Kuma runs on the
-# same machine, so it can't report a full outage; a failed scheduled run here
-# sends GitHub's workflow-failure email instead.
+# Checks the public sites (served by Cloudflare Pages) from outside; a failed
+# scheduled run sends GitHub's workflow-failure email.
 on:
   schedule:
     - cron: "*/15 * * * *"
@@ -32,5 +31,4 @@ jobs:
           }
           check https://elimelt.com/ "<title>Elijah Melton"
           check https://notes.elimelt.com/ "Technical Notes"
-          check https://api.elimelt.com/health '"status":"ok"'
           exit "$failed"

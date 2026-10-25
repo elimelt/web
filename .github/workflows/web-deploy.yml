@@ -8,7 +8,6 @@ on:
       - "!notes/**"
       - "!docs/**"
       - "!infra/**"
-      - "infra/sites/**"
   workflow_dispatch:
 
 permissions:
@@ -51,4 +50,5 @@ jobs:
     uses: ./.github/workflows/publish-site.yml
     with:
       site: web
+      project: elimelt
       host: elimelt.com

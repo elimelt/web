@@ -1,5 +1,9 @@
 import type { Page, Route } from '@playwright/test';
 
+// Matches the build: astro.config.mjs only includes the API-backed sections
+// (services, visitors, chat, click tracking) when LIVE_FEATURES=true.
+export const liveFeatures = process.env.LIVE_FEATURES === 'true';
+
 const maliciousIdentity = '<img src=x onerror="window.__identityXss=1">';
 const maliciousMarkdown = [
   '<img src=x onerror="window.__markdownXss=1">',

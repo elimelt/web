@@ -26,7 +26,8 @@ import Overlays from '../components/Overlays.astro';
   <Overlays />
 
   <script>
-    import '../../js/click-tracking.ts';
     import '../../js/main.ts';
+
+    if (__LIVE_FEATURES__) void import('../../js/click-tracking.js');
   </script>
 </BaseLayout>

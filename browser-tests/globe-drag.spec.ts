@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { mockFrontendNetwork } from './fixtures.js';
+import { liveFeatures, mockFrontendNetwork } from './fixtures.js';
 
 const TILE_PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
@@ -7,6 +7,7 @@ const TILE_PNG = Buffer.from(
 );
 
 test('street-level dragging tracks the pointer and culls remote markers', async ({ page }) => {
+  test.skip(!liveFeatures, 'built without LIVE_FEATURES');
   const timestamp = new Date().toISOString();
   const visitors = [
     { id: '0000000000000001', location: { city: 'London', country: 'United Kingdom', lat: 51.5072, lon: -0.1276 }, timestamp },

@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Response } from '@playwright/test';
-import { mockFrontendNetwork, mockHomepageNetwork } from './fixtures.js';
+import { liveFeatures, mockFrontendNetwork, mockHomepageNetwork } from './fixtures.js';
 
 function captureRuntimeFailures(page: Page, origin: string) {
   const errors: string[] = [];
@@ -21,11 +21,32 @@ test('frontend loads its compiled modules at the site root', async ({ page }) =>
   await page.goto('/');
   await expect(page.locator('#about')).toBeVisible();
   await expect(page.locator('#about')).toContainText('Check out my GitHub to see');
-  await page.locator('#services').scrollIntoViewIfNeeded();
-  await expect(page.locator('#services-stats')).toHaveText('0 containers');
+  if (liveFeatures) {
+    await page.locator('#services').scrollIntoViewIfNeeded();
+    await expect(page.locator('#services-stats')).toHaveText('0 containers');
+  }
 
   expect(failures.brokenScripts).toEqual([]);
   expect(failures.errors).toEqual([]);
+});
+
+test('static build never contacts the homelab API', async ({ page }) => {
+  test.skip(liveFeatures, 'built with LIVE_FEATURES');
+  const apiRequests: string[] = [];
+  page.on('request', request => {
+    if (new URL(request.url()).hostname.endsWith('.elimelt.com')
+      && !request.url().startsWith('https://notes.elimelt.com/')) {
+      apiRequests.push(request.url());
+    }
+  });
+  await mockFrontendNetwork(page);
+  await page.goto('/');
+  await page.mouse.wheel(0, 5000);
+  await page.waitForLoadState('networkidle');
+
+  await expect(page.locator('#services, #visitors, #chat')).toHaveCount(0);
+  await expect(page.locator('.nav-link[href="#services"]')).toHaveCount(0);
+  expect(apiRequests).toEqual([]);
 });
 
 test('theme preference survives a reload', async ({ page }) => {
@@ -57,6 +78,7 @@ test('mobile navigation opens, follows an anchor, and closes', async ({ page }) 
 });
 
 test('visitor data renders on the globe and the log view is selectable', async ({ page }) => {
+  test.skip(!liveFeatures, 'built without LIVE_FEATURES');
   await mockFrontendNetwork(page);
   await page.goto('/');
 

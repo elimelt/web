@@ -1,35 +1,39 @@
 # Static sites
 
-Caddy serves elimelt.com and notes.elimelt.com from the homelab through the
-Cloudflare Tunnel, like the other services.
+elimelt.com and notes.elimelt.com are plain static files on Cloudflare Pages.
+Nothing they serve runs on the homelab.
 
-| Host | Source | Workflow |
-| --- | --- | --- |
-| elimelt.com (www redirects) | repository root (Astro) | `.github/workflows/web-deploy.yml` |
-| notes.elimelt.com | `notes/` (Quartz) | `.github/workflows/notes-deploy.yml` |
+| Host | Source | Workflow | Pages project |
+| --- | --- | --- | --- |
+| elimelt.com (www redirects) | repository root (Astro) | `.github/workflows/web-deploy.yml` | `elimelt` |
+| notes.elimelt.com | `notes/` (Quartz) | `.github/workflows/notes-deploy.yml` | `elimelt-notes` |
 
 Each workflow builds on a GitHub-hosted runner and uploads the output as an
-artifact. `publish-site.yml` then runs on the `blink` self-hosted runner and calls
-`publish.sh`, which copies the build to `$SITES_PATH/<site>/releases/<id>` and
-atomically repoints `$SITES_PATH/<site>/current`. Caddy mounts `$SITES_PATH`
-(default `/home/elimelt/sites`) read-only at `/srv/sites`. The last three
-releases are kept.
+artifact. `publish-site.yml` downloads it and runs `wrangler pages deploy`
+against the project, then checks that the host answers. Pages keeps every
+deployment and purges its own cache, so changes show up immediately.
 
-Cloudflare caches both hosts at the edge for 4 hours (`cloudflare_ruleset.cache`
-in `infra/terraform/main.tf`), so they stay up through short homelab outages.
-After each publish, `purge-cache.sh` purges that hostname, so changes show up
-immediately. Purge by hand with
-`CLOUDFLARE_ENV_FILE=infra/.env infra/sites/purge-cache.sh <host>`, for example
-after a rollback.
+The projects, custom domains, DNS records, and the www redirect are in
+`infra/terraform/main.tf`. Response headers live in `frontend/public/_headers`
+and `notes/quartz-site/routes/_headers`.
 
-Roll back by repointing `current` at an earlier release; Caddy picks it up on
-the next request (then purge the edge cache):
+## Setup
 
-```bash
-cd /home/elimelt/sites/notes
-ls releases
-ln -sfn releases/<release-id> current.tmp && mv -T current.tmp current
-```
+1. Create a Cloudflare API token with **Account > Cloudflare Pages > Edit**
+   only. Save it as the `CLOUDFLARE_PAGES_TOKEN` repository secret, and save
+   the account ID as the `CLOUDFLARE_ACCOUNT_ID` repository variable.
+2. `terraform apply` in `infra/terraform` to create the projects, attach the
+   domains, and point DNS at Pages.
+3. Run both deploy workflows once (below).
+
+## Deploy and roll back
 
 Redeploy the current `main` with `gh workflow run web-deploy.yml` or
-`gh workflow run notes-deploy.yml`.
+`gh workflow run notes-deploy.yml`. Roll back from the project's Deployments
+tab in the Cloudflare dashboard (Rollback to this deployment).
+
+## Homelab (offline)
+
+`publish.sh` and `purge-cache.sh` published to Caddy on the homelab and purged
+the edge cache. Nothing calls them now; they are kept for when the homelab
+comes back.

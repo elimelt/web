@@ -28,6 +28,9 @@ jobs:
       - run: npm run test:browser
 
   test:
+    # Exercises the live api.elimelt.com, which is offline while the sites are
+    # static. Set the LIVE_API repository variable to true to run it again.
+    if: vars.LIVE_API == 'true'
     runs-on: ubuntu-latest
 
     steps:

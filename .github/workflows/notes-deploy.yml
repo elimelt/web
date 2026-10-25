@@ -5,7 +5,6 @@ on:
     branches: ["main"]
     paths:
       - "notes/**"
-      - "infra/sites/**"
       - ".github/workflows/notes-deploy.yml"
       - ".github/workflows/publish-site.yml"
   pull_request:
@@ -53,4 +52,5 @@ jobs:
     uses: ./.github/workflows/publish-site.yml
     with:
       site: notes
+      project: elimelt-notes
       host: notes.elimelt.com

@@ -1,16 +1,21 @@
 name: Publish static site
 
 # Called by web-deploy.yml and notes-deploy.yml after they upload a build
-# artifact named "<site>-site". Caddy serves the result from the homelab.
+# artifact named "<site>-site". Cloudflare Pages serves the result; nothing
+# runs on the homelab.
 on:
   workflow_call:
     inputs:
       site:
-        description: "Site directory name under SITES_PATH (web or notes)"
+        description: "Build artifact prefix (web or notes)"
+        required: true
+        type: string
+      project:
+        description: "Cloudflare Pages project name"
         required: true
         type: string
       host:
-        description: "Hostname Caddy serves the site on"
+        description: "Hostname the site is served on"
         required: true
         type: string
 
@@ -19,37 +24,31 @@ permissions:
 
 jobs:
   publish:
-    name: Publish to homelab
-    runs-on: [self-hosted, blink]
-    env:
-      SITE: ${{ inputs.site }}
-      SITE_HOST: ${{ inputs.host }}
-      SITES_PATH: ${{ vars.SITES_PATH || '/home/elimelt/sites' }}
+    name: Publish to Cloudflare Pages
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://${{ inputs.host }}/
     steps:
-      - name: Checkout publish script
-        uses: actions/checkout@v5
-        with:
-          sparse-checkout: infra/sites
-
       - name: Download build
         uses: actions/download-artifact@v4
         with:
           name: ${{ inputs.site }}-site
           path: ${{ runner.temp }}/site-build
 
-      - name: Publish release
-        run: |
-          set -euo pipefail
-          infra/sites/publish.sh "$SITE" "$RUNNER_TEMP/site-build" \
-            "$(date -u +%Y%m%dT%H%M%SZ)-${GITHUB_SHA::12}"
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_PAGES_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          command: >-
+            pages deploy ${{ runner.temp }}/site-build
+            --project-name=${{ inputs.project }}
+            --branch=main
+            --commit-hash=${{ github.sha }}
+            --commit-dirty=true
 
-      - name: Verify Caddy serves it
-        run: |
-          set -euo pipefail
-          docker exec caddy wget -q -O /dev/null --header "Host: ${SITE_HOST}" http://127.0.0.1/
-
-      # Both sites are cached at Cloudflare's edge for hours (infra/terraform/main.tf).
-      - name: Purge edge cache
+      - name: Verify the site responds
         env:
-          CLOUDFLARE_ENV_FILE: ${{ vars.BACKEND_DEPLOY_PATH || '/home/elimelt/repos/web-deploy' }}/infra/.env
-        run: infra/sites/purge-cache.sh "$SITE_HOST"
+          SITE_HOST: ${{ inputs.host }}
+        run: curl -fsS --retry 5 --retry-delay 10 --retry-all-errors -o /dev/null "https://${SITE_HOST}/"
