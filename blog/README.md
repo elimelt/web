@@ -1,6 +1,8 @@
 # Blog
 
-blog.elimelt.com: an [Astro](https://astro.build) site with
+blog.elimelt.com: Elijah's own writing. (notes.elimelt.com is reference
+material, often generated or expanded with an LLM.) It's an
+[Astro](https://astro.build) site with
 [MDX](https://docs.astro.build/en/guides/integrations-guide/mdx/), built to
 static files and served by Cloudflare Pages. It builds and deploys on its own
 (`.github/workflows/blog-deploy.yml`).
