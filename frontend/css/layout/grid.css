@@ -80,7 +80,8 @@ body:has(.right-sidebar.mobile-open) .main-content {
 .intro-layout,
 .live-grid,
 .grid-row,
-.grid-row-equal {
+.grid-row-equal,
+.grid-row-stacked {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 1.25rem;
@@ -127,6 +128,33 @@ body:has(.right-sidebar.mobile-open) .main-content {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+}
+
+/* Stacked notes/education row: education spans the full width, so its
+   degree details and areas of study sit side by side under level labels. */
+@container main (min-width: 44rem) {
+  .grid-row-stacked #education {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto auto 1fr;
+    column-gap: 2.5rem;
+  }
+
+  .grid-row-stacked #education > .education-item {
+    grid-column: 1;
+    grid-row: 2 / -1;
+  }
+
+  .grid-row-stacked #education > :is(.subsection-title, .section-description, .areas-list) {
+    grid-column: 2;
+  }
+
+  .grid-row-stacked #education > .subsection-title {
+    grid-row: 1;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
 }
 
 @container main (min-width: 60rem) {
