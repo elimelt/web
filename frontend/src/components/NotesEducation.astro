@@ -1,4 +1,6 @@
-<div class="grid-row-equal">
+<!-- Beside the live feeds, notes and education share a row. Without them the
+     row is the page's centerpiece, so stack it to keep the columns balanced. -->
+<div class={__LIVE_FEATURES__ ? 'grid-row-equal' : 'grid-row-stacked'}>
   <div class="grid-col-stack">
     <section id="notes-preview" class="section">
       <div class="notes-section-header">
