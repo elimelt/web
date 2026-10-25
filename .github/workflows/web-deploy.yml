@@ -52,3 +52,5 @@ jobs:
       site: web
       project: elimelt
       host: elimelt.com
+    secrets:
+      CLOUDFLARE_PAGES_TOKEN: ${{ secrets.CLOUDFLARE_PAGES_TOKEN }}

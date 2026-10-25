@@ -18,6 +18,10 @@ on:
         description: "Hostname the site is served on"
         required: true
         type: string
+    secrets:
+      CLOUDFLARE_PAGES_TOKEN:
+        description: "Cloudflare API token with Account > Cloudflare Pages > Edit"
+        required: true
 
 permissions:
   contents: read

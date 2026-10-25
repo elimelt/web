@@ -54,3 +54,5 @@ jobs:
       site: notes
       project: elimelt-notes
       host: notes.elimelt.com
+    secrets:
+      CLOUDFLARE_PAGES_TOKEN: ${{ secrets.CLOUDFLARE_PAGES_TOKEN }}
