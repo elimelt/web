@@ -1,12 +1,14 @@
 # Static sites
 
-elimelt.com and notes.elimelt.com are plain static files on Cloudflare Pages.
+elimelt.com, notes.elimelt.com and blog.elimelt.com are plain static files on
+Cloudflare Pages.
 Nothing they serve runs on the homelab.
 
 | Host | Source | Workflow | Pages project |
 | --- | --- | --- | --- |
 | elimelt.com (www redirects) | repository root (Astro) | `.github/workflows/web-deploy.yml` | `elimelt` |
 | notes.elimelt.com | `notes/` (Quartz) | `.github/workflows/notes-deploy.yml` | `elimelt-notes` |
+| blog.elimelt.com | `blog/` (Astro + MDX) | `.github/workflows/blog-deploy.yml` | `elimelt-blog` |
 
 Each workflow builds on a GitHub-hosted runner and uploads the output as an
 artifact. `publish-site.yml` downloads it and runs `wrangler pages deploy`
@@ -14,8 +16,8 @@ against the project, then checks that the host answers. Pages keeps every
 deployment and purges its own cache, so changes show up immediately.
 
 The projects, custom domains, DNS records, and the www redirect are in
-`infra/terraform/main.tf`. Response headers live in `frontend/public/_headers`
-and `notes/quartz-site/routes/_headers`.
+`infra/terraform/main.tf`. Response headers live in `frontend/public/_headers`,
+`notes/quartz-site/routes/_headers` and `blog/public/_headers`.
 
 ## Setup
 
@@ -29,7 +31,7 @@ and `notes/quartz-site/routes/_headers`.
 ## Deploy and roll back
 
 Redeploy the current `main` with `gh workflow run web-deploy.yml` or
-`gh workflow run notes-deploy.yml`. Roll back from the project's Deployments
+`gh workflow run notes-deploy.yml` (or `blog-deploy.yml`). Roll back from the project's Deployments
 tab in the Cloudflare dashboard (Rollback to this deployment).
 
 ## Homelab (offline)

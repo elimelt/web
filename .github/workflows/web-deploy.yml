@@ -6,6 +6,7 @@ on:
     paths:
       - "**"
       - "!notes/**"
+      - "!blog/**"
       - "!docs/**"
       - "!infra/**"
   workflow_dispatch:

@@ -1,13 +1,13 @@
 name: Publish static site
 
-# Called by web-deploy.yml and notes-deploy.yml after they upload a build
-# artifact named "<site>-site". Cloudflare Pages serves the result; nothing
-# runs on the homelab.
+# Called by web-deploy.yml, notes-deploy.yml and blog-deploy.yml after they
+# upload a build artifact named "<site>-site". Cloudflare Pages serves the
+# result; nothing runs on the homelab.
 on:
   workflow_call:
     inputs:
       site:
-        description: "Build artifact prefix (web or notes)"
+        description: "Build artifact prefix (web, notes or blog)"
         required: true
         type: string
       project:

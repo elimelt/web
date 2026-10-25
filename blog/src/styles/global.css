@@ -1,0 +1,200 @@
+@font-face {
+  font-family: 'Crimson Pro';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('/assets/fonts/crimson-pro-latin.woff2') format('woff2');
+}
+
+:root {
+  --text: #1a1a1a;
+  --text-secondary: #666;
+  --bg: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --accent: #0062ff;
+  --accent-hover: #5493fe;
+  --border: #d8d8d8;
+
+  --font: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-prose: 'Crimson Pro', Georgia, serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --measure: 42rem;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #f1f1f1;
+    --text-secondary: #b3b3b3;
+    --bg: #000000;
+    --bg-secondary: #1a1a1a;
+    --accent: #00ff08;
+    --accent-hover: #00ff0886;
+    --border: #333;
+  }
+
+  .astro-code,
+  .astro-code span {
+    color: var(--shiki-dark) !important;
+    background-color: var(--shiki-dark-bg) !important;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent);
+  text-underline-offset: 0.15em;
+}
+
+a:hover {
+  color: var(--accent-hover);
+}
+
+.site {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: clamp(1.5rem, 5vw, 4rem) 1rem 4rem;
+}
+
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 3rem;
+  font-size: 0.9375rem;
+}
+
+.site-header a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.site-title {
+  font-weight: 600;
+}
+
+.site-nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.site-nav a {
+  color: var(--text-secondary);
+}
+
+.site-footer {
+  margin-top: 4rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.meta {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+/* Post body */
+.prose {
+  font-family: var(--font-prose);
+  font-size: 1.25rem;
+  line-height: 1.65;
+}
+
+.prose h1,
+.prose h2,
+.prose h3 {
+  font-family: var(--font);
+  line-height: 1.25;
+  margin: 2.5rem 0 1rem;
+}
+
+.prose h2 {
+  font-size: 1.375rem;
+}
+
+.prose h3 {
+  font-size: 1.125rem;
+}
+
+.prose img,
+.prose video {
+  max-width: 100%;
+  height: auto;
+}
+
+.prose blockquote {
+  margin: 1.5rem 0;
+  padding-left: 1rem;
+  border-left: 3px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.prose code {
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+}
+
+.prose :not(pre) > code {
+  padding: 0.1em 0.3em;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+}
+
+.prose pre {
+  padding: 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font);
+  font-size: 0.9375rem;
+}
+
+.prose th,
+.prose td {
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+/* Interactive components get a plain frame and may break out of the text measure. */
+.figure {
+  margin: 2rem 0;
+  font-family: var(--font);
+  font-size: 1rem;
+}
+
+.figure-wide {
+  width: min(100vw - 2rem, 64rem);
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+
+.figure figcaption {
+  margin-top: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}

@@ -1,6 +1,6 @@
 # Personal Site
 
-This repository holds the public site (elimelt.com), the notes site in [`notes/`](notes/README.md) (notes.elimelt.com), and the homelab in [`infra/`](infra/README.md). The two sites build and deploy independently.
+This repository holds the public site (elimelt.com), the notes site in [`notes/`](notes/README.md) (notes.elimelt.com), the blog in [`blog/`](blog/README.md) (blog.elimelt.com), and the homelab in [`infra/`](infra/README.md). The three sites build and deploy independently.
 
 The public frontend uses [Astro](https://astro.build) with TypeScript. Astro renders the portfolio and music pages to static HTML and bundles their interactive modules. The homelab homepage remains a separate TypeScript application.
 

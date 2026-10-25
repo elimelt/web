@@ -1,0 +1,27 @@
+---
+import Base from './Base.astro';
+import { formatDate, type Post } from '../posts';
+
+interface Props {
+  post: Post;
+}
+
+const { post } = Astro.props;
+const { title, description, date, updated } = post.data;
+---
+
+<Base title={`${title} | Elijah Melton`} description={description}>
+  <meta slot="head" property="og:type" content="article" />
+  <article>
+    <header>
+      <h1>{title}</h1>
+      <p class="meta">
+        <time datetime={date.toISOString()}>{formatDate(date)}</time>
+        {updated && <> · updated <time datetime={updated.toISOString()}>{formatDate(updated)}</time></>}
+      </p>
+    </header>
+    <div class="prose">
+      <slot />
+    </div>
+  </article>
+</Base>

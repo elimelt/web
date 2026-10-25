@@ -1,0 +1,51 @@
+---
+import Base from '../layouts/Base.astro';
+import { formatDate, getPosts } from '../posts';
+
+const posts = await getPosts();
+---
+
+<Base title="Blog | Elijah Melton" description="Writing by Elijah Melton on distributed systems, infrastructure, and whatever else.">
+  <h1 class="visually-hidden">Posts</h1>
+  <ul class="post-list">
+    {posts.map((post) => (
+      <li>
+        <a href={`/posts/${post.id}/`}>{post.data.title}</a>
+        {post.data.draft && <span class="meta"> (draft)</span>}
+        <p class="meta">
+          <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time> · {post.data.description}
+        </p>
+      </li>
+    ))}
+  </ul>
+</Base>
+
+<style>
+  .post-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 1.75rem;
+  }
+
+  .post-list a {
+    font-family: var(--font-prose);
+    font-size: 1.5rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .post-list p {
+    margin: 0.25rem 0 0;
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+</style>

@@ -141,7 +141,7 @@ resource "cloudflare_record" "transcribe" {
 # =============================================================================
 # Static sites on Cloudflare Pages
 # =============================================================================
-# .github/workflows/{web,notes}-deploy.yml upload builds to these projects with
+# .github/workflows/{web,notes,blog}-deploy.yml upload builds to these projects with
 # wrangler (direct upload, no Git integration).
 
 resource "cloudflare_pages_project" "web" {
@@ -156,6 +156,12 @@ resource "cloudflare_pages_project" "notes" {
   production_branch = "main"
 }
 
+resource "cloudflare_pages_project" "blog" {
+  account_id        = var.cloudflare_account_id
+  name              = "elimelt-blog"
+  production_branch = "main"
+}
+
 resource "cloudflare_pages_domain" "web" {
   account_id   = var.cloudflare_account_id
   project_name = cloudflare_pages_project.web.name
@@ -166,6 +172,12 @@ resource "cloudflare_pages_domain" "notes" {
   account_id   = var.cloudflare_account_id
   project_name = cloudflare_pages_project.notes.name
   domain       = "notes.${var.domain}"
+}
+
+resource "cloudflare_pages_domain" "blog" {
+  account_id   = var.cloudflare_account_id
+  project_name = cloudflare_pages_project.blog.name
+  domain       = "blog.${var.domain}"
 }
 
 # Apex domain (elimelt.com); Cloudflare flattens the CNAME at the apex.
@@ -195,6 +207,15 @@ resource "cloudflare_record" "notes" {
   content = cloudflare_pages_project.notes.subdomain
   proxied = true
   comment = "Quartz notes (Cloudflare Pages)"
+}
+
+resource "cloudflare_record" "blog" {
+  zone_id = data.cloudflare_zone.main.id
+  name    = "blog"
+  type    = "CNAME"
+  content = cloudflare_pages_project.blog.subdomain
+  proxied = true
+  comment = "Astro blog (Cloudflare Pages)"
 }
 
 resource "cloudflare_ruleset" "www_redirect" {
