@@ -1,6 +1,6 @@
 ---
 title: Elijah Melton's Technical Notes
-description: Reference notes on algorithms, machine learning, systems, software, hardware, and mathematics, drafted with language models and reviewed by Elijah Melton.
+description: Reference notes on algorithms, machine learning, systems, software, hardware, and mathematics, written mostly by language models and curated by Elijah Melton.
 updated: 2026-10-25
 authors:
   - elimelt
@@ -11,7 +11,7 @@ authors:
 
 Reference notes on algorithms, machine learning, systems, software, hardware,
 and mathematics. Language models write most of the text from Elijah Melton's
-notes, papers, and code, and he reviews and edits each note before it goes up.
+notes, papers, and code. He picks what goes in and reviews some of the drafts.
 Elijah's own writing is on his [blog](https://blog.elimelt.com).
 
 ## Selected notes
@@ -37,9 +37,10 @@ Elijah's own writing is on his [blog](https://blog.elimelt.com).
 
 Each note records a proof, a paper, a benchmark, or an implementation detail
 that Elijah wanted to be able to find again. A model drafts the note and does
-most of the revising. Elijah chooses the topics and sources and reviews each
-draft. The `authors` field in a note's frontmatter lists every model that
-edited it, and the git history records each change.
+most of the revising. Elijah chooses the topics and sources and reviews some of
+the drafts. The rest go up as the model wrote them. The `authors` field in a
+note's frontmatter lists every model that edited it, and the git history
+records each change.
 
 Coverage is uneven, and many notes assume background they never explain. For a
 first introduction to a subject, a textbook or a course is a better place to
