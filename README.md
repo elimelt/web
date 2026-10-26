@@ -1,6 +1,6 @@
 # Personal Site
 
-This repository holds the public site (elimelt.com), the notes site in [`notes/`](notes/README.md) (notes.elimelt.com), and the homelab in [`infra/`](infra/README.md). The two sites build and deploy independently.
+This repository holds the public site (elimelt.com), the notes site in [`notes/`](notes/README.md) (notes.elimelt.com), the blog in [`blog/`](blog/README.md) (blog.elimelt.com), and the homelab in [`infra/`](infra/README.md). The three sites build and deploy independently.
 
 The public frontend uses [Astro](https://astro.build) with TypeScript. Astro renders the portfolio and music pages to static HTML and bundles their interactive modules. The homelab homepage remains a separate TypeScript application.
 
@@ -33,4 +33,8 @@ Edit the component that owns a section instead of a monolithic HTML file. Browse
 - `npm run preview` previews the public production build.
 - `npm --prefix tests ci && npm --prefix tests test` runs the live API integration suite.
 
-Pushing to `main` builds `dist/frontend` and publishes it to the homelab, where Caddy serves https://elimelt.com (see `infra/sites/README.md`). The Astro output is static: no server adapter is needed. The standalone homepage is built for manual deployment; it has no configured production deployment target.
+Pushing to `main` builds `dist/frontend` and uploads it to Cloudflare Pages, which serves https://elimelt.com (see `infra/sites/README.md`). The Astro output is static: no server adapter is needed. The standalone homepage is built for manual deployment; it has no configured production deployment target.
+
+### Live features
+
+The services, visitors, chat, notes search, and click-tracking features need the homelab API (`infra/api`, served at api.elimelt.com). It is offline, so the site is built without them: the sections, their nav links, and their scripts are left out of the output, and the page makes no requests to the API. The code is kept. To bring them back, start the API and build with `LIVE_FEATURES=true` (the flag is read in `astro.config.mjs`); run `LIVE_FEATURES=true npm run test:browser` against that build to include the tests that cover them.

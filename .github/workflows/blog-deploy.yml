@@ -1,0 +1,62 @@
+name: Deploy blog.elimelt.com
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "blog/**"
+      - ".github/workflows/blog-deploy.yml"
+      - ".github/workflows/publish-site.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "blog/**"
+      - ".github/workflows/blog-deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: blog-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build blog
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: blog
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: blog/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Check and build
+        run: npm run build
+      - name: Upload build
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: blog-site
+          path: blog/dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    if: github.event_name != 'pull_request'
+    needs: build
+    uses: ./.github/workflows/publish-site.yml
+    with:
+      site: blog
+      project: elimelt-blog
+      host: blog.elimelt.com
+    secrets:
+      CLOUDFLARE_PAGES_TOKEN: ${{ secrets.CLOUDFLARE_PAGES_TOKEN }}

@@ -1,0 +1,15 @@
+---
+// Frames an interactive component or image in a post. `wide` lets it break out
+// of the text column on large screens.
+interface Props {
+  caption?: string;
+  wide?: boolean;
+}
+
+const { caption, wide = false } = Astro.props;
+---
+
+<figure class:list={['figure', { 'figure-wide': wide }]}>
+  <slot />
+  {caption && <figcaption>{caption}</figcaption>}
+</figure>

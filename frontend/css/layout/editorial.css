@@ -23,7 +23,8 @@ body {
   background: transparent;
 }
 
-.intro-layout {
+.intro-layout,
+.grid-row-stacked {
   gap: 3.5rem;
 }
 
@@ -126,7 +127,8 @@ body {
     gap: 2.5rem;
   }
 
-  .intro-layout {
+  .intro-layout,
+  .grid-row-stacked {
     gap: 2.5rem;
   }
 }

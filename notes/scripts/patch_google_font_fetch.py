@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 MARKER = "// Notes site: request unicode-subsetted WOFF2 font CSS."
-PRIMARY_FONT_FILE = "ga6daw1J5X9T9RW6j9bNVls-hfgvz8JcMofYTYf6D30.woff2"
+PRIMARY_FONT_FILE = "zYXzKVElMYYaJe8bpLHnCwDKr932-G7dytD-Dmu1syxeKYY.woff2"
 
 OLD = """        const theme = ctx.cfg.configuration.theme
         const response = await fetch(googleFontHref(theme))

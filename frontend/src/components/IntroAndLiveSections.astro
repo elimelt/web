@@ -30,6 +30,7 @@
     <button type="button" id="about-wiggle-toggle" aria-pressed="false" hidden>wiggle</button>
   </section>
 
+  {__LIVE_FEATURES__ && (
   <div class="live-grid">
     <section id="services" class="section">
       <h2 class="section-title">Services</h2>
@@ -78,6 +79,7 @@
       </form>
     </section>
   </div>
+  )}
 </div>
 
 <script>
@@ -96,9 +98,11 @@
     observer.observe(section);
   };
 
-  loadWhenNear('services', () => import('../../js/services.js'));
-  loadWhenNear('visitors', () => import('../../js/visitors.js'));
-  loadWhenNear('chat', () => import('../../js/chat.js'));
+  if (__LIVE_FEATURES__) {
+    loadWhenNear('services', () => import('../../js/services.js'));
+    loadWhenNear('visitors', () => import('../../js/visitors.js'));
+    loadWhenNear('chat', () => import('../../js/chat.js'));
+  }
 
   const cloth = document.querySelector<HTMLElement>('#about cloth-content');
   const wiggleToggle = document.querySelector<HTMLButtonElement>('#about-wiggle-toggle');

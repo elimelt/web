@@ -1,0 +1,95 @@
+---
+// Example interactive component: a custom element with no framework. Astro
+// bundles the <script> once per page and only on pages that use it.
+interface Props {
+  walkers?: number;
+}
+
+const { walkers = 200 } = Astro.props;
+---
+
+<random-walk data-walkers={walkers}>
+  <canvas width="640" height="320" aria-label="Animated random walks spreading from the center"></canvas>
+  <div class="controls">
+    <label>
+      Step size <input type="range" min="1" max="8" value="2" name="step" />
+    </label>
+    <button type="button" name="reset">Reset</button>
+  </div>
+</random-walk>
+
+<style>
+  random-walk {
+    display: block;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-secondary);
+  }
+
+  .controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+  }
+</style>
+
+<script>
+  class RandomWalk extends HTMLElement {
+    private frame = 0;
+    private points: { x: number; y: number }[] = [];
+
+    connectedCallback() {
+      const canvas = this.querySelector('canvas')!;
+      const ctx = canvas.getContext('2d')!;
+      const step = this.querySelector<HTMLInputElement>('input[name="step"]')!;
+      const count = Number(this.dataset.walkers ?? 200);
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      const reset = () => {
+        this.points = Array.from({ length: count }, () => ({ x: canvas.width / 2, y: canvas.height / 2 }));
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      };
+
+      const stepOnce = () => {
+        ctx.fillStyle = getComputedStyle(this).getPropertyValue('--accent') || '#0062ff';
+        const size = Number(step.value);
+        for (const p of this.points) {
+          p.x = Math.min(canvas.width, Math.max(0, p.x + (Math.random() - 0.5) * 2 * size));
+          p.y = Math.min(canvas.height, Math.max(0, p.y + (Math.random() - 0.5) * 2 * size));
+          ctx.fillRect(p.x, p.y, 1.5, 1.5);
+        }
+      };
+
+      const loop = () => {
+        stepOnce();
+        this.frame = requestAnimationFrame(loop);
+      };
+
+      // With reduced motion, draw a finished picture once instead of animating.
+      const start = () => {
+        reset();
+        if (reduceMotion) {
+          for (let i = 0; i < 300; i++) stepOnce();
+        }
+      };
+
+      this.querySelector('button[name="reset"]')!.addEventListener('click', start);
+      start();
+      if (!reduceMotion) this.frame = requestAnimationFrame(loop);
+    }
+
+    disconnectedCallback() {
+      cancelAnimationFrame(this.frame);
+    }
+  }
+
+  customElements.define('random-walk', RandomWalk);
+</script>

@@ -1,0 +1,11 @@
+# Cloudflare Pages response headers (https://developers.cloudflare.com/pages/configuration/headers/)
+# frame-ancestors lets elimelt.com preview notes in an iframe.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Content-Security-Policy: frame-ancestors 'self' https://elimelt.com
+
+# elimelt.com reads the feed to list recent notes.
+/index.xml
+  Access-Control-Allow-Origin: https://elimelt.com

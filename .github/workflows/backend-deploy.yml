@@ -1,28 +1,9 @@
 name: Backend CI and Deploy
 
+# The homelab API is offline and the sites are served from Cloudflare Pages.
+# Push and pull request triggers are off so nothing redeploys it; run this by
+# hand once the homelab is back.
 on:
-  pull_request:
-    branches: ["main"]
-    paths:
-      - "infra/api/**"
-      - "infra/scripts/deploy-backend.sh"
-      - "infra/docker-compose.yml"
-      - "infra/Caddyfile"
-      - "infra/github-runner/**"
-      - "infra/pytest.ini"
-      - "infra/pyproject.toml"
-      - ".github/workflows/backend-deploy.yml"
-  push:
-    branches: ["main"]
-    paths:
-      - "infra/api/**"
-      - "infra/scripts/deploy-backend.sh"
-      - "infra/docker-compose.yml"
-      - "infra/Caddyfile"
-      - "infra/github-runner/**"
-      - "infra/pytest.ini"
-      - "infra/pyproject.toml"
-      - ".github/workflows/backend-deploy.yml"
   workflow_dispatch:
 
 concurrency:

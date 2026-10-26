@@ -1,0 +1,53 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
+const socialImageUrl = new URL('/assets/apple-touch.png', Astro.site);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="author" content="Elijah Melton" />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="alternate" type="application/rss+xml" title="Elijah Melton's blog" href="/rss.xml" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <meta property="og:site_name" content="Elijah Melton" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={socialImageUrl} />
+    <meta name="twitter:card" content="summary" />
+    <link rel="preload" href="/assets/fonts/crimson-pro-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" type="image/png" href="/assets/apple-touch.png" />
+    <slot name="head" />
+  </head>
+  <body>
+    <div class="site">
+      <header class="site-header">
+        <a class="site-title" href="/">Elijah Melton</a>
+        <nav class="site-nav" aria-label="Site">
+          <a href="https://elimelt.com/">Home</a>
+          <a href="https://notes.elimelt.com/">Notes</a>
+          <a href="/rss.xml">RSS</a>
+        </nav>
+      </header>
+      <main>
+        <slot />
+      </main>
+      <footer class="site-footer">
+        <a href="https://github.com/elimelt">GitHub</a> · <a href="mailto:elijah.m.melton@gmail.com">Email</a>
+      </footer>
+    </div>
+  </body>
+</html>

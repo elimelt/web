@@ -1,0 +1,24 @@
+---
+title: Hello, world
+description: What goes here versus in my notes, and a quick tour of what a post can do.
+date: 2026-10-25
+---
+
+import Figure from '../../components/Figure.astro';
+import RandomWalk from '../../components/RandomWalk.astro';
+
+Everything on this blog is my own writing. My [notes](https://notes.elimelt.com) are different: they're reference material, and a lot of them are generated, rewritten, or expanded with an LLM. If you want to know what I actually think, read this.
+
+Posts are Markdown, so most of the time it's just text, `inline code`, and the occasional code block:
+
+```ts
+const walk = (x: number, step: number) => x + (Math.random() - 0.5) * 2 * step;
+```
+
+When a post needs something you can poke at, it imports a component and drops it in:
+
+<Figure caption="Each dot takes an independent random step every frame. Drag the slider to change the step size." wide>
+  <RandomWalk walkers={300} />
+</Figure>
+
+That one is a plain custom element with no framework, and its script only loads on pages that use it.

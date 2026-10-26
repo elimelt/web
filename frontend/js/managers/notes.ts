@@ -12,7 +12,7 @@ const NotesFetcher = {
     const container = document.getElementById("notes-content");
     if (container) {
       this.fetchAndDisplay();
-      this._initSearch();
+      if (__LIVE_FEATURES__) this._initSearch();
     }
   },
 

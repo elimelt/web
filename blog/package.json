@@ -1,0 +1,21 @@
+{
+  "name": "elimelt-blog",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro check --minimumSeverity warning && astro build",
+    "preview": "astro preview"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.12",
+    "@astrojs/mdx": "^8.1.1",
+    "@astrojs/rss": "^4.0.19",
+    "@astrojs/sitemap": "^3.7.4",
+    "astro": "^7.3.5",
+    "typescript": "^5.9.3"
+  }
+}

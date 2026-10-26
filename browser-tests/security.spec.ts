@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { maliciousIdentity, mockFrontendNetwork } from './fixtures.js';
+import { liveFeatures, maliciousIdentity, mockFrontendNetwork } from './fixtures.js';
 
 test('historical chat identity and Markdown payloads cannot execute code', async ({ page }) => {
+  test.skip(!liveFeatures, 'built without LIVE_FEATURES');
   await mockFrontendNetwork(page);
   await page.goto('/');
   await page.locator('#chat').scrollIntoViewIfNeeded();

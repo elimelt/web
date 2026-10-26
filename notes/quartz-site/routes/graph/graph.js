@@ -77,7 +77,7 @@ function fitGraph(animated = true) {
 
 function drawLabel(node, emphasized = false) {
   const fontSize = emphasized ? 13 : 10
-  context.font = `${emphasized ? 600 : 500} ${fontSize}px "Noto Serif", serif`
+  context.font = `${emphasized ? 600 : 500} ${fontSize}px "IBM Plex Sans", system-ui, sans-serif`
   context.textAlign = "center"
   context.textBaseline = "bottom"
   context.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--ink")
