@@ -1,23 +1,23 @@
 :root {
   color-scheme: light dark;
-  --paper: #f7f3eb;
-  --ink: #292823;
-  --muted: #6e6a61;
-  --line: rgb(73 83 76 / 18%);
-  --panel: rgb(247 243 235 / 86%);
-  --accent: #276755;
-  --border: #d8d1c5;
+  --paper: #ffffff;
+  --ink: #141413;
+  --muted: #6f6f6b;
+  --line: rgb(20 20 19 / 14%);
+  --panel: rgb(255 255 255 / 88%);
+  --accent: #1f5fbf;
+  --border: #e4e4e1;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #191d1c;
-    --ink: #eff0e9;
-    --muted: #aeb4ae;
-    --line: rgb(198 214 205 / 16%);
-    --panel: rgb(25 29 28 / 88%);
-    --accent: #84cbb5;
-    --border: #39423e;
+    --paper: #121212;
+    --ink: #f3f3f3;
+    --muted: #9a9a9a;
+    --line: rgb(243 243 243 / 14%);
+    --panel: rgb(18 18 18 / 88%);
+    --accent: #8ab4ff;
+    --border: #2b2b2b;
   }
 }
 
@@ -39,9 +39,7 @@ body {
     radial-gradient(circle at 15% 10%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 35%),
     var(--paper);
   color: var(--ink);
-  font-family: "Noto Serif", serif;
-  font-optical-sizing: auto;
-  font-variation-settings: "wdth" 100;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
 }
 
 /* Let an embedding page supply the background in either color scheme. */
@@ -80,9 +78,9 @@ html.embedded body {
 
 h1 {
   margin: 0;
-  font-family: "Noto Serif", serif;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
   font-size: clamp(1.8rem, 5vw, 3.4rem);
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: -0.045em;
   line-height: 0.95;
 }

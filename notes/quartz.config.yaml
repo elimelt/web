@@ -17,30 +17,33 @@ configuration:
     # is disabled, so visitors load the font files from this site.
     cdnCaching: false
     typography:
-      header: Noto Serif
-      body: Noto Serif
+      # Headings use 600, so request it instead of Quartz's default 700.
+      header:
+        name: IBM Plex Sans
+        weights: [400, 600]
+      body: IBM Plex Sans
       code: IBM Plex Mono
     colors:
       lightMode:
-        light: "#fffbf5"
-        lightgray: "#e5e2dc"
-        gray: "#8b8680"
-        darkgray: "#595959"
-        dark: "#252320"
-        secondary: "#07507d"
-        tertiary: "#8a5a44"
-        highlight: rgba(53, 104, 89, 0.15)
-        textHighlight: "#f2df9b88"
+        light: "#ffffff"
+        lightgray: "#e4e4e1"
+        gray: "#6f6f6b"
+        darkgray: "#33332f"
+        dark: "#141413"
+        secondary: "#1f5fbf"
+        tertiary: "#0f3f86"
+        highlight: rgba(31, 95, 191, 0.08)
+        textHighlight: "#fff1a3"
       darkMode:
-        light: "#1d1f21"
-        lightgray: "#35393d"
-        gray: "#8d969e"
-        darkgray: "#d2d6da"
-        dark: "#f3f4f5"
-        secondary: "#86c7b5"
-        tertiary: "#d6a184"
-        highlight: rgba(134, 199, 181, 0.15)
-        textHighlight: "#8a6f2b88"
+        light: "#121212"
+        lightgray: "#2b2b2b"
+        gray: "#9a9a9a"
+        darkgray: "#d6d6d6"
+        dark: "#f3f3f3"
+        secondary: "#8ab4ff"
+        tertiary: "#b9d1ff"
+        highlight: rgba(138, 180, 255, 0.1)
+        textHighlight: "#6b5a1f"
 plugins:
   - source: "@quartz-community/note-properties"
     enabled: true

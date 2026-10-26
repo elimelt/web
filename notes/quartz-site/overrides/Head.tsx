@@ -8,10 +8,10 @@ import { googleFontHref, googleFontSubsetHref } from "../util/theme"
 import { QuartzComponent, QuartzComponentConstructor, QuartzComponentProps } from "./types"
 import { unescapeHTML } from "../util/escape"
 
-// Google Fonts' Latin subset for the normal Noto Serif variable face used by
+// Google Fonts' Latin subset for the normal IBM Plex Sans variable face used by
 // body copy and headings. Keep this synchronized with the build-time font
 // validation in scripts/patch_google_font_fetch.py.
-const primaryFontPreload = "/static/fonts/ga6daw1J5X9T9RW6j9bNVls-hfgvz8JcMofYTYf6D30.woff2"
+const primaryFontPreload = "/static/fonts/zYXzKVElMYYaJe8bpLHnCwDKr932-G7dytD-Dmu1syxeKYY.woff2"
 
 export function canonicalUrl(baseUrl: string, slug: FullSlug): string {
   const path = simplifySlug(slug)
