@@ -1,3 +1,4 @@
+import '../css/components/chat.css';
 import {
   getEvents,
   getChatHistory,

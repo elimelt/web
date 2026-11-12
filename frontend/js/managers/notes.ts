@@ -275,7 +275,7 @@ const NotesFetcher = {
     url.searchParams.set("embed", "true");
     url.searchParams.set(
       "theme",
-      document.body.classList.contains("dark-mode") ? "dark" : "light",
+      document.documentElement.classList.contains("dark-mode") ? "dark" : "light",
     );
     iframe.src = url.toString();
     contentEl.appendChild(iframe);

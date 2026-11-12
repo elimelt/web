@@ -106,6 +106,15 @@ body:has(.right-sidebar.mobile-open) .main-content {
   min-height: 0;
 }
 
+/* Placement stays in this always-loaded file so the live sections do not
+   shift when their own styles load with their scripts. */
+.live-grid > #visitors {
+  grid-column: 1 / -1;
+  height: auto;
+  overflow: visible;
+}
+.live-grid > #services { grid-column: 1 / -1; }
+
 /* Live feeds scroll within their own panels without stretching the page. */
 #services,
 #visitors,
