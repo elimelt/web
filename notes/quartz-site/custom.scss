@@ -493,3 +493,307 @@ figure.bn {
     }
   }
 }
+
+// The CNN explorer (cnn-explorer). Feature maps are alpha masks painted with
+// these colors, so they follow the theme without being redrawn. Blue carries
+// magnitude and positive weights, red negative ones, orange marks the
+// selected position and the window it can see.
+figure.cx {
+  --cx-pos: #2a78d6;
+  --cx-neg: #e34948;
+  --cx-mark: #eb6834;
+  margin: 0;
+  padding: 1rem 1.1rem 0.9rem;
+  border: 1px solid var(--lightgray);
+  border-radius: var(--site-media-radius);
+
+  [saved-theme="dark"] & {
+    --cx-pos: #3987e5;
+    --cx-neg: #e66767;
+    --cx-mark: #d95926;
+  }
+
+  .cx-top {
+    display: grid;
+    grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: start;
+    margin-bottom: 1rem;
+  }
+
+  .cx-title {
+    margin: 0.9rem 0 0.4rem;
+    font-size: 0.92rem;
+    font-weight: 600;
+  }
+
+  .cx-top .cx-title {
+    margin-top: 0;
+  }
+
+  .cx-note {
+    color: var(--gray);
+    font-size: 0.8rem;
+    font-weight: 400;
+  }
+
+  .cx-img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    -webkit-mask: var(--m) 0 0 / 100% 100% no-repeat;
+    mask: var(--m) 0 0 / 100% 100% no-repeat;
+  }
+
+  .cx-seq {
+    background: var(--cx-pos);
+  }
+
+  .cx-ink {
+    background: var(--dark);
+  }
+
+  .cx-div {
+    position: relative;
+    -webkit-mask: none;
+    mask: none;
+
+    > span {
+      position: absolute;
+      inset: 0;
+      -webkit-mask: var(--m) 0 0 / 100% 100% no-repeat;
+      mask: var(--m) 0 0 / 100% 100% no-repeat;
+    }
+  }
+
+  .cx-pos {
+    background: var(--cx-pos);
+  }
+
+  .cx-neg {
+    background: var(--cx-neg);
+  }
+
+  .cx-canvas,
+  .cx-map,
+  .cx-grad {
+    position: relative;
+    aspect-ratio: 1;
+    border: 1px solid var(--lightgray);
+    background: var(--light);
+  }
+
+  &.cx-live .cx-canvas {
+    cursor: crosshair;
+    touch-action: none;
+  }
+
+  .cx-rf,
+  .cx-mark {
+    position: absolute;
+    box-sizing: border-box;
+    pointer-events: none;
+  }
+
+  .cx-rf {
+    border: 2px solid var(--cx-mark);
+  }
+
+  .cx-mark {
+    outline: 2px solid var(--cx-mark);
+    outline-offset: 1px;
+  }
+
+  .cx-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-top: 0.4rem;
+  }
+
+  button {
+    min-width: 1.9rem;
+    padding: 0.15rem 0.4rem;
+    border: 1px solid var(--lightgray);
+    border-radius: 4px;
+    background: var(--light);
+    color: var(--darkgray);
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      border-color: var(--secondary);
+      color: var(--secondary);
+    }
+
+    &[aria-pressed="true"] {
+      border-color: var(--secondary);
+      background: var(--highlight);
+      color: var(--secondary);
+      font-weight: 600;
+    }
+
+    &:disabled {
+      cursor: progress;
+    }
+  }
+
+  .cx-bars {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+
+    li {
+      display: grid;
+      grid-template-columns: 1rem minmax(0, 1fr) 2.6rem;
+      gap: 0.5rem;
+      align-items: center;
+      margin: 0;
+      line-height: 1.55;
+    }
+
+    .cx-best {
+      font-weight: 600;
+    }
+  }
+
+  .cx-digit,
+  .cx-p {
+    color: var(--darkgray);
+  }
+
+  .cx-p {
+    text-align: right;
+  }
+
+  .cx-bar {
+    height: 0.7rem;
+
+    span {
+      display: block;
+      height: 100%;
+      border-radius: 0 2px 2px 0;
+      background: var(--cx-pos);
+    }
+  }
+
+  .cx-kernels,
+  .cx-maps {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+
+  .cx-kernels {
+    margin-bottom: 0.4rem;
+
+    .cx-kernel {
+      width: 55%;
+      justify-self: center;
+      outline: 1px solid var(--lightgray);
+    }
+  }
+
+  .cx-map {
+    cursor: pointer;
+
+    &.cx-selected {
+      border-color: var(--cx-mark);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--secondary);
+      outline-offset: 2px;
+    }
+  }
+
+  .cx-detail {
+    margin-top: 1rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--lightgray);
+    font-size: 0.92rem;
+
+    p {
+      margin: 0.35rem 0;
+    }
+  }
+
+  .cx-where {
+    font-weight: 600;
+  }
+
+  .cx-grad {
+    width: min(11rem, 100%);
+    margin: 0.5rem 0;
+  }
+
+  .cx-products {
+    margin: 0.5rem 0;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+
+    td {
+      width: 3.1rem;
+      padding: 0.2rem 0.3rem;
+      border: 1px solid var(--lightgray);
+      color: var(--darkgray);
+      text-align: right;
+    }
+
+    .cx-up {
+      background: color-mix(in srgb, var(--cx-pos) calc(var(--a) * 40%), transparent);
+    }
+
+    .cx-down {
+      background: color-mix(in srgb, var(--cx-neg) calc(var(--a) * 40%), transparent);
+    }
+  }
+
+  .cx-sum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .cx-hint {
+    color: var(--gray);
+    font-size: 0.85rem;
+  }
+
+  .cx-key::before {
+    content: "";
+    display: inline-block;
+    width: 0.7em;
+    height: 0.7em;
+    margin-right: 0.25em;
+    vertical-align: -0.05em;
+    background: var(--cx-pos);
+  }
+
+  .cx-key.cx-down::before {
+    background: var(--cx-neg);
+  }
+
+  figcaption {
+    margin-top: 0.8rem;
+    color: var(--gray);
+    font-size: 0.82rem;
+  }
+
+  @media (max-width: 600px) {
+    .cx-top {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .cx-canvas {
+      max-width: 15rem;
+    }
+
+    .cx-kernels,
+    .cx-maps {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+}

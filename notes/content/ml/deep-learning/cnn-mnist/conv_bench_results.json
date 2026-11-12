@@ -1,0 +1,34 @@
+{
+  "environment": {
+    "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "cores": 4,
+    "python": "3.13.18",
+    "numpy": "2.5.3"
+  },
+  "layer": "batch 128, 8->16 channels, 14x14, 5x5 kernel, same padding, float32",
+  "macs": 80281600,
+  "method": "wall-clock of repeated calls after one warm-up call (median, min, max); outputs checked against the loop version first; single process on an otherwise idle machine",
+  "results": {
+    "loops": {
+      "median_ms": 1100.38,
+      "min_ms": 1085.78,
+      "max_ms": 1188.72,
+      "repeats": 3,
+      "gmacs_per_s": 0.073
+    },
+    "im2col": {
+      "median_ms": 7.31,
+      "min_ms": 7.06,
+      "max_ms": 8.63,
+      "repeats": 31,
+      "gmacs_per_s": 10.979
+    },
+    "fft": {
+      "median_ms": 13.4,
+      "min_ms": 12.04,
+      "max_ms": 17.91,
+      "repeats": 31,
+      "gmacs_per_s": 5.99
+    }
+  }
+}
