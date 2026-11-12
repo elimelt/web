@@ -1,0 +1,840 @@
+# Tags that older versions of this site published at /tags/<tag>.html, spelled
+# as they were (spaces and capitals included). Collected from docs/tags/ (the
+# old generated site) and from the tag lists in this repository's history.
+# scripts/write_redirects.py 301-redirects each old URL that no longer serves a
+# page to the current tag page, or to /tags/ when the tag is gone.
+802.11
+ac circuits
+ack clocking
+active
+acyclic graphs
+adaptive timeout
+address resolution protocol
+address space
+address translation
+admission control
+ads
+affinity scheduling
+AIMD
+algorithm
+algorithm analysis
+algorithmic complexity
+algorithms
+alternating current
+amplifiers
+annotations
+application
+application layer
+approximation
+architecture
+arithmetic intensity
+arp
+arp reply
+arp request
+arp table
+arq
+ARQ
+array problems
+asmd
+asymptotic notation
+asynchronous distributed systems
+asynchronous systems
+atomic operation
+atomic reference
+atomicity
+attention
+attention mechanism
+automatic repeat request
+autonomous systems
+autoregressive models
+availability
+avx2
+backtrace
+bad
+bag of words
+baking
+bandwidth
+bandwidth-delay product
+batch processing
+batching
+beam search
+benchmark
+benchmarks
+bert
+bfs
+bigtable
+binary search
+bipartite graphs
+bipartite matching
+bisector algorithm
+bisync
+bit stuffing
+bit vectors
+bit-oriented protocols
+blondies
+boolean algebra
+boolean minimization
+border gateway protocol
+bounded queue
+bpe
+branch prediction
+branchless
+breadth-first search
+bridge
+bus
+byte-oriented protocols
+byte-pair encoding
+bytestreams
+c
+C
+c programming
+cache
+cache coherence
+cache control headers
+cache line
+cache manager
+caching
+candidate generation
+capacitance
+capacity
+cardinality estimation
+career
+causal consistency
+causality
+centralized access control
+channel properties
+chubby
+circuit timing behavior
+circuits
+classification
+clock domain crossing
+clock recovery
+clock signals
+clock synchronization
+clocks
+cloud storage
+cluster scheduling
+coaxial cable
+codewords
+coding
+cold-start problem
+collaborative filtering
+collections
+column-oriented storage
+combinational logic
+commodity hardware
+communication
+comparators
+compatibility
+complex numbers
+complexity analysis
+computation infrastructure
+computational-geometry
+compute
+computer networks
+computer science
+computing
+concentration bounds
+concurrency
+concurrency control
+configuration
+conflict resolution
+congestion control
+connected components
+connected graphs
+connection establishment
+connection release
+connection-oriented
+connectionless
+consensus algorithm
+consistency
+consistency models
+consistent global state
+consistent hashing
+constrained optimization
+content delivery networks
+context switch
+contextual bandits
+contiguous subarray
+convex optimization
+correctness
+cost
+cost models
+coulomb
+counterfactual evaluation
+cpu
+cpu microarchitecture
+cpu state
+CPU utilization
+cpu utilization
+cross attention
+ctr prediction
+cuda
+current
+current source
+cycle detection
+data analysis
+data distribution
+data mining
+data modeling
+data models
+data processing
+data replication
+data serialization
+data structures
+data systems
+database design
+database systems
+datacenter
+datagrams
+datapath
+dc circuits
+ddcmp
+ddr4
+ddr5
+deadlock prevention
+declarative programming
+decode
+deep learning
+delay
+demultiplexing
+dense_vectors
+depth first search
+depth-first search
+design
+device controllers
+device drivers
+dfs
+dhcp
+digital design
+digital electronics
+digital systems
+direct current
+directed acyclic graphs
+directories
+disconnected operation
+discovery protocol
+disjoint sets
+distributed access control
+distributed architectures
+distributed coordination
+distributed database
+distributed file systems
+distributed filesystems
+distributed storage
+distributed systems
+distributed transactions
+distributional semantics
+divide and conquer
+dma
+DNS
+dns
+dns resolution
+document databases
+domain name system
+domain-name-system
+dominant resource fairness
+dram
+dsp
+dual mode operation
+dual spaces
+durability
+dynamic programming
+dynamic size window
+dynamic web pages
+edge caching
+edge computing
+edge locations
+edit distance
+efficiency
+eflags register
+electric current
+electrical engineering
+electricity
+embedded systems
+encapsulation
+encoder-decoder
+encoding formats
+end-to-end
+end-user sites
+energy
+energy constraints
+energy storage
+engineering
+equivalent circuit
+error correction
+error detection
+ethernet
+etl
+eventual consistency
+executable files
+execution engines
+exokernel
+exposed terminal problem
+exposure bias
+extern
+Facebook
+facebook
+failover
+failure detectors
+fair queueing
+false sharing
+fault isolation
+fault tolerance
+fault-tolerant systems
+feedforward
+fiber
+fifo list
+file streams
+file systems
+filtering
+filters
+finite state machines
+fixed size window
+flame graphs
+flash attention
+flip-flops
+flow control
+ford-fulkerson algorithm
+forwarding
+forwarding table
+fragmentation
+free
+free space maps
+frequency division multiplexing
+fsm
+FSM
+functional programming
+gale-shapley
+garbage collection
+gaussian elimination
+gdb
+generative models
+global predicate evaluation
+go-back-n arq
+google
+google cloud
+gpu
+gpu programming
+gradient boosted decision trees
+gradient descent
+graph
+graph algorithms
+graph coloring
+graph databases
+graph fundamentals
+graph neural networks
+graph properties
+graph recommenders
+graph representation
+graph theory
+graph traversal
+graphs
+greedy
+greedy algorithms
+hadoop
+Hadoop
+handle tables
+handles
+hardware
+hardware description languages
+hardware design
+hardware modes
+hardware prefetcher
+hdlc
+heap
+heat dissipation
+hidden terminal problem
+hierarchical addressing
+hierarchical structure
+high availability
+hold time
+HTTP
+http
+http methods
+http status codes
+huge pages
+hypervisor
+I/O devices
+i/o operations
+icmp
+ilp
+immutable
+impedance
+implementation
+implicit feedback
+independent set
+index structures
+indexing
+indirection tables
+inductance
+induction
+induction proofs
+inference systems
+information retrieval
+information theory
+initial sequence number
+inter-domain routing
+internet
+internetworking
+internship
+interpolated_precision_curve
+interrupt handling
+interval
+interval partitioning
+interval scheduling
+interval sums
+interviews
+introspection
+inverted index
+ip address
+ip addressing
+ip protocol
+isolation
+isolation levels
+iteration
+java
+join algorithms
+jvm
+karnaugh maps
+kernel
+kernel mode
+kernels
+key-value store
+kirchhoff's laws
+kirchoffs laws
+klee
+knowledge base
+kth smallest element
+kv cache
+kvl
+lambdas
+language modeling
+language-models
+laplace smoothing
+latency
+latency hiding
+lazy evaluation
+leader election
+leader-follower model
+leadership
+learning-rate schedules
+lease server
+least squares
+linear algebra
+linear data structure
+linear programs
+linear systems
+linear transformations
+linearizability
+link layer
+little's law
+llm
+llm serving
+load balancing
+load shedding
+local and global page replacement
+locality heuristics
+locking
+locks
+logic gates
+logical clocks
+long-context
+low precision
+low-rank approximation
+lru list
+mac address
+maca
+machine learning
+maintainability
+malloc
+manchester encoding
+MapReduce
+mapreduce
+master theorem
+matching
+matrix calculus
+matrix completion
+matrix factorization
+matrix powers
+matrix theory
+matrix-matrix multiplication
+matrix-vector multiplication
+max flow min cut
+mean_average_precision
+media
+memory
+memory allocation
+memory bandwidth
+memory efficiency
+memory hierarchy
+memory latency
+memory locality
+memory management
+memory ordering
+memory-level parallelism
+mesi
+message passing
+meta
+metadata
+metastability
+metastable failures
+microservices
+minimization
+minimum spanning tree
+mips status register
+mixture of experts
+mlp
+mmu
+modelsim
+ModelSim
+modified
+modified no-write
+modular design
+modulation
+moe
+mshr
+multi-resource fairness
+multi-threading
+multicore
+multihomed as
+multinomial logistic regression
+multinomial naive bayes
+multiplexing
+multiprocessor scheduling
+multithreading
+mutual exclusion
+naive bayes
+name resolution
+name server
+namespace
+natural language processing
+network components
+network congestion control
+network interfaces
+network layer
+network layers
+network protocols
+network topology
+networking
+networks
+neural networks
+nlp
+nltk
+noise
+noise immunity
+nonvolatile storage
+normalization
+norton's theorem
+nrz
+numa
+nvidia
+nyquist limit
+object manager
+object versioning
+odd cycles
+ohm's law
+ohms law
+oltp vs olap
+onboarding
+op-amps
+operating system
+operating system development
+operating systems
+operating-system
+operators
+optimization
+ordering
+os
+osi model
+overhead
+packet scheduling
+page fault
+page frame number database
+page replacement
+page table
+page walk
+paged attention
+paging
+paper
+parallel performance
+parallel processing
+parallel resistors
+parallelism
+partitioning
+paxos
+pci bus
+performance
+performance analysis
+performance debugging
+performance engineering
+performance metrics
+performance optimization
+persistence
+persistent storage
+personalization
+phasors
+physical clocks
+physical layer
+pigeonhole principle
+ping
+pipe operator
+pipeline
+pipeline design
+pipeline parallelism
+point-to-point protocol
+pointer chasing
+pointers
+power
+power dissipation
+ppp
+precision
+prefetching
+prefill
+prefix sharing
+prefix sum
+primary backup
+printf debugging
+privileged mode
+probability
+problem solving
+process abstraction
+process control block
+process creation
+process management
+process operations
+process synchronization
+processes
+processor consistency
+professional development
+program analysis
+programming
+programming interface
+programming languages for hardware
+prompting
+proof by contradiction
+proof techniques
+proofs
+protocols
+provisioning
+proxy servers
+pruning
+Python
+python
+pytorch
+qr decomposition
+quality of service
+quantization
+Quartus
+quartus
+query languages
+query planning
+queueing
+queueing theory
+quick start
+random variables
+rate monotonic
+reading notes
+real-time scheduling
+recall
+recommender systems
+records
+recursive algorithms
+redundancy
+reference counts
+reflection
+regex
+relational databases
+reliability
+replication logs
+representation learning
+research
+research method
+resistance
+resistor
+resource management
+rest repositories
+return offer
+review
+rom
+roofline
+root finding
+round robin
+routing
+routing protocols
+routing table
+rtlzeromemory
+rtt
+rz
+s'mores
+sbrk
+scalability
+scalable distributed systems
+scaling
+scheduling
+schema evolution
+scrambling
+seattle
+secondary storage
+segmentation
+selection bias
+sensing
+sequence modeling
+sequence numbers
+sequential consistency
+sequential logic
+sequential recommendation
+series resistors
+service oriented architecture
+service providers
+service variability
+services
+serving systems
+set cover
+setup time
+shannon capacity
+sharding
+shared disk architecture
+shared memory architecture
+shell
+shortest path
+shortest paths
+signal
+simd
+singular value decomposition
+size
+sliding window
+sliding window arq
+snapshot isolation
+snapshot reads
+social policy
+socket
+software engineering
+solitude
+spanning trees
+Spark
+sparse attention
+sparsity
+speculative decoding
+speculative execution
+split brain
+spring boot
+spring web
+spring-boot
+sram
+stable matching
+standby
+state machine
+state machine replication
+state pattern
+state queues
+static
+static web pages
+stop-and-wait arq
+storage
+storage infrastructure
+store buffer
+store forwarding
+store-and-forward packet switching
+streaming
+streaming algorithms
+streams
+stub as
+suffix sum
+swecc
+switching
+symbolic execution
+synchronous vs asynchronous
+syscall
+system bus
+system calls
+system design
+system programming
+system-verilog
+systems
+systems approach
+systems research
+systemverilog
+tail latency
+tcp
+TCP
+technical interviews
+template
+tensor products
+test benches
+testing
+testing process
+text classification
+textbook
+tf-idf
+thevenin's theorem
+thread-safe
+threads
+three-way handshake
+throughput
+time complexity
+time division multiplexing
+time_wait state
+timeouts
+timing analysis
+tlb
+tokenization
+top-level domain
+topological sort
+topological sorting
+tr
+traceroute
+transformer
+transformers
+transistors
+transit as
+transit traffic
+transition
+transport layer
+transport protocols
+trees
+triton
+truth tables
+ttl
+twisted pair
+two tower
+two-phase commit
+two-tier architecture
+udp
+UDP
+uniprocessor scheduling
+unix
+user mode
+utilization
+vector clocks
+vector spaces
+vectorization
+verification
+Verilog
+verilog
+vertex cover
+view service
+virtual circuits
+virtual memory
+virtualization
+voltage
+voltage source
+watch
+waveform diagrams
+web caching
+web pages
+web performance
+weight
+wide and deep
+windows
+windows optimization
+wireless
+wireless media
+wires
+word embeddings
+work stealing
+working set
+xen
+zeroed
+zipf distribution
+zookeeper

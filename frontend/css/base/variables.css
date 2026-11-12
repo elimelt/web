@@ -1,5 +1,6 @@
 /* CSS Custom Properties (Variables) */
 :root {
+  color-scheme: light;
   --text: #1a1a1a;
   --text-secondary: #666;
   --bg: #ffffff;
@@ -29,6 +30,7 @@
 }
 
 .dark-mode {
+  color-scheme: dark;
   --text: #f1f1f1;
   --text-secondary: #b3b3b3;
   --bg: #000000;

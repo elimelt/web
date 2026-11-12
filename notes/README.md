@@ -29,8 +29,10 @@ From `notes/`, run:
 npm run dev
 ```
 
-The first run clones the Quartz `v5` branch into the ignored `.quartz/`
-directory and installs its locked dependencies. Quartz then serves the site at
+The first run checks out the Quartz commit pinned in `scripts/quartz.sh` (on
+the `v5` branch) into the ignored `.quartz/` directory and installs its locked
+dependencies. The pin keeps upstream changes from breaking the build; to update
+Quartz, change `QUARTZ_REF` there and rebuild. Quartz then serves the site at
 `http://localhost:8080` and rebuilds it as content changes. Stop it with
 <kbd>Ctrl</kbd>+<kbd>C</kbd>.
 
@@ -43,9 +45,19 @@ npm run build
 After adding or changing a Quartz plugin in `quartz.config.yaml`, run
 `npm run sync:quartz` and commit the updated `quartz.lock.json`.
 
+The build then post-processes `public/` for search engines and speed:
+
+- `scripts/write_redirects.py` turns frontmatter `aliases` and old URLs (tag
+  names listed in `quartz-site/legacy-tags.txt` and pages of the old site in
+  `docs/`) into 301s in `_redirects`, replacing Quartz's `noindex` alias pages.
+- `scripts/add_image_dimensions.py` adds `width`, `height` and lazy-loading
+  hints to images.
+- `scripts/validate_seo_output.py` fails the build on a wrong canonical URL,
+  a `noindex` page, or a redirect that misses, chains or hides a page.
+
 The generated site is written to `public/`. Both `.quartz/` and `public/` are
-disposable and ignored by Git. To use a particular Quartz tag or commit, set
-`QUARTZ_REF` before the first run (or remove `.quartz/` to bootstrap it again):
+disposable and ignored by Git. To try a different Quartz branch, tag or commit,
+set `QUARTZ_REF` (the checkout is replaced when it changes):
 
 ```sh
 QUARTZ_REF=<tag-or-commit> npm run dev

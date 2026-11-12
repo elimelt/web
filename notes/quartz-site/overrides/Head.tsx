@@ -3,7 +3,11 @@
 // scripts/quartz.sh installs this tracked override. Reconcile it when QUARTZ_REF changes.
 import { i18n } from "../i18n"
 import { FullSlug, joinSegments, pathToRoot, simplifySlug } from "../util/path"
-import { CSSResourceToStyleElement, JSResourceToScriptElement } from "../util/resources"
+import {
+  CSSResourceToStyleElement,
+  JSResource,
+  JSResourceToScriptElement,
+} from "../util/resources"
 import { googleFontHref, googleFontSubsetHref } from "../util/theme"
 import { QuartzComponent, QuartzComponentConstructor, QuartzComponentProps } from "./types"
 import { unescapeHTML } from "../util/escape"
@@ -12,6 +16,26 @@ import { unescapeHTML } from "../util/escape"
 // body copy and headings. Keep this synchronized with the build-time font
 // validation in scripts/patch_google_font_fetch.py.
 const primaryFontPreload = "/static/fonts/zYXzKVElMYYaJe8bpLHnCwDKr932-G7dytD-Dmu1syxeKYY.woff2"
+
+// Every page fetches the full-text content index (several MB) from <head> for
+// the explorer, search and graph. Fetch it at low priority so it does not
+// compete with the stylesheets and fonts the first paint needs.
+const contentIndexFetch = /^const fetchData = fetch\(("[^"]+")\)/
+function deprioritizeContentIndex(resource: JSResource): JSResource {
+  if (resource.contentType !== "inline" || !contentIndexFetch.test(resource.script)) {
+    return resource
+  }
+  return {
+    ...resource,
+    script: resource.script.replace(contentIndexFetch, 'const fetchData = fetch($1, { priority: "low" })'),
+  }
+}
+
+// Notes are articles; the home page, folder listings and tag pages are not.
+function isArticle(slug: FullSlug | undefined): boolean {
+  if (!slug || slug === "index" || slug === "404") return false
+  return !slug.endsWith("/index") && !slug.startsWith("tags/")
+}
 
 export function canonicalUrl(baseUrl: string, slug: FullSlug): string {
   const path = simplifySlug(slug)
@@ -76,12 +100,26 @@ export default (() => {
             )}
           </>
         )}
-        <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="anonymous" />
+        {/* KaTeX's stylesheet blocks rendering and comes from jsDelivr. cdnjs only
+            serves Mermaid, which loads on demand, so it gets a DNS lookup only. */}
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+        <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="color-scheme" content="light dark" />
+        <meta
+          name="theme-color"
+          content={cfg.theme.colors.lightMode.light}
+          media="(prefers-color-scheme: light)"
+        />
+        <meta
+          name="theme-color"
+          content={cfg.theme.colors.darkMode.light}
+          media="(prefers-color-scheme: dark)"
+        />
 
-        <meta name="og:site_name" content={cfg.pageTitle}></meta>
+        <meta property="og:site_name" content={cfg.pageTitle}></meta>
         <meta property="og:title" content={title} />
-        <meta property="og:type" content="website" />
+        <meta property="og:type" content={isArticle(fileData.slug) ? "article" : "website"} />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
@@ -114,7 +152,7 @@ export default (() => {
         {css.map((resource) => CSSResourceToStyleElement(resource, true))}
         {js
           .filter((resource) => resource.loadTime === "beforeDOMReady")
-          .map((res) => JSResourceToScriptElement(res, true))}
+          .map((res) => JSResourceToScriptElement(deprioritizeContentIndex(res), true))}
         {additionalHead.map((resource) => {
           if (typeof resource === "function") {
             return resource(fileData)

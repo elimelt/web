@@ -161,6 +161,9 @@ article img,
 article video {
   display: block;
   max-width: 100%;
+  /* Images carry width and height attributes; keep their aspect ratio when
+     max-width scales them down. */
+  height: auto;
   border-radius: var(--site-media-radius);
   margin: 1.5rem auto;
 }

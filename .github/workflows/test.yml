@@ -16,7 +16,9 @@ on:
 
 jobs:
   frontend:
-    runs-on: ubuntu-latest
+    # ubuntu-latest is now 26.04, which the pinned Playwright cannot install
+    # Chromium on. Move this forward together with @playwright/test.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5

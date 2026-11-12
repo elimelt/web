@@ -10,14 +10,14 @@ const ThemeManager = {
 
     if (!this.toggle || !this.icon) return;
 
-    if (localStorage.getItem("theme") === "dark") {
-      document.body.classList.add("dark-mode");
+    // BaseLayout's inline head script sets the class before first paint.
+    if (document.documentElement.classList.contains("dark-mode")) {
       this.icon.querySelector("use")?.setAttribute("href", "#icon-sun");
       this.updateLogos();
     }
 
     this.toggle.addEventListener("click", () => {
-      const isDark = document.body.classList.toggle("dark-mode");
+      const isDark = document.documentElement.classList.toggle("dark-mode");
       localStorage.setItem("theme", isDark ? "dark" : "light");
       this.icon
         .querySelector("use")
@@ -27,7 +27,7 @@ const ThemeManager = {
   },
 
   updateLogos() {
-    const isDark = document.body.classList.contains("dark-mode");
+    const isDark = document.documentElement.classList.contains("dark-mode");
     const toDark = (src: string) =>
       src.replace(/(?<!-dark)\.(png|webp|svg)$/, "-dark.$1");
     const toLight = (src: string) =>

@@ -6,13 +6,10 @@ import '../../css/layout/grid.css';
 import '../../css/components/timeline.css';
 import '../../css/components/notes.css';
 import '../../css/components/buttons.css';
-import '../../css/components/chat.css';
-import '../../css/components/visitors.css';
 import '../../css/features/meat-game.css';
 import '../../css/features/dice-game.css';
 import '../../css/responsive.css';
 import '../../css/layout/editorial.css';
-import '../../css/components/visitor-map.css';
 
 interface Props {
   title: string;
@@ -46,6 +43,18 @@ const personSchema = {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title}</title>
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+    <script is:inline>
+      // Apply the saved theme, or the system one, before first paint.
+      try {
+        const theme = localStorage.getItem('theme');
+        if (theme === 'dark' || (!theme && matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark-mode');
+        }
+      } catch {}
+    </script>
     <meta name="description" content={description} />
     <meta name="author" content="Elijah Melton" />
     <link rel="canonical" href={canonicalUrl} />
@@ -64,6 +73,9 @@ const personSchema = {
     <link rel="icon" type="image/png" href="/assets/apple-touch.png" />
     <link rel="apple-touch-icon" href="/assets/apple-touch.png" />
     <script type="application/ld+json" set:html={JSON.stringify(personSchema)} />
+    <script type="speculationrules" is:inline>
+      {"prefetch": [{"where": {"href_matches": "/*"}, "eagerness": "moderate"}]}
+    </script>
   </head>
   <body>
     <slot />

@@ -53,13 +53,26 @@ test('theme preference survives a reload', async ({ page }) => {
   await mockFrontendNetwork(page);
   await page.goto('/');
 
-  await expect(page.locator('body')).not.toHaveClass(/dark-mode/);
+  await expect(page.locator('html')).not.toHaveClass(/dark-mode/);
   await page.locator('#theme-toggle').click();
-  await expect(page.locator('body')).toHaveClass(/dark-mode/);
+  await expect(page.locator('html')).toHaveClass(/dark-mode/);
   expect(await page.evaluate(() => localStorage.getItem('theme'))).toBe('dark');
 
   await page.reload();
-  await expect(page.locator('body')).toHaveClass(/dark-mode/);
+  await expect(page.locator('html')).toHaveClass(/dark-mode/);
+});
+
+test('theme follows the system setting until the visitor picks one', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await mockFrontendNetwork(page);
+  await page.goto('/');
+
+  await expect(page.locator('html')).toHaveClass(/dark-mode/);
+  await page.locator('#theme-toggle').click();
+  await expect(page.locator('html')).not.toHaveClass(/dark-mode/);
+
+  await page.reload();
+  await expect(page.locator('html')).not.toHaveClass(/dark-mode/);
 });
 
 test('mobile navigation opens, follows an anchor, and closes', async ({ page }) => {

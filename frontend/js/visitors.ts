@@ -1,3 +1,5 @@
+import '../css/components/visitors.css';
+import '../css/components/visitor-map.css';
 import { getVisitors, getVisitorsAnalytics, getWsVisitors, isApiAvailable, hideOfflineSection } from './api.js';
 import { BASE_URL, PAGE_SIZE, RECONNECT } from './config.js';
 import { createVisitorMap } from './visitor-maplibre.js';
