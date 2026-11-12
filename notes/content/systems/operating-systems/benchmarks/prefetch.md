@@ -11,7 +11,7 @@ tags:
   - performance
   - benchmarks
 date: 2025-12-29
-updated: 2026-07-30
+updated: 2026-11-12
 status: needs-review
 description: A C benchmark of GCC __builtin_prefetch. Prefetching 64 elements ahead makes sequential reads 2.5x faster than the hardware prefetcher alone and random reads about 1.3x faster.
 sources:

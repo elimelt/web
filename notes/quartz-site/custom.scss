@@ -111,6 +111,22 @@ article {
   line-height: var(--site-body-leading);
 }
 
+// Fallback fonts. IBM Plex Sans has an x-height of 0.516 (OS/2 sxHeight 516 of
+// 1000 units in the served WOFF2). The system fallbacks in --bodyFont run from
+// about 0.50 (Segoe UI) to 0.53 (Roboto), so pinning the aspect keeps text the
+// same visual size when a first visit renders before Plex arrives. Plex itself
+// is unchanged. Average glyph widths are within 1% of Arial's and every line
+// height is explicit, so no @font-face metric overrides are needed. IBM Plex
+// Mono already matches the 0.6em advance of Menlo, SF Mono and Courier, and
+// math and diagrams set their own fonts, so they opt out.
+body {
+  font-size-adjust: 0.516;
+}
+
+:is(code, pre, kbd, samp, .katex, svg) {
+  font-size-adjust: none;
+}
+
 article p {
   margin-block: var(--site-paragraph-gap);
 }

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import quote, unquote
@@ -105,6 +106,12 @@ def validate_with_stats(output_root: Path) -> tuple[list[str], dict[str, int]]:
                 for element in root.findall("{http://www.sitemaps.org/schemas/sitemap/0.9}url/{http://www.sitemaps.org/schemas/sitemap/0.9}loc")
                 if element.text
             }
+            # Content dates only: a build timestamp here marks every page as
+            # changed on every deploy (see fix_sitemap_lastmod.py).
+            for element in root.iter("{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod"):
+                if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", element.text or ""):
+                    errors.append(f"sitemap.xml lastmod {element.text!r} is not a content date")
+                    break
         except ET.ParseError as error:
             errors.append(f"sitemap.xml is not valid XML: {error}")
         if not sitemap_urls:

@@ -11,7 +11,7 @@ tags:
   - performance
   - benchmarks
 date: 2025-12-29
-updated: 2026-07-30
+updated: 2026-11-12
 status: needs-review
 description: A C benchmark of branch misprediction cost. An unpredictable branch is 3.2x slower than a sorted one, about 11 cycles per miss, and a branchless mask lands in between.
 sources:
