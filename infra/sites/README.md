@@ -28,6 +28,21 @@ The projects, custom domains, DNS records, and the www redirect are in
    domains, and point DNS at Pages.
 3. Run both deploy workflows once (below).
 
+## Pull request previews
+
+`.github/workflows/pr-preview.yml` deploys a preview of each site a pull
+request changes (`notes/` for notes, `blog/` for the blog, anything outside
+`notes/`, `blog/`, `docs/`, `infra/` and `.github/` for elimelt.com). Each
+preview is a Pages preview branch named `pr-<number>`, served at
+`https://pr-<number>.<project>.pages.dev`, and a comment on the PR links it.
+Every push redeploys; closing or merging the PR deletes that branch's
+deployments through the Pages API with the same `CLOUDFLARE_PAGES_TOKEN`.
+Pull requests from forks get no preview, since they cannot read the token.
+
+Previews use pages.dev rather than `pr-<number>.notes.elimelt.com` because a
+custom hostname per PR would need a DNS record per PR, and the token can only
+edit Pages.
+
 ## Deploy and roll back
 
 Redeploy the current `main` with `gh workflow run web-deploy.yml` or

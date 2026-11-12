@@ -1,0 +1,209 @@
+name: PR previews
+
+# Every pull request from this repository gets a preview of each site it
+# changes, deployed to Cloudflare Pages as a preview branch named pr-<number>.
+# The links are posted in one comment on the PR and refreshed on every push.
+# Closing or merging the PR deletes that branch's preview deployments.
+#
+# Pull requests from forks are skipped: they cannot read the Pages token.
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: pr-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  PR_NUMBER: ${{ github.event.pull_request.number }}
+  PREVIEW_BRANCH: pr-${{ github.event.pull_request.number }}
+  COMMENT_MARKER: "<!-- pr-preview -->"
+
+jobs:
+  changes:
+    name: Find changed sites
+    if: >-
+      github.event.action != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.sites.outputs.matrix }}
+      any: ${{ steps.sites.outputs.any }}
+    steps:
+      - name: Pick sites to preview
+        id: sites
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          files="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" --jq '.[].filename')"
+          notes=false; blog=false; web=false
+          while IFS= read -r f; do
+            [[ -z "$f" ]] && continue
+            case "$f" in
+              notes/*) notes=true ;;
+              blog/*) blog=true ;;
+              docs/*|infra/*|.github/*) ;;
+              *) web=true ;;
+            esac
+          done <<< "$files"
+
+          matrix='[]'
+          add() { matrix="$(jq -c --argjson e "$1" '. + [$e]' <<< "$matrix")"; }
+          $notes && add '{"site":"notes","project":"elimelt-notes","dir":"notes","install":"","output":"notes/public"}'
+          $web && add '{"site":"web","project":"elimelt","dir":".","install":"npm ci","output":"dist/frontend"}'
+          $blog && add '{"site":"blog","project":"elimelt-blog","dir":"blog","install":"npm ci","output":"blog/dist"}'
+
+          echo "Sites to preview: $matrix"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          if [[ "$matrix" == '[]' ]]; then echo "any=false" >> "$GITHUB_OUTPUT"; else echo "any=true" >> "$GITHUB_OUTPUT"; fi
+
+  preview:
+    name: Preview ${{ matrix.site }}
+    needs: changes
+    if: needs.changes.outputs.any == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.changes.outputs.matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        if: matrix.install != ''
+        working-directory: ${{ matrix.dir }}
+        run: ${{ matrix.install }}
+      - name: Build
+        working-directory: ${{ matrix.dir }}
+        run: npm run build
+
+      - name: Deploy preview
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_PAGES_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          command: >-
+            pages deploy ${{ matrix.output }}
+            --project-name=${{ matrix.project }}
+            --branch=${{ env.PREVIEW_BRANCH }}
+            --commit-hash=${{ github.event.pull_request.head.sha }}
+            --commit-dirty=true
+
+      - name: Record preview URL
+        env:
+          ALIAS_URL: ${{ steps.deploy.outputs.pages-deployment-alias-url }}
+          DEPLOY_URL: ${{ steps.deploy.outputs.deployment-url }}
+          SITE: ${{ matrix.site }}
+        run: |
+          url="${ALIAS_URL:-$DEPLOY_URL}"
+          if [[ -z "$url" ]]; then echo "wrangler reported no URL" >&2; exit 1; fi
+          curl -fsS --retry 5 --retry-delay 5 --retry-all-errors -o /dev/null "$url/"
+          mkdir -p "$RUNNER_TEMP/preview-url"
+          echo "$url" > "$RUNNER_TEMP/preview-url/$SITE"
+          echo "### $SITE preview: $url" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload preview URL
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-url-${{ matrix.site }}
+          path: ${{ runner.temp }}/preview-url/${{ matrix.site }}
+          retention-days: 1
+
+  comment:
+    name: Post preview links
+    needs: [changes, preview]
+    if: always() && needs.changes.outputs.any == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download preview URLs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: preview-url-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/preview-url
+        continue-on-error: true
+
+      - name: Update PR comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MATRIX: ${{ needs.changes.outputs.matrix }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          declare -A names=([notes]="notes.elimelt.com" [web]="elimelt.com" [blog]="blog.elimelt.com")
+          body="${COMMENT_MARKER}"$'\n'"**Previews** for ${HEAD_SHA:0:7}"$'\n\n'
+          for site in $(jq -r '.[].site' <<< "$MATRIX"); do
+            file="$RUNNER_TEMP/preview-url/$site"
+            if [[ -s "$file" ]]; then
+              body+="- ${names[$site]}: $(cat "$file")"$'\n'
+            else
+              body+="- ${names[$site]}: build or deploy failed, see [the run]($RUN_URL)"$'\n'
+            fi
+          done
+          body+=$'\n'"Updated on every push. Removed when this PR is closed or merged."
+
+          id="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"${COMMENT_MARKER}\"))) | .id" | head -n1)"
+          if [[ -n "$id" ]]; then
+            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${id}" -f body="$body" > /dev/null
+          else
+            gh api -X POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body" > /dev/null
+          fi
+
+  cleanup:
+    name: Remove previews
+    if: >-
+      github.event.action == 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete preview deployments
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_PAGES_TOKEN }}
+          CF_ACCOUNT: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          api="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/pages/projects"
+          auth=(-H "Authorization: Bearer ${CF_TOKEN}")
+          for project in elimelt-notes elimelt elimelt-blog; do
+            ids=()
+            page=1
+            while :; do
+              resp="$(curl -fsS "${auth[@]}" "${api}/${project}/deployments?env=preview&per_page=25&page=${page}")"
+              count="$(jq '.result | length' <<< "$resp")"
+              [[ "$count" -eq 0 ]] && break
+              mapfile -t found < <(jq -r --arg b "$PREVIEW_BRANCH" \
+                '.result[] | select(.deployment_trigger.metadata.branch == $b) | .id' <<< "$resp")
+              ids+=("${found[@]}")
+              total_pages="$(jq '.result_info.total_pages // 0' <<< "$resp")"
+              [[ "$page" -ge "$total_pages" ]] && break
+              page=$((page + 1))
+            done
+            echo "${project}: ${#ids[@]} preview deployment(s) for ${PREVIEW_BRANCH}"
+            for id in "${ids[@]}"; do
+              [[ -z "$id" ]] && continue
+              curl -fsS -X DELETE "${auth[@]}" "${api}/${project}/deployments/${id}?force=true" > /dev/null
+              echo "  deleted ${id}"
+            done
+          done
+
+      - name: Update PR comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          id="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"${COMMENT_MARKER}\"))) | .id" | head -n1)"
+          if [[ -n "$id" ]]; then
+            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${id}" \
+              -f body="${COMMENT_MARKER}"$'\n'"**Previews** removed: this PR was closed." > /dev/null
+          fi
