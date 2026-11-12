@@ -1,0 +1,276 @@
+---
+title: Clocks
+aliases:
+  - distributed-systems/clocks
+category: Distributed Systems
+tags:
+  - clocks
+  - distributed-systems
+  - logical-clocks
+  - vector-clocks
+  - hybrid-logical-clocks
+  - clock-synchronization
+  - causality
+date: 2024-04-14
+updated: 2026-11-12
+status: evergreen
+description: How far apart real clocks drift and how well synchronization pulls them back, why timestamps still can't order events on their own, and the clocks that can, Lamport, vector, hybrid logical and TrueTime, with an interactive space-time diagram and a simulation of how large a hybrid clock's counter grows.
+sources:
+  - title: Lamport (1978), Time, Clocks, and the Ordering of Events in a Distributed System
+    url: https://lamport.azurewebsites.net/pubs/time-clocks.pdf
+    type: paper
+  - title: Mattern (1989), Virtual Time and Global States of Distributed Systems
+    url: https://courses.csail.mit.edu/6.895/fall02/papers/Mattern/VirtTime_GlobState.pdf
+    type: paper
+  - title: Mills et al. (2010), RFC 5905, Network Time Protocol Version 4
+    url: https://www.rfc-editor.org/rfc/rfc5905
+    type: spec
+  - title: Geng et al. (2018), Exploiting a Natural Network Effect for Scalable, Fine-grained Clock Synchronization (Huygens)
+    url: https://www.usenix.org/conference/nsdi18/presentation/geng
+    type: paper
+  - title: Corbett et al. (2012), Spanner, Google's Globally-Distributed Database
+    url: https://www.usenix.org/system/files/conference/osdi12/osdi12-final-16.pdf
+    type: paper
+  - title: Kulkarni et al. (2014), Logical Physical Clocks (hybrid logical clocks)
+    url: https://www.cse.buffalo.edu//~demirbas/publications/hlc.pdf
+    type: paper
+  - title: Preguiça et al. (2010), Dotted Version Vectors
+    url: https://arxiv.org/abs/1011.5808
+    type: paper
+---
+
+## Purpose
+
+Machines need to agree on what happened first: which write wins, which log entry comes earlier, whether a snapshot is consistent. This note covers how good real clocks are, why even very good ones can't settle those questions alone, and the four clocks distributed systems use instead. Lamport clocks and vector clocks order events by causality and ignore physical time. Hybrid logical clocks keep causality while staying close to physical time. TrueTime makes the error of physical time explicit and waits it out.
+
+Lamport's paper itself, including the mutual exclusion algorithm built on these clocks, has its own note: [[systems/distributed-systems/ordering-events-in-distributed-systems|Time, Clocks, and the Ordering of Events]].
+
+## What a Physical Clock Knows
+
+### Drift
+
+A server keeps time by counting the oscillations of a quartz crystal, and no two crystals oscillate at quite the same rate. The [NTP FAQ](https://www.eecis.udel.edu/~ntp/ntpfaq/NTP-s-sw-clocks.htm) puts a typical crystal's sensitivity at about 1 part per million (ppm) per degree Celsius, and 12 ppm of error adds up to roughly a second a day. Huygens measured datacenter servers directly: pairs of clocks ran at rates typically 5 to 10 µs per second apart, and up to 32 µs per second, which is 32 ppm ([Geng et al. 2018](https://www.usenix.org/conference/nsdi18/presentation/geng), Table 1). Left alone for a minute, two such servers can disagree by 2 ms.
+
+### Synchronization
+
+The Network Time Protocol (NTP) corrects drift by asking a better clock what time it is. The client records four timestamps: $T_1$ when its request leaves, $T_2$ when the server receives it, $T_3$ when the server replies, and $T_4$ when the reply arrives. $T_1$ and $T_4$ come from the client's clock, $T_2$ and $T_3$ from the server's. [RFC 5905](https://www.rfc-editor.org/rfc/rfc5905) estimates the offset $\theta$ between the two clocks and the round-trip delay $\delta$ as
+
+$$
+\theta = \frac{(T_2 - T_1) + (T_3 - T_4)}{2}, \qquad \delta = (T_4 - T_1) - (T_3 - T_2).
+$$
+
+The offset estimate assumes the request and the reply took equally long. If they didn't, nothing in the four timestamps can tell, so the true offset can be anywhere in $\theta \pm \delta/2$ ([Mills](https://www.eecis.udel.edu/~mills/exec.html)). Synchronization error therefore comes from delay asymmetry, and in a busy network asymmetry comes mostly from queuing. That is why NTP's clock filter prefers its lowest-delay samples, and why the precise systems below timestamp packets in the network card instead of in software.
+
+What different setups achieve:
+
+| Setup | Reported accuracy | Source |
+| --- | --- | --- |
+| NTP over the internet | a few tens of ms | [RFC 5905](https://www.rfc-editor.org/rfc/rfc5905) |
+| NTP on a fast LAN | a few hundred µs | [RFC 5905](https://www.rfc-editor.org/rfc/rfc5905) |
+| Meta's fleet, ntpd replaced by chrony (2020) | −10 to +3 ms before, ±200 µs after, ±100 µs with NIC timestamps | [Meta](https://engineering.fb.com/2020/03/18/production-engineering/ntp-service/) |
+| AWS EC2 (2023) | error bound under 100 µs over NTP, under 40 µs through the hardware clock | [AWS](https://aws.amazon.com/blogs/compute/its-about-time-microsecond-accurate-clocks-on-amazon-ec2-instances) |
+| Meta's PTP rollout (2022) | under 100 ns of variation over 24 hours | [Meta](https://engineering.fb.com/2022/11/21/production-engineering/precision-time-protocol-at-meta/) |
+| Huygens, 40% network load | 11 to 15 ns mean error, 30 to 45 ns at the 99th percentile | [Geng et al. 2018](https://www.usenix.org/conference/nsdi18/presentation/geng) |
+
+The Precision Time Protocol (PTP) gets to nanoseconds with help from the network: switches that timestamp packets in hardware and account for their own queuing. Huygens gets there without that help. It sends probes in pairs with a known spacing and keeps a pair only if it arrives with the same spacing, since a pair that crossed a queue gets spread out. Every two seconds it fits each pair of machines' offset and relative drift with a support vector machine over the surviving probes. Then it uses the fact that offsets around any loop of machines must sum to zero to correct the pairwise estimates against each other. On the same 1 Gbps testbed, NTP with hardware timestamps averaged 178 ns of error on an idle network and 78 µs at 40% load. Queuing, not the clocks, was the problem.
+
+### Wall clocks and monotonic clocks
+
+Operating systems expose two kinds of clock. A wall clock (`CLOCK_REALTIME` on Linux) tracks civil time and can jump when synchronization corrects it. A monotonic clock (`CLOCK_MONOTONIC`) only moves forward and is the right tool for measuring a duration on one machine, such as a timeout or a [[systems/distributed-systems/failure-detectors-leases-leader-election|lease]].
+
+Leap seconds make wall clocks stranger. UTC occasionally inserts a 61st second, which software that assumes 60-second minutes has to survive. Google sidesteps this by [smearing](https://developers.google.com/time/smear) the extra second over 24 hours, noon to noon, which slows its clocks by about 11.6 ppm, well inside ordinary crystal error. In 2022 the General Conference on Weights and Measures [decided](https://www.bipm.org/en/cgpm-2022/resolution-4) to allow a larger gap between UTC and astronomical time by 2035, so that UTC can stop taking leap seconds.
+
+## Why Timestamps Alone Can't Order Events
+
+Suppose P1 writes `x = 1` and then sends a message to P2, and P2, having read the message, writes `x = 2`. The second write causally follows the first. If the system keeps whichever write has the later timestamp, a policy called last writer wins, it should keep `x = 2`. But if P2's clock is behind P1's by more than the message took to arrive, P2's write carries the *earlier* timestamp and `x = 1` survives. Nothing fails loudly. The newer value disappears.
+
+Better synchronization shrinks the window without closing it. Any two events stamped closer together than the clocks' error can come out in either order. A physical timestamp orders events only when you also know a bound on its error and the events are further apart than that bound. Spanner builds on exactly that idea, covered in [the last section](#truetime-waiting-out-the-uncertainty). The other approach throws physical time away and orders events by what could have influenced what.
+
+## Happens-Before
+
+[Lamport (1978)](https://lamport.azurewebsites.net/pubs/time-clocks.pdf) defines the order a system can actually observe. Event $a$ **happens before** event $b$, written $a \to b$, if any of these hold:
+
+1. $a$ and $b$ are on the same process and $a$ comes first.
+2. $a$ sends a message and $b$ receives it.
+3. $a \to c$ and $c \to b$ for some event $c$.
+
+Sending and receiving are each events in their own right. Two events are **concurrent** if neither happens before the other. That doesn't mean they happened at the same instant. It means no chain of process steps and messages connects them, so neither could have influenced the other, and a correct system must not depend on their order. Happens-before is a partial order: some pairs are ordered and some aren't.
+
+## Lamport Clocks
+
+Each process keeps a counter $L$ and follows two rules:
+
+- Before every event, including sends and receives, increment $L$. A send carries the new value.
+- On receiving a message stamped $L_m$, set $L = \max(L, L_m) + 1$.
+
+This guarantees the **clock condition**: if $a \to b$ then $L(a) < L(b)$. With these rules the number also has a direct reading. $L(e)$ is the length of the longest happens-before chain that ends at $e$, counting $e$ itself. This note's tests check both facts on 300 random diagrams.
+
+The converse fails. $L(a) < L(b)$ says nothing when $a$ and $b$ are concurrent, because each process's counter climbs at its own pace. Breaking ties by process id turns Lamport timestamps into a total order that respects causality, which is what [[systems/distributed-systems/mutual-exclusion|Lamport's mutual exclusion]] uses. That total order is arbitrary on concurrent events, and a Lamport timestamp alone can't tell you whether two events were concurrent.
+
+The figure below computes all four clocks in this note for a diagram you can edit. In this example the three processes work alone until near the end. Things to try:
+
+- **Look at a3 and c1**, picked to start. Lamport stamps them 3 and 1, so a total order puts c1 first. They are concurrent, and only the vector clock says so.
+- **Click any event** to shade its causal past blue and its causal future orange. Hollow events are concurrent with it.
+- **Switch the labels to Vector**, then build your own diagram: choose "adds an event" or "sends a message" and click the process lines.
+
+<ClockDiagram example="concurrent" view="lamport" />
+
+## Vector Clocks
+
+A vector clock gives up a single number to capture causality exactly. Fidge (1988) and [Mattern (1989)](https://courses.csail.mit.edu/6.895/fall02/papers/Mattern/VirtTime_GlobState.pdf) developed it independently. Process $i$ keeps a vector $V$ with one entry per process:
+
+- Before a local event or a send, increment $V[i]$. A send carries a copy of $V$.
+- On receiving $V_m$, set $V[j] = \max(V[j], V_m[j])$ for every $j$, then increment $V[i]$.
+
+Entry $j$ of $V(e)$ counts the events on process $j$ that happen before $e$, counting $e$ itself. Once you see that, the comparison rule follows. Define $V(a) < V(b)$ when every entry of $V(a)$ is at most the matching entry of $V(b)$ and at least one is smaller. Then
+
+$$
+a \to b \iff V(a) < V(b),
+$$
+
+and $a$ and $b$ are concurrent exactly when neither vector is smaller. The figure's tests check this equivalence, and the counting interpretation, for every pair of events in 300 random diagrams.
+
+The price is size. A vector clock has an entry per process, and [Charron-Bost (1991)](https://researchr.org/publication/Charron-Bost91) proved that characterizing causality in general takes vectors of that length. Systems with many participants, or participants that come and go, pay for that, which is what the variants in the deep dive below address. Vector clocks are how [[systems/distributed-systems/consistent-global-state|consistent global snapshots]] are checked and what causal delivery in [[systems/distributed-systems/crdts|operation-based CRDTs]] relies on.
+
+```java
+public class VectorClock {
+  private final int[] clock;
+  private final int id;
+
+  public VectorClock(int id, int n) {
+    this.id = id;
+    this.clock = new int[n];
+  }
+
+  // A local event.
+  public void tick() {
+    clock[id]++;
+  }
+
+  // A send: tick, then attach a copy of the clock to the message.
+  public int[] send() {
+    tick();
+    return clock.clone();
+  }
+
+  // A receive: merge the sender's clock, then tick.
+  public void receive(int[] senderClock) {
+    for (int j = 0; j < clock.length; j++)
+      clock[j] = Math.max(clock[j], senderClock[j]);
+    tick();
+  }
+
+  // True iff the event stamped `a` happens before the event stamped `b`.
+  public static boolean happenedBefore(int[] a, int[] b) {
+    boolean strictlyLess = false;
+    for (int j = 0; j < a.length; j++) {
+      if (a[j] > b[j]) return false;
+      if (a[j] < b[j]) strictlyLess = true;
+    }
+    return strictlyLess;
+  }
+}
+```
+
+Two events are concurrent exactly when `happenedBefore(a, b)` and `happenedBefore(b, a)` are both false.
+
+> [!note]- Deep dive: version vectors, dotted version vectors, and interval tree clocks
+> Replicated stores usually want to know whether one *version* of an object supersedes another, rather than how every event relates. A **version vector** has an entry per replica that has written the object and is compared exactly like a vector clock. [[systems/distributed-systems/dynamo-db|Dynamo]] stored one per object, as (node, counter) pairs, and returned concurrent versions to the application to merge. To keep the vectors small it dropped the oldest pairs past a threshold, which can make a newer version look concurrent with an older one.
+>
+> A subtler problem shows up when clients write through a server. If the server bumps its own entry for each client write, two clients' concurrent writes can get vectors where one looks newer, and a write is silently lost. Giving every client its own entry fixes that but makes vectors grow with the number of clients. [Dotted version vectors](https://arxiv.org/abs/1011.5808) keep one entry per server and tag each write with a single extra (server, counter) pair, its *dot*, which is enough to tell concurrent writes apart. Riak added them in version 2.0, and its [documentation](https://docs.riak.com/riak/kv/2.2.3/learn/concepts/causal-context) calls them far better at limiting the number of siblings.
+>
+> Vector clocks also assume a fixed set of process ids. [Interval tree clocks](https://link.springer.com/chapter/10.1007/978-3-540-92221-6_18) (Almeida, Baquero, and Fonte, 2008) let processes fork and join without a global id registry by giving each one a share of the interval $[0, 1)$ to count in.
+>
+> Git takes the opposite route. A commit graph stores the whole causal history explicitly, and `git merge-base --is-ancestor` answers happens-before by searching it. A vector clock is a compressed summary of that same history that can answer the question without the graph.
+
+## Hybrid Logical Clocks
+
+Logical clocks lose something physical clocks have. A Lamport or vector timestamp says nothing about when an event happened, so you can't ask for "the state as of 10:00" or expire data after an hour. [Hybrid logical clocks](https://www.cse.buffalo.edu//~demirbas/publications/hlc.pdf) (HLC, Kulkarni et al. 2014) combine the two. Each process keeps a pair $(l, c)$: $l$ is the largest physical time it has heard of, and $c$ is a counter that orders events sharing the same $l$. With $pt$ the process's physical clock reading:
+
+- Before a local event or a send: $l' = l$, then $l = \max(l', pt)$. If $l$ didn't change, increment $c$; otherwise set $c = 0$.
+- On receiving $(l_m, c_m)$: $l' = l$, then $l = \max(l', l_m, pt)$. Set $c$ to $\max(c, c_m) + 1$ if $l$ equals both $l'$ and $l_m$, to $c + 1$ if it equals only $l'$, to $c_m + 1$ if it equals only $l_m$, and to 0 if $pt$ won.
+
+Timestamps compare by $l$, then $c$. HLC satisfies the same clock condition as Lamport clocks: if $a \to b$, then $(l, c)$ of $a$ is smaller. The paper also proves $l \ge pt$ always and $l - pt \le \varepsilon$, where $\varepsilon$ bounds how far apart the physical clocks are. So $l$ stays within the synchronization error of real time. That lets an HLC fit in the 64 bits of an NTP timestamp, with 48 bits of $l$ at microsecond resolution and 16 bits of $c$. [CockroachDB](https://www.cockroachlabs.com/blog/clock-management-cockroachdb/) and [MongoDB](https://researchr.org/publication/TyulenevSKTCM19) both timestamp transactions with HLCs.
+
+In the figure below, P2's clock runs 9 ms slow. P1 sends at physical time 112 and P2 receives at its own 106, so ordering by physical timestamps puts the receive before the send. Things to try:
+
+- **Compare the Physical and Hybrid logical rows** for a2 and b1, picked to start. The physical clocks get them backwards; the hybrid clock gives b1 112.1, one tick after a2's 112.0.
+- **Drag the clock sliders** apart and together. Physical labels reorder; hybrid labels never contradict an arrow.
+- **Push P3's clock to +20 ms** and switch the labels to Hybrid logical. When c4's message reaches P1, a3 jumps to P3's time, well ahead of P1's own clock.
+
+<ClockDiagram example="skew" view="physical" />
+
+### How large the counter gets
+
+The paper proves a bound on $c$ that grows with the number of processes and the clock spread, which is too loose to reassure anyone about a 16-bit field. Its measurements are reassuring: the largest $c$ was 3 on four nodes and 9 on an 8-node AWS cluster. Those runs don't show how $c$ behaves as event rates climb, so I simulated it. Eight processes run the HLC rules above with microsecond clocks, half of all events send a message to a random process, and one-way delays are lognormal with a 100 µs median. Clock offsets are spread over $\varepsilon$, and each configuration ran with 5 seeds.
+
+| Clock spread $\varepsilon$ | Events/s per process | $c$, 99th percentile | Largest $c$ | Largest $l - pt$ |
+| --- | ---: | ---: | ---: | ---: |
+| 0.1 ms | 10,000 | 1 ± 0 | 5 ± 1 | 58 µs |
+| 0.1 ms | 1,000,000 | 40 ± 13 | 96 ± 18 | 58 µs |
+| 1 ms | 10,000 | 9 ± 2 | 22 ± 3 | 0.75 ms |
+| 1 ms | 1,000,000 | 115 ± 9 | 199 ± 17 | 0.75 ms |
+| 10 ms | 10,000 | 24 ± 3 | 47 ± 5 | 7.6 ms |
+| 10 ms | 1,000,000 | 123 ± 1 | 210 ± 12 | 7.6 ms |
+| 1 ms, plus one clock 100 ms ahead | 1,000,000 | 123 ± 2 | 213 ± 22 | 100.3 ms |
+
+Values are means ± standard deviation over seeds; the [full table](clocks-experiments/results.txt) has all 12 configurations. What the numbers show:
+
+- **The counter stays small.** Even at a million events per second per process, the largest $c$ in any configuration averaged about 210, three thousandths of the 65,535 a 16-bit field holds. It grows with the event rate and hardly at all with clock spread past 1 ms. A process's counter resets whenever a larger $l$ reaches it, and the fastest clock in the system produces a larger $l$ every microsecond.
+- **Hybrid time follows the fastest clock.** The largest $l - pt$ equals the actual spread of the clocks, so slow processes end up stamping events with the fastest process's time. One clock running 100 ms ahead pushed every process's hybrid time 100 ms ahead of its own clock. HLC still keeps causality, but its timestamps stop meaning "now".
+
+That second point is why CockroachDB polices clock offset. Its `--max-offset` [defaults to 500 ms](https://docs.cockroachlabs.com/docs/stable/cockroach-start), and a node [shuts itself down](https://docs.cockroachlabs.com/docs/stable/critical-log-messages.md) if its clock is off by more than 80% of that from at least half the cluster.
+
+> [!note]- Measurement record
+> - **Code**: [`hlc_counter.py`](clocks-experiments/hlc_counter.py), a discrete-event simulation using only the Python standard library, run as `python3 hlc_counter.py`. Output in [`results.txt`](clocks-experiments/results.txt). It simulates the algorithm; it does not measure a cluster.
+> - **Model**: 8 processes; Poisson event arrivals at the listed rate per process; each event sends to a uniformly random other process with probability 0.5; one-way delay lognormal with median 100 µs and $\sigma = 0.5$; physical clocks read whole microseconds; each clock has a fixed offset drawn uniformly from $[-\varepsilon/2, \varepsilon/2]$, so the realized spread is somewhat under $\varepsilon$. Drift is left out: at the 32 µs per second Huygens measured, it moves a clock by at most a few microseconds over a run.
+> - **Runs**: 400,000 events per run, the first 10% of simulated time discarded as warmup, 5 seeds per configuration, 12 configurations. The whole sweep took 48 s on one core of an Intel Xeon at 2.10 GHz with Python 3.13.18.
+> - **Not modeled**: drift, clock steps, bursts, message loss, and processes that talk to only a few peers. A process that rarely hears from the fastest clock keeps incrementing $c$ in between, so sparse communication probably raises the counter.
+
+> [!note]- Deep dive: how CockroachDB reads with uncertain clocks
+> CockroachDB serves reads at an HLC timestamp. A value written by another node with a slightly later timestamp might have been committed before the read started, in real time, if that node's clock runs ahead. So a read treats any value whose timestamp falls between its own timestamp and its timestamp plus the maximum clock offset as *uncertain*: it can't tell whether the write happened before the read. When it meets one, it restarts at a higher timestamp ([Cockroach Labs](https://www.cockroachlabs.com/blog/clock-management-cockroachdb/)). A larger maximum offset tolerates worse clocks and causes more of these restarts, so the setting trades performance against safety.
+
+## TrueTime: Waiting Out the Uncertainty
+
+Spanner takes physical time seriously instead of working around it. Its TrueTime API returns an interval, `TT.now() = [earliest, latest]`, guaranteed to contain true time ([Corbett et al. 2012](https://www.usenix.org/system/files/conference/osdi12/osdi12-final-16.pdf)). Most of Google's time masters have GPS receivers and the rest have atomic clocks. Each server polls them every 30 seconds and in between assumes its own crystal drifts at a worst-case 200 µs per second. That assumption alone grows the uncertainty by 6 ms between polls, so $\varepsilon$, half the interval's width, saws between about 1 and 7 ms and averages about 4 ms.
+
+To commit a transaction, Spanner picks a timestamp $s$ no earlier than `TT.now().latest`, then waits until `TT.now().earliest` has passed $s$ before making the commit visible. This **commit wait** lasts at least about $2\varepsilon$. After it, $s$ is certainly in the past, so any transaction that starts later in real time gets a larger timestamp. Timestamp order then matches real-time order, the property Spanner calls external consistency (see [[systems/distributed-systems/consistency|consistency]]), and no messages were exchanged to get it.
+
+The cost is latency proportional to clock uncertainty, which is the strongest argument for the synchronization work in the table above. AWS now exposes the same kind of interval: [ClockBound](https://github.com/aws/clock-bound) returns an (earliest, latest) pair, with an error bound the [EC2 time service](https://aws.amazon.com/blogs/compute/its-about-time-microsecond-accurate-clocks-on-amazon-ec2-instances) keeps under 40 µs on supported instances. [Aurora DSQL](https://aws.amazon.com/blogs/database/everything-you-dont-need-to-know-about-amazon-aurora-dsql-part-5-how-the-service-uses-clocks) uses it to pick transaction timestamps and waits until a commit timestamp is verifiably in the past. With a 40 µs bound, the wait that cost Spanner about 8 ms in 2012 comes to under 100 µs.
+
+## Choosing a Clock
+
+| You need to | Use | Cost |
+| --- | --- | --- |
+| Measure a duration on one machine | A monotonic clock | Nothing |
+| Totally order events consistently with causality | Lamport clock with a process-id tiebreak | One integer per message |
+| Tell concurrent events from ordered ones | Vector clock or version vector | One entry per process or replica |
+| Causal order plus timestamps near real time | Hybrid logical clock | 64 bits; needs a bound on clock offset |
+| Real-time order across machines without messages | TrueTime-style intervals with commit wait | Waiting about twice the clock uncertainty |
+
+## Related Notes
+
+- [[systems/distributed-systems/ordering-events-in-distributed-systems|Time, Clocks, and the Ordering of Events]]: Lamport's paper in detail, including physical clock bounds.
+- [[systems/distributed-systems/mutual-exclusion|Mutual Exclusion]]: the total order from Lamport clocks put to work.
+- [[systems/distributed-systems/consistent-global-state|Consistent Global State]]: using these clocks to check snapshots.
+- [[systems/distributed-systems/dynamo-db|Dynamo]] and [[systems/distributed-systems/crdts|CRDTs]]: version vectors and causal delivery in replicated data.
+- [[systems/distributed-systems/consistency|Consistency]]: the guarantees that TrueTime and HLC timestamps support.
+- [[systems/distributed-systems/failure-detectors-leases-leader-election|Failure Detectors, Leases, and Leader Election]]: timeouts that need only a bounded drift rate.
+- [[systems/distributed-systems/managing-critical-state|Managing Critical State]]: where timestamp ordering fails in practice.
+
+## Sources
+
+- [Lamport (1978), Time, Clocks, and the Ordering of Events in a Distributed System](https://lamport.azurewebsites.net/pubs/time-clocks.pdf)
+- [Mattern (1989), Virtual Time and Global States of Distributed Systems](https://courses.csail.mit.edu/6.895/fall02/papers/Mattern/VirtTime_GlobState.pdf), which also cites Fidge (1988), Timestamps in Message-Passing Systems that Preserve the Partial Ordering
+- [Charron-Bost (1991), Concerning the Size of Logical Clocks in Distributed Systems](https://researchr.org/publication/Charron-Bost91)
+- [Mills et al. (2010), RFC 5905, Network Time Protocol Version 4](https://www.rfc-editor.org/rfc/rfc5905) and [Mills, NTP executive summary](https://www.eecis.udel.edu/~mills/exec.html)
+- [Geng et al. (2018), Huygens](https://www.usenix.org/conference/nsdi18/presentation/geng)
+- [Meta (2020), Building a more accurate time service at Facebook scale](https://engineering.fb.com/2020/03/18/production-engineering/ntp-service/) and [Meta (2022), How Precision Time Protocol is being deployed at Meta](https://engineering.fb.com/2022/11/21/production-engineering/precision-time-protocol-at-meta/)
+- [AWS (2023), Microsecond-Accurate Clocks on Amazon EC2 Instances](https://aws.amazon.com/blogs/compute/its-about-time-microsecond-accurate-clocks-on-amazon-ec2-instances) and [ClockBound](https://github.com/aws/clock-bound)
+- [AWS (2025), How Aurora DSQL uses clocks](https://aws.amazon.com/blogs/database/everything-you-dont-need-to-know-about-amazon-aurora-dsql-part-5-how-the-service-uses-clocks)
+- [Corbett et al. (2012), Spanner](https://www.usenix.org/system/files/conference/osdi12/osdi12-final-16.pdf)
+- [Kulkarni et al. (2014), Logical Physical Clocks](https://www.cse.buffalo.edu//~demirbas/publications/hlc.pdf)
+- [Tyulenev et al. (2019), Implementation of Cluster-wide Logical Clock and Causal Consistency in MongoDB](https://researchr.org/publication/TyulenevSKTCM19)
+- [Cockroach Labs (2025), Clock management in CockroachDB](https://www.cockroachlabs.com/blog/clock-management-cockroachdb/)
+- [Preguiça et al. (2010), Dotted Version Vectors](https://arxiv.org/abs/1011.5808) and [Almeida, Baquero, and Fonte (2008), Interval Tree Clocks](https://link.springer.com/chapter/10.1007/978-3-540-92221-6_18)
+- [Google, Leap Smear](https://developers.google.com/time/smear) and [CGPM (2022), Resolution 4](https://www.bipm.org/en/cgpm-2022/resolution-4)
