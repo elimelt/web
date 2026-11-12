@@ -103,6 +103,38 @@ variability. Commit the source and measured results, then run
 `npm run validate:notes` and `npm run build`. The complete artifact-selection
 and publication policy lives in `.notes/artifacts.yml`.
 
+## Interactive notes (MDX)
+
+A note can hold interactive figures by using the `.mdx` extension instead of
+`.md`. Everything else stays the same: frontmatter, wikilinks, callouts, math,
+Mermaid, aliases and the published URL all work as they do in a `.md` note.
+Place a component on its own lines at the top level of the note:
+
+```mdx
+<BenchmarkNoise />
+```
+
+- Components live in `quartz-site/plugins/mdx/src/components/<name>/`. Each
+  has a `render.ts` that returns the figure's full HTML at build time and a
+  `client.ts` whose `mount(element)` makes it interactive. Register new ones in
+  `src/components/index.ts`.
+- Pages only load a component's script when the component is on the page, and
+  the build-time markup means nothing moves when the script arrives. Style the
+  figure in `quartz-site/custom.scss` so it is styled before the script runs.
+- Attribute values must be literals (`seed={7}`, `label="x"`). Imports,
+  exports, inline JSX and `{expressions}` fail the build with the line at fault;
+  write a literal brace as `\{` or put it in code. `{/* comments */}` are
+  dropped.
+- After changing anything under `quartz-site/plugins/mdx/src/`, run
+  `npm install && npm run build && npm test` in that directory and commit
+  `dist/index.js` and `quartz-site/static/mdx/`, since Quartz loads the bundled
+  files without installing dependencies.
+
+At build time `scripts/prepare_mdx.py` renames each `.mdx` note to `.md` in
+Quartz's copy of the content and marks it `mdx: true`, because Quartz only reads
+`.md` files. The mdx plugin then replaces each component tag before any other
+plugin sees the note.
+
 ## Notebook-backed and embedded notes
 
 Notebook pages use the
@@ -272,7 +304,7 @@ npm run new:note -- content/algorithms/example.md \
 
 - `scripts/quartz.sh` mirrors `docs/` into the built site for legacy
   URLs.
-- `npm run validate:notes` validates Markdown only, not raw `.ipynb` files.
+- `npm run validate:notes` validates Markdown and MDX notes, not raw `.ipynb` files.
 - Keep `.quartz/`, `public/`, `.venv/`, and `work/notebook-data/` out of Git.
 
 ## How the build works

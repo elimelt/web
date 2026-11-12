@@ -66,6 +66,7 @@ bootstrap() {
 sync_site() {
   rm -rf "$QUARTZ_DIR/content"
   cp -R "$ROOT/content" "$QUARTZ_DIR/content"
+  python3 "$ROOT/scripts/prepare_mdx.py" "$QUARTZ_DIR/content"
   python3 "$ROOT/scripts/prepare_content.py" "$QUARTZ_DIR/content"
   cp "$ROOT/quartz.config.yaml" "$QUARTZ_DIR/quartz.config.yaml"
   if [[ -f "$ROOT/quartz.lock.json" ]]; then

@@ -1,4 +1,5 @@
 // quartz-site/plugins/copy-markdown/src/index.ts
+import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 var defaultOptions = {
@@ -27,6 +28,10 @@ function getPublishedSource(content, sourceRoot) {
   const source = path.resolve(sourceRoot, relativePath);
   if (source !== sourceRoot && !source.startsWith(sourceRoot + path.sep)) {
     return null;
+  }
+  const mdxSource = source.replace(/\.md$/, ".mdx");
+  if (!existsSync(source) && existsSync(mdxSource)) {
+    return { slug, source: mdxSource };
   }
   return { slug, source };
 }

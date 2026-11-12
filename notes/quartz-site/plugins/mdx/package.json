@@ -1,0 +1,37 @@
+{
+  "name": "@elimelt/quartz-mdx",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Lets a note written as .mdx place interactive components between ordinary Markdown.",
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "quartz": {
+    "name": "mdx",
+    "displayName": "MDX components",
+    "description": "Replaces JSX component tags in .mdx notes with server-rendered markup and loads each component's script only on pages that use it.",
+    "category": "transformer",
+    "version": "1.0.0",
+    "quartzVersion": ">=5.0.0",
+    "defaultEnabled": true,
+    "defaultOrder": 2
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "mdast-util-from-markdown": "^2.1.0",
+    "mdast-util-frontmatter": "^2.0.1",
+    "mdast-util-math": "^3.0.0",
+    "mdast-util-mdx": "^3.0.0",
+    "micromark-extension-frontmatter": "^2.0.0",
+    "micromark-extension-math": "^3.1.0",
+    "micromark-extension-mdxjs": "^3.0.0",
+    "unist-util-visit": "^5.2.0"
+  }
+}

@@ -8,7 +8,7 @@ tags:
   - microarchitecture
   - measurement
 date: 2026-08-01
-updated: 2026-10-09
+updated: 2026-11-12
 authors:
   - elimelt
   - gpt-6
@@ -65,6 +65,21 @@ Three evidence classes cover essentially everything in this repo and its likely 
 - **RTL-waveform**: cycle-accurate simulation output (from something like Verilator or a vendor simulator) for a specific RTL design at a specific commit, as in [[hardware/computer-architecture/rtl-reading-lab|the RTL reading lab]]. The "hardware" here is the simulated microarchitecture, not a physical chip, and the record needs to say so plus name the simulator and commit.
 
 `evidence_class` matters because it changes what "reproducible" means. A wall-clock number is only reproducible on the same or comparable hardware; a hardware-counter number needs the same microarchitecture family to even be comparable across machines; an RTL-waveform number is reproducible by anyone who checks out the same commit and simulator version, independent of physical hardware entirely.
+
+## Why the record matters: a simulation
+
+Each field under `method` and `os` names a way a wall-clock comparison can go wrong. The figure below simulates one comparison so you can watch it happen. Version B of some routine is truly 2% faster than version A, a typical size for a micro-optimization. The harness times all of A's runs and then all of B's, the way a simple shell loop would. Every control you leave off adds a noise source that the record would have to admit to:
+
+- **Warm-up** (`method.warmup`): the first runs pay for cold caches, page faults and untrained branch predictors.
+- **Pinning** (`method.affinity`): an unpinned thread sometimes migrates to another core and pays to refill its caches.
+- **Fixed frequency** (the governor and turbo settings under `os`): turbo clocks fade as the chip heats, so whatever runs later runs slower.
+- **A quiet machine**: other processes occasionally take the core.
+
+<BenchmarkNoise />
+
+With no controls and five runs of each, the interval for the speedup spans tens of percent and the experiment can't say anything. Turn on only the warm-up and it becomes confident and wrong: the interval narrows, but thermal drift lands entirely on B because B runs second, and most repetitions of the experiment name A the winner. Fixing the frequency removes that bias. Fifty runs of each mostly hide it too, but only because the chip reaches a steady temperature early in the session, which is a property of this simulated machine rather than something to count on. Interleaving A and B runs would cancel the drift as well, so a complete record should also say in what order the runs were taken.
+
+The figure's measurement record shows the same thing from the other side: the four controls are exactly the fields that the audit below finds missing from most of this repo's benchmark notes, and without them a reader can't tell which of these scenarios produced a number.
 
 ## Auditing this repo's benchmark notes against the schema
 

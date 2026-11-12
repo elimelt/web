@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import type {
@@ -53,6 +54,12 @@ function getPublishedSource(
   const source = path.resolve(sourceRoot, relativePath);
   if (source !== sourceRoot && !source.startsWith(sourceRoot + path.sep)) {
     return null;
+  }
+  // The build renames note.mdx to note.md (scripts/prepare_mdx.py), so publish
+  // the .mdx source the author wrote.
+  const mdxSource = source.replace(/\.md$/, ".mdx");
+  if (!existsSync(source) && existsSync(mdxSource)) {
+    return { slug, source: mdxSource };
   }
   return { slug, source };
 }

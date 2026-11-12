@@ -45,6 +45,11 @@ configuration:
         highlight: rgba(138, 180, 255, 0.1)
         textHighlight: "#6b5a1f"
 plugins:
+  # Turns component tags in .mdx notes into build-time markup. Runs first so
+  # every later plugin sees plain Markdown.
+  - source: ../quartz-site/plugins/mdx
+    enabled: true
+    order: 2
   - source: "@quartz-community/note-properties"
     enabled: true
     options:
