@@ -9,6 +9,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
+NOTE_SUFFIXES = {".md", ".mdx"}
 REQUIRED_FIELDS = ("title", "category", "tags", "date")
 CONTENT_ROOT = ROOT / "content"
 SPECIAL_CASES = {CONTENT_ROOT / "index.md"}
@@ -29,13 +30,13 @@ def iter_markdown_files(paths: list[str]) -> list[Path]:
     files: list[Path] = []
     for raw in paths:
         path = (ROOT / raw).resolve()
-        if path.is_file() and path.suffix == ".md":
+        if path.is_file() and path.suffix in NOTE_SUFFIXES:
             if CONTENT_ROOT not in path.parents and path != CONTENT_ROOT:
                 continue
             files.append(path)
             continue
         if path.is_dir():
-            for candidate in sorted(path.rglob("*.md")):
+            for candidate in sorted(p for p in path.rglob("*") if p.suffix in NOTE_SUFFIXES and p.is_file()):
                 if "content/templates" in candidate.as_posix():
                     continue
                 if CONTENT_ROOT not in candidate.parents and candidate != CONTENT_ROOT:
@@ -59,7 +60,7 @@ def git_changed_markdown_files() -> list[Path]:
             check=True,
         )
         for line in result.stdout.splitlines():
-            if not line.endswith(".md"):
+            if Path(line).suffix not in NOTE_SUFFIXES:
                 continue
             path = (ROOT / line).resolve()
             if (

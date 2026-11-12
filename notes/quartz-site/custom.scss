@@ -251,3 +251,245 @@ button.toc-header h3 {
     display: none;
   }
 }
+
+// Interactive figures from .mdx notes (quartz-site/plugins/mdx). The build
+// renders their markup, so these styles apply before any script runs and the
+// figure keeps its size when the script takes over.
+:root {
+  --bn-b: #b8550b;
+}
+
+[saved-theme="dark"] {
+  --bn-b: #f0a35e;
+}
+
+.mdx-component {
+  margin: 1.75rem 0;
+}
+
+figure.bn {
+  margin: 0;
+  padding: 1rem 1.1rem 0.9rem;
+  border: 1px solid var(--lightgray);
+  border-radius: var(--site-media-radius);
+
+  .bn-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem 1.5rem;
+  }
+
+  .bn-slider {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.92rem;
+
+    span {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    output {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+
+    input {
+      width: 100%;
+      accent-color: var(--secondary);
+    }
+  }
+
+  .bn-toggles {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem 1.5rem;
+    margin: 0.2rem 0 0;
+    padding: 0;
+    border: 0;
+
+    legend {
+      padding: 0;
+      margin-bottom: 0.3rem;
+      font-size: 0.92rem;
+      font-weight: 600;
+    }
+  }
+
+  .bn-toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    font-size: 0.92rem;
+    line-height: 1.35;
+
+    input {
+      margin: 0.2rem 0 0;
+      accent-color: var(--secondary);
+    }
+
+    small {
+      display: block;
+      color: var(--gray);
+      font-size: 0.8rem;
+    }
+  }
+
+  input:disabled {
+    cursor: progress;
+  }
+
+  .bn-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 1rem;
+    margin: 0.9rem 0 0.1rem;
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  .bn-key.bn-a {
+    color: var(--secondary);
+  }
+
+  .bn-key.bn-b {
+    color: var(--bn-b);
+  }
+
+  .bn-chart {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 640 / 236;
+    overflow: visible;
+  }
+
+  .bn-grid {
+    stroke: var(--lightgray);
+  }
+
+  .bn-divider {
+    stroke: var(--gray);
+    stroke-dasharray: 2 3;
+  }
+
+  .bn-tick,
+  .bn-label {
+    fill: var(--gray);
+    font-size: 12px;
+  }
+
+  .bn-label {
+    fill: var(--darkgray);
+    font-weight: 600;
+  }
+
+  .bn-true {
+    stroke: var(--gray);
+    stroke-width: 1.25;
+    stroke-dasharray: 5 4;
+  }
+
+  .bn-median {
+    stroke-width: 2;
+  }
+
+  .bn-point {
+    fill-opacity: 0.8;
+  }
+
+  .bn-a {
+    fill: var(--secondary);
+    stroke: var(--secondary);
+  }
+
+  .bn-b {
+    fill: var(--bn-b);
+    stroke: var(--bn-b);
+  }
+
+  .bn-verdict {
+    margin: 0.6rem 0 0.4rem;
+    padding: 0.5rem 0.7rem;
+    border-left: 3px solid var(--gray);
+    border-radius: 2px;
+    background: var(--highlight);
+
+    &[data-tone="right"] {
+      border-left-color: #2e8540;
+    }
+
+    &[data-tone="wrong"] {
+      border-left-color: #c23b22;
+    }
+  }
+
+  .bn-repeats {
+    margin: 0.4rem 0;
+    font-size: 0.92rem;
+  }
+
+  .bn-actions button {
+    padding: 0.3rem 0.8rem;
+    border: 1px solid var(--lightgray);
+    border-radius: 4px;
+    background: var(--light);
+    color: var(--darkgray);
+    font: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      border-color: var(--secondary);
+      color: var(--secondary);
+    }
+
+    &:disabled {
+      cursor: progress;
+      opacity: 0.6;
+    }
+  }
+
+  .bn-details {
+    margin-top: 0.6rem;
+    font-size: 0.9rem;
+
+    summary {
+      cursor: pointer;
+      color: var(--darkgray);
+    }
+  }
+
+  .bn-record {
+    margin: 0.5rem 0 0;
+    padding: 0.6rem 0.8rem;
+    overflow-x: auto;
+    border-radius: var(--site-code-radius);
+    background: var(--highlight);
+    font-family: var(--codeFont);
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+
+  figcaption {
+    margin-top: 0.6rem;
+    color: var(--gray);
+    font-size: 0.82rem;
+  }
+
+  @media (max-width: 600px) {
+    .bn-controls,
+    .bn-toggles {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    // The chart scales down with the page, so its labels need larger
+    // drawing units to stay readable on a phone.
+    .bn-tick,
+    .bn-label {
+      font-size: 20px;
+    }
+  }
+}

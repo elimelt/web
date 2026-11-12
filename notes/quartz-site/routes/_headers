@@ -26,3 +26,6 @@
 # KaTeX assets live under a versioned folder (scripts/self_host_katex.py).
 /static/katex/*
   Cache-Control: public, max-age=31536000, immutable
+# Component scripts for .mdx notes; pages link them with ?v=<content hash>.
+/static/mdx/*
+  Cache-Control: public, max-age=31536000, immutable
