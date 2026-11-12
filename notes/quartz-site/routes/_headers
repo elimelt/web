@@ -23,3 +23,6 @@
   Cache-Control: public, max-age=31536000, immutable
 /static/fonts/*
   Cache-Control: public, max-age=31536000, immutable
+# KaTeX assets live under a versioned folder (scripts/self_host_katex.py).
+/static/katex/*
+  Cache-Control: public, max-age=31536000, immutable

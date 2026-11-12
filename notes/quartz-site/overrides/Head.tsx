@@ -100,9 +100,10 @@ export default (() => {
             )}
           </>
         )}
-        {/* KaTeX's stylesheet blocks rendering and comes from jsDelivr. cdnjs only
-            serves Mermaid, which loads on demand, so it gets a DNS lookup only. */}
-        <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+        {/* KaTeX is served from this site (scripts/self_host_katex.py). The CDNs
+            only serve the graph and Mermaid, which load on demand, so they get a
+            DNS lookup only. */}
+        <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
         <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="color-scheme" content="light dark" />

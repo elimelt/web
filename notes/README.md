@@ -52,6 +52,12 @@ The build then post-processes `public/` for search engines and speed:
   `docs/`) into 301s in `_redirects`, replacing Quartz's `noindex` alias pages.
 - `scripts/add_image_dimensions.py` adds `width`, `height` and lazy-loading
   hints to images.
+- `scripts/self_host_katex.py` serves KaTeX's stylesheet and fonts from
+  `static/katex/<version>/` instead of jsDelivr. `KATEX_VERSION` in
+  `scripts/quartz.sh` must match the KaTeX bundled in the latex plugin.
+- `scripts/fix_sitemap_lastmod.py` sets each sitemap `lastmod` from the note's
+  `updated` (or `date`) frontmatter, and tag and folder pages from their newest
+  note, so bump `updated` when a note changes.
 - `scripts/validate_seo_output.py` fails the build on a wrong canonical URL,
   a `noindex` page, or a redirect that misses, chains or hides a page.
 

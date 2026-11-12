@@ -7,6 +7,10 @@ QUARTZ_REPOSITORY="${QUARTZ_REPOSITORY:-https://github.com/jackyzha0/quartz.git}
 # Pinned to a v5 commit so upstream changes cannot break the build or the
 # patches below. Bump it deliberately and rebuild to update Quartz.
 QUARTZ_REF="${QUARTZ_REF:-97a2d05f80c4c50534959b1d0d41cc4b3895625e}"
+# The KaTeX release bundled in the pinned @quartz-community/latex plugin. Pages
+# load its stylesheet and fonts from this site (scripts/self_host_katex.py), so
+# keep the two in step when the plugin is updated.
+KATEX_VERSION="${KATEX_VERSION:-0.16.47}"
 
 usage() {
   cat <<'EOF'
@@ -24,6 +28,18 @@ publish_legacy_docs() {
     rm -rf "$ROOT/public/docs"
     cp -R "$ROOT/public/static/docs" "$ROOT/public/docs"
   fi
+}
+
+# Download the KaTeX package once into the build cache. npm pack leaves the
+# Quartz checkout's node_modules alone.
+fetch_katex() {
+  local dir="$QUARTZ_DIR/.quartz-cache/katex-$KATEX_VERSION"
+  if [[ ! -f "$dir/package/package.json" ]]; then
+    rm -rf "$dir"
+    mkdir -p "$dir"
+    (cd "$dir" && npm pack --silent "katex@$KATEX_VERSION" > /dev/null && tar -xzf "katex-$KATEX_VERSION.tgz")
+  fi
+  KATEX_DIR="$dir/package"
 }
 
 publish_standalone_routes() {
@@ -167,6 +183,9 @@ case "$command" in
     (cd "$QUARTZ_DIR" && npx quartz build --output "$ROOT/public")
     publish_standalone_routes
     python3 "$ROOT/scripts/add_image_dimensions.py" "$ROOT/public"
+    fetch_katex
+    python3 "$ROOT/scripts/self_host_katex.py" "$KATEX_DIR" "$ROOT/public"
+    python3 "$ROOT/scripts/fix_sitemap_lastmod.py" "$ROOT/public" "$QUARTZ_DIR/content"
     python3 "$ROOT/scripts/write_redirects.py" "$ROOT/public" \
       --legacy-tags "$ROOT/quartz-site/legacy-tags.txt" --legacy-site "$ROOT/docs"
     python3 "$ROOT/scripts/prepare_graph_index.py" "$ROOT/public/static/contentIndex.json"
