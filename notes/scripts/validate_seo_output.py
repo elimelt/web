@@ -5,11 +5,13 @@ from __future__ import annotations
 import argparse
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 import xml.etree.ElementTree as ET
 
 
 SITE_ORIGIN = "https://notes.elimelt.com"
+# Cloudflare Pages accepts at most 2,000 static redirects per project.
+MAX_STATIC_REDIRECTS = 2000
 
 
 class HeadMetadataParser(HTMLParser):
@@ -23,7 +25,7 @@ class HeadMetadataParser(HTMLParser):
         if tag == "link" and values.get("rel") == "canonical" and values.get("href"):
             self.canonicals.append(values["href"] or "")
         if tag == "meta":
-            key = values.get("property") or values.get("name")
+            key = values.get("property") or values.get("name") or values.get("http-equiv")
             content = values.get("content")
             if key and content is not None:
                 self.meta.setdefault(key, []).append(content)
@@ -46,9 +48,44 @@ def parse_metadata(path: Path) -> HeadMetadataParser:
     return parser
 
 
-def validate_with_stats(output_root: Path) -> tuple[list[str], dict[str, int]]:
+def page_exists(output_root: Path, path: str) -> bool:
+    relative = unquote(path.split("#")[0]).strip("/")
+    if not relative:
+        return (output_root / "index.html").is_file()
+    return (output_root / f"{relative}.html").is_file() or (output_root / relative / "index.html").is_file()
+
+
+def validate_redirects(output_root: Path) -> tuple[list[str], int]:
+    """Every redirect must be a single 301 hop to a page and must not hide a page."""
     errors: list[str] = []
-    stats = {"quartz_pages": 0, "graph_pages": 0, "aliases": 0}
+    redirects_file = output_root / "_redirects"
+    if not redirects_file.is_file():
+        return errors, 0
+    rules = [
+        line.split()
+        for line in redirects_file.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.startswith("#")
+    ]
+    if len(rules) > MAX_STATIC_REDIRECTS:
+        errors.append(f"_redirects has {len(rules)} rules; Cloudflare Pages allows {MAX_STATIC_REDIRECTS}")
+    sources = {rule[0] for rule in rules if rule}
+    for rule in rules:
+        if len(rule) != 3 or rule[2] != "301":
+            errors.append(f"_redirects: malformed rule {' '.join(rule)!r}")
+            continue
+        source, target, _ = rule
+        if page_exists(output_root, source.removesuffix(".html")) and not source.startswith("/docs/"):
+            errors.append(f"_redirects: {source} hides a page that exists")
+        if target in sources:
+            errors.append(f"_redirects: {source} -> {target} chains into another redirect")
+        elif not page_exists(output_root, target):
+            errors.append(f"_redirects: {source} -> {target} points to a missing page")
+    return errors, len(rules)
+
+
+def validate_with_stats(output_root: Path) -> tuple[list[str], dict[str, int]]:
+    errors, redirect_count = validate_redirects(output_root)
+    stats = {"quartz_pages": 0, "graph_pages": 0, "redirects": redirect_count}
     robots = output_root / "robots.txt"
     expected_sitemap = f"Sitemap: {SITE_ORIGIN}/sitemap.xml"
     if not robots.is_file():
@@ -77,15 +114,13 @@ def validate_with_stats(output_root: Path) -> tuple[list[str], dict[str, int]]:
         text = path.read_text(encoding="utf-8", errors="ignore")
         is_graph = path == output_root / "graph" / "index.html"
         is_quartz_page = 'meta name="generator" content="Quartz"' in text
-        is_alias_redirect = 'http-equiv="refresh"' in text
-        if is_alias_redirect:
-            stats["aliases"] += 1
+        in_legacy_docs = path.relative_to(output_root).parts[0] == "docs"
+        if not in_legacy_docs and path.name != "404.html":
             metadata = parse_metadata(path)
-            if len(metadata.canonicals) != 1:
-                errors.append(
-                    f"{path}: alias redirect has {len(metadata.canonicals)} canonical links, expected 1"
-                )
-            continue
+            if any("noindex" in value for value in metadata.meta.get("robots", [])):
+                errors.append(f"{path}: page is noindex; serve old URLs as 301s in _redirects")
+            if "refresh" in metadata.meta:
+                errors.append(f"{path}: meta refresh page; serve old URLs as 301s in _redirects")
         if not (is_graph or is_quartz_page) or path.name == "404.html":
             continue
 
@@ -134,7 +169,7 @@ def main() -> int:
     print(
         "SEO output validation passed: "
         f"{stats['quartz_pages']} Quartz pages, {stats['graph_pages']} graph page, "
-        f"and {stats['aliases']} aliases checked."
+        f"and {stats['redirects']} redirects checked."
     )
     return 0
 

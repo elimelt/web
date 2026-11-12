@@ -1,5 +1,5 @@
 ---
-title: Branch Prediction Benchmarks
+title: "Branch Misprediction Penalty: Sorted vs Random vs Branchless"
 aliases:
   - operating-systems/benchmarks/branch
 category: Performance Engineering
@@ -13,7 +13,7 @@ tags:
 date: 2025-12-29
 updated: 2026-07-30
 status: needs-review
-description: Measures the cost of branch misprediction by comparing sorted, random, and branchless variants of a conditional sum, and derives a per-misprediction penalty from the results.
+description: A C benchmark of branch misprediction cost. An unpredictable branch is 3.2x slower than a sorted one, about 11 cycles per miss, and a branchless mask lands in between.
 sources:
   - title: The microarchitecture of Intel, AMD and VIA CPUs (Agner Fog)
     url: https://www.agner.org/optimize/microarchitecture.pdf

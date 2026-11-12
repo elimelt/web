@@ -65,30 +65,60 @@ class ValidateSeoOutputTests(unittest.TestCase):
             self.assertTrue(any("canonical" in error for error in errors))
             self.assertTrue(any("og:url" in error for error in errors))
 
-    def test_validate_preserves_alias_redirect_canonical(self) -> None:
+    def _minimal_site(self, root: Path) -> None:
+        (root / "robots.txt").write_text("Sitemap: https://notes.elimelt.com/sitemap.xml\n")
+        (root / "sitemap.xml").write_text(
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+            "<url><loc>https://notes.elimelt.com/new-name</loc></url>"
+            "</urlset>"
+        )
+        (root / "new-name.html").write_text(
+            '<meta name="generator" content="Quartz">'
+            '<link rel="canonical" href="https://notes.elimelt.com/new-name">'
+            '<meta property="og:url" content="https://notes.elimelt.com/new-name">'
+            '<meta property="twitter:url" content="https://notes.elimelt.com/new-name">'
+        )
+        graph = root / "graph"
+        graph.mkdir()
+        (graph / "index.html").write_text(
+            '<link rel="canonical" href="https://notes.elimelt.com/graph/">'
+            '<meta property="og:url" content="https://notes.elimelt.com/graph/">'
+        )
+
+    def test_validate_rejects_noindex_alias_pages(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / "robots.txt").write_text(
-                "Sitemap: https://notes.elimelt.com/sitemap.xml\n"
-            )
-            (root / "sitemap.xml").write_text(
-                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
-                "<url><loc>https://notes.elimelt.com/</loc></url>"
-                "</urlset>"
-            )
-            alias = root / "old-name.html"
-            alias.write_text(
+            self._minimal_site(root)
+            (root / "old-name.html").write_text(
+                '<meta name="robots" content="noindex">'
                 '<meta http-equiv="refresh" content="0; url=new-name">'
                 '<link rel="canonical" href="new-name">'
             )
-            graph = root / "graph"
-            graph.mkdir()
-            (graph / "index.html").write_text(
-                '<link rel="canonical" href="https://notes.elimelt.com/graph/">'
-                '<meta property="og:url" content="https://notes.elimelt.com/graph/">'
+            errors = validate(root)
+            self.assertTrue(any("noindex" in error for error in errors))
+            self.assertTrue(any("meta refresh" in error for error in errors))
+
+    def test_validate_accepts_single_hop_redirects(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._minimal_site(root)
+            (root / "_redirects").write_text(
+                "# comment\n/old-name /new-name 301\n/tags/old%20tag.html /new-name 301\n"
+            )
+            self.assertEqual(validate(root), [])
+
+    def test_validate_rejects_bad_redirects(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._minimal_site(root)
+            (root / "_redirects").write_text(
+                "/new-name /elsewhere 301\n/a /b 301\n/b /new-name 301\n/c /new-name 302\n"
             )
             errors = validate(root)
-            self.assertFalse(any("alias redirect" in error for error in errors))
+            self.assertTrue(any("hides a page" in error for error in errors))
+            self.assertTrue(any("missing page" in error for error in errors))
+            self.assertTrue(any("chains" in error for error in errors))
+            self.assertTrue(any("malformed" in error for error in errors))
 
 
 if __name__ == "__main__":

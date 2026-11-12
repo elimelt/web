@@ -4,7 +4,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 QUARTZ_DIR="${QUARTZ_DIR:-$ROOT/.quartz}"
 QUARTZ_REPOSITORY="${QUARTZ_REPOSITORY:-https://github.com/jackyzha0/quartz.git}"
-QUARTZ_REF="${QUARTZ_REF:-v5}"
+# Pinned to a v5 commit so upstream changes cannot break the build or the
+# patches below. Bump it deliberately and rebuild to update Quartz.
+QUARTZ_REF="${QUARTZ_REF:-97a2d05f80c4c50534959b1d0d41cc4b3895625e}"
 
 usage() {
   cat <<'EOF'
@@ -13,7 +15,7 @@ Usage: scripts/quartz.sh <build|serve|sync>
 Environment overrides:
   QUARTZ_DIR         Cached Quartz checkout (default: .quartz)
   QUARTZ_REPOSITORY  Quartz Git repository
-  QUARTZ_REF         Quartz branch/tag/commit (default: v5)
+  QUARTZ_REF         Quartz branch/tag/commit (default: pinned v5 commit)
 EOF
 }
 
@@ -34,7 +36,9 @@ bootstrap() {
   local ref_stamp="$QUARTZ_DIR/.notes-quartz-ref"
   if [[ ! -d "$QUARTZ_DIR/.git" ]] || [[ ! -f "$ref_stamp" ]] || [[ "$(<"$ref_stamp")" != "$QUARTZ_REF" ]]; then
     rm -rf "$QUARTZ_DIR"
-    git clone --depth 1 --branch "$QUARTZ_REF" "$QUARTZ_REPOSITORY" "$QUARTZ_DIR"
+    git init --quiet "$QUARTZ_DIR"
+    git -C "$QUARTZ_DIR" fetch --quiet --depth 1 "$QUARTZ_REPOSITORY" "$QUARTZ_REF"
+    git -C "$QUARTZ_DIR" checkout --quiet --detach FETCH_HEAD
     printf '%s\n' "$QUARTZ_REF" > "$ref_stamp"
   fi
 
@@ -162,6 +166,8 @@ case "$command" in
     install_plugins
     (cd "$QUARTZ_DIR" && npx quartz build --output "$ROOT/public")
     publish_standalone_routes
+    python3 "$ROOT/scripts/write_redirects.py" "$ROOT/public" \
+      --legacy-tags "$ROOT/quartz-site/legacy-tags.txt" --legacy-site "$ROOT/docs"
     python3 "$ROOT/scripts/prepare_graph_index.py" "$ROOT/public/static/contentIndex.json"
     python3 "$ROOT/scripts/validate_graph_index.py" "$ROOT/public/static/contentIndex.json"
     publish_legacy_docs
