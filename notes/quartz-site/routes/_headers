@@ -9,3 +9,17 @@
 # elimelt.com reads the feed to list recent notes.
 /index.xml
   Access-Control-Allow-Origin: https://elimelt.com
+
+# Quartz names these files by a hash of their contents, so they never change.
+/index-*.css
+  Cache-Control: public, max-age=31536000, immutable
+/prescript-*.js
+  Cache-Control: public, max-age=31536000, immutable
+/postscript-*.js
+  Cache-Control: public, max-age=31536000, immutable
+/static/resource-*
+  Cache-Control: public, max-age=31536000, immutable
+/static/scripts/*
+  Cache-Control: public, max-age=31536000, immutable
+/static/fonts/*
+  Cache-Control: public, max-age=31536000, immutable

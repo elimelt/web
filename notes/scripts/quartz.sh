@@ -166,6 +166,7 @@ case "$command" in
     install_plugins
     (cd "$QUARTZ_DIR" && npx quartz build --output "$ROOT/public")
     publish_standalone_routes
+    python3 "$ROOT/scripts/add_image_dimensions.py" "$ROOT/public"
     python3 "$ROOT/scripts/write_redirects.py" "$ROOT/public" \
       --legacy-tags "$ROOT/quartz-site/legacy-tags.txt" --legacy-site "$ROOT/docs"
     python3 "$ROOT/scripts/prepare_graph_index.py" "$ROOT/public/static/contentIndex.json"
