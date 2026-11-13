@@ -1239,17 +1239,6 @@ figure.cd {
   --cd-future: #eb6834;
   --cd-bad: #c23b22;
   --cd-good: #2e8540;
-// The queue lab (queue-lab): controls, an animation canvas, a load chart and
-// the distribution at the chosen load. Mean is the site's accent, p99 orange.
-:root {
-  --ql-p99: #b8550b;
-}
-
-[saved-theme="dark"] {
-  --ql-p99: #f0a35e;
-}
-
-figure.ql {
   margin: 0;
   padding: 1rem 1.1rem 0.9rem;
   border: 1px solid var(--lightgray);
@@ -1534,23 +1523,10 @@ figure.ql {
     flex-direction: column;
     gap: 0.15rem;
     font-size: 0.88rem;
-  .ql-controls {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.7rem 1.5rem;
-    font-size: 0.92rem;
-  }
-
-  .ql-slider,
-  .ql-select {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
 
     span {
       display: flex;
       justify-content: space-between;
-      font-weight: 600;
     }
 
     output {
@@ -1575,10 +1551,6 @@ figure.ql {
     select,
     button {
       padding: 0.25rem 0.6rem;
-
-    select {
-      width: 100%;
-      padding: 0.25rem 0.3rem;
       border: 1px solid var(--lightgray);
       border-radius: 4px;
       background: var(--light);
@@ -1609,6 +1581,90 @@ figure.ql {
     border-radius: 2px;
     background: var(--highlight);
     font-size: 0.9rem;
+  }
+
+  figcaption {
+    margin-top: 0.7rem;
+    color: var(--gray);
+    font-size: 0.82rem;
+  }
+
+  @media (max-width: 600px) {
+    padding: 0.8rem 0.7rem;
+
+    // Scaled to a phone's width the labels would shrink to about 6px, so the
+    // diagram keeps a readable size and scrolls sideways inside the figure.
+    .cd-plot {
+      overflow-x: auto;
+    }
+
+    .cd-svg {
+      min-width: 540px;
+    }
+
+    .cd-sliders {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .cd-table th,
+    .cd-table td {
+      padding: 0.25rem 0.3rem;
+    }
+  }
+}
+
+// The queue lab (queue-lab): controls, an animation canvas, a load chart and
+// the distribution at the chosen load. Mean is the site's accent, p99 orange.
+:root {
+  --ql-p99: #b8550b;
+}
+
+[saved-theme="dark"] {
+  --ql-p99: #f0a35e;
+}
+
+figure.ql {
+  margin: 0;
+  padding: 1rem 1.1rem 0.9rem;
+  border: 1px solid var(--lightgray);
+  border-radius: var(--site-media-radius);
+
+  .ql-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.7rem 1.5rem;
+    font-size: 0.92rem;
+  }
+
+  .ql-slider,
+  .ql-select {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+
+    span {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 600;
+    }
+
+    output {
+      font-variant-numeric: tabular-nums;
+    }
+
+    input {
+      width: 100%;
+      accent-color: var(--secondary);
+    }
+
+    select {
+      width: 100%;
+      padding: 0.25rem 0.3rem;
+      border: 1px solid var(--lightgray);
+      border-radius: 4px;
+      background: var(--light);
+      color: var(--darkgray);
+      font: inherit;
     }
   }
 
@@ -1854,30 +1910,6 @@ figure.ql {
   figcaption {
     margin-top: 0.7rem;
     color: var(--gray);
-    font-size: 0.82rem;
-  }
-
-  @media (max-width: 600px) {
-    padding: 0.8rem 0.7rem;
-
-    // Scaled to a phone's width the labels would shrink to about 6px, so the
-    // diagram keeps a readable size and scrolls sideways inside the figure.
-    .cd-plot {
-      overflow-x: auto;
-    }
-
-    .cd-svg {
-      min-width: 540px;
-    }
-
-    .cd-sliders {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .cd-table th,
-    .cd-table td {
-      padding: 0.25rem 0.3rem;
-    }
     font-size: 0.8rem;
   }
 
