@@ -69,7 +69,7 @@ registering.
   mechanism, place several small copies of the figure, each beside the
   paragraph it illustrates and opened on a preset scenario that matches that
   paragraph (pass the preset as an attribute, such as
-  `<QueueLab scenario="heavy-tail" />`), rather than one panel with every
+  `<MyFigure preset="heavy-tail" />`), rather than one panel with every
   control and mode.
 - **It computes what it shows.** Run the real algorithm or model in the
   browser, or replay recorded real data. Label simulations as simulations.
