@@ -1,0 +1,10 @@
+{
+  "name": "crdts-experiments",
+  "private": true,
+  "type": "module",
+  "description": "Experiments for the CRDTs note: real editing traces through Yjs and Automerge, interleaving trials, and reference runs for the figure's tests.",
+  "dependencies": {
+    "@automerge/automerge": "3.5.0",
+    "yjs": "13.6.33"
+  }
+}

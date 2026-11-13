@@ -1,0 +1,95 @@
+{
+ "trials": 1000,
+ "results": {
+  "fugue": {
+   "forwards/forwards": 0,
+   "backwards/backwards": 0,
+   "forwards/backwards": 0
+  },
+  "rga": {
+   "forwards/forwards": 0,
+   "backwards/backwards": 1000,
+   "forwards/backwards": 495
+  },
+  "logoot": {
+   "forwards/forwards": 808,
+   "backwards/backwards": 949,
+   "forwards/backwards": 519
+  },
+  "yjs 13.6.33": {
+   "forwards/forwards": 0,
+   "backwards/backwards": 0,
+   "forwards/backwards": 0
+  },
+  "automerge 3.5.0": {
+   "forwards/forwards": 0,
+   "backwards/backwards": 1000,
+   "forwards/backwards": 495
+  }
+ },
+ "examples": {
+  "rga backwards/backwards": {
+   "base": "-..--",
+   "at": 4,
+   "w1": "agcefi",
+   "w2": "ZYTW",
+   "swap": false,
+   "seed": 1,
+   "merged": "-..-agZcYeTfWi-"
+  },
+  "rga forwards/backwards": {
+   "base": "...-----",
+   "at": 5,
+   "w1": "ahbhf",
+   "w2": "WZRTSTV",
+   "swap": true,
+   "seed": 3,
+   "merged": "...--WZRTSTahbhfV---"
+  },
+  "logoot forwards/forwards": {
+   "base": "-..--",
+   "at": 4,
+   "w1": "agcefi",
+   "w2": "ZYTW",
+   "swap": false,
+   "seed": 1,
+   "merged": "-..-ZagcefiYTW-"
+  },
+  "logoot backwards/backwards": {
+   "base": "-..--",
+   "at": 4,
+   "w1": "agcefi",
+   "w2": "ZYTW",
+   "swap": false,
+   "seed": 1,
+   "merged": "-..-agcZeYfTWi-"
+  },
+  "logoot forwards/backwards": {
+   "base": "--.",
+   "at": 0,
+   "w1": "fghbf",
+   "w2": "UUQTZUZ",
+   "swap": false,
+   "seed": 2,
+   "merged": "UUQfTZgUZhbf--."
+  },
+  "automerge 3.5.0 backwards/backwards": {
+   "base": "-..--",
+   "at": 4,
+   "w1": "agcefi",
+   "w2": "ZYTW",
+   "swap": false,
+   "seed": 1,
+   "merged": "-..-agZcYeTfWi-"
+  },
+  "automerge 3.5.0 forwards/backwards": {
+   "base": "...-----",
+   "at": 5,
+   "w1": "ahbhf",
+   "w2": "WZRTSTV",
+   "swap": true,
+   "seed": 3,
+   "merged": "...--WZRTSTahbhfV---"
+  }
+ }
+}
