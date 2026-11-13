@@ -1,0 +1,236 @@
+// The alignment table. Blue marks the traceback path, orange the winning
+// candidate of the cell being explained, and faded hatching the cells a
+// two-row implementation would already have thrown away.
+figure.at {
+  @include fig-frame;
+
+  button {
+    @include fig-button(0.25rem 0.7rem, 0.88rem);
+    @include fig-button-hover;
+  }
+
+  .at-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem 1.2rem;
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--gray);
+  }
+
+  .at-word {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+
+    input {
+      @include fig-button(0.25rem 0.5rem, 0.95rem);
+      font-family: var(--codeFont);
+      letter-spacing: 0.05em;
+      cursor: text;
+      min-width: 0;
+    }
+  }
+
+  .at-slider {
+    @include fig-slider;
+  }
+
+  .at-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.7rem;
+  }
+
+  .at-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-left: 0.4rem;
+    font-size: 0.88rem;
+    color: var(--darkgray);
+
+    input {
+      @include fig-native-check;
+    }
+  }
+
+  .at-scroll {
+    margin-top: 0.8rem;
+    overflow-x: auto;
+  }
+
+  .at-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--at-cols), minmax(1.75rem, 2.6rem));
+    gap: 2px;
+    width: max-content;
+    max-width: 100%;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .at-head {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--codeFont);
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--darkgray);
+    min-height: 1.4rem;
+  }
+
+  .at-eps {
+    color: var(--gray);
+    font-weight: 400;
+  }
+
+  .at-cell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
+    border: 1px solid var(--lightgray);
+    border-radius: 3px;
+    font-size: 0.85rem;
+    color: var(--darkgray);
+    background: var(--light);
+    outline-offset: 1px;
+
+    &[role="button"] {
+      cursor: pointer;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--secondary);
+    }
+  }
+
+  .at-arrow {
+    position: absolute;
+    top: 0;
+    left: 0.15rem;
+    font-size: 0.62rem;
+    line-height: 1.2;
+    color: var(--gray);
+  }
+
+  .at-empty {
+    background: transparent;
+    border-style: dashed;
+  }
+
+  .at-path {
+    background: color-mix(in srgb, var(--fig-blue) 18%, var(--light));
+    border-color: var(--fig-blue);
+    font-weight: 600;
+  }
+
+  .at-dep {
+    border-color: var(--gray);
+    border-style: dashed;
+  }
+
+  .at-win {
+    background: color-mix(in srgb, var(--fig-orange) 20%, var(--light));
+    border-color: var(--fig-orange);
+  }
+
+  .at-focus {
+    outline: 2px solid var(--secondary);
+    font-weight: 700;
+  }
+
+  .at-gone {
+    opacity: 0.4;
+    background: repeating-linear-gradient(135deg, transparent 0 4px, var(--lightgray) 4px 5px);
+  }
+
+  .at-narration {
+    min-height: 3em;
+    margin: 0.7rem 0 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .at-aln {
+    margin-top: 0.5rem;
+
+    p {
+      margin: 0;
+      font-size: 0.85rem;
+    }
+  }
+
+  .at-pre {
+    margin: 0 0 0.3rem;
+    padding: 0.4rem 0.6rem;
+    overflow-x: auto;
+    font-family: var(--codeFont);
+    font-size: 0.95rem;
+    line-height: 1.35;
+    letter-spacing: 0.15em;
+    border: 1px solid var(--lightgray);
+    border-radius: 4px;
+    background: var(--light);
+    color: var(--gray);
+  }
+
+  .at-k-match {
+    color: var(--darkgray);
+  }
+
+  .at-k-mismatch {
+    color: var(--fig-orange);
+    font-weight: 700;
+  }
+
+  .at-k-gap {
+    color: var(--fig-purple);
+    font-weight: 700;
+  }
+
+  .at-dim,
+  .at-stats {
+    color: var(--gray);
+  }
+
+  .at-stats {
+    margin: 0.4rem 0 0;
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    padding: 0.8rem 0.7rem 0.7rem;
+
+    .at-controls {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .at-grid {
+      grid-template-columns: repeat(var(--at-cols), minmax(1.45rem, 2rem));
+      gap: 1px;
+    }
+
+    .at-cell {
+      font-size: 0.72rem;
+    }
+
+    .at-arrow {
+      font-size: 0.55rem;
+      left: 0.08rem;
+    }
+
+    .at-head {
+      font-size: 0.8rem;
+    }
+  }
+}

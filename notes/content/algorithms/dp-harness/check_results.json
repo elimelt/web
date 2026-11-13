@@ -1,0 +1,19 @@
+{
+  "checks": {
+    "weighted interval scheduling": 3000,
+    "knapsack (3 versions)": 3000,
+    "string building": 600,
+    "post office": 1500,
+    "RNA secondary structure": 1500,
+    "sequence alignment": 1500,
+    "longest path in a DAG": 2000,
+    "longest increasing subsequence": 2000,
+    "Bellman-Ford": 3000,
+    "P1 knapsack 2-approximation": 4000,
+    "P2 maximum sub-rectangle": 1500,
+    "P3 connected subsets": 1500
+  },
+  "total_inputs": 25100,
+  "p1_worst_ratio": 0.6666666666666666,
+  "python": "3.13.18"
+}
