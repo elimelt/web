@@ -1,0 +1,46 @@
+PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1), 10,000 rows, 1500 updates/s offered, snapshot held for 150 s of 210 s; mean ± sd over 3 runs
+
+## while the snapshot is held (t = 145 s)
+                                                    no snapshot      held snapshot
+updates per second achieved                            1500 ± 0           1500 ± 0
+heap size (MB)                                        1.3 ± 0.0         29.1 ± 0.0
+index size (MB)                                     0.23 ± 0.00        1.74 ± 0.01
+dead tuples (stats)                                    441 ± 24       217072 ± 630
+HOT share of updates (%)                             99.8 ± 0.0          0.9 ± 0.0
+fresh point read: buffers                             3.0 ± 0.0         24.6 ± 0.3
+fresh point read: server us (median)                     11 ± 3             30 ± 4
+old snapshot point read: buffers                              -         24.9 ± 0.2
+old snapshot point read: server us (median)                   -             28 ± 5
+count(*) seq scan (ms)                                1.2 ± 0.3          9.3 ± 1.9
+autovacuum runs so far                                1.0 ± 0.0          2.0 ± 0.0
+
+## at the end, after release (t = 210 s)
+                                                    no snapshot      held snapshot
+updates per second achieved                            1500 ± 0           1500 ± 0
+heap size (MB)                                        1.4 ± 0.0         30.1 ± 0.0
+index size (MB)                                     0.23 ± 0.00        1.76 ± 0.00
+dead tuples (stats)                                    497 ± 65        14178 ± 645
+HOT share of updates (%)                             99.8 ± 0.0         29.0 ± 0.0
+fresh point read: buffers                             3.0 ± 0.0          3.0 ± 0.0
+fresh point read: server us (median)                     11 ± 1             12 ± 3
+old snapshot point read: buffers                              -                  -
+old snapshot point read: server us (median)                   -                  -
+count(*) seq scan (ms)                                0.9 ± 0.0          7.0 ± 1.7
+autovacuum runs so far                                1.0 ± 0.0          3.0 ± 0.0
+
+## held condition over time (run 1)
+t=   0.0  heap    1.3 MB  dead       0  fresh bufs   3.0  old bufs   3.0  seqscan    0.8 ms
+t=  15.0  heap    4.2 MB  dead   21019  fresh bufs   5.2  old bufs   5.2  seqscan    2.3 ms
+t=  30.0  heap    7.1 MB  dead   43545  fresh bufs   7.3  old bufs   7.4  seqscan    3.8 ms
+t=  45.0  heap    9.9 MB  dead   66176  fresh bufs   9.5  old bufs  10.0  seqscan    3.1 ms
+t=  60.0  heap   12.8 MB  dead   88710  fresh bufs  11.9  old bufs  12.1  seqscan    4.6 ms
+t=  75.0  heap   15.7 MB  dead  111235  fresh bufs  13.9  old bufs  13.8  seqscan    4.3 ms
+t=  90.0  heap   18.6 MB  dead  133760  fresh bufs  16.1  old bufs  16.1  seqscan    7.0 ms
+t= 105.0  heap   21.5 MB  dead  156260  fresh bufs  18.7  old bufs  19.2  seqscan    6.7 ms
+t= 120.0  heap   24.4 MB  dead  178787  fresh bufs  21.2  old bufs  21.0  seqscan    6.4 ms
+t= 135.0  heap   27.2 MB  dead  201346  fresh bufs  22.6  old bufs  22.9  seqscan   12.0 ms
+t= 150.0  heap   30.1 MB  dead  223877  fresh bufs  26.2  old bufs   nan  seqscan    4.5 ms
+t= 165.0  heap   30.1 MB  dead    6360  fresh bufs   3.0  old bufs   nan  seqscan    5.1 ms
+t= 180.0  heap   30.1 MB  dead   10185  fresh bufs   3.0  old bufs   nan  seqscan    5.4 ms
+t= 195.0  heap   30.1 MB  dead   12293  fresh bufs   3.0  old bufs   nan  seqscan    5.9 ms
+t= 210.0  heap   30.1 MB  dead   13482  fresh bufs   3.0  old bufs   nan  seqscan    5.4 ms

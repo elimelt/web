@@ -1,0 +1,84 @@
+### level=read\ committed rep=1
+number of transactions actually processed: 233518
+number of failed transactions: 0 (0.000%)
+number of transactions retried: 0 (0.000%)
+total number of retries: 0
+latency average = 1.028 ms
+tps = 7782.979399 (without initial connection time)
+### level=repeatable\ read rep=1
+number of transactions actually processed: 171988
+number of failed transactions: 153 (0.089%)
+number of transactions retried: 67347 (39.123%)
+total number of retries: 112940
+latency average = 1.394 ms (including failures)
+tps = 5732.205725 (without initial connection time)
+### level=serializable rep=1
+number of transactions actually processed: 39740
+number of failed transactions: 32684 (45.129%)
+number of transactions retried: 62850 (86.781%)
+total number of retries: 429319
+latency average = 3.314 ms (including failures)
+tps = 1324.684682 (without initial connection time)
+### level=serializable -c enable_seqscan=off rep=1
+number of transactions actually processed: 169689
+number of failed transactions: 139 (0.082%)
+number of transactions retried: 66652 (39.247%)
+total number of retries: 111544
+latency average = 1.413 ms (including failures)
+tps = 5655.303347 (without initial connection time)
+### level=read\ committed rep=2
+number of transactions actually processed: 239563
+number of failed transactions: 0 (0.000%)
+number of transactions retried: 0 (0.000%)
+total number of retries: 0
+latency average = 1.002 ms
+tps = 7985.309827 (without initial connection time)
+### level=repeatable\ read rep=2
+number of transactions actually processed: 181083
+number of failed transactions: 172 (0.095%)
+number of transactions retried: 70787 (39.054%)
+total number of retries: 118775
+latency average = 1.324 ms (including failures)
+tps = 6036.042859 (without initial connection time)
+### level=serializable rep=2
+number of transactions actually processed: 40854
+number of failed transactions: 32438 (44.259%)
+number of transactions retried: 63896 (87.180%)
+total number of retries: 432324
+latency average = 3.275 ms (including failures)
+tps = 1361.629479 (without initial connection time)
+### level=serializable -c enable_seqscan=off rep=2
+number of transactions actually processed: 167986
+number of failed transactions: 143 (0.085%)
+number of transactions retried: 66142 (39.340%)
+total number of retries: 110920
+latency average = 1.427 ms (including failures)
+tps = 5599.770764 (without initial connection time)
+### level=read\ committed rep=3
+number of transactions actually processed: 234169
+number of failed transactions: 0 (0.000%)
+number of transactions retried: 0 (0.000%)
+total number of retries: 0
+latency average = 1.025 ms
+tps = 7803.860556 (without initial connection time)
+### level=repeatable\ read rep=3
+number of transactions actually processed: 173352
+number of failed transactions: 181 (0.104%)
+number of transactions retried: 67659 (38.989%)
+total number of retries: 113480
+latency average = 1.383 ms (including failures)
+tps = 5778.132665 (without initial connection time)
+### level=serializable rep=3
+number of transactions actually processed: 42176
+number of failed transactions: 28328 (40.179%)
+number of transactions retried: 60247 (85.452%)
+total number of retries: 391679
+latency average = 3.404 ms (including failures)
+tps = 1405.779133 (without initial connection time)
+### level=serializable -c enable_seqscan=off rep=3
+number of transactions actually processed: 167702
+number of failed transactions: 153 (0.091%)
+number of transactions retried: 65320 (38.915%)
+total number of retries: 110529
+latency average = 1.430 ms (including failures)
+tps = 5588.405048 (without initial connection time)
