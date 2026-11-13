@@ -7,6 +7,7 @@
 // in light and dark mode. The PNG encoder is passed in because the build
 // encodes with node:zlib and the browser with a canvas.
 
+import { num } from "../../shared/format";
 import { C1, C2, B1, digits, forward, inputGradient, receptiveField, testAccuracy, W1, type Pass, type Unit } from "./model";
 
 /** Encode a width x height alpha mask (0..255 per pixel) as a PNG data URL. */
@@ -25,7 +26,7 @@ export interface Images {
   act2: string[];
 }
 
-const fmt = (v: number, digits = 2): string => v.toFixed(digits).replace("-", "−");
+const fmt = (v: number, digits = 2): string => num(v, digits);
 const pct = (v: number): string => (v >= 0.995 ? ">99%" : v < 0.005 ? "<1%" : `${Math.round(v * 100)}%`);
 
 function mask(values: ArrayLike<number>, n: number, scale: number, max: number, encode: Encode, sign = 1): string {

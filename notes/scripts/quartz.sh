@@ -63,7 +63,19 @@ bootstrap() {
   fi
 }
 
+# The mdx plugin's bundle, its browser modules and its stylesheet are built
+# here rather than committed, so note PRs that each add a component do not
+# conflict over generated files.
+build_mdx_plugin() {
+  local dir="$ROOT/quartz-site/plugins/mdx"
+  if [[ ! -f "$dir/node_modules/.package-lock.json" ]] || [[ "$dir/package-lock.json" -nt "$dir/node_modules/.package-lock.json" ]]; then
+    npm --prefix "$dir" ci --no-audit --no-fund
+  fi
+  node "$dir/build.mjs"
+}
+
 sync_site() {
+  build_mdx_plugin
   rm -rf "$QUARTZ_DIR/content"
   cp -R "$ROOT/content" "$QUARTZ_DIR/content"
   python3 "$ROOT/scripts/prepare_mdx.py" "$QUARTZ_DIR/content"
@@ -74,6 +86,7 @@ sync_site() {
     python3 "$ROOT/scripts/materialize_quartz_lock.py" "$QUARTZ_DIR/quartz.lock.json" "$QUARTZ_DIR"
   fi
   cp "$ROOT/quartz-site/custom.scss" "$QUARTZ_DIR/quartz/styles/custom.scss"
+  cp "$ROOT/quartz-site/plugins/mdx/dist/components.scss" "$QUARTZ_DIR/quartz/styles/mdx-components.scss"
   cp "$ROOT/quartz-site/overrides/Head.tsx" "$QUARTZ_DIR/quartz/components/Head.tsx"
   cp "$ROOT/quartz-site/overrides/DefaultFrame.tsx" \
     "$QUARTZ_DIR/quartz/components/frames/DefaultFrame.tsx"

@@ -11,7 +11,7 @@
 //      contain that component, on first load and after SPA navigation.
 
 import { visit } from "unist-util-visit";
-import { components } from "./components";
+import { components } from "mdx:components";
 import { decodeProps, PLACEHOLDER, transformMdx } from "./transform";
 
 declare const __MDX_MODULE_VERSIONS__: Record<string, string>;

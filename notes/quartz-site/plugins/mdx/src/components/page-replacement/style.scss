@@ -1,0 +1,286 @@
+// The page replacement figure (page-replacement). One color per policy, used
+// for its curve, its swatch and its faults on the reference map. OPT is also
+// dashed, so the lower bound reads without color.
+figure.pr {
+  --pr-fifo: #eb6834;
+  --pr-clock: var(--fig-purple);
+  --pr-lru: #2a78d6;
+  --pr-opt: #2e8b57;
+  --pr-ink: #5b5b66;
+  --pr-cursor: var(--fig-red);
+  @include fig-frame;
+  font-size: 0.9rem;
+
+  [saved-theme="dark"] & {
+    --pr-fifo: #f0874f;
+    --pr-lru: #4a93ea;
+    --pr-opt: #4fb07b;
+    --pr-ink: #c8c8d0;
+  }
+
+  p {
+    margin: 0.35rem 0;
+  }
+
+  .pr-dim {
+    color: var(--gray);
+    font-size: 0.82rem;
+    font-weight: 400;
+  }
+
+  .pr-title {
+    margin-top: 0.9rem;
+    font-weight: 600;
+  }
+
+  .pr-desc {
+    min-height: 2.6em;
+  }
+
+  .pr-row-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin: 0.35rem 0;
+  }
+
+  button {
+    @include fig-button(0.15rem 0.5rem, 0.85rem);
+
+    @include fig-button-hover;
+
+    &[aria-pressed="true"] {
+      border-color: var(--secondary);
+      background: var(--highlight);
+      color: var(--secondary);
+      font-weight: 600;
+    }
+
+    &:disabled {
+      cursor: progress;
+    }
+  }
+
+  .pr-slider {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.2rem 0.6rem;
+    align-items: center;
+    margin: 0.4rem 0;
+
+    output {
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    input {
+      grid-column: 1 / -1;
+      width: 100%;
+    }
+  }
+
+  svg.pr-curve {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  .pr-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .pr-tick,
+  .pr-axis {
+    fill: var(--gray);
+    font-size: 11px;
+  }
+
+  .pr-line {
+    fill: none;
+    stroke-width: 2;
+    stroke-linejoin: round;
+  }
+
+  .pr-line.pr-opt {
+    stroke-dasharray: 6 4;
+  }
+
+  @each $p in fifo, clock, lru, opt {
+    .pr-line.pr-#{$p} {
+      stroke: var(--pr-#{$p});
+    }
+
+    .pr-anomaly.pr-#{$p} {
+      stroke: var(--pr-#{$p});
+    }
+
+    .pr-swatch.pr-#{$p} {
+      background: var(--pr-#{$p});
+    }
+  }
+
+  .pr-anomaly {
+    fill: var(--light);
+    stroke-width: 2;
+  }
+
+  .pr-marker {
+    stroke: var(--darkgray);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+  }
+
+  .pr-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 1.1rem;
+    margin: 0.3rem 0 0;
+    padding: 0;
+    list-style: none;
+    font-variant-numeric: tabular-nums;
+
+    li {
+      margin: 0;
+    }
+  }
+
+  .pr-swatch {
+    display: inline-block;
+    width: 0.8rem;
+    height: 0.8rem;
+    margin-right: 0.3rem;
+    border-radius: 2px;
+    vertical-align: -0.05rem;
+  }
+
+  .pr-map {
+    min-height: 170px;
+    margin: 0.3rem 0;
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 170px;
+      border: 1px solid var(--lightgray);
+      border-radius: 4px;
+      cursor: crosshair;
+    }
+  }
+
+  .pr-step {
+    min-height: 14rem;
+  }
+
+  .pr-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem;
+    margin: 0.3rem 0 0.6rem;
+    font-family: var(--codeFont);
+    font-size: 0.8rem;
+  }
+
+  .pr-ref {
+    padding: 0.05rem 0.3rem;
+    border-radius: 3px;
+    background: var(--light);
+    border: 1px solid var(--lightgray);
+  }
+
+  .pr-past {
+    color: var(--gray);
+  }
+
+  .pr-now {
+    border-color: var(--pr-cursor);
+    font-weight: 700;
+  }
+
+  .pr-row {
+    padding: 0.3rem 0.5rem;
+    border-left: 3px solid transparent;
+
+    &.pr-focus {
+      border-left-color: var(--secondary);
+      background: var(--highlight);
+    }
+  }
+
+  .pr-row-head {
+    margin: 0.1rem 0;
+  }
+
+  .pr-hit {
+    color: var(--gray);
+  }
+
+  .pr-fault {
+    font-weight: 600;
+    color: var(--pr-cursor);
+  }
+
+  .pr-frames {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    align-items: flex-start;
+    font-family: var(--codeFont);
+    font-size: 0.8rem;
+  }
+
+  .pr-slot {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 2.4rem;
+  }
+
+  .pr-frame {
+    display: inline-block;
+    min-width: 2.4rem;
+    min-height: 1.3rem;
+    padding: 0.05rem 0.2rem;
+    border: 1px solid var(--lightgray);
+    border-radius: 3px;
+    text-align: center;
+  }
+
+  .pr-newbox {
+    border-color: var(--pr-cursor);
+    font-weight: 700;
+  }
+
+  .pr-hitbox {
+    border-color: var(--secondary);
+  }
+
+  .pr-evicted {
+    display: inline-block;
+    min-width: 2.4rem;
+    padding: 0.05rem 0.2rem;
+    color: var(--gray);
+    text-decoration: line-through;
+    text-align: center;
+  }
+
+  .pr-hand,
+  .pr-bit {
+    font-size: 0.75rem;
+    line-height: 1;
+    color: var(--secondary);
+  }
+
+  .pr-order {
+    margin: 0.1rem 0 0.2rem;
+    color: var(--gray);
+    font-size: 0.78rem;
+  }
+
+  figcaption {
+    margin-top: 0.8rem;
+    color: var(--gray);
+    font-size: 0.82rem;
+  }
+}

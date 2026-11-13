@@ -1,24 +1,10 @@
 // Checks the in-browser CNN against the NumPy network that trained it: the
 // same weights and digits must give the logits cnn_mnist.py recorded.
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
-import { after, test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import * as esbuild from "esbuild";
+import { test } from "node:test";
+import { load } from "./load.mjs";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const dir = mkdtempSync(path.join(tmpdir(), "cnn-explorer-"));
-after(() => rmSync(dir, { recursive: true, force: true }));
-
-async function load(entry) {
-  const outfile = path.join(dir, `${path.basename(entry, ".ts")}.mjs`);
-  await esbuild.build({ entryPoints: [path.join(here, "../src/components/cnn-explorer", entry)], outfile, bundle: true, format: "esm", platform: "node", logLevel: "silent" });
-  return import(pathToFileURL(outfile).href);
-}
-
-const model = await load("model.ts");
+const model = await load("components/cnn-explorer/model.ts");
 
 test("matches the logits NumPy computed for every exported digit", () => {
   assert.equal(model.digits.length, 10);
@@ -60,7 +46,7 @@ test("a conv2 unit's input gradient matches finite differences and stays in its 
 });
 
 test("renders the figure with real maps", async () => {
-  const { render } = await load("server.ts");
+  const { render } = await load("components/cnn-explorer/component.ts");
   const html = render({});
   assert.match(html, /^<figure class="cx" data-digit="7">/);
   assert.equal((html.match(/class="cx-map[" ]/g) ?? []).length, 24);

@@ -3,26 +3,12 @@
 // arrives complete and in order) and that its throughput, probe timing and
 // silly-window behavior match the figure's text.
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
-import { after, test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import * as esbuild from "esbuild";
+import { test } from "node:test";
+import { load } from "./load.mjs";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const dir = mkdtempSync(path.join(tmpdir(), "window-sim-"));
-after(() => rmSync(dir, { recursive: true, force: true }));
-
-async function load(entry) {
-  const outfile = path.join(dir, `${path.basename(entry, ".ts")}.mjs`);
-  await esbuild.build({ entryPoints: [path.join(here, "../src/components/window-sim", entry)], outfile, bundle: true, format: "esm", platform: "node", logLevel: "silent" });
-  return import(pathToFileURL(outfile).href);
-}
-
-const model = await load("model.ts");
-const state = await load("state.ts");
-const render = await load("render.ts");
+const model = await load("components/window-sim/model.ts");
+const state = await load("components/window-sim/state.ts");
+const render = await load("components/window-sim/render.ts");
 const { simulate, summarize, MSS } = model;
 
 const base = { rateMbps: 100, rttMs: 40, bufBytes: 64 * 1024, readBps: Infinity, readChunk: 1460, stall: null, sws: true, loseFirstUpdate: false, durationMs: 1000, drops: [] };

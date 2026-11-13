@@ -3,25 +3,16 @@
 // Little's law, and agree with queue_experiments.py, a separate Python
 // implementation, on the policies that have no formula.
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import path from "node:path";
-import { after, test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import * as esbuild from "esbuild";
+import { test } from "node:test";
+import { fileURLToPath } from "node:url";
+import { load } from "./load.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const dir = mkdtempSync(path.join(tmpdir(), "queue-lab-"));
-after(() => rmSync(dir, { recursive: true, force: true }));
 
-async function load(entry) {
-  const outfile = path.join(dir, `${path.basename(entry, ".ts")}.mjs`);
-  await esbuild.build({ entryPoints: [path.join(here, "../src/components/queue-lab", entry)], outfile, bundle: true, format: "esm", platform: "node", logLevel: "silent" });
-  return import(pathToFileURL(outfile).href);
-}
-
-const m = await load("model.ts");
-const r = await load("render.ts");
+const m = await load("components/queue-lab/model.ts");
+const r = await load("components/queue-lab/render.ts");
 
 const close = (got, want, rel, what) => assert.ok(Math.abs(got - want) <= rel * Math.abs(want), `${what}: got ${got}, want ${want} within ${rel * 100}%`);
 

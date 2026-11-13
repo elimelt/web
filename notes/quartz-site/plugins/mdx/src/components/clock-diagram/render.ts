@@ -3,6 +3,7 @@
 // client module redraws the same parts from these functions as the reader
 // edits the diagram.
 
+import { esc } from "../../shared/format";
 import {
   compute,
   examples,
@@ -67,8 +68,6 @@ export const xOf = (t: number): number => M.left + (t / T_MAX) * (W - M.left - M
 export const tOf = (x: number): number => ((x - M.left) / (W - M.left - M.right)) * T_MAX;
 export const yOf = (proc: number): number => M.top + proc * ROW;
 
-const esc = (s: string): string =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const signed = (n: number): string => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : "0");
 
 export function stampText(e: Stamped, view: View): string {

@@ -14,6 +14,15 @@ This directory is a Quartz-backed notes site. Most edits are content edits.
 These files define the current authoring contract. Treat them as the default
 target for any new note or backfill pass.
 
+## Enhancing a note
+
+When asked to enhance, improve, deepen or rework a note, or to add an
+interactive figure to one, read `../.claude/skills/enhance-note/SKILL.md` (from
+the repository root, `.claude/skills/enhance-note/SKILL.md`) and follow it step
+by step. It is the full process and applies to every agent, not only Claude.
+Figures are built with the MDX plugin described in
+`quartz-site/plugins/mdx/README.md`.
+
 ## Core workflow
 
 1. Read the target note and a few related notes before editing.

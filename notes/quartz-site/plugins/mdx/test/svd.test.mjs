@@ -2,27 +2,16 @@
 // the pseudoinverse solution, and the browser's Jacobi SVD of the photo
 // against the singular values NumPy computed from the same pixels.
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import path from "node:path";
-import { after, test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 import { inflateSync } from "node:zlib";
-import * as esbuild from "esbuild";
+import { load } from "./load.mjs";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const content = path.join(here, "../../../../content/math/linear-algebra/svd");
-const dir = mkdtempSync(path.join(tmpdir(), "svd-figures-"));
-after(() => rmSync(dir, { recursive: true, force: true }));
-
-async function load(entry) {
-  const outfile = path.join(dir, `${entry.replace(/[/.]/g, "_")}.mjs`);
-  await esbuild.build({ entryPoints: [path.join(here, "../src/components", entry)], outfile, bundle: true, format: "esm", platform: "node", logLevel: "silent" });
-  return import(pathToFileURL(outfile).href);
-}
-
-const svd = await load("svd-geometry/svd2.ts");
-const jac = await load("svd-image/jacobi.ts");
+const content = path.join(path.dirname(fileURLToPath(import.meta.url)), "../../../../content/math/linear-algebra/svd");
+const svd = await load("components/svd-geometry/svd2.ts");
+const jac = await load("components/svd-image/jacobi.ts");
 
 // A small deterministic generator, so failures reproduce.
 function lcg(seed) {
@@ -194,14 +183,14 @@ test("the shuffle keeps every pixel value", () => {
 });
 
 test("renders all three figures at build time", async () => {
-  const geo = await load("svd-geometry/render.ts");
+  const geo = await load("components/svd-geometry/render.ts");
   const html = geo.render({});
   assert.match(html, /^<figure class="sg" data-preset="shear">/);
   assert.equal((html.match(/<svg class="sg-plane"/g) ?? []).length, 4);
   assert.ok(html.includes("1.62") && html.includes("0.62"), "shear singular values in the readout");
-  const ls = await load("svd-pinv/render.ts");
+  const ls = await load("components/svd-pinv/render.ts");
   assert.equal((ls.render().match(/<svg class="sg-plane"/g) ?? []).length, 2);
-  const img = await load("svd-image/server.ts");
+  const img = await load("components/svd-image/component.ts");
   const out = img.render({ src: "/x.png" });
   assert.ok(out.includes('data-src="/x.png"') && out.includes('<img src="/x.png"'));
   assert.ok(out.includes('class="si-line si-photo"'));

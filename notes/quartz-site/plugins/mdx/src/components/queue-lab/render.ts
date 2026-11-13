@@ -2,6 +2,7 @@
 // renders the finished charts, so the page shows real results before any
 // script loads; the client redraws the same parts with the same functions.
 
+import { esc } from "../../shared/format";
 import {
   DISTS,
   POLICIES,
@@ -33,8 +34,6 @@ export const fmt = (v: number): string => {
   if (v >= 10) return v.toFixed(1);
   return v.toFixed(2);
 };
-
-const esc = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 export function describe(config: Config): string {
   const servers = config.servers === 1 ? "1 server" : `${config.servers} servers, ${POLICIES[config.policy].short}`;

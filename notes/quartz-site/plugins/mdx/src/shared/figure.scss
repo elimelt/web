@@ -1,0 +1,159 @@
+// Shared styles for the interactive figures. build.mjs puts this file first in
+// dist/components.scss, so every component's style.scss can use these mixins
+// and colors without importing anything. The build renders each figure's
+// markup, so these styles apply before any script runs and the figure keeps
+// its size when the script takes over.
+//
+// A component's style.scss scopes everything under its own figure class and
+// class prefix, for example:
+//
+//   figure.xy {
+//     @include fig-frame;
+//     button { @include fig-button(0.25rem 0.6rem, 0.88rem); @include fig-button-hover; }
+//     button[aria-pressed="true"] { @include fig-pressed; }
+//     .xy-slider { @include fig-slider; }
+//     .xy-chart { @include fig-chart; aspect-ratio: 640 / 240; }
+//     figcaption { @include fig-caption; }
+//     @include fig-phone { .xy-controls { grid-template-columns: minmax(0, 1fr); } }
+//   }
+
+.mdx-component {
+  margin: 1.75rem 0;
+}
+
+// Series colors that read on both site backgrounds. Use them for data. Use the
+// site's --secondary for interaction (focus, selection, sliders), and --gray,
+// --lightgray, --darkgray and --highlight for ink, rules and fills.
+:root {
+  --fig-blue: #2a78d6;
+  --fig-orange: #eb6834;
+  --fig-red: #e34948;
+  --fig-green: #2e8540;
+  --fig-purple: #8a5cd0;
+}
+
+[saved-theme="dark"] {
+  --fig-blue: #3987e5;
+  --fig-orange: #d95926;
+  --fig-red: #e66767;
+  --fig-green: #4caf68;
+  --fig-purple: #a882e6;
+}
+
+// The phone layout switch. Design each figure at on-page width (about 630px)
+// and at phone width (about 360 to 400px).
+@mixin fig-phone($width: 600px) {
+  @media (max-width: $width) {
+    @content;
+  }
+}
+
+// The bordered box a figure sits in.
+@mixin fig-frame($padding: 1rem 1.1rem 0.9rem) {
+  margin: 0;
+  padding: $padding;
+  border: 1px solid var(--lightgray);
+  border-radius: var(--site-media-radius);
+}
+
+// A quiet button, or a select, in the site's colors.
+@mixin fig-button($padding: 0.25rem 0.6rem, $font-size: null, $radius: 4px) {
+  padding: $padding;
+  border: 1px solid var(--lightgray);
+  border-radius: $radius;
+  background: var(--light);
+  color: var(--darkgray);
+  font: inherit;
+  font-size: $font-size;
+  cursor: pointer;
+}
+
+// Hover borrows the accent; a disabled control is waiting for the script.
+@mixin fig-button-hover {
+  &:hover:not(:disabled) {
+    border-color: var(--secondary);
+    color: var(--secondary);
+  }
+}
+
+// The chosen option of a group, marked with aria-pressed="true" (or a checked
+// radio's label).
+@mixin fig-pressed {
+  border-color: var(--secondary);
+  background: var(--highlight);
+  color: var(--secondary);
+  font-weight: 600;
+}
+
+// A labelled range input:
+//   <label class="xy-slider"><span>Label <output>3</output></span><input type="range"></label>
+@mixin fig-slider($gap: 0.2rem) {
+  display: flex;
+  flex-direction: column;
+  gap: $gap;
+
+  span {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  output {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+
+  input {
+    width: 100%;
+    accent-color: var(--secondary);
+  }
+}
+
+// An SVG chart that scales with the figure. Give it a viewBox and an
+// aspect-ratio so it holds its size before the script runs. Text in a scaled
+// SVG shrinks on a phone, so set its font size again inside fig-phone.
+@mixin fig-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+@mixin fig-caption($font-size: 0.82rem, $margin-top: 0.6rem) {
+  margin-top: $margin-top;
+  color: var(--gray);
+  font-size: $font-size;
+}
+
+// A table inside a figure. The site gives article tables block display,
+// padding and rules, and Quartz wraps tables in the page's markup in
+// div.table-container with its own margin, padding, line height and 75px
+// minimum cell width. A table the script redraws has no wrapper, so set the
+// same explicit values on both. Put your own cell padding and rules after it.
+@mixin fig-table {
+  display: table;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border-collapse: collapse;
+
+  > * {
+    line-height: 1.4;
+  }
+
+  th,
+  td {
+    min-width: 0;
+  }
+}
+
+// A plain checkbox or radio. Quartz draws task-list checkboxes itself and
+// pulls them 1.4rem to the left.
+@mixin fig-native-check {
+  appearance: auto;
+  position: static;
+  width: 0.95rem;
+  height: 0.95rem;
+  margin: 0;
+  transform: none;
+  accent-color: var(--secondary);
+}

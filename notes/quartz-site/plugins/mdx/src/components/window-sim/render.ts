@@ -3,6 +3,7 @@
 // browser module re-runs the model and redraws the output parts from these
 // same functions at the figure's real width.
 
+import { esc } from "../../shared/format";
 import { MSS, simulate, summarize, type Result, type Summary } from "./model";
 import {
   BUFS, CHUNKS, DURATIONS, PRESETS, RATES, READS, RTTS, fmtBytes, fmtMbps, fmtMs, fmtRate, presetById,
@@ -18,8 +19,6 @@ export interface View {
   t0: number; // ms
   t1: number;
 }
-
-const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 function niceStep(span: number, target: number): number {
   const raw = span / target;
