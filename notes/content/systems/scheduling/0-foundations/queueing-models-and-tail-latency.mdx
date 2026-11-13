@@ -1,0 +1,346 @@
+---
+title: Queueing Models and Tail Latency
+category: Scheduling
+tags:
+  - scheduling
+  - queueing
+  - tail latency
+  - m-m-1
+  - m-m-c
+  - load balancing
+  - service variability
+  - hedged requests
+date: 2026-07-31
+updated: 2026-11-12
+status: evergreen
+description: How load and service-time variability turn into mean and p99 latency, and what each scheduling lever does to them, with a queue simulator you can run in the page and measured results for pooling, dispatch, service order and hedged requests.
+sources:
+  - title: Harchol-Balter (2013), Performance Modeling and Design of Computer Systems
+    url: https://www.cs.cmu.edu/~harchol/PerformanceModeling/book.html
+    type: book
+  - title: Dean and Barroso (2013), The Tail at Scale
+    url: https://cacm.acm.org/research/the-tail-at-scale/
+    type: paper
+  - title: Kingman (1961), The single server queue in heavy traffic
+    url: https://doi.org/10.1017/S0305004100036094
+    type: paper
+  - title: Kingman (1962), On queues in heavy traffic
+    url: https://doi.org/10.1111/j.2517-6161.1962.tb00465.x
+    type: paper
+  - title: Halfin and Whitt (1981), Heavy-traffic limits for queues with many exponential servers
+    url: https://doi.org/10.1287/opre.29.3.567
+    type: paper
+  - title: Winston (1977), Optimality of the shortest line discipline
+    url: https://doi.org/10.2307/3213271
+    type: paper
+  - title: "Whitt (1986), Deciding which queue to join: some counterexamples"
+    url: https://doi.org/10.1287/opre.34.1.55
+    type: paper
+  - title: Mitzenmacher (2001), The power of two choices in randomized load balancing
+    url: https://www.eecs.harvard.edu/~michaelm/postscripts/tpds2001.pdf
+    type: paper
+  - title: Harchol-Balter, Crovella and Murta (1999), On choosing a task assignment policy for a distributed server system
+    url: https://hdl.handle.net/1721.1/149878
+    type: paper
+  - title: Schrage (1968), A proof of the optimality of the shortest remaining processing time discipline
+    url: https://doi.org/10.1287/opre.16.3.687
+    type: paper
+  - title: "Bansal and Harchol-Balter (2001), Analysis of SRPT scheduling: investigating unfairness"
+    url: https://www.cs.cmu.edu/~harchol/Papers/unfairness.pdf
+    type: paper
+  - title: Boxma and Zwart (2007), Tails in scheduling
+    url: https://research.tue.nl/en/publications/tails-in-scheduling-2/
+    type: paper
+  - title: "Stolyar and Ramanan (2001), Largest weighted delay first scheduling: large deviations and optimality"
+    url: https://doi.org/10.1214/aoap/998926986
+    type: paper
+  - title: "Li et al. (2014), Tales of the Tail: Hardware, OS, and Application-level Sources of Tail Latency"
+    url: https://syslab.cs.washington.edu/papers/latency-socc14.pdf
+    type: paper
+  - title: Prekas, Kogias and Bugnion (2017), ZygOS
+    url: https://dl.acm.org/doi/10.1145/3132747.3132780
+    type: paper
+  - title: Kaffes et al. (2019), Shinjuku
+    url: https://www.usenix.org/conference/nsdi19/presentation/kaffes
+    type: paper
+  - title: Ousterhout et al. (2019), Shenango
+    url: https://www.usenix.org/conference/nsdi19/presentation/ousterhout
+    type: paper
+  - title: Fried et al. (2020), Caladan
+    url: https://www.usenix.org/conference/osdi20/presentation/fried
+    type: paper
+  - title: Vulimiri et al. (2013), Low latency via redundancy
+    url: https://arxiv.org/abs/1306.3707
+    type: paper
+  - title: "Gardner et al. (2015), Reducing latency via redundant requests: exact analysis"
+    url: https://kgardner.people.amherst.edu/papers/gardner_sigmetrics15.pdf
+    type: paper
+  - title: Gardner et al. (2017), A better model for job redundancy
+    url: https://www.pdl.cmu.edu/ftp/associated/TON17.pdf
+    type: paper
+  - title: Bronson et al. (2021), Metastable failures in distributed systems
+    url: https://pure.psu.edu/en/publications/metastable-failures-in-distributed-systems/
+    type: paper
+  - title: Huang et al. (2022), Metastable failures in the wild
+    url: https://www.usenix.org/conference/osdi22/presentation/huang-lexiang
+    type: paper
+  - title: gRPC proposal A6, client retries and hedging
+    url: https://github.com/grpc/proposal/blob/master/A6-client-retries.md
+    type: spec
+---
+
+## Purpose
+
+A server that is busy 90% of the time makes the average request wait ten times as long as one that is idle, and the slowest request in a hundred wait almost fifty times as long. This note works out where those numbers come from and what a scheduler can do about them. It covers four levers: how many servers share one queue, how arriving jobs are dispatched when they can't, what order a queue serves its jobs in, and sending duplicate requests. Each one gets a closed form where one exists and a measurement where it doesn't.
+
+It builds on [[systems/scheduling/0-foundations/littles-law-and-bottleneck-analysis|Little's law and bottleneck analysis]]. The derivations of the single-server formulas, with simulations that check them, are in [[systems/operating-systems/v2-concurrency/7-queueing-theory|Queueing Theory]]; this note uses those results and spends its space on the decisions they inform.
+
+## Notation
+
+Queues are named in Kendall's notation, A/S/c: the arrival process, the service-time distribution and the number of servers. M means memoryless (Poisson arrivals or exponential service), D means deterministic, and G means general. M/M/1 is Poisson arrivals, exponential service and one server; M/G/16 is Poisson arrivals, any service distribution and 16 servers.
+
+- $\lambda$ is the arrival rate and $S$ the service time of a job, with mean $E[S]$.
+- $\rho = \lambda E[S] / c$ is the load: the fraction of time each of the $c$ servers is busy. A queue is stable only when $\rho$ is below 1.
+- $W$ is the time a job waits before service starts, and $R = W + S$ is its response time.
+- $C_s^2 = \mathrm{Var}[S] / E[S]^2$ is the squared coefficient of variation of service time: 0 for constant service, 1 for exponential.
+
+All times below are in units of the mean service time, so $E[S] = 1$. A p99 of 46 means the slowest job in a hundred took 46 times as long as an average job's service.
+
+## One Server
+
+For M/M/1 served first come, first served (FCFS), the mean response time is
+
+$$
+E[R] = \frac{E[S]}{1 - \rho}
+$$
+
+and the whole distribution is known: $R$ is exponential with rate $(1 - \rho)/E[S]$. Every percentile is therefore a fixed multiple of the mean. The $q$-th percentile is $-\ln(1-q)$ times $E[R]$, so the p99 is $\ln 100 \approx 4.6$ times the mean.
+
+| Load $\rho$ | Mean $R$ | p99 $R$ |
+| ---: | ---: | ---: |
+| 0.5 | 2 | 9.2 |
+| 0.8 | 5 | 23 |
+| 0.9 | 10 | 46 |
+| 0.95 | 20 | 92 |
+| 0.99 | 100 | 461 |
+
+The service time is the same in every row. Each halving of the idle fraction $1-\rho$ doubles both columns, which is why the last few points of utilization are so expensive.
+
+> [!note]- Why the M/M/1 response time is exponential
+> An arriving job sees the queue in its long-run distribution, because Poisson arrivals sample the system at random times ([Harchol-Balter, ch. 13](https://www.cs.cmu.edu/~harchol/PerformanceModeling/book.html)). In M/M/1 that distribution is geometric: $P(N = n) = (1-\rho)\rho^n$. The job then waits for the $n$ jobs ahead of it and its own service, $n+1$ independent exponential times with rate $\mu = 1/E[S]$ (the job in service has an exponential remaining time too, since the exponential has no memory). A geometric number of independent exponentials is again exponential, with rate $\mu(1-\rho)$. Nothing about this survives a change to the service distribution or the order of service, which is why the other cases below need simulation for their tails.
+
+### Variability Costs as Much as Load
+
+Keeping Poisson arrivals and allowing any service distribution gives M/G/1, whose mean wait is the Pollaczek-Khinchine formula:
+
+$$
+E[W] = \frac{\rho}{1-\rho} \cdot \frac{1 + C_s^2}{2} \cdot E[S]
+$$
+
+Load and variability enter as separate factors. Constant service ($C_s^2 = 0$) halves the M/M/1 wait. The bimodal workload used throughout this note, where one job in 200 takes 50 times as long as the others, has $C_s^2 = 7.7$ and waits 4.35 times as long as M/M/1 at the same load and the same mean job size. A service whose requests are mostly cheap lookups with an occasional scan or cache miss looks like this.
+
+Bursty arrivals cost the same way. Kingman's heavy-traffic approximation for a single server with general arrivals and service replaces $1 + C_s^2$ with $C_a^2 + C_s^2$, where $C_a^2$ is the squared coefficient of variation of the time between arrivals. Kingman showed that the G/G/1 wait approaches this value as $\rho$ approaches 1 ([1961](https://doi.org/10.1017/S0305004100036094), [1962](https://doi.org/10.1111/j.2517-6161.1962.tb00465.x)); the form with coefficients of variation is a later rewriting, and it is exact for M/G/1. [[systems/operating-systems/v2-concurrency/7-queueing-theory|Queueing Theory]] works through both formulas and checks them by simulation.
+
+### The Simulator
+
+The figure simulates queues in the page. Pick a load, a number of servers, a dispatch policy and a service-time distribution; the chart sweeps load from 0.1 to 0.95 and plots the mean and p99 response time, and the panels below it show the full distribution and the numbers at the load you picked. Dashed lines are the exact results where they exist. Each point is three runs with different seeds, and the bar spans them; at high load the runs disagree visibly, because a queue near saturation takes a long time to forget a burst.
+
+Things to try with one server:
+
+- **Move the load from 0.5 to 0.9.** The mean goes from 2 to 10, and the distribution plot stays a straight line on its log scale, which is what an exponential tail looks like.
+- **Switch to constant service.** The mean drops to about half the M/M/1 value at high load, as Pollaczek-Khinchine says.
+- **Switch to bimodal service.** At load 0.7 the p99 is above 80, because more than one short job in a hundred arrives while a long job is running and waits for it. The distribution plot shows the kink where those jobs start. Even at load 0.1 the p99 is about 30: long jobs are 0.5% of jobs but 20% of the work, so 2% of arrivals find one in service.
+
+<QueueLab servers={1} rho={0.8} />
+
+The simulator draws exponential gaps between arrivals and a service time for each job, and computes each job's start and finish when it arrives: under FCFS nothing that arrives later can change them. Tests check it against the M/M/1, M/M/c and Pollaczek-Khinchine formulas and against Little's law, and check the policies that have no formula against a separate Python implementation, [`queue_experiments.py`](queueing-lab/queue_experiments.py), which produced the tables below.
+
+## Many Servers: Share the Queue
+
+Give $c$ servers one shared queue and the result is M/M/c. A job waits only when all $c$ servers are busy, which happens with probability given by the Erlang C formula, and the mean response time is
+
+$$
+E[R] = E[S] + \frac{C(c, \lambda E[S])}{c\mu - \lambda}
+$$
+
+where $C(c, a)$ is the Erlang C probability for offered load $a$ ([Harchol-Balter, ch. 14](https://www.cs.cmu.edu/~harchol/PerformanceModeling/book.html)). The alternative is to give each server its own queue and send each job to a random one. That splits the Poisson stream into $c$ independent Poisson streams, so each server is an M/M/1 queue at the same load, and the system is no better than one server however many servers it has.
+
+At load 0.9 with exponential service, measured over five seeds of a million jobs each against the exact values:
+
+| Servers | Separate queues: mean | p99 | Shared queue: mean | p99 | Exact mean | Exact p99 | Jobs that wait |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 10.1 | 47.0 | 10.1 | 47.0 | 10.0 | 46.1 | 90% |
+| 4 | 10.0 | 45.8 | 2.99 | 12.4 | 2.97 | 12.2 | 79% |
+| 16 | 10.0 | 46.0 | 1.37 | 5.32 | 1.37 | 5.27 | 59% |
+| 64 | 10.0 | 45.8 | 1.05 | 4.67 | 1.05 | 4.66 | 31% |
+
+Every row has the same load, so every row does the same work per server. With 16 servers, sharing the queue cuts the mean from 10 to 1.37 and the p99 from 46 to 5.3. Separate queues lose because a job can wait behind a busy server while another server sits idle; a shared queue never lets that happen. The 95% intervals over seeds are within 0.4 of the mean and 3 of the p99 for separate queues, and tighter for the shared queue.
+
+### Headroom Depends on Server Count
+
+The usual rule of thumb leaves a fixed fraction of capacity unused. The M/M/c tail says the right fraction depends on how many servers share the queue. Solving the exact M/M/c distribution for the highest load that keeps the p99 response time within a target:
+
+| Servers | Max load for p99 within 5 | within 10 |
+| ---: | ---: | ---: |
+| 1 | 0.08 | 0.54 |
+| 2 | 0.35 | 0.76 |
+| 4 | 0.61 | 0.88 |
+| 8 | 0.77 | 0.94 |
+| 16 | 0.87 | 0.97 |
+| 64 | 0.96 | 0.99 |
+| 128 | 0.98 | 0.996 |
+
+One server needs nearly half its capacity idle to keep the p99 under ten service times; 64 servers sharing a queue need 1%. [Halfin and Whitt (1981)](https://doi.org/10.1287/opre.29.3.567) give the general form: with offered load $a = \lambda E[S]$, staffing $c = a + \beta\sqrt{a}$ servers holds the probability of waiting at a fixed value between 0 and 1 as the system grows. The spare capacity needed grows like the square root of the load, so the spare fraction shrinks like $1/\sqrt{a}$. This is the economy of scale behind large shared pools, and the reason a cluster scheduler that partitions machines into small dedicated pools pays for it in latency.
+
+## When the Queue Can't Be Shared
+
+A single shared queue is not always available. Requests reach different machines through a load balancer that has to commit each request to one machine, and a multicore server that gives each core its own queue avoids contending on a shared lock and keeps data in each core's cache. Then the dispatch policy decides how close the system gets to the shared queue.
+
+Measured with 16 servers, five seeds of a million jobs each; 95% intervals are under 3% of the mean except where shown:
+
+| Dispatch | Exponential, $\rho=0.7$: mean | p99 | Exponential, $\rho=0.9$: mean | p99 | Bimodal, $\rho=0.9$: mean | p99 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Random server | 3.33 | 15.3 | 10.0 | 46.0 | 41.0 | 220 ± 16 |
+| Round robin | 1.97 | 9.09 | 5.56 | 25.9 | 36.2 | 201 ± 34 |
+| Shorter of two random queues | 1.65 | 6.73 | 2.84 | 9.72 | 4.06 | 42.6 |
+| Shortest queue | 1.08 | 4.93 | 1.58 | 6.64 | 2.40 | 40.3 |
+| Least work left | 1.03 | 4.64 | 1.37 | 5.32 | 2.11 | 13.9 ± 2.5 |
+| One shared queue | 1.03 | 4.64 | 1.37 | 5.32 | 2.11 | 13.9 ± 2.5 |
+
+Reading down the table:
+
+- **Round robin beats random** without looking at any queue. It sends each server every 16th job, so a server's arrivals are evenly spaced instead of Poisson, and Kingman's formula credits that with a smaller $C_a^2$ (an Erlang-16 gap has $C_a^2 = 1/16$). It does nothing about variable service, which is why it barely helps with the bimodal workload.
+- **Two random choices get most of the way.** Sampling two servers and joining the shorter queue cuts the mean from 10 to 2.8 at load 0.9. [Mitzenmacher (2001)](https://www.eecs.harvard.edu/~michaelm/postscripts/tpds2001.pdf) shows why for a large system: with one random choice the fraction of queues holding at least $i$ jobs is $\rho^i$, and with $d \ge 2$ choices it is $\rho^{(d^i - 1)/(d - 1)}$, which falls doubly exponentially. A third choice helps far less than the second.
+- **Shortest queue counts jobs, not work.** With exponential service it nearly matches the shared queue, and [Winston (1977)](https://doi.org/10.2307/3213271) proved it optimal for identical exponential servers, in the strong sense that it maximizes the number of jobs completed by any time. With bimodal service its p99 is 40, three times the shared queue's: a queue holding one long job looks as short as a queue holding one short job, and one job in a hundred lands behind a long one. [Whitt (1986)](https://doi.org/10.1287/opre.34.1.55) gives service distributions for which shortest queue is not optimal.
+- **Least work left is the shared queue.** Sending each job to the server with the least unfinished work starts every job exactly when a shared FCFS queue would, job for job, so the two rows are identical. It needs job sizes in advance, which a shared queue does not.
+- **Knowing sizes allows more than balancing.** With highly variable sizes, [Harchol-Balter, Crovella and Murta (1999)](https://hdl.handle.net/1721.1/149878) find that giving each server its own range of job sizes (SITA), chosen so every server gets equal load, can beat least work left by almost two orders of magnitude on their workloads, because short jobs never queue behind long ones. It is the multi-server version of the service-order argument in the next section.
+
+The second figure starts with 16 servers and random dispatch at load 0.9. The animation shows each server's queue; switch to one shared queue and watch the idle servers next to long queues disappear. The faded points keep the previous setting for comparison.
+
+<QueueLab servers={16} policy="random" rho={0.9} />
+
+> [!note]- Deep dive: queues at microsecond scale
+> The same tradeoff decides how datacenter servers with microsecond-scale requests spread work across cores. [Li et al. (2014)](https://syslab.cs.washington.edu/papers/latency-socc14.pdf) traced Memcached's tail latency to, among other causes, its static assignment of connections to threads, which makes it a set of separate queues; with that and other fixes its p99.9 at 75% utilization fell from 5 ms to 32 µs. [ZygOS (Prekas, Kogias and Bugnion, 2017)](https://dl.acm.org/doi/10.1145/3132747.3132780) starts from the comparison made above: with 16 cores, exponential service and a target p99 of ten mean service times, partitioned FCFS sustains 53.7% load and a shared queue 96.3%, close to the exact 0.54 and 0.97 in the headroom table. It adds work stealing between per-core queues so the system behaves like one shared queue without one shared lock. A shared queue still lets one long request block a core. [Shinjuku (Kaffes et al., 2019)](https://www.usenix.org/conference/nsdi19/presentation/kaffes) preempts requests every 5 to 15 µs, using hardware virtualization support to make the interrupts cheap, so short requests are not stuck behind long ones. Its hardest workload is bimodal like the one above but more extreme: 99.5% of requests take 0.5 µs and 0.5% take 500 µs. [Shenango (Ousterhout et al., 2019)](https://www.usenix.org/conference/nsdi19/presentation/ousterhout) and [Caladan (Fried et al., 2020)](https://www.usenix.org/conference/osdi20/presentation/fried) reallocate whole cores between applications every few microseconds as their queues grow, which applies the pooling argument to cores shared between applications.
+
+## Order Within a Queue
+
+Once jobs are queued at a server, the order it serves them in reshapes the distribution without changing the load. Three policies on one server, five seeds of a million jobs each:
+
+- **FCFS** serves jobs in arrival order.
+- **Processor sharing (PS)** splits the server equally among all jobs present, the limit of round robin with a small quantum.
+- **Shortest remaining processing time (SRPT)** always runs the job with the least work left, preempting when a shorter one arrives. It needs job sizes.
+
+| Workload, load | Policy | Mean | p99 | p99.9 | Mean for long jobs |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Exponential, 0.9 | FCFS | 10.1 | 47.0 | 75 | |
+| | PS | 10.1 | 79.2 | 159 | |
+| | SRPT | 3.57 | 50.2 | 219 | |
+| Bimodal, 0.9 | FCFS | 40.6 | 225 ± 27 | 311 ± 44 | 80 |
+| | PS | 10.1 | 40.1 ± 5.4 | 592 ± 33 | 403 |
+| | SRPT | 3.25 | 7.30 | 396 ± 16 | 281 |
+
+The two workloads reverse the ranking of the tail:
+
+- **With exponential service, FCFS has the best p99.** PS and SRPT lower the mean or leave it alone, but they do it by letting some jobs fall far behind. [Boxma and Zwart (2007)](https://research.tue.nl/en/publications/tails-in-scheduling-2/) survey the theory: when service times are light-tailed, FCFS is asymptotically optimal for the tail, meaning no work-conserving policy makes the waiting-time tail decay faster. That result is a special case of [Stolyar and Ramanan (2001)](https://doi.org/10.1214/aoap/998926986); PS, by contrast, is not even asymptotically optimal there.
+- **With bimodal service, FCFS is the worst by far.** Short jobs make up 99.5% of the work and wait behind long ones, so the p99 is 225. PS lets short jobs pass long ones and cuts the p99 to 40; SRPT cuts it to 7.3 and the mean to 3.3. The cost moves to the long jobs, whose mean response rises from 80 to 281 under SRPT and 403 under PS. With heavy-tailed service the theory says the same thing in the limit: if the service time tail is regularly varying with index $\alpha$, FCFS's waiting time tail has index $\alpha - 1$, one degree heavier, while PS and SRPT keep the response time tail as heavy as the service time's and no heavier ([Boxma and Zwart, 2007](https://research.tue.nl/en/publications/tails-in-scheduling-2/)).
+- **SRPT minimizes the mean** for any arrival and size sequence on one server ([Schrage, 1968](https://doi.org/10.1287/opre.16.3.687)). The usual objection is that long jobs starve. [Bansal and Harchol-Balter (2001)](https://www.cs.cmu.edu/~harchol/Papers/unfairness.pdf) find the unfairness surprisingly small for M/G/1, and prove that at load $\rho \le 1/2$ every job size has an expected slowdown under SRPT no worse than under PS, for any service distribution with finite variance. At load 0.9 that guarantee no longer holds, but in the table long jobs still do better under SRPT than under PS, and worse than under FCFS.
+- **PS leaves the mean unchanged.** M/G/1 under PS has mean response $E[S]/(1-\rho)$ for every service distribution with that mean, which is why the bimodal PS mean, 10.1, matches the exponential one.
+
+The policies themselves, MLFQ's approximation of SRPT without knowing sizes, and fairness are in [[systems/scheduling/1-single-resource/fifo-sjf-srpt-rr-and-mlfq|FIFO, SJF, SRPT, RR, and MLFQ]].
+
+## Fan-Out Turns the Tail into the Median
+
+A request that waits for $k$ parallel subrequests finishes with the slowest one:
+
+$$
+T_{\max} = \max(T_1, \dots, T_k), \qquad P(T_{\max} \le t) = F(t)^k
+$$
+
+when the subrequests are independent with distribution $F$. If each finishes within its own p99 with probability 0.99, all 100 of a fan-out of 100 do with probability $0.99^{100} = 0.366$, so 63% of requests are slower than a single server's p99. [Dean and Barroso (2013)](https://cacm.acm.org/research/the-tail-at-scale/) use this example with servers that typically answer in 10 ms but take a second at the p99: 63% of requests fanning out to 100 of them take over a second. In a real Google service they measured a p99 of 10 ms for a single leaf request and 140 ms for requests that waited on all the leaves.
+
+With M/M/1 leaves the effect has a closed form. Each leaf's response time is exponential with mean $E[R]$, the maximum of $k$ of them has mean $H_k \, E[R]$ where $H_k = 1 + \tfrac12 + \dots + \tfrac1k \approx \ln k + 0.58$, and its $q$-th percentile is $-\ln(1 - q^{1/k}) \, E[R]$. At load 0.5, where one leaf's mean is 2 and its p99 is 9.2:
+
+| Fan-out $k$ | Mean of the slowest | Median | p99 |
+| ---: | ---: | ---: | ---: |
+| 1 | 2.0 | 1.4 | 9.2 |
+| 10 | 5.9 | 5.4 | 13.8 |
+| 100 | 10.4 | 10.0 | 18.4 |
+| 1000 | 15.0 | 14.6 | 23.0 |
+
+At fan-out 100 the median request is slower than a single leaf's p99. A leaf's tail sets the whole request's typical latency, so the leaf has to be engineered for its p99.9 or p99.99. [[systems/performance/tail-latency-percentiles|Tail Latency, Percentiles, and Queueing Distributions]] simulates the same effect for lognormal leaves and lists the mitigations Dean and Barroso describe.
+
+## Hedged Requests Add Load
+
+The best known of those mitigations is the hedged request: if a reply hasn't come back by the 95th percentile of normal latency, send a second copy to another replica and take whichever answer comes first. [[systems/scheduling/4-cluster-and-datacenter/stragglers-speculation-and-overload|Stragglers, speculation, and overload]] covers the technique. Its cost is easy to state when service time is independent of load: about 5% more requests. In a queue it isn't, because the extra copies are load, and load is what made the requests slow in the first place.
+
+To measure that cost, [`queue_experiments.py`](queueing-lab/queue_experiments.py) runs 10 exponential servers, each with its own FCFS queue and requests dispatched at random. A hedge goes to a different random server once a request has waited the unhedged system's p95, $\ln 20 / (1 - \rho)$ mean service times. Two questions decide the result. First, is the losing copy cancelled when the winner finishes, whether it is still queued or already running? Second, would the copy take as long as the original? The table assumes it would: a request's size belongs to the request, so a hedge can only win by escaping a longer queue.
+
+| Load | No hedge | Hedge, cancel loser | Hedge, no cancel | Two copies from the start |
+| ---: | ---: | ---: | ---: | ---: |
+| 0.2 | 5.8 | 5.4 | 5.8 | 5.0 |
+| 0.4 | 7.7 | 6.8 | 7.9 | 5.7 |
+| 0.5 | 9.2 | 7.9 | 10.3 | 6.3 |
+| 0.6 | 11.5 | 9.5 | unstable | 7.3 |
+| 0.7 | 15.4 | 12.2 | unstable | 10.1 |
+| 0.8 | 23.0 | 17.4 | unstable | unstable |
+| 0.9 | 45.5 | 32.6 | unstable | unstable |
+
+The numbers are p99 response times in mean service times, averaged over 5 seeds of a million requests each; every 95% interval is within 4% of its value. "Unstable" means the response time grew for the whole run: at load 0.6 without cancellation, requests near the end took 4 times as long as those near the start, and the mean was about 18,000.
+
+- **Hedging with cancellation helps at every load.** It cut p99 by 6% at load 0.2 and by 28% at 0.9, and added at most 4% more work, because a hedge is sent only for the slowest 5% and its loser is stopped. It helps here because random dispatch leaves some queues long while others are empty. With one shared queue and copies that take as long as the original, a later copy could never finish first, so hedging would only add load.
+- **Without cancellation it fails abruptly.** Every hedge then runs to completion, so the servers carry load $\rho(1 + h)$, where $h$ is the fraction of requests that get hedged. At load 0.5, $h$ stayed small and the cost was 16% more work for a p99 12% worse than not hedging at all. At 0.6, latency crossed the hedge delay for more requests, which hedged more of them, which raised the load further. Every seed ended with nearly every request hedged, almost twice the work, and a load of 1.2. This is a [metastable failure](https://www.usenix.org/conference/osdi22/presentation/huang-lexiang): the extra work comes from the mechanism meant to fix slowness, so it continues after the trigger has passed. [Bronson et al. (2021)](https://pure.psu.edu/en/publications/metastable-failures-in-distributed-systems/) describe retries causing the same loop in production systems.
+- **Sending two copies up front** gave the lowest p99 up to load 0.7, at the cost of 32% to 72% more work, and was unstable from 0.8. [Vulimiri et al. (2013)](https://arxiv.org/abs/1306.3707) studied the version where both copies always run in full. There, redundancy lowers mean latency only below a threshold load: about 33% for exponential service and about 26% for constant service.
+
+The second question changes the answer more than the policies do. If each copy draws its own service time, slowness belongs to the server, not the request, and duplication looks free. With exponential copies it cut p99 at load 0.9 from 45.5 to 6.8 for no extra work, because the faster of two exponential copies takes half as long, so two servers working until it finishes use, on average, exactly the work of one. That result comes from the memoryless distribution, not from duplication. [Gardner et al. (2015)](https://kgardner.people.amherst.edu/papers/gardner_sigmetrics15.pdf) analyze this independent-copy model exactly. [Gardner et al. (2017)](https://www.pdl.cmu.edu/ftp/associated/TON17.pdf) argue that it overstates the benefit, and model a request's time as a size shared by every copy times a slowdown that depends on the server, a model in which redundancy can hurt.
+
+What this means in practice:
+
+- Hedge only with cancellation. Dean and Barroso's tied requests go further: each copy is tagged with the other's server, and the first to start running cancels its twin, so usually only one copy runs.
+- Cap hedges at a fixed fraction of traffic so they can't feed back into load. [gRPC's hedging design](https://github.com/grpc/proposal/blob/master/A6-client-retries.md) does this with a token bucket shared with retries that stops both when too many fail.
+- Set the delay from a live percentile, not a constant. A fixed delay that matched the p95 at low load hedges far more than 5% of requests once load rises.
+- Prefer fixing dispatch. Most of the gain above comes from escaping an unlucky queue, and a shared queue or a dispatcher that picks the shortest of two queues removes much of that imbalance.
+
+> [!note]- Measurement record
+> - **Code and data**: [`queue_experiments.py`](queueing-lab/queue_experiments.py), run from `notes/` as `python3 content/systems/scheduling/0-foundations/queueing-lab/queue_experiments.py`. It writes every table in this note that isn't a closed form to [`queue_experiments_results.json`](queueing-lab/queue_experiments_results.json). It is a separate implementation from the simulator in the page, written in Python with NumPy.
+> - **Simulation**: Poisson arrivals, a million jobs per run, the first 10% dropped as warm-up. Five seeds per cell; tables give the mean over seeds, and the JSON has each seed and a 95% t interval. Times are in units of the mean service time. Bimodal service is 0.80 with probability 0.995 and 40.2 with probability 0.005, mean 1, squared coefficient of variation 7.7.
+> - **Checks**: where a formula exists (M/M/1, M/M/c, Pollaczek-Khinchine) the simulated mean and p99 match it within 3%. The tests in `quartz-site/plugins/mdx/test/queue-lab.test.mjs` check that the page's simulator matches the same formulas, obeys Little's law, and agrees with this script on the dispatch policies that have no formula.
+> - **Runtime**: 15 minutes on 4 cores, 13 of them for the hedging runs, which are event-driven so that copies can be cancelled.
+> - **Environment**: Intel Xeon at 2.10 GHz, 4 cores, Python 3.13.18, NumPy 2.5.3.
+
+## Related Notes
+
+- [[systems/scheduling/0-foundations/littles-law-and-bottleneck-analysis|Little's Law and Bottleneck Analysis]]: the identities every result here obeys.
+- [[systems/operating-systems/v2-concurrency/7-queueing-theory|Queueing Theory]]: derivations of M/M/1, Pollaczek-Khinchine and Kingman, with simulations.
+- [[systems/performance/tail-latency-percentiles|Tail Latency, Percentiles, and Queueing Distributions]]: percentiles, fan-out, and the Tail at Scale techniques.
+- [[systems/performance/latency-throughput-and-utilization|Latency, Throughput, and Utilization]]
+- [[systems/scheduling/1-single-resource/fifo-sjf-srpt-rr-and-mlfq|FIFO, SJF, SRPT, RR, and MLFQ]]: the service orders compared above.
+- [[systems/distributed-systems/load-balancing|Load Balancing]]: power of two choices for skewed keys.
+- [[systems/scheduling/4-cluster-and-datacenter/stragglers-speculation-and-overload|Stragglers, Speculation, and Overload]] and [[systems/scheduling/4-cluster-and-datacenter/admission-control-backpressure-overload|Admission Control, Backpressure, and Overload]]: what to do when load passes capacity.
+- [[systems/scheduling/benchmarks/README|Scheduling Benchmarks and Simulators]]
+
+## Sources
+
+- [Harchol-Balter (2013), Performance Modeling and Design of Computer Systems](https://www.cs.cmu.edu/~harchol/PerformanceModeling/book.html)
+- [Dean and Barroso (2013), The Tail at Scale](https://cacm.acm.org/research/the-tail-at-scale/)
+- [Kingman (1961), The single server queue in heavy traffic](https://doi.org/10.1017/S0305004100036094)
+- [Kingman (1962), On queues in heavy traffic](https://doi.org/10.1111/j.2517-6161.1962.tb00465.x)
+- [Halfin and Whitt (1981), Heavy-traffic limits for queues with many exponential servers](https://doi.org/10.1287/opre.29.3.567)
+- [Winston (1977), Optimality of the shortest line discipline](https://doi.org/10.2307/3213271)
+- [Whitt (1986), Deciding which queue to join: some counterexamples](https://doi.org/10.1287/opre.34.1.55)
+- [Mitzenmacher (2001), The power of two choices in randomized load balancing](https://www.eecs.harvard.edu/~michaelm/postscripts/tpds2001.pdf)
+- [Harchol-Balter, Crovella and Murta (1999), On choosing a task assignment policy for a distributed server system](https://hdl.handle.net/1721.1/149878)
+- [Schrage (1968), A proof of the optimality of the shortest remaining processing time discipline](https://doi.org/10.1287/opre.16.3.687)
+- [Bansal and Harchol-Balter (2001), Analysis of SRPT scheduling: investigating unfairness](https://www.cs.cmu.edu/~harchol/Papers/unfairness.pdf)
+- [Boxma and Zwart (2007), Tails in scheduling](https://research.tue.nl/en/publications/tails-in-scheduling-2/)
+- [Stolyar and Ramanan (2001), Largest weighted delay first scheduling: large deviations and optimality](https://doi.org/10.1214/aoap/998926986)
+- [Li et al. (2014), Tales of the Tail: Hardware, OS, and Application-level Sources of Tail Latency](https://syslab.cs.washington.edu/papers/latency-socc14.pdf)
+- [Prekas, Kogias and Bugnion (2017), ZygOS](https://dl.acm.org/doi/10.1145/3132747.3132780)
+- [Kaffes et al. (2019), Shinjuku](https://www.usenix.org/conference/nsdi19/presentation/kaffes)
+- [Ousterhout et al. (2019), Shenango](https://www.usenix.org/conference/nsdi19/presentation/ousterhout)
+- [Fried et al. (2020), Caladan](https://www.usenix.org/conference/osdi20/presentation/fried)
+- [Vulimiri et al. (2013), Low latency via redundancy](https://arxiv.org/abs/1306.3707)
+- [Gardner et al. (2015), Reducing latency via redundant requests: exact analysis](https://kgardner.people.amherst.edu/papers/gardner_sigmetrics15.pdf)
+- [Gardner et al. (2017), A better model for job redundancy](https://www.pdl.cmu.edu/ftp/associated/TON17.pdf)
+- [Bronson et al. (2021), Metastable failures in distributed systems](https://pure.psu.edu/en/publications/metastable-failures-in-distributed-systems/)
+- [Huang et al. (2022), Metastable failures in the wild](https://www.usenix.org/conference/osdi22/presentation/huang-lexiang)
+- [gRPC proposal A6, client retries and hedging](https://github.com/grpc/proposal/blob/master/A6-client-retries.md)

@@ -1,0 +1,400 @@
+---
+title: Singular Value Decomposition and the Pseudoinverse
+category: Mathematics
+tags:
+  - linear algebra
+  - singular value decomposition
+  - pseudoinverse
+  - low-rank approximation
+  - pca
+  - numerical linear algebra
+date: 2026-08-01
+updated: 2026-11-12
+status: evergreen
+description: The SVD as rotate, stretch, rotate, with figures you can drag; the pseudoinverse and minimum-norm least squares; Eckart-Young measured on a real photo and against JPEG; PCA on MNIST; why you never compute it from A^T A; randomized SVD; and where it shows up in current ML.
+sources:
+  - title: MIT 18.06 Linear Algebra, Spring 2010 (Strang), lecture 29
+    url: https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/resources/lecture-29-singular-value-decomposition/
+    type: course
+  - title: Trefethen and Bau (1997), Numerical Linear Algebra, lectures 4-5 and 31
+    url: https://doi.org/10.1137/1.9780898719574
+    type: book
+  - title: Golub and Van Loan (2013), Matrix Computations, 4th ed., chapters 2 and 5
+    type: book
+  - title: Stewart (1993), On the Early History of the Singular Value Decomposition
+    url: https://doi.org/10.1137/1035134
+    type: paper
+  - title: Eckart and Young (1936), The Approximation of One Matrix by Another of Lower Rank
+    url: https://doi.org/10.1007/BF02288367
+    type: paper
+  - title: Mirsky (1960), Symmetric Gauge Functions and Unitarily Invariant Norms
+    url: https://doi.org/10.1093/qmath/11.1.50
+    type: paper
+  - title: Penrose (1955), A Generalized Inverse for Matrices
+    url: https://doi.org/10.1017/S0305004100030401
+    type: paper
+  - title: Golub and Kahan (1965), Calculating the Singular Values and Pseudo-Inverse of a Matrix
+    url: https://doi.org/10.1137/0702016
+    type: paper
+  - title: Demmel and Veselić (1992), Jacobi's Method is More Accurate than QR
+    url: https://doi.org/10.1137/0613074
+    type: paper
+  - title: Hansen (1987), The Truncated SVD as a Method for Regularization
+    url: https://doi.org/10.1007/BF01937276
+    type: paper
+  - title: Halko, Martinsson, and Tropp (2011), Finding Structure with Randomness
+    url: https://arxiv.org/abs/0909.4061
+    type: paper
+  - title: Pearson (1901), On Lines and Planes of Closest Fit to Systems of Points in Space
+    url: https://doi.org/10.1080/14786440109462720
+    type: paper
+  - title: Hotelling (1933), Analysis of a Complex of Statistical Variables into Principal Components
+    url: https://doi.org/10.1037/h0071325
+    type: paper
+  - title: Wallace (1991), The JPEG Still Picture Compression Standard
+    url: https://doi.org/10.1145/103085.103089
+    type: paper
+  - title: Higham (1986), Computing the Polar Decomposition, with Applications
+    url: https://doi.org/10.1137/0907079
+    type: paper
+  - title: Hu et al. (2021), LoRA
+    url: https://arxiv.org/abs/2106.09685
+    type: paper
+  - title: Miyato et al. (2018), Spectral Normalization for Generative Adversarial Networks
+    url: https://arxiv.org/abs/1802.05957
+    type: paper
+  - title: Jordan (2024), Muon, an optimizer for hidden layers in neural networks
+    url: https://kellerjordan.github.io/posts/muon/
+    type: article
+  - title: Liu et al. (2025), Muon is Scalable for LLM Training
+    url: https://arxiv.org/abs/2502.16982
+    type: paper
+  - title: numpy.linalg.svd
+    url: https://numpy.org/doc/stable/reference/generated/numpy.linalg.svd.html
+    type: docs
+  - title: Stanford STATS 305C, PCA lecture
+    url: https://web.stanford.edu/class/stats305c/lectures/PCA_I.html
+    type: lecture
+---
+
+## Purpose
+
+Every matrix, square or not, full rank or not, factors as $A = U \Sigma V^T$: a rotation, a stretch along perpendicular axes, and another rotation. That factorization is the singular value decomposition (SVD). It gives a matrix's rank, norm and condition number, solves least squares in every rank case through the pseudoinverse, and gives the best low-rank approximation of a matrix, which is what PCA and most compression schemes compute.
+
+This note builds the geometry first with figures you can drag, then derives the factorization, the pseudoinverse and the Eckart-Young theorem. It measures each claim on real data: a photo, MNIST, and matrices built to have known singular values. It then covers how the SVD is computed, the randomized algorithm used on large matrices, and where the SVD shows up in current machine learning.
+
+It assumes [[math/linear-algebra/eigenvalues-eigenvectors-diagonalization|eigenvalues and diagonalization]] and finishes the least-squares story from [[math/linear-algebra/orthogonality-projections-least-squares|Orthogonality, Projections, and Least Squares]].
+
+## Rotate, Stretch, Rotate
+
+Take any $2 \times 2$ matrix and apply it to every point of the unit circle. The circle comes out as an ellipse (or a segment, if the matrix is singular). The SVD names the ellipse's parts:
+
+- $\sigma_1 \ge \sigma_2 \ge 0$ are the lengths of its semi-axes, the **singular values**.
+- $u_1, u_2$ are unit vectors along those axes, the **left singular vectors**.
+- $v_1, v_2$ are the two perpendicular unit vectors on the circle that land on the axes: $A v_i = \sigma_i u_i$. They are the **right singular vectors**.
+
+Reading $A = U\Sigma V^T$ right to left gives the three steps. $V^T$ rotates the input so $v_1, v_2$ line up with the coordinate axes. $\Sigma$ stretches the first axis by $\sigma_1$ and the second by $\sigma_2$. $U$ rotates the result so the axes point along $u_1, u_2$. When $\det A < 0$ one of the orthogonal factors is a reflection instead of a rotation; the figure puts it in $U$.
+
+The figure computes the SVD of the matrix whose columns you drag and draws the unit circle after each factor:
+
+- **Shear.** $\begin{bmatrix}1 & 1\\ 0 & 1\end{bmatrix}$ has determinant 1, so it preserves area, yet it stretches by $\sigma_1 = 1.618$ and squeezes by $\sigma_2 = 0.618$: the golden ratio and its inverse. Area is $\sigma_1\sigma_2 = 1$.
+- **Symmetric.** For a symmetric positive definite matrix $U = V$, and the SVD is the eigendecomposition.
+- **Rank one.** $\sigma_2 = 0$: the circle collapses to a segment and $v_2$ spans the null space.
+- **Drag the probe.** Its length changes by a factor between $\sigma_2$ and $\sigma_1$, whatever direction you pick. That is the content of $\sigma_1 = \max_{\lVert x \rVert = 1} \lVert Ax \rVert$ and $\sigma_n = \min_{\lVert x \rVert = 1}\lVert Ax\rVert$.
+
+<SvdGeometry />
+
+The same picture holds in any dimension: the image of the unit sphere in $\mathbb{R}^n$ under an $m \times n$ matrix is a hyperellipse in $\mathbb{R}^m$ with semi-axes $\sigma_i u_i$. Trefethen and Bau open their treatment of the SVD with exactly this fact ([lecture 4](https://doi.org/10.1137/1.9780898719574)).
+
+## Deriving the SVD from $A^T A$
+
+Let $A \in \mathbb{R}^{m \times n}$. The matrix $A^T A \in \mathbb{R}^{n \times n}$ is symmetric and positive semidefinite, since $x^T A^T A x = \lVert Ax \rVert^2 \ge 0$. By the spectral theorem it has an orthonormal eigenbasis $v_1, \dots, v_n$ with real eigenvalues $\lambda_1 \ge \dots \ge \lambda_n \ge 0$. Define the singular values $\sigma_i = \sqrt{\lambda_i}$, and for each $\sigma_i > 0$ define
+
+$$
+u_i = \frac{A v_i}{\sigma_i}.
+$$
+
+These $u_i$ are orthonormal:
+
+$$
+u_i^T u_j = \frac{v_i^T A^T A v_j}{\sigma_i \sigma_j} = \frac{\lambda_j\, v_i^T v_j}{\sigma_i \sigma_j} = \begin{cases} 1 & i = j \\ 0 & i \ne j. \end{cases}
+$$
+
+Extend $\{u_i\}$ to an orthonormal basis of $\mathbb{R}^m$ and collect everything in matrices:
+
+$$
+A = U \Sigma V^T,
+$$
+
+with $U \in \mathbb{R}^{m \times m}$ and $V \in \mathbb{R}^{n \times n}$ orthogonal and $\Sigma \in \mathbb{R}^{m \times n}$ zero except for $\sigma_1 \ge \sigma_2 \ge \dots \ge 0$ on its diagonal. This is Strang's construction in [18.06 lecture 29](https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/resources/lecture-29-singular-value-decomposition/). The rank $r$ of $A$ is the number of nonzero singular values, and the compact form
+
+$$
+A = \sum_{i=1}^{r} \sigma_i u_i v_i^T
+$$
+
+writes $A$ as a sum of $r$ rank-one matrices, largest first.
+
+Both Gram matrices diagonalize: $A^T A = V (\Sigma^T \Sigma) V^T$ and $A A^T = U (\Sigma \Sigma^T) U^T$, so the right singular vectors are eigenvectors of $A^T A$, the left ones are eigenvectors of $AA^T$, and the two share the nonzero eigenvalues $\sigma_i^2$.
+
+The singular values are unique. The vectors are unique up to sign when the $\sigma_i$ are distinct: flipping $u_i$ and $v_i$ together leaves $\sigma_i u_i v_i^T$ unchanged. A repeated singular value lets any orthonormal basis of its subspace serve, which is why the figure's "Rotation" preset (both singular values 1) has singular vectors that don't mean anything. NumPy and LAPACK pick signs by their own internal conventions, so code should not depend on them.
+
+The derivation proves the SVD exists. It is also a bad way to compute it, for reasons [measured below](#never-compute-it-from-ata).
+
+## What the Factors Tell You
+
+Most facts about a matrix can be read off its SVD. With $r$ nonzero singular values:
+
+| Quantity | From the SVD |
+| --- | --- |
+| Rank | $r$, the number of nonzero $\sigma_i$ |
+| Column space (range) | spanned by $u_1, \dots, u_r$ |
+| Left null space | spanned by $u_{r+1}, \dots, u_m$ |
+| Row space | spanned by $v_1, \dots, v_r$ |
+| Null space | spanned by $v_{r+1}, \dots, v_n$ |
+| Spectral norm $\lVert A \rVert_2$ | $\sigma_1$ |
+| Frobenius norm $\lVert A \rVert_F$ | $\sqrt{\sigma_1^2 + \dots + \sigma_r^2}$ |
+| Nuclear norm $\lVert A \rVert_*$ | $\sigma_1 + \dots + \sigma_r$ |
+| $\lvert\det A\rvert$, square $A$ | $\sigma_1 \sigma_2 \cdots \sigma_n$ |
+| Condition number, full column rank | $\kappa(A) = \sigma_1 / \sigma_n$ |
+
+The four subspaces are Strang's "fundamental theorem" made concrete: the SVD hands you an orthonormal basis for each one.
+
+The condition number measures how much a relative change in $b$ can change the solution of $Ax = b$, and it is infinite for a rank-deficient matrix. For a rank-deficient matrix the ratio $\sigma_1/\sigma_r$ over the nonzero singular values plays the same role for the pseudoinverse solution below. In floating point no singular value is exactly zero, so "rank" in practice means the number of singular values above a tolerance; deciding that tolerance is where the next section ends up.
+
+## The Pseudoinverse and Least Squares
+
+To invert $A = U\Sigma V^T$, undo the three steps in reverse: rotate back with $U^T$, divide by each nonzero $\sigma_i$, rotate with $V$. Directions that $A$ crushes to zero can't be recovered, so leave them at zero:
+
+$$
+A^{+} = V \Sigma^{+} U^T, \qquad
+\Sigma^{+} = \mathrm{diag}\left(\sigma_1^{-1}, \dots, \sigma_r^{-1}, 0, \dots, 0\right) \in \mathbb{R}^{n \times m}.
+$$
+
+[Penrose (1955)](https://doi.org/10.1017/S0305004100030401) showed that $A^{+}$ is the unique matrix satisfying four conditions: $A A^{+} A = A$, $A^{+} A A^{+} = A^{+}$, and both $A A^{+}$ and $A^{+} A$ symmetric. E. H. Moore had defined the same inverse in 1920, hence the name Moore-Penrose pseudoinverse. When $A$ is square and invertible, $A^{+} = A^{-1}$. When $A$ has full column rank, $A^{+} = (A^T A)^{-1} A^T$, the operator from the normal equations.
+
+In general, $\hat{x} = A^{+} b$ is always a least-squares solution of $Ax = b$, and among all least-squares solutions it has the smallest norm. Writing $b$ in the $u$ basis shows why. The residual is
+
+$$
+\lVert Ax - b \rVert^2 = \sum_{i=1}^{r} \left(\sigma_i (v_i^T x) - u_i^T b\right)^2 + \sum_{i=r+1}^{m} (u_i^T b)^2 .
+$$
+
+The second sum doesn't depend on $x$: it is the part of $b$ outside the range of $A$. The first sum is zero exactly when $v_i^T x = u_i^T b / \sigma_i$ for $i \le r$, and says nothing about the components $v_{r+1}^T x, \dots, v_n^T x$ along the null space. Every choice of those components gives the same residual, and setting them to zero gives the smallest $\lVert x \rVert$. That choice is $A^{+} b$.
+
+The figure solves a $2 \times 2$ system with $\sigma_1 = 1.5$ and a $\sigma_2$ you control:
+
+- **Drag $b$** with both terms kept. $A\hat x = b$ exactly, and $\hat{x}$ is the ordinary inverse.
+- **Slide $\sigma_2$ toward zero.** The $v_2$ component of $\hat{x}$ is $(u_2^T b)/\sigma_2$, so the solution runs off along $v_2$, and a small move of $b$ along $u_2$ produces a large move of $\hat x$. At $\sigma_2 = 0$ the matrix has rank one, the least-squares solutions form a line parallel to $v_2$, and $A^+ b$ is the point on it closest to the origin.
+- **Raise the cutoff** above $\sigma_2/\sigma_1$. The solver treats $\sigma_2$ as zero even though it isn't: $\hat x$ drops back to a small, stable vector, and the residual grows to $\lvert u_2^T b \rvert$.
+
+<SvdLeastSquares />
+
+The cutoff is a real setting in every library. [`np.linalg.pinv`](https://numpy.org/doc/stable/reference/generated/numpy.linalg.pinv.html) sets singular values at or below `rcond` times $\sigma_1$ to zero, with a default `rcond` of $10^{-15}$ (NumPy 2.x also accepts `rtol`; passing `rtol=None` gives the array-API default of $\max(m, n)$ times machine epsilon). [`np.linalg.lstsq`](https://numpy.org/doc/stable/reference/generated/numpy.linalg.lstsq.html) solves least squares through LAPACK's SVD-based driver `gelsd`, with a default cutoff of machine epsilon times $\max(m, n)$. Both defaults only discard singular values that are rounding noise. When the data itself is noisy, a singular value can be well above $10^{-15}\sigma_1$ and still be too small to trust, and the cutoff has to come from the noise level instead.
+
+> [!note]- Deep dive: truncated SVD and Tikhonov as filters
+> Write the pseudoinverse solution as a sum and put a weight $f_i$ on each term:
+>
+> $$
+> \hat{x} = \sum_{i=1}^{n} f_i \, \frac{u_i^T b}{\sigma_i} \, v_i .
+> $$
+>
+> The exact pseudoinverse has $f_i = 1$ for every nonzero $\sigma_i$. When $b$ carries noise of size $\epsilon$ in every direction, the term for $\sigma_i$ contributes noise of size $\epsilon/\sigma_i$, so the smallest singular values dominate the error. Two standard fixes change the weights:
+>
+> - **Truncated SVD** sets $f_i = 1$ for $\sigma_i$ above a threshold and $0$ below it. This is what the figure's cutoff does. [Hansen (1987)](https://doi.org/10.1007/BF01937276) analyzes it as a regularization method in its own right.
+> - **Tikhonov regularization** (ridge regression) minimizes $\lVert Ax - b\rVert^2 + \lambda^2 \lVert x \rVert^2$, whose solution has $f_i = \sigma_i^2 / (\sigma_i^2 + \lambda^2)$. Terms with $\sigma_i \gg \lambda$ pass almost unchanged and terms with $\sigma_i \ll \lambda$ are damped smoothly instead of cut.
+>
+> Both trade a biased solution for a much smaller variance. Ridge regression's shrinkage of the low-variance principal directions of the data is the statistical reading of the same formula.
+
+## Best Low-Rank Approximation
+
+Truncate the rank-one sum after $k$ terms:
+
+$$
+A_k = \sum_{i=1}^{k} \sigma_i u_i v_i^T .
+$$
+
+No rank-$k$ matrix is closer to $A$:
+
+$$
+\min_{\mathrm{rank}(B) \le k} \lVert A - B \rVert_2 = \sigma_{k+1},
+\qquad
+\min_{\mathrm{rank}(B) \le k} \lVert A - B \rVert_F = \sqrt{\textstyle\sum_{i > k} \sigma_i^2},
+$$
+
+and $A_k$ attains both. This is usually called the Eckart-Young theorem, after [Eckart and Young (1936)](https://doi.org/10.1007/BF02288367), who proved the Frobenius case for matrices. [Mirsky (1960)](https://doi.org/10.1093/qmath/11.1.50) extended it to every unitarily invariant norm, which includes the spectral norm. The singular value spectrum therefore answers "how compressible is this matrix?" completely: the error of stopping at $k$ terms is the size of the singular values you dropped.
+
+> [!note]- History: Schmidt got there first
+> [Stewart (1993)](https://doi.org/10.1137/1035134) traces the decomposition to Beltrami (1873) and Jordan (1874), who found it independently for square matrices. Erhard Schmidt extended it to integral operators in 1907 and proved the approximation theorem there; Stewart calls that theorem "the crowning glory of Schmidt's work" and says the name Eckart-Young is "often (and incorrectly)" attached to it. Eckart and Young rediscovered it in 1936, in a psychometrics journal. The algorithm everyone uses came much later, from [Golub and Kahan (1965)](https://doi.org/10.1137/0702016).
+
+### A photo, decomposed in your browser
+
+The figure below loads a $256 \times 256$ grayscale photo, computes its SVD in JavaScript, and rebuilds it from the first $k$ terms. It reports the relative error twice: once measured from the pixels and once predicted from the dropped singular values by Eckart-Young. The two agree to every digit shown at every $k$.
+
+- **Move $k$.** Twenty terms of 256 already show the astronaut, flag and helmet. The residual panel shows what is left: fine texture and edges, which need many small terms.
+- **Read the spectrum.** The first singular value is far above the rest because it carries the image's average brightness. After that they fall by about five orders of magnitude, from 36 to 0.0004.
+- **Shuffle the pixels.** The same 65,536 brightness values in random order keep a large $\sigma_1$, which is still the average brightness, but after it the spectrum falls only by a factor of about 6 over the next 200 values, where the photo's falls by a factor of about 400. No small $k$ approximates them. Low rank comes from the image's spatial structure; the histogram of pixel values has nothing to do with it.
+
+<SvdImage src="/math/linear-algebra/svd/astronaut_256.png" />
+
+The experiment script repeats this on the full $512 \times 512$ photo with NumPy:
+
+- **Eckart-Young holds numerically.** At every rank tested, $\lVert A - A_k\rVert_2$ equals $\sigma_{k+1}$ and $\lVert A - A_k\rVert_F$ equals the tail $\sqrt{\sum_{i>k}\sigma_i^2}$ to within $1.3 \times 10^{-15}$ relative error.
+- **Most of the energy is cheap.** 4 terms keep 90% of $\sum \sigma_i^2$, 38 keep 99%, and 129 keep 99.9%. Much of the first 90% is the average brightness.
+- **The structure is real.** With the mean subtracted, the photo needs 15 terms for 90% of its variance. The shuffled pixels need 261 of 512.
+
+### Is a truncated SVD a good image codec?
+
+Rank $k$ stores $k(m + n + 1)$ numbers instead of $mn$, which suggests compression. The experiment measured it: rank-$k$ factors stored as 8-bit integers and compressed with zlib, against a JPEG of the same photo given at most the same number of bytes.
+
+| Rank $k$ | SVD bytes | SVD PSNR | SVD SSIM | JPEG quality | JPEG bytes | JPEG PSNR | JPEG SSIM |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 10 | 9,962 | 19.1 dB | 0.51 | 12 | 9,848 | 29.6 dB | 0.85 |
+| 20 | 19,723 | 22.2 dB | 0.61 | 35 | 19,641 | 33.4 dB | 0.94 |
+| 50 | 48,283 | 27.5 dB | 0.76 | 85 | 46,344 | 39.8 dB | 0.98 |
+| 100 | 94,849 | 33.0 dB | 0.89 | 95 | 82,101 | 45.2 dB | 0.99 |
+
+JPEG wins by 10 to 12 dB at every budget; at rank 100 it is still ahead using 13% fewer bytes. The SVD is optimal among rank-$k$ matrices, and rank is the wrong measure of an image's cost. JPEG cuts the image into $8 \times 8$ blocks and applies a fixed transform, the discrete cosine transform, to each ([Wallace, 1991](https://doi.org/10.1145/103085.103089)). Natural images are smooth almost everywhere, so most of each block's coefficients round to zero, and the transform itself costs nothing to store because it is the same for every image. A truncated SVD has to store its basis, $k(m+n)$ numbers that are specific to this image, and it spends them on global row and column patterns that photos don't have. Its real uses are on matrices whose structure is genuinely low rank, which is the next section.
+
+## PCA Is the SVD of Centered Data
+
+Principal component analysis finds the orthogonal directions along which a dataset varies most ([Pearson, 1901](https://doi.org/10.1080/14786440109462720); [Hotelling, 1933](https://doi.org/10.1037/h0071325)). Put $n$ data points as the rows of $X \in \mathbb{R}^{n \times p}$, subtract each column's mean to get $X_c$, and take its SVD $X_c = U\Sigma V^T$:
+
+- the right singular vectors $v_i$ are the principal directions,
+- the variance along $v_i$ is $\sigma_i^2/(n-1)$,
+- the coordinates of the data in that basis, the scores, are the columns of $U\Sigma$,
+- the top $k$ directions explain a fraction $\sum_{i \le k}\sigma_i^2 / \sum_i \sigma_i^2$ of the variance.
+
+The covariance matrix $X_c^T X_c/(n-1)$ has the same eigenvectors, so PCA is often taught as its eigendecomposition. Computing it from the SVD of $X_c$ gives the same answer without forming the covariance, which squares the condition number ([next section](#never-compute-it-from-ata)). Eckart-Young is what makes PCA optimal: projecting onto the top $k$ directions gives the rank-$k$ reconstruction with the smallest total squared error ([Stanford STATS 305C](https://web.stanford.edu/class/stats305c/lectures/PCA_I.html)).
+
+On MNIST's 60,000 training digits ($p = 784$ pixels), measured by the same script:
+
+| Components | 1 | 10 | 50 | 87 | 154 | 331 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Variance explained | 9.7% | 48.8% | 82.5% | 90% | 95% | 99% |
+
+Half the variance takes 11 components, and the last few percent need hundreds. At least 67 singular values are exactly zero, because 67 pixels near the border are 0 in every training image.
+
+## Never Compute It from $A^T A$
+
+The derivation built the SVD from the eigenvalues of $A^T A$. Doing that numerically loses half the available digits. Forming $A^T A$ squares every singular value, so a singular value $\sigma$ becomes the eigenvalue $\sigma^2$. A backward-stable eigensolver gets eigenvalues right to about machine epsilon $\epsilon \approx 1.1 \times 10^{-16}$ times the largest, $\epsilon \sigma_1^2$. Any $\sigma$ with $\sigma^2$ below that level, meaning $\sigma$ below about $\sqrt{\epsilon}\,\sigma_1 \approx 10^{-8}\sigma_1$, is lost.
+
+The experiment builds $100 \times 50$ matrices with singular values spaced evenly in log scale from 1 down to $10^{-12}$, using random orthogonal $U$ and $V$, and recovers them two ways: `np.linalg.svd`, and the square roots of `np.linalg.eigvalsh(A.T @ A)`. Median relative error over 10 matrices:
+
+| $\sigma$ | from `svd` | from `eigvalsh(A.T @ A)` |
+| ---: | ---: | ---: |
+| $1$ | $1 \times 10^{-16}$ | $1 \times 10^{-16}$ |
+| $1.2 \times 10^{-4}$ | $2 \times 10^{-14}$ | $3 \times 10^{-10}$ |
+| $1.3 \times 10^{-6}$ | $3 \times 10^{-12}$ | $4 \times 10^{-6}$ |
+| $7.9 \times 10^{-8}$ | $2 \times 10^{-11}$ | $1 \times 10^{-3}$ |
+| $8.3 \times 10^{-9}$ | $4 \times 10^{-10}$ | $0.19$ |
+| $8.7 \times 10^{-10}$ | $4 \times 10^{-9}$ | $5.6$ |
+| $10^{-12}$ | $4 \times 10^{-6}$ | $1$ (computed as 0) |
+
+The `svd` column grows like $\epsilon\sigma_1/\sigma$: the decomposition is accurate to $\epsilon$ in absolute terms, which is the most a backward-stable method can promise, since rounding the entries of $A$ alone moves its singular values by that much. The `eigvalsh` column grows like $\epsilon\sigma_1^2/\sigma^2$ and becomes meaningless at $\sigma \approx 10^{-8}$, right where the argument above predicts. For the smallest values the computed eigenvalues of $A^T A$ come out zero or negative, and the recovered singular value is zero. The same squaring is why [[math/linear-algebra/orthogonality-projections-least-squares|least squares]] should go through QR or the SVD instead of the normal equations.
+
+> [!note]- Deep dive: how libraries compute the SVD
+> [Golub and Kahan (1965)](https://doi.org/10.1137/0702016) gave the approach every library still uses, working on $A$ directly:
+>
+> 1. **Bidiagonalize.** Apply Householder reflections alternately from the left and right to reduce $A$ to an upper bidiagonal matrix $B = Q_1^T A Q_2$ (nonzeros only on the diagonal and the one above it). Orthogonal transformations don't change singular values. This costs about $4mn^2 - \frac{4}{3}n^3$ flops for $m \ge n$ and dominates the total.
+> 2. **Diagonalize the bidiagonal matrix.** Golub and Reinsch (1970) used an implicitly shifted QR iteration on $B$. LAPACK's `gesdd`, which `np.linalg.svd` calls, uses divide and conquer instead, which is faster when the singular vectors are wanted.
+>
+> One-sided **Jacobi** methods take a different route: rotate pairs of columns of $A$ until all columns are orthogonal; the column norms are then the singular values. They are slower, but [Demmel and Veselić (1992)](https://doi.org/10.1137/0613074) showed they compute small singular values to high *relative* accuracy for matrices that are badly scaled but otherwise well conditioned, where bidiagonalization only guarantees accuracy relative to $\sigma_1$. LAPACK's `gejsv` (Drmač and Veselić, 2008) is a preconditioned Jacobi SVD. The photo figure on this page uses a plain one-sided Jacobi SVD because it is short enough to write out in TypeScript. On the $256 \times 256$ photo it runs in well under a second in Node and matches NumPy's singular values to within $10^{-9}\sigma_1$; the figure's test checks this, and the figure reports how many sweeps it took.
+
+## Randomized SVD
+
+A full SVD of an $m \times n$ matrix costs $O(mn\min(m,n))$, and most applications only want the top $k$ terms. [Halko, Martinsson, and Tropp (2011)](https://arxiv.org/abs/0909.4061) showed that random projections find them cheaply:
+
+1. Multiply $A$ by a random Gaussian matrix $\Omega \in \mathbb{R}^{n \times (k+p)}$. The columns of $Y = A\Omega$ are random combinations of $A$'s columns, so they lie mostly in the span of the top singular vectors. The oversampling $p$ (they suggest 5 or 10) gives the sketch room to catch directions it would otherwise miss.
+2. Orthonormalize: $Q = \mathrm{qr}(Y)$.
+3. Optionally run $q$ power iterations, $Q \leftarrow \mathrm{qr}(A A^T Q)$, re-orthonormalizing in between. Each one raises the singular values to a higher power, which separates the top $k$ from the tail when the spectrum decays slowly.
+4. Project: $B = Q^T A$ is only $(k+p) \times n$. Take its SVD $B = \tilde U \Sigma V^T$ and set $U = Q\tilde U$.
+
+The experiment runs this with $p = 10$ on two real matrices and compares the rank-$k$ result to the optimal error $\sigma_{k+1}$, over 10 random seeds (mean ± standard deviation):
+
+| Matrix | $k$ | $q = 0$ | $q = 1$ | $q = 2$ | Full SVD |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| MNIST, centered, $60000 \times 784$ | 10 | 1.44 ± 0.07 in 0.11 s | 1.014 ± 0.014 in 0.26 s | 1.001 ± 0.003 in 0.36 s | 3.84 s |
+| MNIST, centered | 50 | 2.09 ± 0.12 in 0.34 s | 1.15 ± 0.03 in 0.62 s | 1.04 ± 0.02 in 1.00 s | 3.84 s |
+| Photo, $512 \times 512$ | 50 | 2.14 ± 0.13 in 9 ms | 1.10 ± 0.03 in 15 ms | 1.02 ± 0.02 in 24 ms | 77 ms |
+
+Each entry is $\lVert A - \tilde A_k \rVert_2 / \sigma_{k+1}$, so 1 is optimal. Without power iterations the error is about twice optimal at $k = 50$, because neither spectrum decays fast. One or two power iterations bring it within a few percent, still about 4 to 15 times faster than the full SVD of MNIST. The [paper's Theorem 1.1](https://arxiv.org/abs/0909.4061) bounds the expected error of the $(k+p)$-dimensional sketch by $\left[1 + \frac{4\sqrt{k+p}}{p-1}\sqrt{\min(m,n)}\right]\sigma_{k+1}$, which is 97 for MNIST at $k = 50$; the measured errors sit far below that worst case. Library implementations default to power iterations for the same reason: scikit-learn's `randomized_svd` uses `n_oversamples=10` and 4 to 7 iterations, and PyTorch's `torch.svd_lowrank` uses `niter=2`.
+
+## Where It Shows Up in Machine Learning
+
+The SVD's direct uses in current models are mostly about the top singular value and about low rank:
+
+- **LoRA** fine-tunes a large model by learning a rank-$r$ update $\Delta W = BA$ to each frozen weight matrix, on the hypothesis that the change needed during adaptation has low "intrinsic rank". On GPT-3 175B it cut trainable parameters by 10,000 times and GPU memory by 3 times ([Hu et al., 2021](https://arxiv.org/abs/2106.09685)). Eckart-Young says what the best rank-$r$ update would be if you knew the full one; LoRA learns the factors directly instead. [[ml/serving-systems/peft-and-preference-optimization|PEFT and Preference Optimization]] does the memory accounting.
+- **Spectral normalization** divides each weight matrix by its largest singular value, so each layer stretches its input by at most a factor of 1, which bounds how fast a GAN discriminator can change. It estimates $\sigma_1$ with one step of power iteration per training step, reusing the vector from the previous step ([Miyato et al., 2018](https://arxiv.org/abs/1802.05957)).
+- **Muon** replaces a weight matrix's momentum update $G = U\Sigma V^T$ with $UV^T$, setting every singular value to 1. $UV^T$ is the orthogonal factor of the polar decomposition $G = (UV^T)(V\Sigma V^T)$, and it is the closest semi-orthogonal matrix to $G$ ([Higham, 1986](https://doi.org/10.1137/0907079)). Muon computes it approximately with five Newton-Schulz iterations, which use only matrix multiplies, instead of an SVD ([Jordan, 2024](https://kellerjordan.github.io/posts/muon/)). [Liu et al. (2025)](https://arxiv.org/abs/2502.16982) report about twice AdamW's computational efficiency when training language models at compute-optimal settings.
+- **Recommender systems** model the user-item rating matrix as low rank. Most entries are unobserved, so the factors are fit by optimizing over the observed entries instead of computed by an SVD; see [[ml/recommender-systems/recommender-systems|Recommender Systems]].
+
+## NumPy
+
+```python
+import numpy as np
+
+rng = np.random.default_rng(0)
+A = rng.standard_normal((6, 4)) @ np.diag([10.0, 3.0, 0.5, 0.01])
+
+U, s, Vh = np.linalg.svd(A, full_matrices=False)
+print(s)                                     # [2.557e+01 5.643e+00 9.540e-01 1.118e-02]
+print(np.allclose(U @ np.diag(s) @ Vh, A))   # True
+
+k = 2                                        # rank-2 truncation
+Ak = U[:, :k] @ np.diag(s[:k]) @ Vh[:k]
+print(np.linalg.norm(A - Ak, 2), s[k])       # 0.95403 0.95403, per Eckart-Young
+
+Apinv = Vh.T @ np.diag(1 / s) @ U.T          # pseudoinverse by hand
+print(np.allclose(Apinv, np.linalg.pinv(A)))  # True
+```
+
+Conventions from the [numpy.linalg.svd docs](https://numpy.org/doc/stable/reference/generated/numpy.linalg.svd.html) that trip people up:
+
+- It returns `Vh`, which is $V^T$, not $V$. The right singular vectors are the rows of `Vh`.
+- Singular values come back as a 1-D array sorted in descending order, so reconstruction needs `np.diag(s)` or broadcasting, `(U * s) @ Vh`.
+- `full_matrices=True`, the default, returns square $U$ and $V^T$ padded with bases for the null spaces. `full_matrices=False` returns the compact shapes and is what you want almost always; for a tall $60000 \times 784$ matrix the default would build a $60000 \times 60000$ $U$.
+- Use `compute_uv=False` when only the singular values are needed. For the top few of a large matrix, use a randomized or iterative method such as `scipy.sparse.linalg.svds`.
+
+## Measurement Record
+
+> [!note]- How the numbers on this page were produced
+> - **Code**: [`svd_experiments.py`](svd/svd_experiments.py), run from `notes/` as `python3 content/math/linear-algebra/svd/svd_experiments.py --mnist work/notebook-data/mnist/mnist.npz`. It takes about two minutes and writes [`svd_results.json`](svd/svd_results.json), the figure's image [`astronaut_256.png`](svd/astronaut_256.png) and its singular values.
+> - **Photo**: scikit-image's `astronaut` test image, a NASA photo of Eileen Collins with no known copyright restrictions, converted to luma with `skimage.color.rgb2gray`. The $512 \times 512$ version is used in the NumPy experiments; the figure uses a $256 \times 256$ version made by averaging $2 \times 2$ blocks and saving as an 8-bit PNG.
+> - **Codec comparison**: SVD factors $U_k\Sigma_k^{1/2}$ and $V_k\Sigma_k^{1/2}$ quantized to int8 with one float32 scale per vector, then compressed with zlib level 9. JPEG via Pillow, grayscale, `optimize=True`, at the highest quality from 1 to 95 whose file fits the SVD's byte count; at rank 100 even quality 95 used fewer bytes. PSNR uses a peak of 1; SSIM is scikit-image's `structural_similarity`.
+> - **Stability**: $100 \times 50$ matrices $U\,\mathrm{diag}(\sigma)V^T$ with 50 singular values log-spaced from $1$ to $10^{-12}$ and $U$, $V$ from QR of Gaussian matrices, seeds 0 to 9.
+> - **Randomized SVD**: Halko et al.'s algorithms 4.4 and 5.1 written in NumPy, Gaussian test matrices, oversampling 10, re-orthonormalized power iterations, seeds 0 to 9. The spectral norm of each residual comes from the largest eigenvalue of its $784 \times 784$ (or $512 \times 512$) Gram matrix. Times are medians of 5 calls after one warm-up call; the full SVD is `np.linalg.svd(A, full_matrices=False)`.
+> - **MNIST**: Keras's copy, SHA-256 `731c5ac6…b673d1`, training images scaled to $[0, 1]$.
+> - **Environment**: Intel Xeon at 2.10 GHz, 4 cores, Python 3.13.18, NumPy 2.5.3 with scipy-openblas, Pillow 12.3.0 and scikit-image 0.26.0.
+> - **Repeatability**: the accuracy results are deterministic given the seeds; a second full run reproduced them exactly. Timings moved by up to 15% between runs and only their ratios are worth reading.
+
+## Related Notes
+
+- [[math/linear-algebra/eigenvalues-eigenvectors-diagonalization|Eigenvalues, Eigenvectors, and Diagonalization]]: the spectral theorem the derivation rests on.
+- [[math/linear-algebra/orthogonality-projections-least-squares|Orthogonality, Projections, and Least Squares]]: least squares through the normal equations and QR.
+- [[math/linear-algebra/cheatsheet|Matrix Theory]]
+- [[ml/serving-systems/peft-and-preference-optimization|PEFT and Preference Optimization]]: LoRA's memory accounting.
+- [[ml/recommender-systems/recommender-systems|Recommender Systems]]: low-rank models fit to a sparse matrix.
+- [[ml/deep-learning/convolutional-neural-networks|Convolutional Neural Networks]]: the same MNIST data.
+
+## Sources
+
+- [MIT 18.06 Linear Algebra, Spring 2010 (Strang), lecture 29](https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/resources/lecture-29-singular-value-decomposition/)
+- [Trefethen and Bau (1997), Numerical Linear Algebra](https://doi.org/10.1137/1.9780898719574), lectures 4, 5 and 31
+- Golub and Van Loan (2013), Matrix Computations, 4th ed., chapters 2 and 5
+- [Stewart (1993), On the Early History of the Singular Value Decomposition](https://doi.org/10.1137/1035134)
+- [Eckart and Young (1936), The Approximation of One Matrix by Another of Lower Rank](https://doi.org/10.1007/BF02288367)
+- [Mirsky (1960), Symmetric Gauge Functions and Unitarily Invariant Norms](https://doi.org/10.1093/qmath/11.1.50)
+- [Penrose (1955), A Generalized Inverse for Matrices](https://doi.org/10.1017/S0305004100030401)
+- [Golub and Kahan (1965), Calculating the Singular Values and Pseudo-Inverse of a Matrix](https://doi.org/10.1137/0702016)
+- [Demmel and Veselić (1992), Jacobi's Method is More Accurate than QR](https://doi.org/10.1137/0613074)
+- [Hansen (1987), The Truncated SVD as a Method for Regularization](https://doi.org/10.1007/BF01937276)
+- [Halko, Martinsson, and Tropp (2011), Finding Structure with Randomness](https://arxiv.org/abs/0909.4061)
+- [Pearson (1901), On Lines and Planes of Closest Fit to Systems of Points in Space](https://doi.org/10.1080/14786440109462720)
+- [Hotelling (1933), Analysis of a Complex of Statistical Variables into Principal Components](https://doi.org/10.1037/h0071325)
+- [Wallace (1991), The JPEG Still Picture Compression Standard](https://doi.org/10.1145/103085.103089)
+- [Higham (1986), Computing the Polar Decomposition, with Applications](https://doi.org/10.1137/0907079)
+- [Hu et al. (2021), LoRA: Low-Rank Adaptation of Large Language Models](https://arxiv.org/abs/2106.09685)
+- [Miyato et al. (2018), Spectral Normalization for Generative Adversarial Networks](https://arxiv.org/abs/1802.05957)
+- [Jordan (2024), Muon: An optimizer for hidden layers in neural networks](https://kellerjordan.github.io/posts/muon/)
+- [Liu et al. (2025), Muon is Scalable for LLM Training](https://arxiv.org/abs/2502.16982)
+- [numpy.linalg.svd](https://numpy.org/doc/stable/reference/generated/numpy.linalg.svd.html), [numpy.linalg.pinv](https://numpy.org/doc/stable/reference/generated/numpy.linalg.pinv.html) and [numpy.linalg.lstsq](https://numpy.org/doc/stable/reference/generated/numpy.linalg.lstsq.html) documentation
+- [Stanford STATS 305C, PCA lecture](https://web.stanford.edu/class/stats305c/lectures/PCA_I.html)
