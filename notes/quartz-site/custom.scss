@@ -797,3 +797,465 @@ figure.cx {
     }
   }
 }
+
+// Two-phase commit simulator (commit-sim). Node colors carry the protocol
+// state: green committed, red aborted, amber uncertain, a heavy outline when
+// an uncertain participant is blocked.
+:root {
+  --cs-commit: #2e7d32;
+  --cs-abort: #c23b22;
+  --cs-uncertain: #b8550b;
+}
+
+[saved-theme="dark"] {
+  --cs-commit: #7cc47f;
+  --cs-abort: #f08a75;
+  --cs-uncertain: #f0a35e;
+}
+
+figure.cs {
+  margin: 0;
+  padding: 1rem 1.1rem 0.9rem;
+  border: 1px solid var(--lightgray);
+  border-radius: var(--site-media-radius);
+  font-size: 0.92rem;
+
+  h4 {
+    margin: 0 0 0.3rem;
+    font-size: 0.85rem;
+    color: var(--darkgray);
+  }
+
+  button {
+    padding: 0.25rem 0.7rem;
+    border: 1px solid var(--lightgray);
+    border-radius: 4px;
+    background: var(--light);
+    color: var(--darkgray);
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      border-color: var(--secondary);
+      color: var(--secondary);
+    }
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.55;
+    }
+  }
+
+  .cs-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 1.4rem;
+
+    select {
+      max-width: 100%;
+      font: inherit;
+      font-size: 0.88rem;
+    }
+
+    input {
+      accent-color: var(--secondary);
+    }
+  }
+
+  .cs-scenario {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+  }
+
+  .cs-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0.7rem 0 0.2rem;
+
+    .cs-primary {
+      border-color: var(--secondary);
+      color: var(--secondary);
+      font-weight: 600;
+    }
+  }
+
+  .cs-next {
+    color: var(--gray);
+    font-size: 0.85rem;
+    margin-left: 0.3rem;
+  }
+
+  .cs-headline {
+    margin: 0.5rem 0 0.4rem;
+    padding: 0.45rem 0.7rem;
+    border-left: 3px solid var(--gray);
+    border-radius: 2px;
+    background: var(--highlight);
+    min-height: 2.9em;
+
+    &[data-tone="good"] {
+      border-left-color: var(--cs-commit);
+    }
+
+    &[data-tone="bad"] {
+      border-left-color: var(--cs-abort);
+    }
+
+    &[data-tone="warn"] {
+      border-left-color: var(--cs-uncertain);
+    }
+  }
+
+  .cs-plot {
+    max-width: 30rem;
+    margin: 0 auto;
+  }
+
+  .cs-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 360 / 246;
+    overflow: visible;
+  }
+
+  .cs-link {
+    cursor: pointer;
+    outline: none;
+
+    .cs-link-hit {
+      fill: none;
+      stroke: transparent;
+      stroke-width: 16;
+    }
+
+    .cs-link-line {
+      fill: none;
+      stroke: var(--lightgray);
+      stroke-width: 2;
+    }
+
+    &:hover .cs-link-line,
+    &:focus-visible .cs-link-line {
+      stroke: var(--secondary);
+    }
+
+    &.cut .cs-link-line {
+      stroke: var(--cs-abort);
+      stroke-dasharray: 4 4;
+      opacity: 0.7;
+    }
+  }
+
+  .cs-cut-mark {
+    stroke: var(--cs-abort);
+    stroke-width: 2.5;
+  }
+
+  .cs-msg {
+    rect {
+      fill: var(--light);
+      stroke: var(--secondary);
+      stroke-width: 1;
+    }
+
+    text {
+      fill: var(--secondary);
+      font-size: 10.5px;
+      font-weight: 600;
+      font-family: var(--codeFont);
+    }
+
+    &.cs-msg-commit rect,
+    &.cs-msg-yes rect {
+      stroke: var(--cs-commit);
+    }
+
+    &.cs-msg-commit text,
+    &.cs-msg-yes text {
+      fill: var(--cs-commit);
+    }
+
+    &.cs-msg-abort rect,
+    &.cs-msg-no rect {
+      stroke: var(--cs-abort);
+    }
+
+    &.cs-msg-abort text,
+    &.cs-msg-no text {
+      fill: var(--cs-abort);
+    }
+  }
+
+  .cs-node {
+    circle {
+      fill: var(--light);
+      stroke: var(--gray);
+      stroke-width: 2;
+    }
+
+    .cs-node-name {
+      fill: var(--darkgray);
+      font-size: 14px;
+      font-weight: 700;
+      dominant-baseline: middle;
+    }
+
+    .cs-node-word {
+      fill: var(--gray);
+      font-size: 12px;
+      // A halo in the page color keeps labels readable over the link lines.
+      paint-order: stroke;
+      stroke: var(--light);
+      stroke-width: 4px;
+      stroke-linejoin: round;
+    }
+
+    &.committed circle,
+    &.committed-done circle {
+      stroke: var(--cs-commit);
+      fill: color-mix(in srgb, var(--cs-commit) 18%, var(--light));
+    }
+
+    &.aborted circle {
+      stroke: var(--cs-abort);
+      fill: color-mix(in srgb, var(--cs-abort) 14%, var(--light));
+    }
+
+    &.uncertain circle {
+      stroke: var(--cs-uncertain);
+      fill: color-mix(in srgb, var(--cs-uncertain) 16%, var(--light));
+    }
+
+    &.blocked circle {
+      stroke: var(--cs-abort);
+      stroke-width: 4;
+    }
+
+    &.blocked .cs-node-word {
+      fill: var(--cs-abort);
+      font-weight: 600;
+    }
+
+    &.down circle {
+      stroke-dasharray: 3 3;
+      fill: var(--lightgray);
+    }
+
+    &.down .cs-node-name {
+      fill: var(--gray);
+    }
+  }
+
+  .cs-flight {
+    margin: 0.5rem 0;
+
+    ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    li {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.35rem;
+      margin: 0;
+    }
+
+    .cs-flight-msg {
+      min-width: 9.5rem;
+      font-family: var(--codeFont);
+      font-size: 0.82rem;
+    }
+
+    button {
+      padding: 0.05rem 0.5rem;
+      font-size: 0.8rem;
+    }
+  }
+
+  .cs-flight-empty,
+  .cs-log-empty {
+    margin: 0;
+    color: var(--gray);
+    font-size: 0.85rem;
+  }
+
+  .cs-nodes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin: 0.6rem 0;
+  }
+
+  .cs-card {
+    padding: 0.45rem 0.6rem 0.5rem;
+    border: 1px solid var(--lightgray);
+    border-left: 4px solid var(--lightgray);
+    border-radius: 4px;
+    min-width: 0;
+
+    &.committed,
+    &.committed-done {
+      border-left-color: var(--cs-commit);
+    }
+
+    &.aborted {
+      border-left-color: var(--cs-abort);
+    }
+
+    &.uncertain {
+      border-left-color: var(--cs-uncertain);
+    }
+
+    &.blocked {
+      border-color: var(--cs-abort);
+    }
+
+    &.down {
+      border-style: dashed;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.35rem;
+    }
+
+    .cs-role {
+      color: var(--gray);
+      font-size: 0.8rem;
+    }
+
+    .cs-state {
+      margin-left: auto;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+  }
+
+  .cs-detail {
+    margin: 0.2rem 0;
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+
+  .cs-log-head {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.25rem;
+    color: var(--gray);
+    font-size: 0.78rem;
+  }
+
+  .cs-locks.on {
+    color: var(--cs-uncertain);
+    font-weight: 600;
+  }
+
+  .cs-log {
+    margin: 0.1rem 0 0;
+    padding-left: 1.3rem;
+    font-family: var(--codeFont);
+    font-size: 0.8rem;
+
+    li {
+      margin: 0;
+    }
+  }
+
+  .cs-forced {
+    padding: 0 0.25rem;
+    border-radius: 3px;
+    background: var(--highlight);
+    color: var(--secondary);
+    font-family: var(--bodyFont);
+    font-size: 0.72rem;
+  }
+
+  .cs-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.4rem;
+
+    button {
+      padding: 0.1rem 0.55rem;
+      font-size: 0.8rem;
+    }
+  }
+
+  .cs-voteno,
+  .cs-coop {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.82rem;
+
+    // Quartz restyles checkboxes for task lists; undo that here.
+    input {
+      appearance: auto;
+      position: static;
+      width: 0.95rem;
+      height: 0.95rem;
+      margin: 0;
+      transform: none;
+      accent-color: var(--secondary);
+    }
+  }
+
+  .cs-coop {
+    font-size: inherit;
+  }
+
+  .cs-history ol {
+    margin: 0;
+    padding-left: 1.3rem;
+    font-size: 0.85rem;
+    min-height: 6.5em;
+
+    li {
+      margin: 0.1rem 0;
+      color: var(--gray);
+    }
+
+    li.latest {
+      color: var(--darkgray);
+    }
+  }
+
+  .cs-counts {
+    margin: 0.5rem 0 0.2rem;
+    font-size: 0.85rem;
+  }
+
+  figcaption {
+    margin-top: 0.4rem;
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 600px) {
+  figure.cs {
+    padding: 0.8rem 0.7rem;
+
+    .cs-nodes {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}
