@@ -85,7 +85,7 @@ function summaryPart(trace: Trace, s: ReplayState): string {
         ? `The target rejected the first one and put <b>${fix}</b> in its place, sampled from the residual.`
         : `The target kept the first ${r.accepted}, rejected draft ${r.accepted + 1}, and put <b>${fix}</b> in its place, sampled from the residual.`;
   const avg = tokensPerPass(trace, s.round).toFixed(2);
-  return `The draft proposed ${g} tokens. ${kept} That is ${r.emitted.length} token${r.emitted.length > 1 ? "s" : ""} from one target pass; ${avg} per pass over rounds 1 to ${s.round + 1}.`;
+  return `The draft proposed ${g} tokens. ${kept} That is ${r.emitted.length} token${r.emitted.length > 1 ? "s" : ""} from one target pass${s.round > 0 ? `; ${avg} per pass over rounds 1 to ${s.round + 1}` : ""}.`;
 }
 
 function tablePart(trace: Trace, s: ReplayState): string {
@@ -201,7 +201,7 @@ export const speedDefault = (): SpeedState => ({ domain: "code", temp: "1", batc
 
 const W = 320;
 const H = 220;
-const M = { left: 38, right: 10, top: 14, bottom: 34 };
+const M = { left: 38, right: 10, top: 26, bottom: 34 };
 
 interface Series {
   points: { g: number; y: number; lo?: number; hi?: number }[];
@@ -220,7 +220,7 @@ function chart(series: Series[], yMax: number, yLabel: string, gammas: number[],
   }
   for (const g of gammas) parts.push(`<text class="sd-tick" x="${x(g)}" y="${H - M.bottom + 15}" text-anchor="middle">${g}</text>`);
   parts.push(`<text class="sd-tick" x="${(M.left + W - M.right) / 2}" y="${H - 4}" text-anchor="middle">draft length γ</text>`);
-  parts.push(`<text class="sd-tick" x="${M.left - 30}" y="${M.top - 4}">${yLabel}</text>`);
+  parts.push(`<text class="sd-tick" x="${M.left - 30}" y="11">${yLabel}</text>`);
   if (refY !== undefined) parts.push(`<line class="sd-ref" x1="${M.left}" x2="${W - M.right}" y1="${y(refY)}" y2="${y(refY)}"/>`);
   for (const s of series) {
     if (s.line) {

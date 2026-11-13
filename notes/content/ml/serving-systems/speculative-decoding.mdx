@@ -101,8 +101,8 @@ The figure replays rounds recorded from the trained models with $\gamma = 4$ at 
 Things to notice:
 
 - The code prompt is a slice of one of the standard library's character-encoding tables, lines like `'\x8a'  #  0x2A -> CONTROL`. The draft model has the layout down: in round 1 the target gives each of the four drafts probability 0.99 or more, so all four pass and the verify pass adds a fifth token for free.
-- The hex digits are where it fails. In round 5 the draft proposes `8` with probability 0.72 and the target gives it 0.29, so the draft survives with probability 0.29 / 0.72 = 0.40. The uniform draw was 0.70, the draft is rejected, and the replacement `2` comes from the residual.
-- A kept token need not be likely. In round 7 of the Shakespeare replay the target keeps ` sh` and `out` although both models give each about 1%. The rule compares the two probabilities, not either one with a threshold.
+- The hex digits are where it fails. In round 5 the draft proposes `8` with probability 0.72 and the target gives it 0.29, so the draft survives with probability 0.293 / 0.718 = 0.41. The uniform draw was 0.70, the draft is rejected, and the replacement `2` comes from the residual.
+- A kept token need not be likely. In round 7 of the Shakespeare replay the target keeps ` sh` and `out` although both models give each less than 1%. The rule compares the two probabilities, not either one with a threshold.
 - Rounds tend to go all or nothing. Of the 32 recorded code rounds, 12 kept all four drafts and 9 kept none; for Shakespeare it was 8 and 10 of 36. Easy stretches and hard stretches come in runs, which matters for the formula in the next section.
 
 ## Why the output distribution is exactly the target's
