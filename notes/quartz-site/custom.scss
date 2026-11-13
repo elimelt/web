@@ -494,6 +494,439 @@ figure.bn {
   }
 }
 
+// The SVD figures (svd-geometry, svd-pinv, svd-image) share the sg- styles.
+// Blue follows the first singular direction and orange the second, in every
+// panel; the black dot is a point the reader moves.
+figure.sg {
+  --sg-c1: #2a78d6;
+  --sg-c2: #d9622b;
+  --sg-fill: rgba(42, 120, 214, 0.12);
+  margin: 0;
+  padding: 1rem 1.1rem 0.9rem;
+  border: 1px solid var(--lightgray);
+  border-radius: var(--site-media-radius);
+
+  [saved-theme="dark"] & {
+    --sg-c1: #5b9cf0;
+    --sg-c2: #f08a52;
+    --sg-fill: rgba(91, 156, 240, 0.16);
+  }
+
+  .sg-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.8rem;
+
+    button {
+      padding: 0.2rem 0.65rem;
+      border: 1px solid var(--lightgray);
+      border-radius: 999px;
+      background: transparent;
+      color: var(--darkgray);
+      font: inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+
+      &[aria-pressed="true"] {
+        border-color: var(--secondary);
+        color: var(--secondary);
+        font-weight: 600;
+      }
+
+      &:disabled {
+        cursor: default;
+        opacity: 0.6;
+      }
+    }
+  }
+
+  .sg-stages {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem 1rem;
+    max-width: 30rem;
+    margin: 0 auto;
+  }
+
+  .sp-stages {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 30rem;
+    margin: 0 auto;
+  }
+
+  .sg-plane {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--lightgray);
+    border-radius: 4px;
+    touch-action: none;
+    overflow: hidden;
+  }
+
+  .sg-cap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 0.3rem;
+    font-size: 0.8rem;
+    line-height: 1.3;
+    text-align: center;
+
+    span {
+      color: var(--gray);
+    }
+  }
+
+  .sg-axis {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .sg-ref {
+    fill: none;
+    stroke: var(--gray);
+    stroke-width: 0.8;
+    stroke-dasharray: 2 3;
+    opacity: 0.6;
+  }
+
+  .sg-circle {
+    fill: none;
+    stroke: var(--darkgray);
+    stroke-width: 1.4;
+  }
+
+  .sg-sector {
+    fill: var(--sg-fill);
+    stroke: var(--sg-c1);
+    stroke-width: 0.6;
+    stroke-opacity: 0.4;
+  }
+
+  .sg-arrow {
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+
+  .sg-c1 {
+    stroke: var(--sg-c1);
+    fill: var(--sg-c1);
+  }
+
+  .sg-c2 {
+    stroke: var(--sg-c2);
+    fill: var(--sg-c2);
+  }
+
+  .sg-head {
+    stroke: none;
+  }
+
+  .sg-vlabel {
+    stroke: none;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .sg-probe {
+    fill: var(--dark);
+    stroke: var(--light);
+    stroke-width: 1.2;
+
+    &.sg-off {
+      fill: var(--gray);
+    }
+  }
+
+  .sg-handle {
+    fill: var(--light);
+    fill-opacity: 0.6;
+    stroke: var(--dark);
+    stroke-width: 1.6;
+  }
+
+  .sg-hlabel {
+    fill: var(--dark);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  &.sg-live {
+    [data-handle] {
+      cursor: grab;
+    }
+
+    [data-handle]:focus-visible {
+      outline: none;
+      stroke: var(--secondary);
+      stroke-width: 2.5;
+    }
+  }
+
+  .sg-readout {
+    margin-top: 0.8rem;
+    font-size: 0.88rem;
+  }
+
+  .sg-eq {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .sg-mat {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .sg-name {
+    font-weight: 600;
+  }
+
+  .sg-grid {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    gap: 0 0.6rem;
+    padding: 0.1rem 0.4rem;
+    border-left: 1.5px solid var(--darkgray);
+    border-right: 1.5px solid var(--darkgray);
+    font-family: var(--codeFont);
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  .sg-op {
+    font-size: 1.1rem;
+  }
+
+  .sg-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 1.4rem;
+    margin: 0.7rem 0 0;
+
+    div {
+      display: flex;
+      flex-direction: column;
+    }
+
+    dt {
+      color: var(--gray);
+      font-size: 0.78rem;
+      font-weight: 400;
+    }
+
+    dd {
+      margin: 0;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+  }
+
+  .sg-note {
+    margin: 0.6rem 0 0;
+    font-size: 0.88rem;
+    line-height: 1.45;
+  }
+
+  figcaption {
+    margin-top: 0.7rem;
+    color: var(--gray);
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+
+  .sp-controls,
+  .si-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem 1.5rem;
+    align-items: end;
+    margin-bottom: 0.8rem;
+  }
+
+  .sp-slider {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.9rem;
+
+    span {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    output {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+
+    input {
+      width: 100%;
+      accent-color: var(--secondary);
+    }
+  }
+
+  .sp-faint {
+    opacity: 0.45;
+  }
+
+  .sp-x {
+    stroke: var(--dark);
+    fill: var(--dark);
+  }
+
+  .sp-comp {
+    stroke-width: 1.5;
+    stroke-dasharray: 3 3;
+  }
+
+  .sp-solset,
+  .sp-rangeline {
+    stroke: var(--gray);
+    stroke-width: 1.2;
+  }
+
+  .sp-rangeline {
+    stroke: var(--sg-c1);
+    stroke-opacity: 0.5;
+    stroke-width: 6;
+  }
+
+  .sp-right {
+    fill: none;
+    stroke: var(--gray);
+    stroke-width: 1;
+  }
+
+  .sp-range {
+    fill: var(--sg-fill);
+    opacity: 0.6;
+  }
+
+  .sp-resid {
+    stroke: var(--darkgray);
+    stroke-width: 1.2;
+    stroke-dasharray: 3 2;
+  }
+
+  .sp-fit {
+    fill: var(--sg-c1);
+  }
+
+  .sp-b {
+    fill: var(--dark);
+    fill-opacity: 0.85;
+  }
+
+  .sp-label {
+    fill: var(--darkgray);
+    font-size: 11px;
+  }
+
+  .sp-strong {
+    fill: var(--dark);
+    font-weight: 600;
+  }
+
+  .sp-muted {
+    fill: var(--gray);
+    font-size: 9px;
+  }
+
+  .si-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.9rem;
+
+    input {
+      margin: 0;
+      accent-color: var(--secondary);
+    }
+  }
+
+  .si-images {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+
+  .si-frame {
+    aspect-ratio: 1;
+    border: 1px solid var(--lightgray);
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--lightgray);
+
+    img,
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      border-radius: 0;
+      image-rendering: pixelated;
+    }
+  }
+
+  .si-status {
+    color: var(--gray);
+  }
+
+  .si-spectrum {
+    display: block;
+    width: 100%;
+    height: auto;
+    margin-top: 0.6rem;
+  }
+
+  .si-grid {
+    stroke: var(--lightgray);
+  }
+
+  .si-tick {
+    fill: var(--gray);
+    font-size: 10px;
+  }
+
+  .si-tail {
+    fill: var(--sg-c2);
+    opacity: 0.08;
+  }
+
+  .si-k {
+    stroke: var(--sg-c2);
+    stroke-width: 1.5;
+  }
+
+  .si-line {
+    fill: none;
+    stroke-width: 1.8;
+  }
+
+  .si-photo {
+    stroke: var(--sg-c1);
+  }
+
+  .si-shuf {
+    stroke: var(--gray);
+    stroke-dasharray: 4 3;
+  }
+
+  @media (max-width: 640px) {
+    .sp-controls,
+    .si-controls {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}
+
 // The CNN explorer (cnn-explorer). Feature maps are alpha masks painted with
 // these colors, so they follow the theme without being redrawn. Blue carries
 // magnitude and positive weights, red negative ones, orange marks the
@@ -795,6 +1228,1731 @@ figure.cx {
     .cx-maps {
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
+  }
+}
+
+// The clock diagram (clock-diagram). Blue marks the causal past of the event
+// picked last, orange its causal future, hollow dots the events concurrent
+// with it. Red flags a message whose physical timestamps run backwards.
+figure.cd {
+  --cd-past: #2a78d6;
+  --cd-future: #eb6834;
+  --cd-bad: #c23b22;
+  --cd-good: #2e8540;
+  margin: 0;
+  padding: 1rem 1.1rem 0.9rem;
+  border: 1px solid var(--lightgray);
+  border-radius: var(--site-media-radius);
+
+  [saved-theme="dark"] & {
+    --cd-past: #3987e5;
+    --cd-future: #d95926;
+    --cd-bad: #e66767;
+    --cd-good: #4caf68;
+  }
+
+  fieldset {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+
+  legend {
+    padding: 0;
+    margin-bottom: 0.25rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .cd-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 2rem;
+  }
+
+  .cd-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem 0.9rem;
+
+    legend {
+      width: 100%;
+    }
+  }
+
+  .cd-radio {
+    font-size: 0.9rem;
+    white-space: nowrap;
+
+    input {
+      accent-color: var(--secondary);
+    }
+  }
+
+  .cd-plot {
+    margin-top: 0.6rem;
+  }
+
+  .cd-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    font-family: var(--codeFont);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .cd-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+    stroke-dasharray: 2 4;
+  }
+
+  .cd-tick,
+  .cd-poff {
+    fill: var(--gray);
+    font-size: 11px;
+    font-family: var(--bodyFont);
+  }
+
+  .cd-pname {
+    fill: var(--dark);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--bodyFont);
+  }
+
+  .cd-proc {
+    stroke: var(--darkgray);
+    stroke-width: 1.5;
+  }
+
+  .cd-band {
+    fill: transparent;
+  }
+
+  &[data-mode="local"] .cd-band,
+  &[data-mode="message"] .cd-band {
+    cursor: crosshair;
+
+    &:hover {
+      fill: var(--highlight);
+    }
+  }
+
+  .cd-msg {
+    stroke: var(--darkgray);
+    fill: var(--darkgray);
+    stroke-width: 1.4;
+
+    &.cd-bad {
+      stroke: var(--cd-bad);
+      fill: var(--cd-bad);
+      stroke-width: 2;
+    }
+  }
+
+  .cd-badlabel {
+    paint-order: stroke;
+    stroke: var(--light);
+    stroke-width: 3px;
+    fill: var(--cd-bad);
+    font-size: 11px;
+    font-family: var(--bodyFont);
+  }
+
+  .cd-pending {
+    fill: none;
+    stroke: var(--secondary);
+    stroke-width: 2;
+    stroke-dasharray: 3 3;
+  }
+
+  .cd-ev {
+    cursor: pointer;
+    outline: none;
+
+    .cd-hit {
+      fill: transparent;
+    }
+
+    .cd-dot {
+      fill: var(--dark);
+      stroke: var(--light);
+      stroke-width: 1.5;
+    }
+
+    // A halo in the page color keeps labels readable where arrows cross them.
+    .cd-stamp,
+    .cd-name {
+      paint-order: stroke;
+      stroke: var(--light);
+      stroke-width: 3px;
+      stroke-linejoin: round;
+    }
+
+    .cd-stamp {
+      fill: var(--dark);
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .cd-name {
+      fill: var(--gray);
+      font-size: 10.5px;
+    }
+
+    &.cd-past .cd-dot {
+      fill: var(--cd-past);
+    }
+
+    &.cd-future .cd-dot {
+      fill: var(--cd-future);
+    }
+
+    &.cd-conc .cd-dot {
+      fill: var(--light);
+      stroke: var(--darkgray);
+    }
+
+    &.cd-sel .cd-dot {
+      stroke: var(--secondary);
+      stroke-width: 3;
+    }
+
+    &.cd-sel .cd-stamp {
+      font-weight: 700;
+    }
+
+    &:hover .cd-hit,
+    &:focus-visible .cd-hit {
+      fill: var(--highlight);
+      stroke: var(--secondary);
+      stroke-width: 1;
+    }
+  }
+
+  .cd-status {
+    min-height: 1.3em;
+    margin: 0.2rem 0;
+    color: var(--secondary);
+    font-size: 0.85rem;
+  }
+
+  .cd-readout {
+    min-height: 9.5rem;
+
+    p {
+      margin: 0.3rem 0;
+    }
+  }
+
+  .cd-hint,
+  .cd-stamps {
+    color: var(--gray);
+    font-size: 0.88rem;
+  }
+
+  .cd-stamps {
+    font-family: var(--codeFont);
+    font-size: 0.82rem;
+  }
+
+  // Quartz wraps tables from the page's markup in .table-container, with
+  // its own margin, padding, line height and cell widths. Tables the script
+  // redraws have no wrapper, so both get the same explicit values here.
+  .cd-readout {
+    overflow-x: auto;
+  }
+
+  .cd-table {
+    width: 100%;
+    margin: 0.4rem 0 0;
+    padding: 0;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+
+    > * {
+      line-height: 1.4;
+    }
+
+    th,
+    td {
+      min-width: 0;
+      padding: 0.25rem 0.5rem;
+      border-bottom: 1px solid var(--lightgray);
+      text-align: left;
+    }
+
+    td:nth-child(2),
+    td:nth-child(3) {
+      font-family: var(--codeFont);
+      font-size: 0.82rem;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    td[data-tone="right"] {
+      color: var(--cd-good);
+    }
+
+    td[data-tone="wrong"] {
+      color: var(--cd-bad);
+      font-weight: 600;
+    }
+
+    td[data-tone="meh"] {
+      color: var(--gray);
+    }
+  }
+
+  .cd-sliders {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem 1.2rem;
+    margin-top: 0.8rem;
+
+    legend {
+      grid-column: 1 / -1;
+    }
+  }
+
+  .cd-slider {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    font-size: 0.88rem;
+
+    span {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    output {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+
+    input {
+      width: 100%;
+      accent-color: var(--secondary);
+    }
+  }
+
+  .cd-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.8rem;
+    margin-top: 0.7rem;
+    font-size: 0.9rem;
+
+    select,
+    button {
+      padding: 0.25rem 0.6rem;
+      border: 1px solid var(--lightgray);
+      border-radius: 4px;
+      background: var(--light);
+      color: var(--darkgray);
+      font: inherit;
+      font-size: 0.88rem;
+    }
+
+    button {
+      cursor: pointer;
+
+      &:hover:not(:disabled) {
+        border-color: var(--secondary);
+        color: var(--secondary);
+      }
+    }
+
+    :disabled {
+      cursor: progress;
+      opacity: 0.6;
+    }
+  }
+
+  .cd-summary {
+    margin: 0.7rem 0 0;
+    padding: 0.5rem 0.7rem;
+    border-left: 3px solid var(--gray);
+    border-radius: 2px;
+    background: var(--highlight);
+    font-size: 0.9rem;
+  }
+
+  figcaption {
+    margin-top: 0.7rem;
+    color: var(--gray);
+    font-size: 0.82rem;
+  }
+
+  @media (max-width: 600px) {
+    padding: 0.8rem 0.7rem;
+
+    // Scaled to a phone's width the labels would shrink to about 6px, so the
+    // diagram keeps a readable size and scrolls sideways inside the figure.
+    .cd-plot {
+      overflow-x: auto;
+    }
+
+    .cd-svg {
+      min-width: 540px;
+    }
+
+    .cd-sliders {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .cd-table th,
+    .cd-table td {
+      padding: 0.25rem 0.3rem;
+    }
+  }
+}
+
+// The queue lab (queue-lab): controls, an animation canvas, a load chart and
+// the distribution at the chosen load. Mean is the site's accent, p99 orange.
+:root {
+  --ql-p99: #b8550b;
+}
+
+[saved-theme="dark"] {
+  --ql-p99: #f0a35e;
+}
+
+figure.ql {
+  margin: 0;
+  padding: 1rem 1.1rem 0.9rem;
+  border: 1px solid var(--lightgray);
+  border-radius: var(--site-media-radius);
+
+  .ql-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.7rem 1.5rem;
+    font-size: 0.92rem;
+  }
+
+  .ql-slider,
+  .ql-select {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+
+    span {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 600;
+    }
+
+    output {
+      font-variant-numeric: tabular-nums;
+    }
+
+    input {
+      width: 100%;
+      accent-color: var(--secondary);
+    }
+
+    select {
+      width: 100%;
+      padding: 0.25rem 0.3rem;
+      border: 1px solid var(--lightgray);
+      border-radius: 4px;
+      background: var(--light);
+      color: var(--darkgray);
+      font: inherit;
+    }
+  }
+
+  .ql-servers {
+    margin: 0;
+    padding: 0;
+    border: 0;
+
+    legend {
+      padding: 0;
+      margin-bottom: 0.25rem;
+      font-weight: 600;
+    }
+  }
+
+  .ql-segs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  .ql-seg {
+    input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    span {
+      display: inline-block;
+      min-width: 2.1rem;
+      padding: 0.15rem 0.45rem;
+      border: 1px solid var(--lightgray);
+      border-radius: 4px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      cursor: pointer;
+    }
+
+    input:checked + span {
+      border-color: var(--secondary);
+      background: var(--highlight);
+      color: var(--secondary);
+      font-weight: 600;
+    }
+
+    input:focus-visible + span {
+      outline: 2px solid var(--secondary);
+      outline-offset: 1px;
+    }
+
+    input:disabled + span {
+      cursor: progress;
+    }
+  }
+
+  select:disabled,
+  input:disabled {
+    cursor: progress;
+  }
+
+  .ql-stage {
+    margin: 0.9rem 0 0.4rem;
+    border: 1px solid var(--lightgray);
+    border-radius: 4px;
+  }
+
+  .ql-anim {
+    display: block;
+    width: 100%;
+    height: 150px;
+  }
+
+  .ql-stage-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.3rem 0.5rem;
+    border-top: 1px solid var(--lightgray);
+    color: var(--gray);
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+
+    button {
+      padding: 0.1rem 0.6rem;
+      border: 1px solid var(--lightgray);
+      border-radius: 4px;
+      background: var(--light);
+      color: var(--darkgray);
+      font: inherit;
+      cursor: pointer;
+    }
+  }
+
+  .ql-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 1rem;
+    margin: 0.7rem 0 0.1rem;
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  .ql-key.ql-mean {
+    color: var(--secondary);
+  }
+
+  .ql-key.ql-p99 {
+    color: var(--ql-p99);
+  }
+
+  .ql-key-ghost {
+    opacity: 0.75;
+  }
+
+  .ql-chart,
+  .ql-ccdf {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  .ql-chart {
+    aspect-ratio: 640 / 250;
+  }
+
+  .ql-ccdf {
+    aspect-ratio: 300 / 220;
+  }
+
+  .ql-grid {
+    stroke: var(--lightgray);
+  }
+
+  .ql-grid-strong {
+    stroke: var(--gray);
+    stroke-dasharray: 2 3;
+  }
+
+  .ql-axis {
+    stroke: var(--gray);
+  }
+
+  .ql-tick {
+    fill: var(--gray);
+    font-size: 12px;
+  }
+
+  .ql-line {
+    fill: none;
+    stroke-width: 1.6;
+  }
+
+  .ql-bar {
+    stroke-width: 1.5;
+  }
+
+  .ql-theory {
+    fill: none;
+    stroke-width: 1.3;
+    stroke-dasharray: 5 4;
+  }
+
+  .ql-mean {
+    fill: var(--secondary);
+    stroke: var(--secondary);
+  }
+
+  .ql-p99 {
+    fill: var(--ql-p99);
+    stroke: var(--ql-p99);
+  }
+
+  .ql-line.ql-mean,
+  .ql-line.ql-p99,
+  .ql-theory.ql-mean,
+  .ql-theory.ql-p99 {
+    fill: none;
+  }
+
+  .ql-sim {
+    fill: none;
+    stroke: var(--darkgray);
+  }
+
+  .ql-ghost {
+    opacity: 0.28;
+  }
+
+  .ql-now {
+    stroke: var(--darkgray);
+    stroke-width: 1;
+    stroke-dasharray: 1 3;
+  }
+
+  .ql-status {
+    margin: 0.3rem 0 0.8rem;
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  .ql-detail {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1rem 1.5rem;
+    align-items: start;
+  }
+
+  .ql-subhead {
+    margin-bottom: 0.3rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .ql-summary {
+    margin: 0 0 0.6rem;
+    font-size: 0.92rem;
+  }
+
+  .ql-table {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border-collapse: collapse;
+
+    > * {
+      line-height: 1.4;
+    }
+
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+
+    th,
+    td {
+      padding: 0.2rem 0.4rem;
+      text-align: right;
+    }
+
+    th[scope="row"] {
+      text-align: left;
+    }
+
+    .ql-range {
+      color: var(--gray);
+      white-space: nowrap;
+    }
+  }
+
+  figcaption {
+    margin-top: 0.7rem;
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  @media (max-width: 640px) {
+    .ql-controls,
+    .ql-detail {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}
+
+// The page replacement figure (page-replacement). One color per policy, used
+// for its curve, its swatch and its faults on the reference map. OPT is also
+// dashed, so the lower bound reads without color.
+figure.pr {
+  --pr-fifo: #eb6834;
+  --pr-clock: #8a5cd0;
+  --pr-lru: #2a78d6;
+  --pr-opt: #2e8b57;
+  --pr-ink: #5b5b66;
+  --pr-cursor: #e34948;
+  margin: 0;
+  padding: 1rem 1.1rem 0.9rem;
+  border: 1px solid var(--lightgray);
+  border-radius: var(--site-media-radius);
+  font-size: 0.9rem;
+
+  [saved-theme="dark"] & {
+    --pr-fifo: #f0874f;
+    --pr-clock: #a882e6;
+    --pr-lru: #4a93ea;
+    --pr-opt: #4fb07b;
+    --pr-ink: #c8c8d0;
+    --pr-cursor: #e66767;
+  }
+
+  p {
+    margin: 0.35rem 0;
+  }
+
+  .pr-dim {
+    color: var(--gray);
+    font-size: 0.82rem;
+    font-weight: 400;
+  }
+
+  .pr-title {
+    margin-top: 0.9rem;
+    font-weight: 600;
+  }
+
+  .pr-desc {
+    min-height: 2.6em;
+  }
+
+  .pr-row-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin: 0.35rem 0;
+  }
+
+  button {
+    padding: 0.15rem 0.5rem;
+    border: 1px solid var(--lightgray);
+    border-radius: 4px;
+    background: var(--light);
+    color: var(--darkgray);
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      border-color: var(--secondary);
+      color: var(--secondary);
+    }
+
+    &[aria-pressed="true"] {
+      border-color: var(--secondary);
+      background: var(--highlight);
+      color: var(--secondary);
+      font-weight: 600;
+    }
+
+    &:disabled {
+      cursor: progress;
+    }
+  }
+
+  .pr-slider {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.2rem 0.6rem;
+    align-items: center;
+    margin: 0.4rem 0;
+
+    output {
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    input {
+      grid-column: 1 / -1;
+      width: 100%;
+    }
+  }
+
+  svg.pr-curve {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  .pr-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .pr-tick,
+  .pr-axis {
+    fill: var(--gray);
+    font-size: 11px;
+  }
+
+  .pr-line {
+    fill: none;
+    stroke-width: 2;
+    stroke-linejoin: round;
+  }
+
+  .pr-line.pr-opt {
+    stroke-dasharray: 6 4;
+  }
+
+  @each $p in fifo, clock, lru, opt {
+    .pr-line.pr-#{$p} {
+      stroke: var(--pr-#{$p});
+    }
+
+    .pr-anomaly.pr-#{$p} {
+      stroke: var(--pr-#{$p});
+    }
+
+    .pr-swatch.pr-#{$p} {
+      background: var(--pr-#{$p});
+    }
+  }
+
+  .pr-anomaly {
+    fill: var(--light);
+    stroke-width: 2;
+  }
+
+  .pr-marker {
+    stroke: var(--darkgray);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+  }
+
+  .pr-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 1.1rem;
+    margin: 0.3rem 0 0;
+    padding: 0;
+    list-style: none;
+    font-variant-numeric: tabular-nums;
+
+    li {
+      margin: 0;
+    }
+  }
+
+  .pr-swatch {
+    display: inline-block;
+    width: 0.8rem;
+    height: 0.8rem;
+    margin-right: 0.3rem;
+    border-radius: 2px;
+    vertical-align: -0.05rem;
+  }
+
+  .pr-map {
+    min-height: 170px;
+    margin: 0.3rem 0;
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 170px;
+      border: 1px solid var(--lightgray);
+      border-radius: 4px;
+      cursor: crosshair;
+    }
+  }
+
+  .pr-step {
+    min-height: 14rem;
+  }
+
+  .pr-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem;
+    margin: 0.3rem 0 0.6rem;
+    font-family: var(--codeFont);
+    font-size: 0.8rem;
+  }
+
+  .pr-ref {
+    padding: 0.05rem 0.3rem;
+    border-radius: 3px;
+    background: var(--light);
+    border: 1px solid var(--lightgray);
+  }
+
+  .pr-past {
+    color: var(--gray);
+  }
+
+  .pr-now {
+    border-color: var(--pr-cursor);
+    font-weight: 700;
+  }
+
+  .pr-row {
+    padding: 0.3rem 0.5rem;
+    border-left: 3px solid transparent;
+
+    &.pr-focus {
+      border-left-color: var(--secondary);
+      background: var(--highlight);
+    }
+  }
+
+  .pr-row-head {
+    margin: 0.1rem 0;
+  }
+
+  .pr-hit {
+    color: var(--gray);
+  }
+
+  .pr-fault {
+    font-weight: 600;
+    color: var(--pr-cursor);
+  }
+
+  .pr-frames {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    align-items: flex-start;
+    font-family: var(--codeFont);
+    font-size: 0.8rem;
+  }
+
+  .pr-slot {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 2.4rem;
+  }
+
+  .pr-frame {
+    display: inline-block;
+    min-width: 2.4rem;
+    min-height: 1.3rem;
+    padding: 0.05rem 0.2rem;
+    border: 1px solid var(--lightgray);
+    border-radius: 3px;
+    text-align: center;
+  }
+
+  .pr-newbox {
+    border-color: var(--pr-cursor);
+    font-weight: 700;
+  }
+
+  .pr-hitbox {
+    border-color: var(--secondary);
+  }
+
+  .pr-evicted {
+    display: inline-block;
+    min-width: 2.4rem;
+    padding: 0.05rem 0.2rem;
+    color: var(--gray);
+    text-decoration: line-through;
+    text-align: center;
+  }
+
+  .pr-hand,
+  .pr-bit {
+    font-size: 0.75rem;
+    line-height: 1;
+    color: var(--secondary);
+  }
+
+  .pr-order {
+    margin: 0.1rem 0 0.2rem;
+    color: var(--gray);
+    font-size: 0.78rem;
+  }
+
+  figcaption {
+    margin-top: 0.8rem;
+    color: var(--gray);
+    font-size: 0.82rem;
+  }
+}
+
+// Two-phase commit simulator (commit-sim). Node colors carry the protocol
+// state: green committed, red aborted, amber uncertain, a heavy outline when
+// an uncertain participant is blocked.
+:root {
+  --cs-commit: #2e7d32;
+  --cs-abort: #c23b22;
+  --cs-uncertain: #b8550b;
+}
+
+[saved-theme="dark"] {
+  --cs-commit: #7cc47f;
+  --cs-abort: #f08a75;
+  --cs-uncertain: #f0a35e;
+}
+
+figure.cs {
+  margin: 0;
+  padding: 1rem 1.1rem 0.9rem;
+  border: 1px solid var(--lightgray);
+  border-radius: var(--site-media-radius);
+  font-size: 0.92rem;
+
+  h4 {
+    margin: 0 0 0.3rem;
+    font-size: 0.85rem;
+    color: var(--darkgray);
+  }
+
+  button {
+    padding: 0.25rem 0.7rem;
+    border: 1px solid var(--lightgray);
+    border-radius: 4px;
+    background: var(--light);
+    color: var(--darkgray);
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      border-color: var(--secondary);
+      color: var(--secondary);
+    }
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.55;
+    }
+  }
+
+  .cs-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 1.4rem;
+
+    select {
+      max-width: 100%;
+      font: inherit;
+      font-size: 0.88rem;
+    }
+
+    input {
+      accent-color: var(--secondary);
+    }
+  }
+
+  .cs-scenario {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+  }
+
+  .cs-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0.7rem 0 0.2rem;
+
+    .cs-primary {
+      border-color: var(--secondary);
+      color: var(--secondary);
+      font-weight: 600;
+    }
+  }
+
+  .cs-next {
+    color: var(--gray);
+    font-size: 0.85rem;
+    margin-left: 0.3rem;
+  }
+
+  .cs-headline {
+    margin: 0.5rem 0 0.4rem;
+    padding: 0.45rem 0.7rem;
+    border-left: 3px solid var(--gray);
+    border-radius: 2px;
+    background: var(--highlight);
+    min-height: 2.9em;
+
+    &[data-tone="good"] {
+      border-left-color: var(--cs-commit);
+    }
+
+    &[data-tone="bad"] {
+      border-left-color: var(--cs-abort);
+    }
+
+    &[data-tone="warn"] {
+      border-left-color: var(--cs-uncertain);
+    }
+  }
+
+  .cs-plot {
+    max-width: 30rem;
+    margin: 0 auto;
+  }
+
+  .cs-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 360 / 246;
+    overflow: visible;
+  }
+
+  .cs-link {
+    cursor: pointer;
+    outline: none;
+
+    .cs-link-hit {
+      fill: none;
+      stroke: transparent;
+      stroke-width: 16;
+    }
+
+    .cs-link-line {
+      fill: none;
+      stroke: var(--lightgray);
+      stroke-width: 2;
+    }
+
+    &:hover .cs-link-line,
+    &:focus-visible .cs-link-line {
+      stroke: var(--secondary);
+    }
+
+    &.cut .cs-link-line {
+      stroke: var(--cs-abort);
+      stroke-dasharray: 4 4;
+      opacity: 0.7;
+    }
+  }
+
+  .cs-cut-mark {
+    stroke: var(--cs-abort);
+    stroke-width: 2.5;
+  }
+
+  .cs-msg {
+    rect {
+      fill: var(--light);
+      stroke: var(--secondary);
+      stroke-width: 1;
+    }
+
+    text {
+      fill: var(--secondary);
+      font-size: 10.5px;
+      font-weight: 600;
+      font-family: var(--codeFont);
+    }
+
+    &.cs-msg-commit rect,
+    &.cs-msg-yes rect {
+      stroke: var(--cs-commit);
+    }
+
+    &.cs-msg-commit text,
+    &.cs-msg-yes text {
+      fill: var(--cs-commit);
+    }
+
+    &.cs-msg-abort rect,
+    &.cs-msg-no rect {
+      stroke: var(--cs-abort);
+    }
+
+    &.cs-msg-abort text,
+    &.cs-msg-no text {
+      fill: var(--cs-abort);
+    }
+  }
+
+  .cs-node {
+    circle {
+      fill: var(--light);
+      stroke: var(--gray);
+      stroke-width: 2;
+    }
+
+    .cs-node-name {
+      fill: var(--darkgray);
+      font-size: 14px;
+      font-weight: 700;
+      dominant-baseline: middle;
+    }
+
+    .cs-node-word {
+      fill: var(--gray);
+      font-size: 12px;
+      // A halo in the page color keeps labels readable over the link lines.
+      paint-order: stroke;
+      stroke: var(--light);
+      stroke-width: 4px;
+      stroke-linejoin: round;
+    }
+
+    &.committed circle,
+    &.committed-done circle {
+      stroke: var(--cs-commit);
+      fill: color-mix(in srgb, var(--cs-commit) 18%, var(--light));
+    }
+
+    &.aborted circle {
+      stroke: var(--cs-abort);
+      fill: color-mix(in srgb, var(--cs-abort) 14%, var(--light));
+    }
+
+    &.uncertain circle {
+      stroke: var(--cs-uncertain);
+      fill: color-mix(in srgb, var(--cs-uncertain) 16%, var(--light));
+    }
+
+    &.blocked circle {
+      stroke: var(--cs-abort);
+      stroke-width: 4;
+    }
+
+    &.blocked .cs-node-word {
+      fill: var(--cs-abort);
+      font-weight: 600;
+    }
+
+    &.down circle {
+      stroke-dasharray: 3 3;
+      fill: var(--lightgray);
+    }
+
+    &.down .cs-node-name {
+      fill: var(--gray);
+    }
+  }
+
+  .cs-flight {
+    margin: 0.5rem 0;
+
+    ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    li {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.35rem;
+      margin: 0;
+    }
+
+    .cs-flight-msg {
+      min-width: 9.5rem;
+      font-family: var(--codeFont);
+      font-size: 0.82rem;
+    }
+
+    button {
+      padding: 0.05rem 0.5rem;
+      font-size: 0.8rem;
+    }
+  }
+
+  .cs-flight-empty,
+  .cs-log-empty {
+    margin: 0;
+    color: var(--gray);
+    font-size: 0.85rem;
+  }
+
+  .cs-nodes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin: 0.6rem 0;
+  }
+
+  .cs-card {
+    padding: 0.45rem 0.6rem 0.5rem;
+    border: 1px solid var(--lightgray);
+    border-left: 4px solid var(--lightgray);
+    border-radius: 4px;
+    min-width: 0;
+
+    &.committed,
+    &.committed-done {
+      border-left-color: var(--cs-commit);
+    }
+
+    &.aborted {
+      border-left-color: var(--cs-abort);
+    }
+
+    &.uncertain {
+      border-left-color: var(--cs-uncertain);
+    }
+
+    &.blocked {
+      border-color: var(--cs-abort);
+    }
+
+    &.down {
+      border-style: dashed;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.35rem;
+    }
+
+    .cs-role {
+      color: var(--gray);
+      font-size: 0.8rem;
+    }
+
+    .cs-state {
+      margin-left: auto;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+  }
+
+  .cs-detail {
+    margin: 0.2rem 0;
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+
+  .cs-log-head {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.25rem;
+    color: var(--gray);
+    font-size: 0.78rem;
+  }
+
+  .cs-locks.on {
+    color: var(--cs-uncertain);
+    font-weight: 600;
+  }
+
+  .cs-log {
+    margin: 0.1rem 0 0;
+    padding-left: 1.3rem;
+    font-family: var(--codeFont);
+    font-size: 0.8rem;
+
+    li {
+      margin: 0;
+    }
+  }
+
+  .cs-forced {
+    padding: 0 0.25rem;
+    border-radius: 3px;
+    background: var(--highlight);
+    color: var(--secondary);
+    font-family: var(--bodyFont);
+    font-size: 0.72rem;
+  }
+
+  .cs-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.4rem;
+
+    button {
+      padding: 0.1rem 0.55rem;
+      font-size: 0.8rem;
+    }
+  }
+
+  .cs-voteno,
+  .cs-coop {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.82rem;
+
+    // Quartz restyles checkboxes for task lists; undo that here.
+    input {
+      appearance: auto;
+      position: static;
+      width: 0.95rem;
+      height: 0.95rem;
+      margin: 0;
+      transform: none;
+      accent-color: var(--secondary);
+    }
+  }
+
+  .cs-coop {
+    font-size: inherit;
+  }
+
+  .cs-history ol {
+    margin: 0;
+    padding-left: 1.3rem;
+    font-size: 0.85rem;
+    min-height: 6.5em;
+
+    li {
+      margin: 0.1rem 0;
+      color: var(--gray);
+    }
+
+    li.latest {
+      color: var(--darkgray);
+    }
+  }
+
+  .cs-counts {
+    margin: 0.5rem 0 0.2rem;
+    font-size: 0.85rem;
+  }
+
+  figcaption {
+    margin-top: 0.4rem;
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 600px) {
+  figure.cs {
+    padding: 0.8rem 0.7rem;
+
+    .cs-nodes {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}
+
+// The interval-greedy figure. Blue is what greedy keeps, green an optimal
+// choice found by brute force, orange the intervals the step points at (what
+// blocked an interval, or what forced a new room).
+figure.ig {
+  --ig-opt: #2e8540;
+  --ig-mark: #d9622b;
+  margin: 0;
+  padding: 1rem 1.1rem 0.9rem;
+  border: 1px solid var(--lightgray);
+  border-radius: var(--site-media-radius);
+
+  [saved-theme="dark"] & {
+    --ig-opt: #5fbf73;
+    --ig-mark: #f08a5a;
+  }
+
+  button,
+  select {
+    padding: 0.25rem 0.6rem;
+    border: 1px solid var(--lightgray);
+    border-radius: 4px;
+    background: var(--light);
+    color: var(--darkgray);
+    font: inherit;
+    font-size: 0.88rem;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      border-color: var(--secondary);
+      color: var(--secondary);
+    }
+
+    &:disabled {
+      cursor: progress;
+    }
+  }
+
+  .ig-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 0.7rem;
+
+    button[aria-selected="true"] {
+      border-color: var(--secondary);
+      background: var(--highlight);
+      color: var(--secondary);
+      font-weight: 600;
+    }
+  }
+
+  .ig-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.2rem;
+  }
+
+  .ig-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.85rem;
+    color: var(--gray);
+  }
+
+  &[data-mode="schedule"] .ig-only-partition,
+  &[data-mode="partition"] .ig-only-schedule {
+    display: none;
+  }
+
+  .ig-buttons,
+  .ig-steps {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.6rem;
+  }
+
+  .ig-steps output {
+    margin-left: 0.3rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--gray);
+    font-size: 0.88rem;
+  }
+
+  .ig-chart {
+    margin-top: 0.8rem;
+    overflow: hidden;
+  }
+
+  .ig-svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    font-family: var(--bodyFont);
+    user-select: none;
+  }
+
+  &.ig-live .ig-svg {
+    max-width: none;
+  }
+
+  .ig-tick {
+    fill: var(--gray);
+    font-size: 11px;
+  }
+
+  .ig-grid {
+    stroke: var(--lightgray);
+  }
+
+  .ig-label {
+    fill: var(--darkgray);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .ig-lane {
+    fill: var(--darkgray);
+    font-size: 12px;
+  }
+
+  .ig-in {
+    fill: var(--light);
+    font-size: 11px;
+    font-weight: 600;
+    pointer-events: none;
+  }
+
+  .ig-bar rect {
+    stroke-width: 1.5;
+  }
+
+  .ig-pending rect {
+    fill: none;
+    stroke: var(--gray);
+    stroke-dasharray: 3 2;
+  }
+
+  .ig-kept rect {
+    fill: var(--secondary);
+    stroke: var(--secondary);
+  }
+
+  .ig-skip rect {
+    fill: var(--lightgray);
+    stroke: var(--gray);
+  }
+
+  .ig-opt rect {
+    fill: var(--ig-opt);
+    stroke: var(--ig-opt);
+  }
+
+  .ig-current rect {
+    stroke: var(--dark);
+    stroke-width: 2.5;
+  }
+
+  .ig-blocker rect {
+    fill: var(--ig-mark);
+    stroke: var(--ig-mark);
+  }
+
+  .ig-selected rect {
+    stroke: var(--ig-mark);
+    stroke-width: 2.5;
+  }
+
+  .ig-ring {
+    fill: none;
+    stroke: var(--ig-mark);
+    stroke-width: 2;
+  }
+
+  .ig-edit {
+    cursor: grab;
+    touch-action: none;
+    outline: none;
+
+    &:focus-visible rect {
+      stroke: var(--ig-mark);
+      stroke-width: 3;
+    }
+  }
+
+  .ig-handle {
+    fill: transparent;
+    cursor: ew-resize;
+    touch-action: none;
+  }
+
+  .ig-stab {
+    stroke: var(--dark);
+    stroke-width: 1.5;
+    stroke-dasharray: 4 3;
+    pointer-events: none;
+  }
+
+  .ig-witness {
+    stroke: var(--ig-mark);
+    stroke-width: 1.5;
+    stroke-dasharray: 4 3;
+    pointer-events: none;
+  }
+
+  .ig-depth {
+    fill: var(--lightgray);
+  }
+
+  .ig-depth-max {
+    fill: var(--ig-mark);
+  }
+
+  .ig-narration {
+    min-height: 3.2em;
+    margin: 0.7rem 0 0.4rem;
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+
+  .ig-detail-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.4rem 1rem;
+    color: var(--gray);
+    font-size: 0.82rem;
+  }
+
+  .ig-table {
+    width: 100%;
+    margin: 0.4rem 0 0;
+    border-collapse: collapse;
+    font-size: 0.86rem;
+    font-variant-numeric: tabular-nums;
+
+    th,
+    td {
+      padding: 0.2rem 0.4rem;
+      border-bottom: 1px solid var(--lightgray);
+      text-align: left;
+    }
+
+    tr.ig-fail td {
+      background: var(--highlight);
+      color: var(--ig-mark);
+      font-weight: 600;
+    }
+  }
+
+  .ig-summary,
+  .ig-status {
+    margin: 0.5rem 0 0;
+    font-size: 0.88rem;
+  }
+
+  .ig-status:empty {
+    display: none;
   }
 }
 

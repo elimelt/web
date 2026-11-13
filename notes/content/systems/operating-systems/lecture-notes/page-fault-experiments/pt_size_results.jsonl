@@ -1,0 +1,9 @@
+{"layout":"dense: every 4 KiB page","pages_touched":4096,"data_kib":16384,"span_gib":0.016,"page_table_kib":32}
+{"layout":"one page per 2 MiB","pages_touched":4096,"data_kib":16384,"span_gib":8.000,"page_table_kib":16416}
+{"layout":"one page per 1 GiB","pages_touched":4096,"data_kib":16384,"span_gib":4096.000,"page_table_kib":32800}
+{"layout":"dense: every 4 KiB page","pages_touched":4096,"data_kib":16384,"span_gib":0.016,"page_table_kib":32}
+{"layout":"one page per 2 MiB","pages_touched":4096,"data_kib":16384,"span_gib":8.000,"page_table_kib":16416}
+{"layout":"one page per 1 GiB","pages_touched":4096,"data_kib":16384,"span_gib":4096.000,"page_table_kib":32800}
+{"layout":"dense: every 4 KiB page","pages_touched":4096,"data_kib":16384,"span_gib":0.016,"page_table_kib":32}
+{"layout":"one page per 2 MiB","pages_touched":4096,"data_kib":16384,"span_gib":8.000,"page_table_kib":16416}
+{"layout":"one page per 1 GiB","pages_touched":4096,"data_kib":16384,"span_gib":4096.000,"page_table_kib":32800}
