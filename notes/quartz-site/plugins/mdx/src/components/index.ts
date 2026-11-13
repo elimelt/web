@@ -10,6 +10,7 @@ import { render as renderSvdImage } from "./svd-image/server";
 import { render as renderSvdPinv } from "./svd-pinv/render";
 import { render as renderQueueLab } from "./queue-lab/render";
 import { render as renderPageReplacement } from "./page-replacement/render";
+import { render as renderCommitSim } from "./commit-sim/render";
 
 export interface Component {
   render: (props: Record<string, unknown>) => string;
@@ -25,4 +26,5 @@ export const components: Record<string, Component> = {
   SvdLeastSquares: { render: renderSvdPinv, module: "svd-pinv" },
   QueueLab: { render: renderQueueLab, module: "queue-lab" },
   PageReplacement: { render: renderPageReplacement, module: "page-replacement" },
+  CommitSim: { render: renderCommitSim, module: "commit-sim" },
 };
