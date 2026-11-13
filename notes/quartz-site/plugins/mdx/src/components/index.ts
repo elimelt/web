@@ -4,6 +4,7 @@
 
 import { render as renderBenchmarkNoise } from "./benchmark-noise/render";
 import { render as renderCnnExplorer } from "./cnn-explorer/server";
+import { render as renderClockDiagram } from "./clock-diagram/render";
 
 export interface Component {
   render: (props: Record<string, unknown>) => string;
@@ -13,4 +14,5 @@ export interface Component {
 export const components: Record<string, Component> = {
   BenchmarkNoise: { render: renderBenchmarkNoise, module: "benchmark-noise" },
   CnnExplorer: { render: renderCnnExplorer, module: "cnn-explorer" },
+  ClockDiagram: { render: renderClockDiagram, module: "clock-diagram" },
 };

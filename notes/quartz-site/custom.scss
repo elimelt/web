@@ -797,3 +797,385 @@ figure.cx {
     }
   }
 }
+
+// The clock diagram (clock-diagram). Blue marks the causal past of the event
+// picked last, orange its causal future, hollow dots the events concurrent
+// with it. Red flags a message whose physical timestamps run backwards.
+figure.cd {
+  --cd-past: #2a78d6;
+  --cd-future: #eb6834;
+  --cd-bad: #c23b22;
+  --cd-good: #2e8540;
+  margin: 0;
+  padding: 1rem 1.1rem 0.9rem;
+  border: 1px solid var(--lightgray);
+  border-radius: var(--site-media-radius);
+
+  [saved-theme="dark"] & {
+    --cd-past: #3987e5;
+    --cd-future: #d95926;
+    --cd-bad: #e66767;
+    --cd-good: #4caf68;
+  }
+
+  fieldset {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+
+  legend {
+    padding: 0;
+    margin-bottom: 0.25rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .cd-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 2rem;
+  }
+
+  .cd-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem 0.9rem;
+
+    legend {
+      width: 100%;
+    }
+  }
+
+  .cd-radio {
+    font-size: 0.9rem;
+    white-space: nowrap;
+
+    input {
+      accent-color: var(--secondary);
+    }
+  }
+
+  .cd-plot {
+    margin-top: 0.6rem;
+  }
+
+  .cd-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    font-family: var(--codeFont);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .cd-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+    stroke-dasharray: 2 4;
+  }
+
+  .cd-tick,
+  .cd-poff {
+    fill: var(--gray);
+    font-size: 11px;
+    font-family: var(--bodyFont);
+  }
+
+  .cd-pname {
+    fill: var(--dark);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--bodyFont);
+  }
+
+  .cd-proc {
+    stroke: var(--darkgray);
+    stroke-width: 1.5;
+  }
+
+  .cd-band {
+    fill: transparent;
+  }
+
+  &[data-mode="local"] .cd-band,
+  &[data-mode="message"] .cd-band {
+    cursor: crosshair;
+
+    &:hover {
+      fill: var(--highlight);
+    }
+  }
+
+  .cd-msg {
+    stroke: var(--darkgray);
+    fill: var(--darkgray);
+    stroke-width: 1.4;
+
+    &.cd-bad {
+      stroke: var(--cd-bad);
+      fill: var(--cd-bad);
+      stroke-width: 2;
+    }
+  }
+
+  .cd-badlabel {
+    paint-order: stroke;
+    stroke: var(--light);
+    stroke-width: 3px;
+    fill: var(--cd-bad);
+    font-size: 11px;
+    font-family: var(--bodyFont);
+  }
+
+  .cd-pending {
+    fill: none;
+    stroke: var(--secondary);
+    stroke-width: 2;
+    stroke-dasharray: 3 3;
+  }
+
+  .cd-ev {
+    cursor: pointer;
+    outline: none;
+
+    .cd-hit {
+      fill: transparent;
+    }
+
+    .cd-dot {
+      fill: var(--dark);
+      stroke: var(--light);
+      stroke-width: 1.5;
+    }
+
+    // A halo in the page color keeps labels readable where arrows cross them.
+    .cd-stamp,
+    .cd-name {
+      paint-order: stroke;
+      stroke: var(--light);
+      stroke-width: 3px;
+      stroke-linejoin: round;
+    }
+
+    .cd-stamp {
+      fill: var(--dark);
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .cd-name {
+      fill: var(--gray);
+      font-size: 10.5px;
+    }
+
+    &.cd-past .cd-dot {
+      fill: var(--cd-past);
+    }
+
+    &.cd-future .cd-dot {
+      fill: var(--cd-future);
+    }
+
+    &.cd-conc .cd-dot {
+      fill: var(--light);
+      stroke: var(--darkgray);
+    }
+
+    &.cd-sel .cd-dot {
+      stroke: var(--secondary);
+      stroke-width: 3;
+    }
+
+    &.cd-sel .cd-stamp {
+      font-weight: 700;
+    }
+
+    &:hover .cd-hit,
+    &:focus-visible .cd-hit {
+      fill: var(--highlight);
+      stroke: var(--secondary);
+      stroke-width: 1;
+    }
+  }
+
+  .cd-status {
+    min-height: 1.3em;
+    margin: 0.2rem 0;
+    color: var(--secondary);
+    font-size: 0.85rem;
+  }
+
+  .cd-readout {
+    min-height: 9.5rem;
+
+    p {
+      margin: 0.3rem 0;
+    }
+  }
+
+  .cd-hint,
+  .cd-stamps {
+    color: var(--gray);
+    font-size: 0.88rem;
+  }
+
+  .cd-stamps {
+    font-family: var(--codeFont);
+    font-size: 0.82rem;
+  }
+
+  // Quartz wraps tables from the page's markup in .table-container, with
+  // its own margin, padding, line height and cell widths. Tables the script
+  // redraws have no wrapper, so both get the same explicit values here.
+  .cd-readout {
+    overflow-x: auto;
+  }
+
+  .cd-table {
+    width: 100%;
+    margin: 0.4rem 0 0;
+    padding: 0;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+
+    > * {
+      line-height: 1.4;
+    }
+
+    th,
+    td {
+      min-width: 0;
+      padding: 0.25rem 0.5rem;
+      border-bottom: 1px solid var(--lightgray);
+      text-align: left;
+    }
+
+    td:nth-child(2),
+    td:nth-child(3) {
+      font-family: var(--codeFont);
+      font-size: 0.82rem;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    td[data-tone="right"] {
+      color: var(--cd-good);
+    }
+
+    td[data-tone="wrong"] {
+      color: var(--cd-bad);
+      font-weight: 600;
+    }
+
+    td[data-tone="meh"] {
+      color: var(--gray);
+    }
+  }
+
+  .cd-sliders {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem 1.2rem;
+    margin-top: 0.8rem;
+
+    legend {
+      grid-column: 1 / -1;
+    }
+  }
+
+  .cd-slider {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    font-size: 0.88rem;
+
+    span {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    output {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+
+    input {
+      width: 100%;
+      accent-color: var(--secondary);
+    }
+  }
+
+  .cd-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.8rem;
+    margin-top: 0.7rem;
+    font-size: 0.9rem;
+
+    select,
+    button {
+      padding: 0.25rem 0.6rem;
+      border: 1px solid var(--lightgray);
+      border-radius: 4px;
+      background: var(--light);
+      color: var(--darkgray);
+      font: inherit;
+      font-size: 0.88rem;
+    }
+
+    button {
+      cursor: pointer;
+
+      &:hover:not(:disabled) {
+        border-color: var(--secondary);
+        color: var(--secondary);
+      }
+    }
+
+    :disabled {
+      cursor: progress;
+      opacity: 0.6;
+    }
+  }
+
+  .cd-summary {
+    margin: 0.7rem 0 0;
+    padding: 0.5rem 0.7rem;
+    border-left: 3px solid var(--gray);
+    border-radius: 2px;
+    background: var(--highlight);
+    font-size: 0.9rem;
+  }
+
+  figcaption {
+    margin-top: 0.7rem;
+    color: var(--gray);
+    font-size: 0.82rem;
+  }
+
+  @media (max-width: 600px) {
+    padding: 0.8rem 0.7rem;
+
+    // Scaled to a phone's width the labels would shrink to about 6px, so the
+    // diagram keeps a readable size and scrolls sideways inside the figure.
+    .cd-plot {
+      overflow-x: auto;
+    }
+
+    .cd-svg {
+      min-width: 540px;
+    }
+
+    .cd-sliders {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .cd-table th,
+    .cd-table td {
+      padding: 0.25rem 0.3rem;
+    }
+  }
+}
