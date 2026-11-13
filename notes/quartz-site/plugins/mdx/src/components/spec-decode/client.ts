@@ -5,6 +5,9 @@
 import { traces, type Domain } from "./model";
 import { defaultSel, replayDefault, replayParts, speedDefault, speedParts, type ReplayState, type SpeedState } from "./render";
 
+// Arrow keys step through the rounds.
+const STEP: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1 };
+
 const set = (fig: HTMLElement, name: string, html: string) => {
   fig.querySelector<HTMLElement>(`[data-part="${name}"]`)!.innerHTML = html;
 };
@@ -52,9 +55,9 @@ function mountReplay(fig: HTMLElement): () => void {
   };
   const onKey = (e: KeyboardEvent) => {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
-    if (e.key === "ArrowLeft") go(s.round - 1);
-    else if (e.key === "ArrowRight") go(s.round + 1);
-    else return;
+    const step = STEP[e.key];
+    if (step === undefined) return;
+    go(s.round + step);
     e.preventDefault();
   };
   fig.addEventListener("click", onClick);
