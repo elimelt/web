@@ -38,9 +38,10 @@ Write a short plan covering:
   separate linked note;
 - which claims need an experiment, and a runtime budget for each, so nothing
   stalls the work at the end;
-- one figure, and what it teaches that prose can't. Prefer stepping through a
-  real algorithm or data structure, or simulating a real system the reader can
-  poke at. No toy data and no decorative charts.
+- one figure, the one idea it teaches that prose can't, and the paragraphs it
+  will sit beside. Prefer stepping through a real algorithm or data structure,
+  or simulating a real system the reader can poke at. No toy data and no
+  decorative charts.
 
 ## 3. Run experiments, slowest first
 
@@ -62,6 +63,14 @@ returns the whole figure at build time, `client.ts` makes it interactive,
 `model.ts` holds the logic, `style.scss` holds the styles. Nothing else needs
 registering.
 
+- **One idea per figure, simple to digest.** Give it only the controls that
+  idea needs. A reader should see what it shows at a glance and need no
+  instructions to use it. When the note makes several points with the same
+  mechanism, place several small copies of the figure, each beside the
+  paragraph it illustrates and opened on a preset scenario that matches that
+  paragraph (pass the preset as an attribute, such as
+  `<QueueLab scenario="heavy-tail" />`), rather than one panel with every
+  control and mode.
 - **It computes what it shows.** Run the real algorithm or model in the
   browser, or replay recorded real data. Label simulations as simulations.
   Never fake behavior.
