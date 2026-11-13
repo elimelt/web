@@ -797,3 +797,267 @@ figure.cx {
     }
   }
 }
+
+// The interval-greedy figure. Blue is what greedy keeps, green an optimal
+// choice found by brute force, orange the intervals the step points at (what
+// blocked an interval, or what forced a new room).
+figure.ig {
+  --ig-opt: #2e8540;
+  --ig-mark: #d9622b;
+  margin: 0;
+  padding: 1rem 1.1rem 0.9rem;
+  border: 1px solid var(--lightgray);
+  border-radius: var(--site-media-radius);
+
+  [saved-theme="dark"] & {
+    --ig-opt: #5fbf73;
+    --ig-mark: #f08a5a;
+  }
+
+  button,
+  select {
+    padding: 0.25rem 0.6rem;
+    border: 1px solid var(--lightgray);
+    border-radius: 4px;
+    background: var(--light);
+    color: var(--darkgray);
+    font: inherit;
+    font-size: 0.88rem;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      border-color: var(--secondary);
+      color: var(--secondary);
+    }
+
+    &:disabled {
+      cursor: progress;
+    }
+  }
+
+  .ig-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 0.7rem;
+
+    button[aria-selected="true"] {
+      border-color: var(--secondary);
+      background: var(--highlight);
+      color: var(--secondary);
+      font-weight: 600;
+    }
+  }
+
+  .ig-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.2rem;
+  }
+
+  .ig-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.85rem;
+    color: var(--gray);
+  }
+
+  &[data-mode="schedule"] .ig-only-partition,
+  &[data-mode="partition"] .ig-only-schedule {
+    display: none;
+  }
+
+  .ig-buttons,
+  .ig-steps {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.6rem;
+  }
+
+  .ig-steps output {
+    margin-left: 0.3rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--gray);
+    font-size: 0.88rem;
+  }
+
+  .ig-chart {
+    margin-top: 0.8rem;
+    overflow: hidden;
+  }
+
+  .ig-svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    font-family: var(--bodyFont);
+    user-select: none;
+  }
+
+  &.ig-live .ig-svg {
+    max-width: none;
+  }
+
+  .ig-tick {
+    fill: var(--gray);
+    font-size: 11px;
+  }
+
+  .ig-grid {
+    stroke: var(--lightgray);
+  }
+
+  .ig-label {
+    fill: var(--darkgray);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .ig-lane {
+    fill: var(--darkgray);
+    font-size: 12px;
+  }
+
+  .ig-in {
+    fill: var(--light);
+    font-size: 11px;
+    font-weight: 600;
+    pointer-events: none;
+  }
+
+  .ig-bar rect {
+    stroke-width: 1.5;
+  }
+
+  .ig-pending rect {
+    fill: none;
+    stroke: var(--gray);
+    stroke-dasharray: 3 2;
+  }
+
+  .ig-kept rect {
+    fill: var(--secondary);
+    stroke: var(--secondary);
+  }
+
+  .ig-skip rect {
+    fill: var(--lightgray);
+    stroke: var(--gray);
+  }
+
+  .ig-opt rect {
+    fill: var(--ig-opt);
+    stroke: var(--ig-opt);
+  }
+
+  .ig-current rect {
+    stroke: var(--dark);
+    stroke-width: 2.5;
+  }
+
+  .ig-blocker rect {
+    fill: var(--ig-mark);
+    stroke: var(--ig-mark);
+  }
+
+  .ig-selected rect {
+    stroke: var(--ig-mark);
+    stroke-width: 2.5;
+  }
+
+  .ig-ring {
+    fill: none;
+    stroke: var(--ig-mark);
+    stroke-width: 2;
+  }
+
+  .ig-edit {
+    cursor: grab;
+    touch-action: none;
+    outline: none;
+
+    &:focus-visible rect {
+      stroke: var(--ig-mark);
+      stroke-width: 3;
+    }
+  }
+
+  .ig-handle {
+    fill: transparent;
+    cursor: ew-resize;
+    touch-action: none;
+  }
+
+  .ig-stab {
+    stroke: var(--dark);
+    stroke-width: 1.5;
+    stroke-dasharray: 4 3;
+    pointer-events: none;
+  }
+
+  .ig-witness {
+    stroke: var(--ig-mark);
+    stroke-width: 1.5;
+    stroke-dasharray: 4 3;
+    pointer-events: none;
+  }
+
+  .ig-depth {
+    fill: var(--lightgray);
+  }
+
+  .ig-depth-max {
+    fill: var(--ig-mark);
+  }
+
+  .ig-narration {
+    min-height: 3.2em;
+    margin: 0.7rem 0 0.4rem;
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+
+  .ig-detail-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.4rem 1rem;
+    color: var(--gray);
+    font-size: 0.82rem;
+  }
+
+  .ig-table {
+    width: 100%;
+    margin: 0.4rem 0 0;
+    border-collapse: collapse;
+    font-size: 0.86rem;
+    font-variant-numeric: tabular-nums;
+
+    th,
+    td {
+      padding: 0.2rem 0.4rem;
+      border-bottom: 1px solid var(--lightgray);
+      text-align: left;
+    }
+
+    tr.ig-fail td {
+      background: var(--highlight);
+      color: var(--ig-mark);
+      font-weight: 600;
+    }
+  }
+
+  .ig-summary,
+  .ig-status {
+    margin: 0.5rem 0 0;
+    font-size: 0.88rem;
+  }
+
+  .ig-status:empty {
+    display: none;
+  }
+}

@@ -4,6 +4,7 @@
 
 import { render as renderBenchmarkNoise } from "./benchmark-noise/render";
 import { render as renderCnnExplorer } from "./cnn-explorer/server";
+import { render as renderIntervalGreedy } from "./interval-greedy/render";
 
 export interface Component {
   render: (props: Record<string, unknown>) => string;
@@ -13,4 +14,5 @@ export interface Component {
 export const components: Record<string, Component> = {
   BenchmarkNoise: { render: renderBenchmarkNoise, module: "benchmark-noise" },
   CnnExplorer: { render: renderCnnExplorer, module: "cnn-explorer" },
+  IntervalGreedy: { render: renderIntervalGreedy, module: "interval-greedy" },
 };
