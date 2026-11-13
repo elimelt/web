@@ -1,0 +1,284 @@
+---
+title: Quantization in LLM Serving Systems
+aliases:
+  - llm-serving-systems/quantization
+category: Machine Learning Systems
+tags:
+  - quantization
+  - low-precision
+  - performance
+  - memory-efficiency
+  - machine-learning
+  - inference
+date: 2025-05-25
+updated: 2026-11-13
+status: evergreen
+description: How LLM weights and activations are stored and multiplied in 8, 4 and fewer bits, why activation outliers make it hard, and the methods built around them (LLM.int8(), SmoothQuant, GPTQ, AWQ, FP8 and block-scaled formats, rotations, KV-cache quantization), measured on Google's released T5 v1.1 checkpoints, with a figure that quantizes a real layer in the browser.
+sources:
+  - title: CSE 599K, LLM Serving Systems, University of Washington, Spring 2025 (lecture notes)
+    type: lecture
+  - title: "Dettmers et al. (2022), LLM.int8(): 8-bit Matrix Multiplication for Transformers at Scale"
+    url: https://arxiv.org/abs/2208.07339
+    type: paper
+  - title: "Xiao et al. (2023), SmoothQuant: Accurate and Efficient Post-Training Quantization for Large Language Models"
+    url: https://arxiv.org/abs/2211.10438
+    type: paper
+  - title: "Frantar et al. (2023), GPTQ: Accurate Post-Training Quantization for Generative Pre-trained Transformers"
+    url: https://arxiv.org/abs/2210.17323
+    type: paper
+  - title: "Lin et al. (2024), AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration"
+    url: https://arxiv.org/abs/2306.00978
+    type: paper
+  - title: Micikevicius et al. (2022), FP8 Formats for Deep Learning
+    url: https://arxiv.org/abs/2209.05433
+    type: paper
+  - title: Open Compute Project (2023), OCP Microscaling Formats (MX) v1.0 Specification
+    url: https://www.opencompute.org/documents/ocp-microscaling-formats-mx-v1-0-spec-final-pdf
+    type: standard
+  - title: "Ashkboos et al. (2024), QuaRot: Outlier-Free 4-Bit Inference in Rotated LLMs"
+    url: https://arxiv.org/abs/2404.00456
+    type: paper
+  - title: "Liu et al. (2024), KIVI: A Tuning-Free Asymmetric 2bit Quantization for KV Cache"
+    url: https://arxiv.org/abs/2402.02750
+    type: paper
+  - title: Sun et al. (2024), Massive Activations in Large Language Models
+    url: https://arxiv.org/abs/2402.17762
+    type: paper
+  - title: "Dettmers and Zettlemoyer (2023), The case for 4-bit precision: k-bit Inference Scaling Laws"
+    url: https://arxiv.org/abs/2212.09720
+    type: paper
+  - title: "Nagel et al. (2020), Up or Down? Adaptive Rounding for Post-Training Quantization"
+    url: https://arxiv.org/abs/2004.10568
+    type: paper
+  - title: Raffel et al. (2020), Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer (T5)
+    url: https://arxiv.org/abs/1910.10683
+    type: paper
+---
+
+## Purpose
+
+Quantization stores a model's numbers in fewer bits than it was trained with: 8-bit integers or 8-bit floats instead of 16-bit floats, or 4-bit codes for the weights. In serving it buys three things. The model takes less memory, so it fits on fewer GPUs or leaves more room for the KV cache. Each decoded token reads fewer bytes, and at small batch sizes reading weights is what decode spends its time on. And when the activations are quantized too, the matrix multiplies run on faster low-precision tensor cores.
+
+The difficulty is that a trained network's activations are not tidy. A handful of channels, and a handful of tokens, carry values hundreds or thousands of times larger than the rest, and one shared scale can't represent both. Most of the methods in this note are ways around that.
+
+This note covers the formats and the arithmetic, the outlier problem, and the main methods, then measures them. The experiments use Google's own released [T5 v1.1](https://github.com/google-research/text-to-text-transfer-transformer/blob/main/released_checkpoints.md) checkpoints in the LM-adapted variant, which continued training for 100K steps on a plain language-modeling objective, so they score continuations of text the way a decoder LLM does. Everything runs in numpy on a CPU with simulated quantization: each weight or activation is rounded to the low-precision grid and multiplied in float32, which gives the accuracy of a real kernel and says nothing about its speed.
+
+These started as notes for CSE 599K "LLM Serving Systems" at the University of Washington, Spring 2025, taught by Prof. Baris Kasikci with TA Kan Zhu. The cost side is in [[ml/serving-systems/performance-modeling|Performance Modeling]] and [[ml/serving-systems/memory-management|Memory Management]].
+
+## What fewer bits buy
+
+Decoding one token streams every weight from memory and does about two FLOPs per parameter with it. In 16 bits that is one FLOP per byte, far below the roughly 333 FLOPs per byte an H100 needs to keep its tensor cores busy ([[ml/serving-systems/performance-modeling#h100-numbers|Performance Modeling]]). So at small batch sizes a decode step's time is about the weight bytes divided by memory bandwidth, and 4-bit weights cut it by nearly 4x. The [Marlin](https://arxiv.org/abs/2408.11743) INT4-weight kernel reports close to the full 4x for batches up to 16 to 32 tokens, falling off as the multiply turns compute bound. Past that point the weight bytes stop mattering and what helps is cheaper arithmetic: FP8 and INT8 tensor cores have about twice the dense throughput of BF16 on Hopper ([[ml/serving-systems/gpu-basics#numeric-format-throughput-tradeoffs|GPU Basics]]). vLLM's documentation puts FP8 weights and activations at [2x less model memory and up to 1.6x more throughput](https://docs.vllm.ai/en/stable/features/quantization/llm_compressor/fp8/).
+
+Memory capacity is the other half. DeepSeek-V3 has 671B parameters. In BF16 that is about 1.34 TB, more than the 1.13 TB of HBM on an eight-GPU H200 node; DeepSeek released the weights only in FP8 E4M3, [about 689 GB](https://huggingface.co/deepseek-ai/DeepSeek-V3), which fits on one node with room left for the KV cache. The KV cache is itself a quantization target, covered [below](#the-kv-cache).
+
+Energy points the same way. In Horowitz's 45 nm numbers, as [tabulated by Han et al.](https://arxiv.org/abs/1506.02626), an 8-bit integer add costs 0.03 pJ and an 8-bit multiply 0.2 pJ, a 32-bit integer multiply 3.1 pJ and an FP32 multiply 3.7 pJ, while reading 32 bits from off-chip DRAM costs about 640 pJ. Multiplier energy grows roughly with the square of the bit width, and moving a number from DRAM costs more than any arithmetic on it, so fewer bytes moved is worth more than cheaper math.
+
+## Number formats
+
+A floating-point format splits its bits between exponent and mantissa. Exponent bits buy range (how far apart the smallest and largest values are), mantissa bits buy precision (how close neighboring values sit). An integer format has a single fixed step, so all of its precision is uniform and its range is whatever the scale factor makes it.
+
+| Format | Sign/exponent/mantissa bits | Largest finite value | Where it's used |
+| --- | --- | ---: | --- |
+| FP32 | 1/8/23 | $3.4 \times 10^{38}$ | accumulation, reference |
+| BF16 | 1/8/7 | $3.4 \times 10^{38}$ | training and serving default |
+| FP16 | 1/5/10 | 65,504 | older serving default |
+| FP8 E4M3 | 1/4/3 | 448 | weights and activations |
+| FP8 E5M2 | 1/5/2 | 57,344 | gradients |
+| INT8 | integer | 127 steps each side | weights and activations, with a scale |
+| FP4 E2M1 | 1/2/1 | 6 | 4-bit weights and activations, block-scaled |
+| INT4 | integer | 7 steps each side | weights, with a scale per group |
+
+The FP8 definitions are from [Micikevicius et al.](https://arxiv.org/abs/2209.05433), who recommend E4M3 for weights and activations and E5M2 for gradients. E4M3 gives up infinities to reach 448 instead of 240. Hardware support decides what is worth using: FP8 tensor cores arrived with Hopper and Ada, and Blackwell adds 4-bit floating point ([Transformer Engine docs](https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/index.html)).
+
+BF16 kept FP32's exponent so training wouldn't overflow, and the T5 measurements below show why that matters for serving too. T5 v1.1's residual stream reaches values near 500,000 on ordinary blog text (488,941 in the base model), far past FP16's 65,504, so the model can't run in FP16 without clamping. Hugging Face's T5 code clamps infinities in FP16 and keeps the feed-forward output projection in FP32 when loading 8-bit weights, a workaround for [Flan-T5-XXL producing garbage in 8 bits](https://github.com/huggingface/transformers/issues/20287) because of overflow in exactly that layer.
+
+### Block-scaled formats
+
+The newer 4- and 8-bit formats attach a scale to every small block of values instead of to a whole tensor or channel. The [OCP Microscaling (MX) spec](https://www.opencompute.org/documents/ocp-microscaling-formats-mx-v1-0-spec-final-pdf) defines MXFP8, MXFP6, MXFP4 and MXINT8, each with blocks of 32 elements sharing an 8-bit power-of-two scale (E8M0). NVIDIA's [NVFP4](https://developer.nvidia.com/blog/introducing-nvfp4-for-efficient-and-accurate-low-precision-inference) uses blocks of 16 FP4 values with an FP8 E4M3 scale, which need not be a power of two, plus one FP32 scale per tensor, about 4.5 bits per value in all. Small blocks are the hardware's answer to outliers: an outlier can only spoil the 16 or 32 values that share its scale.
+
+## Linear quantization
+
+The affine map between a real value $r$ and a $b$-bit integer $q$, with scale $S$ and zero point $Z$:
+
+$$q = \text{clip}\left(\text{round}\left(\frac{r}{S}\right) + Z,\; q_{min},\; q_{max}\right), \qquad r \approx S(q - Z)$$
+
+Min-max calibration sets $S = (r_{max} - r_{min})/(q_{max} - q_{min})$. Error comes from two places: rounding, at most $S/2$ in either direction, and clipping, for values outside the range. Choosing the range trades one against the other, since a wider range clips less and makes every step coarser.
+
+Symmetric quantization fixes $Z = 0$ and $S = \max|r| / (2^{b-1} - 1)$, so INT8 uses the codes $-127$ to $127$. The reason shows up in a matrix multiply:
+
+$$Y = S_W S_X \left[q_W q_X - q_W Z_X - q_X Z_W + Z_W Z_X\right]$$
+
+With both zero points zero, the three correction terms vanish and the kernel is a plain integer matmul. Asymmetric quantization keeps the extra flexibility for skewed distributions such as the output of a ReLU, at the cost of those terms. Weight-only kernels can afford asymmetric INT4 because they dequantize the weights to 16 bits before multiplying.
+
+Granularity is the other choice: one scale per tensor, per output channel, per token (for activations), or per group of $g$ consecutive weights. Finer granularity tracks the data better and stores more scales. A group of 128 INT4 weights with a 16-bit scale and a 16-bit zero point costs $4 + 32/128 = 4.25$ bits per weight. [Dettmers and Zettlemoyer](https://arxiv.org/abs/2212.09720) ran more than 35,000 zero-shot experiments across model families and found 4 bits per weight to be almost universally the best accuracy for a given total number of model bits, with block sizes of 64 to 128.
+
+> [!note]- Deep dive: non-linear quantization, codebooks and NF4
+> When values are far from uniform, a uniform grid wastes codes. [Deep Compression](https://arxiv.org/abs/1510.00149) clusters each layer's weights with k-means and stores a small full-precision codebook plus a $\log_2 k$-bit index per weight. Its compression ratio for $n$ weights of $b$ bits and $k$ clusters is $nb / (n \log_2 k + kb)$; the paper's toy example, 16 weights and 4 clusters, gives 3.2x. On AlexNet it used 8-bit indices for convolutions and 5-bit for fully connected layers with no accuracy loss, and with pruning and Huffman coding the whole pipeline shrank AlexNet 35x and VGG-16 49x. [QLoRA's NF4](https://arxiv.org/abs/2305.14314) is a fixed codebook instead: 16 values at the quantiles of a standard normal, scaled per block of 64 weights, on the grounds that trained weights are roughly normal. Its block scales are themselves quantized to FP8, which brings their overhead from 0.5 to about 0.127 bits per weight ([[ml/serving-systems/peft-and-preference-optimization#qlora-quantized-frozen-base|PEFT and Preference Optimization]]). Codebook formats need a table lookup in the kernel, which is why serving mostly uses integer and floating-point grids.
+
+## PTQ and QAT
+
+Post-training quantization (PTQ) quantizes a trained model, possibly using a few hundred sequences of calibration text to choose scales. Everything measured below is PTQ. Quantization-aware training (QAT) simulates the rounding in the forward pass during training so the network learns weights that survive it. Rounding has zero gradient almost everywhere, so the backward pass uses the straight-through estimator, treating $\partial\, \text{round}(x) / \partial x$ as 1. QAT generally beats PTQ at the same bit width and costs a training run.
+
+Rounding direction matters more than it looks. [AdaRound](https://arxiv.org/abs/2004.10568) quantized only the first layer of a ResNet-18 to 4 bits and compared rounding rules on ImageNet: round-to-nearest gave 52.29% accuracy, 100 draws of stochastic rounding gave 52.06 ± 5.52% with the best draw at 63.06%, and always rounding up or always down gave 0.10%. Nearest is not optimal per weight, because errors in different weights interact through the next layer. GPTQ, below, exploits the same interaction.
+
+## Outliers
+
+Quantization recipes that worked on CNNs and small transformers broke on large language models. [Dettmers et al.](https://arxiv.org/abs/2208.07339) traced the failure to outlier features: around 6.7B parameters a phase shift happens, after which a few hidden dimensions (about 0.1% of them, six dimensions at 6.7B) carry large values in every layer and at about 75% of sequence positions. A single scale per tensor sized for those values leaves too few steps for everything else.
+
+Later work found two related kinds. [Sun et al.](https://arxiv.org/abs/2402.17762) describe massive activations, a few values up to 100,000 times larger than the typical one, sitting on particular tokens (the first token, delimiters) and acting as fixed biases the model relies on. [Bondarenko et al. (2023)](https://arxiv.org/abs/2306.12929) tie strong outliers to attention heads learning to do nothing: to put almost all of its attention on an uninformative token, a head pushes some values very large, and they showed that a clipped softmax or gated attention removes the outliers and lets activations go to INT8 directly. Outliers are not a large-model curiosity either. An earlier study by the same group found [BERT-base](https://arxiv.org/abs/2109.12948) falling from 83.06 to 71.03 on GLUE with 8-bit weights and activations, while 8-bit weights alone scored 83.23, with the damage traced to the residual sum after the feed-forward block.
+
+### What T5 looks like
+
+I recorded, for every linear layer in the three smallest LM-adapted T5 v1.1 models, the largest input magnitude in each channel over 64 calibration windows of Go blog text. The pattern is the same at all three sizes, and the gap widens with size: the input to each feed-forward block's output projection holds values in the tens of thousands, and nothing else comes close.
+
+| Model | Parameters | Residual stream max | Max input after a norm | Max input to `wo` | `wo`: top channel / median channel |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| small | 77M | 330,495 | 9.3 | 12,378 | 1,359× |
+| base | 248M | 488,941 | 13.1 | 14,273 | 1,687× |
+| large | 783M | 502,948 | 39.8 | 15,666 | 5,452× |
+
+The inputs to the attention projections and the first feed-forward layer come right after an RMS norm and are tame: the largest channel there is at most 44 times the median one, and the inputs to the attention output projection are within a factor of 8. The input to the feed-forward output projection `wo` is the gated hidden state $\text{GELU}(x W_0) \odot (x W_1)$, which no norm bounds, and that is where the giant values are. They are both token-specific and channel-specific. In the first 16 evaluation windows of the base model, 182 of 2,064 token rows entering encoder layer 8's `wo` have a value above 500. Every one of them is a comma, "the" or the end-of-sequence marker, and in every one the largest value sits in the same channel, 888. That matches the massive-activation picture: a few fixed channels, switched on at a few uninformative tokens.
+
+The figure takes one such layer: the actual inputs to encoder layer 8's `wo` for the first 24 tokens of an evaluation window, and 16 of its 768 output columns. Pick how the inputs are scaled and your browser quantizes both matrices, multiplies them, and compares with the exact product. The top strip is each input channel's largest magnitude on a log scale; the shaded band is everything smaller than half a quantization step, which rounds to zero.
+
+<OutlierLab base="/ml/serving-systems/quantization/" />
+
+Things to try:
+
+- **Per-tensor INT8.** The comma at position 17 has an input of 7,784, so one INT8 step is about 61. Nearly every other input rounds to zero, and the output error is 64% because only the outlier channels survive. At INT4 nothing survives at all.
+- **Per-token.** Each row gets its own scale, so tokens without outliers do fine (about 4% error each), but the comma and "the" still lose almost everything outside their big channels, at 53% and 22%. Overall error drops to 34%, and the chips under the strip show which rows carry it.
+- **SmoothQuant.** Slide α up and watch the top strip flatten while the bottom one, the weights, grows taller. At the paper's default of 0.5 the error is still 42%; it keeps falling to its lowest, 4.8%, around α = 0.9. At INT4 the best is 45%.
+- **LLM.int8().** At the paper's threshold of 6, 111 of 2048 channels go to the floating-point path (5.4%, against the paper's 0.1%, because this input has no norm in front of it) and the error falls to 1%. Raising the threshold to 20 keeps only 11 channels in floating point at 2% error.
+- **FP8 E4M3.** One scale per tensor again, but the exponent gives each value its own relative precision, so small inputs keep about 3 significant bits instead of rounding to zero: 5% error, with no calibration and no special cases.
+
+## Methods
+
+### Per-token scales and LLM.int8()
+
+The cheapest fix gives each token its own activation scale, computed on the fly from that row's maximum, and each output channel its own weight scale. The integer product of row $i$ and column $j$ is then rescaled by $s_i^X s_j^W$, which kernels can apply after the integer matmul. LLM.int8() calls this vector-wise quantization and adds a decomposition: any input feature dimension where some value exceeds a threshold (6.0 in the paper) is pulled out and multiplied in FP16, and the remaining dimensions, more than 99.9% of the values in OPT-scale models, go through INT8. The output is the sum.
+
+The decomposition costs speed. The paper's own benchmarks show the INT8 matmuls slower than FP16 up to 6.7B parameters (0.86x at 6.7B) and about 1.8x faster at 175B; end to end, at batch size 1, it measured 253 ms per token against 239 ms for 16-bit. Its value was letting large models load in half the memory with no accuracy loss, not making them faster. On T5 it also matches full precision, but sends far more columns to the slow path ([measured below](#8-bit-weights-and-activations)).
+
+### SmoothQuant
+
+Activations are hard to quantize and weights are easy, so [SmoothQuant](https://arxiv.org/abs/2211.10438) moves some of the difficulty across. For a linear layer $Y = XW$, divide each input channel $j$ by $s_j$ and multiply the matching row of $W$ by $s_j$, which leaves the product unchanged:
+
+$$Y = (X \operatorname{diag}(s)^{-1})\,(\operatorname{diag}(s) W), \qquad s_j = \frac{\max|X_j|^\alpha}{\max|W_j|^{1-\alpha}}$$
+
+$\max|X_j|$ comes from calibration text and $\max|W_j|$ from the weights. At $\alpha = 1$ the activations are flattened completely and the weights take all the range; at $\alpha = 0$ the reverse. The division by $s$ folds into the preceding layer norm's scale or the previous linear layer, so it costs nothing at inference, and both sides then go through ordinary INT8 kernels. The paper uses $\alpha = 0.5$ for OPT and BLOOM, 0.75 for GLM-130B, and its later versions list 0.8 to 0.9 for the Llama family. It reports up to 1.56x faster inference and 2x less memory than FP16, with three levels: O1 uses per-token dynamic activation scales, O2 one dynamic scale per tensor, O3 one static scale per tensor fixed at calibration.
+
+T5 needs α of 0.75 or more before per-tensor INT8 becomes usable ([measured below](#8-bit-weights-and-activations)). One limit: the scale has to be folded somewhere. For T5's `wo` it would go into the columns of the previous gated layer, which works because the gate is elementwise; for inputs that feed several consumers, all of them must share one $s$.
+
+### GPTQ
+
+Weight-only methods leave activations in 16 bits and spend their effort on the weights. [GPTQ](https://arxiv.org/abs/2210.17323) quantizes one input column of a weight matrix at a time and, after each column, adjusts the not-yet-quantized columns to cancel the error it just made, measured on calibration inputs. With $H = 2X^\top X$ the Hessian of the layer's squared output error, quantizing weight $w_q$ with error $\delta = w_q - \text{quant}(w_q)$ is best compensated by
+
+$$\Delta w = -\frac{\delta}{[H^{-1}]_{qq}}\, H^{-1}_{:,q}$$
+
+This is the Optimal Brain Surgeon update, carried over from the earlier OBQ method. GPTQ's contribution is making it cheap: every row uses the same column order so all rows share one inverse Hessian, the updates are applied lazily in blocks of 128 columns to keep the GPU busy, and the needed rows of $H^{-1}$ come from one Cholesky factorization, with 1% of the mean diagonal added for stability. The paper quantized OPT-175B in about 4 GPU hours on one A100. The [reference code](https://github.com/IST-DASLab/gptq) adds `--act-order`, which quantizes columns in order of decreasing activation size so the outlier channels are fixed first, while the most columns remain to absorb their error.
+
+### AWQ
+
+[AWQ](https://arxiv.org/abs/2306.00978) starts from the observation that about 1% of weights matter much more than the rest, and that they are the ones multiplied by large activations, not the ones that are large themselves. Keeping those in FP16 would need a mixed-precision kernel, so AWQ scales instead: multiply input channel $j$ of the weight by $s_j$ before quantizing and divide the activation by $s_j$, folding the division into the previous operation. A salient channel scaled up gets proportionally less rounding error. The scale is $s = \overline{|X|}^{\,\alpha}$, the mean activation magnitude per channel raised to a power, with $\alpha$ chosen by grid search over $[0, 1]$ to minimize the layer's output error on calibration text. No weights are updated, which makes AWQ fast and hard to overfit to the calibration set. It uses groups of 128 weights throughout and won the MLSys 2024 best paper award. Both methods are compared on T5 [below](#calibrated-low-bit-weights).
+
+### FP8
+
+FP8 sidesteps much of the outlier problem by spending bits on exponent. An E4M3 value keeps 3 mantissa bits at every magnitude within its range, so a scale chosen for a large outlier leaves small values with coarser relative precision instead of rounding them to zero. Hopper's FP8 tensor cores made W8A8 in FP8 the usual first step for serving. vLLM's [online FP8 mode](https://docs.vllm.ai/en/stable/features/quantization/llm_compressor/fp8/#online-dynamic-quantization) quantizes every linear layer's weights with one scale per tensor and computes the activation scale on each forward pass, so it needs no calibration data at all. [DeepSeek-V3](https://arxiv.org/abs/2412.19437) went further and trained in FP8, with E4M3 for all tensors, activation scales per 1×128 tile and weight scales per 128×128 block, keeping the embedding, output head, norms and attention in higher precision.
+
+### Rotations
+
+An outlier channel is a property of the coordinate system. Multiply activations by an orthogonal matrix $Q$ and weights by $Q^\top$ and the product is unchanged, but a vector with one huge coordinate becomes one whose energy is spread across all of them. [QuaRot](https://arxiv.org/abs/2404.00456) uses randomized Hadamard matrices, most of them folded into the weights and a few applied online, and reaches 4-bit weights, activations and KV cache on Llama-2-70B with WikiText-2 perplexity 3.79 against 3.32 in FP16. [SpinQuant](https://arxiv.org/abs/2405.16406) learns the rotations instead of drawing them, and narrows the gap further.
+
+### The KV cache
+
+At long context the KV cache outgrows the weights ([[ml/serving-systems/memory-management#kv-cache-sizing|Memory Management]]), and quantizing it shrinks memory per request, so more requests fit in a batch. vLLM supports an [FP8 KV cache](https://docs.vllm.ai/en/stable/features/quantization/quantized_kvcache/) (`kv_cache_dtype="fp8"`) with per-tensor or per-head scales. [KIVI](https://arxiv.org/abs/2402.02750) found that the outliers in keys line up in a few fixed channels while values show no such pattern, so it quantizes keys per channel and values per token, down to 2 bits without tuning, and reports about 2.6x less peak memory and 2.35x to 3.47x more throughput on Llama, Falcon and Mistral.
+
+## Measured on T5
+
+Most of the results above come from papers on large decoder LLMs. To see the same effects on a model I could run end to end, I quantized T5 v1.1 base (248M parameters) in numpy and measured how much its perplexity rises when continuing held-out Go blog posts: 128 tokens of a post go into the encoder and the decoder scores the next 64. At full precision the perplexity is 24.37. Every number below is the change against that, on the same 256 windows, and the intervals quoted are 95% bootstrap intervals. The setup, the code and its shortcuts are in the collapsed record at the end of the section.
+
+### Weights only, rounded to nearest
+
+Rounding every weight to the nearest grid point, with no calibration, isolates the effect of format and granularity. The Shakespeare column checks that the ranking holds on text very different from the Go blog (its full-precision perplexity is 48.4).
+
+| Weights | Bits per weight | Go blog | Shakespeare |
+| --- | ---: | ---: | ---: |
+| INT8, one scale per tensor | 8 | +0.77% | +0.15% |
+| INT8, per output channel | 8 | +0.02% | +0.04% |
+| INT4, one scale per tensor | 4 | +21,600% | +22,900% |
+| INT4, per channel, symmetric | 4 | +5.4% | +5.2% |
+| INT4, per channel, asymmetric | 4 | +3.7% | +3.0% |
+| INT4, groups of 128 | 4.25 | +2.1% | +1.5% |
+| INT4, groups of 32 | 5 | +0.9% | +0.3% |
+| INT3, per channel | 3 | +20.1% | +17.0% |
+| INT3, groups of 128 | 3.25 | +9.2% | +7.9% |
+| INT3, groups of 32 | 4 | +5.2% | +5.3% |
+| INT2, groups of 32 | 3 | +58.7% | +51.6% |
+
+INT8 weights are free once each output channel has its own scale (+0.02%, interval −0.01% to +0.05%). At 4 bits granularity is everything. One scale per matrix destroys the model, a scale per channel costs 4% to 5%, and groups of 128, the standard GPTQ and AWQ format, bring it to +2.1% (1.7% to 2.5%). An asymmetric grid beats a symmetric one per channel (3.7% against 5.4%), which is why weight-only kernels pay for the zero point.
+
+The bits-per-weight column counts the 16-bit scale and zero point each group carries. Compared at equal cost, more bits per weight beat smaller groups: INT4 per channel and INT3 in groups of 32 both cost 4 bits per weight, and the INT4 version loses 3.7% against 5.2%; at 3 bits, INT3 per channel loses 20% and INT2 in groups of 32 loses 59%. That is in line with [Dettmers and Zettlemoyer's](https://arxiv.org/abs/2212.09720) scaling study, on a much smaller model.
+
+### Calibrated low-bit weights
+
+GPTQ and AWQ use a small amount of text to decide how to round. Both ran on three different calibration sets of 64 windows from the held-out calibration posts; the table gives the mean, with the range across the three in parentheses. Round-to-nearest needs no calibration, so it has one number.
+
+| Method, groups of 128 | INT4 | INT3 |
+| --- | ---: | ---: |
+| round to nearest | +2.1% | +9.2% |
+| AWQ | +1.45% (1.39 to 1.53) | +8.2% (8.1 to 8.3) |
+| GPTQ | +1.12% (0.96 to 1.24) | +4.8% (4.6 to 5.0) |
+
+At 4 bits both help, GPTQ somewhat more: it removes about half of round-to-nearest's loss and AWQ about a third, though the gap between them is about the size of one run's confidence interval (roughly ±0.3 points). At 3 bits the gap is real. GPTQ halves the loss and AWQ barely moves it. AWQ's search settled on α near 0.35 on average, a mild scaling. The [AWQ paper](https://arxiv.org/abs/2306.00978) reports AWQ slightly ahead of GPTQ on Llama perplexity, so I wouldn't read this as a verdict on the methods: this is a 248M encoder-decoder, and both are my simplified reimplementations, which take each layer's calibration inputs from the full-precision model. Calibration choice mattered little for either: the three seeds land within 0.3 points of each other.
+
+### 8-bit weights and activations
+
+Quantizing activations as well is where T5 gets hard. Weights here are INT8 with one scale per output channel throughout; only the activation handling changes.
+
+| Activation handling | One scale per tensor | One scale per token |
+| --- | ---: | ---: |
+| plain INT8 | +37.7% | +0.56% |
+| plain INT8, `wo` inputs left in float | +0.56% | |
+| SmoothQuant, α = 0.25 | +66.8% | +0.87% |
+| SmoothQuant, α = 0.5 | +7.4% | +0.24% |
+| SmoothQuant, α = 0.75 | +1.2% | +0.16% |
+| SmoothQuant, α = 0.9 | +1.6% | +0.56% |
+| LLM.int8(), threshold 6 | | +0.00% |
+| FP8 E4M3 weights and activations | +0.21% | |
+
+One scale per tensor, computed fresh for each batch, costs 38% in perplexity (95% interval 35% to 40%), and a static scale fixed at calibration is no better (+38.3%). Nearly all of the damage is at the 24 `wo` inputs, out of 216 linear layers: leave just those in floating point and the cost falls to +0.56%. Leaving the 108 attention q, k and v inputs in float instead changes almost nothing (+36.3%). Giving each token its own scale gets the same +0.56% with no float layers at all, because the giant values sit in a few rows.
+
+SmoothQuant needs a large α on this model. At 0.5, the paper's default for OPT, per-tensor scaling still costs 7.4%; at 0.75 it costs 1.2%, and at 0.9 it is slightly worse again, at 1.6%, presumably because the weights now carry too much of the range. A small α is worse than not smoothing at all (+66.8% at 0.25), where the scale is set mostly by the weights. Combined with per-token scales, which is the paper's O1 setting, it reaches +0.16%, the best INT8 result here. Three calibration seeds gave α = 0.5 per-tensor results between 7.2% and 7.5% and α = 0.75 between 1.18% and 1.23%, so the choice of calibration windows hardly matters for it.
+
+LLM.int8() at its default threshold of 6 is indistinguishable from full precision: +0.00%, with an interval of −0.07% to +0.07%. It pays for that by sending 5.7% of all input columns to the floating-point path, averaged over every layer and batch, against the 0.1% the paper saw in OPT; at a threshold of 12 it sends 1.3% and costs +0.03%. FP8 needs nothing at all, no calibration and no special cases: E4M3 for weights and activations, with one dynamic scale per activation tensor, costs +0.21%.
+
+### How low can you go
+
+On this model: 8-bit weights cost nothing. 8-bit activations cost under 0.6% once the `wo` outliers are dealt with, by per-token scales, LLM.int8(), SmoothQuant with a high α, or FP8, and 38% if they aren't. 4-bit weights in groups of 128 cost about 1% with GPTQ and 2% without calibration. 3-bit weights cost about 5% with GPTQ. 2 bits does not work by rounding alone, even in groups of 32 (+59%).
+
+Two cautions about carrying this over. These are the costs for a 248M model, while the papers above measure models from about 7B to 175B parameters, where the numbers differ. And perplexity on held-out text is a blunt measure: a 1% rise says little about how much any particular task changes.
+
+> [!note]- How this was measured
+> - **Code:** everything is in [`quantization/`](quantization/) next to this note. [`convert.py`](quantization/convert.py) turns a TensorFlow checkpoint into an `.npz`, [`prep_text.py`](quantization/prep_text.py) cleans the text, [`t5.py`](quantization/t5.py) is the numpy forward pass with a hook on every linear layer, [`quant.py`](quantization/quant.py) holds the formats and methods, [`data.py`](quantization/data.py) builds the windows, and [`run.py`](quantization/run.py) runs the stages (`outliers small|base|large`, `weights`, `calibrated`, `w8a8`, `rows`, `figure`). [`merge.py`](quantization/merge.py) collects them into [`results.json`](quantization/results.json) and prints the tables. [`figure_check.py`](quantization/figure_check.py) recomputes ten of the figure's settings in numpy, and the figure's unit test checks the browser code against them to within $10^{-6}$.
+> - **Models:** `t5.1.1.lm100k.{small,base,large}` from `gs://t5-data/pretrained_models/`, the checkpoints linked from the [T5 release page](https://github.com/google-research/text-to-text-transfer-transformer/blob/main/released_checkpoints.md): 77M, 248M and 783M parameters. The weights are stored in bfloat16 and run in float32. Embeddings, the output head, norms and the two attention products (scores and the weighted sum of values) are never quantized; every other matmul against a weight is.
+> - **Text:** the 210 Go blog posts in [golang/website](https://github.com/golang/website) at commit `9d2e951d`, with code blocks, front matter, HTML and link targets stripped (274,290 words), and [tinyshakespeare](https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt). Posts are split by a hash of their file name: 41 posts for calibration, 169 for evaluation, so calibration never sees evaluation text.
+> - **Task:** a window is 128 tokens of a post fed to the encoder, then end-of-sequence, and the next 64 tokens scored by the decoder. The evaluation set is 256 such windows from the evaluation posts (16,384 scored tokens), plus 128 Shakespeare windows for the weight-only grid. Full-precision perplexity is 24.37 on the Go blog.
+> - **Statistics:** the intervals are 95% paired bootstrap intervals over windows (2,000 resamples) for the change in perplexity against full precision on the same windows. Calibrated methods were run with three calibration seeds, each drawing 64 different windows from the calibration posts.
+> - **Simplifications:** quantization is simulated (round to the grid, multiply in float32), so nothing here measures speed. AWQ and GPTQ take their calibration inputs from the full-precision model rather than from the already-quantized earlier layers, and each layer is handled independently; AWQ searches 21 values of α and, like the paper, uses asymmetric groups of 128. GPTQ follows the reference code (1% damping, blocks of 128, no `--act-order`). SmoothQuant's weights are INT8 per output channel.
+> - **Environment:** Python 3.13, numpy 2.5.3, TensorFlow 2.21 (checkpoint reading only), sentencepiece 0.2.3, on 4 cores of an Intel Xeon at 2.1 GHz. All the stages together take about two and a half hours there.
+
+## Related notes
+
+- [[ml/serving-systems/performance-modeling|Performance Modeling]], for when weight bytes or arithmetic bound a step
+- [[ml/serving-systems/memory-management|Memory Management]], for the KV cache budget that quantization frees
+- [[ml/serving-systems/gpu-basics|GPU Basics]], for tensor-core throughput by format
+- [[ml/serving-systems/sparsity-and-pruning|Sparsity and Pruning]], the other way to remove bytes
+- [[ml/serving-systems/peft-and-preference-optimization|PEFT and Preference Optimization]], for QLoRA's 4-bit frozen base
+
+> [!note]- Potentially interesting ideas
+> These came up while running the experiments above. None of them was tested, and each could easily turn out to be wrong or already done somewhere I didn't look.
+>
+> - **A fixed float column instead of a threshold.** In encoder layer 8, every token row with a giant `wo` input had its largest value in the same channel, 888. If that holds across layers and text, as the [massive activations](https://arxiv.org/abs/2402.17762) paper found for decoder LLMs, keeping a short list of channels per layer in floating point, chosen once at calibration, might get most of LLM.int8()'s accuracy without checking every batch for outliers at run time. The open question is how many channels the list needs: in encoder layer 11 the giant rows put their largest value in three different channels.
+> - **A threshold relative to the layer.** [LLM.int8()](https://arxiv.org/abs/2208.07339)'s threshold of 6 was chosen for OPT-style models, where the outlier features sit in inputs that come after a layer norm. T5's `wo` inputs have no norm in front of them. In the base model, the typical `wo` layer has 68% of its input channels pass 6 at least once over the 64 calibration windows, and in the full runs 5.7% of all input columns went down the float path, so the "outlier" path stops being small. A threshold tied to each layer's own typical magnitude might transfer better between architectures.
+> - **Does the gap keep widening?** The ratio between the top and median `wo` channel grows from 1,359× to 5,452× between the 77M and 783M models. The [FP16 overflow in Flan-T5-XXL](https://github.com/huggingface/transformers/issues/20287) is at least consistent with even larger values at 11B, but I only measured the three smallest sizes.
+> - **Why the same channels after every norm?** The inputs right after a norm are tame in magnitude, but their largest channel is often the same one across layers (channel 559 in 18 of the base model's 60 normed q and wi inputs, channel 614 in 19 of the large model's 120). Comparing those channels with the norms' learned scale vectors would show whether the norm weights put them there.

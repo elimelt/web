@@ -1,0 +1,160 @@
+// outlier-lab (ml/serving-systems/quantization)
+figure.ol {
+  @include fig-frame(0.9rem 1rem 0.8rem);
+
+  .ol-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    justify-content: space-between;
+  }
+
+  .ol-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  button {
+    @include fig-button(0.22rem 0.55rem, 0.85rem);
+    @include fig-button-hover;
+  }
+
+  button[aria-pressed="true"] {
+    @include fig-pressed;
+  }
+
+  button:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+
+  .ol-sliders {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem 1.2rem;
+    margin-top: 0.7rem;
+    font-size: 0.85rem;
+  }
+
+  .ol-slider {
+    @include fig-slider;
+  }
+
+  .ol-slider:has(input:disabled) {
+    color: var(--gray);
+  }
+
+  .ol-readout {
+    margin: 0.7rem 0 0.2rem;
+    min-height: 2.8em;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ol-strip {
+    @include fig-chart;
+    aspect-ratio: 640 / 222;
+  }
+
+  .ol-grid {
+    stroke: var(--lightgray);
+    stroke-width: 0.6;
+  }
+
+  .ol-tick,
+  .ol-label,
+  .ol-zero-label {
+    fill: var(--gray);
+    font-size: 10px;
+  }
+
+  .ol-label {
+    fill: var(--darkgray);
+    font-size: 11px;
+  }
+
+  .ol-zero {
+    fill: var(--fig-red);
+    opacity: 0.12;
+  }
+
+  .ol-zero-label {
+    fill: var(--fig-red);
+  }
+
+  .ol-bar-x,
+  .ol-bar-w,
+  .ol-bar-float {
+    fill: none;
+    stroke-width: 0.6;
+  }
+
+  .ol-bar-x {
+    stroke: var(--fig-orange);
+  }
+
+  .ol-bar-w {
+    stroke: var(--fig-blue);
+  }
+
+  .ol-bar-float {
+    stroke: var(--fig-red);
+    stroke-width: 1.4;
+  }
+
+  .ol-sub {
+    margin: 0.6rem 0 0.3rem;
+    font-size: 0.8rem;
+    color: var(--gray);
+  }
+
+  .ol-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .ol-chip {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 2.4rem;
+    padding: 0.15rem 0.35rem;
+    border: 1px solid var(--lightgray);
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--fig-red) calc(var(--e) * 55%), transparent);
+    line-height: 1.2;
+  }
+
+  .ol-tok {
+    font-family: var(--codeFont);
+    font-size: 0.8rem;
+    color: var(--dark);
+  }
+
+  .ol-err {
+    font-size: 0.7rem;
+    color: var(--darkgray);
+    font-variant-numeric: tabular-nums;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .ol-sliders {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ol-tick,
+    .ol-zero-label {
+      font-size: 17px;
+    }
+
+    .ol-label {
+      font-size: 18px;
+    }
+  }
+}
