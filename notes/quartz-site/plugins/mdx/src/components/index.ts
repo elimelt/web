@@ -5,6 +5,9 @@
 import { render as renderBenchmarkNoise } from "./benchmark-noise/render";
 import { render as renderCnnExplorer } from "./cnn-explorer/server";
 import { render as renderClockDiagram } from "./clock-diagram/render";
+import { render as renderSvdGeometry } from "./svd-geometry/render";
+import { render as renderSvdImage } from "./svd-image/server";
+import { render as renderSvdPinv } from "./svd-pinv/render";
 
 export interface Component {
   render: (props: Record<string, unknown>) => string;
@@ -15,4 +18,7 @@ export const components: Record<string, Component> = {
   BenchmarkNoise: { render: renderBenchmarkNoise, module: "benchmark-noise" },
   CnnExplorer: { render: renderCnnExplorer, module: "cnn-explorer" },
   ClockDiagram: { render: renderClockDiagram, module: "clock-diagram" },
+  SvdGeometry: { render: renderSvdGeometry, module: "svd-geometry" },
+  SvdImage: { render: renderSvdImage, module: "svd-image" },
+  SvdLeastSquares: { render: renderSvdPinv, module: "svd-pinv" },
 };
