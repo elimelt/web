@@ -2955,3 +2955,248 @@ figure.ig {
     display: none;
   }
 }
+
+// window-sim (systems/networks/4-transport/flow-control). Colors are tokens so
+// the dark theme can swap them; every chart mark takes its color from here.
+:root {
+  --ws-seg: #2b6cb0;
+  --ws-ack: #2f855a;
+  --ws-right: #c05621;
+  --ws-read: #6b46c1;
+  --ws-rtx: #c53030;
+  --ws-probe: #b7791f;
+  --ws-held: rgba(107, 70, 193, 0.22);
+}
+
+[saved-theme="dark"] {
+  --ws-seg: #7fb2ec;
+  --ws-ack: #68d391;
+  --ws-right: #f6ad55;
+  --ws-read: #b794f4;
+  --ws-rtx: #fc8181;
+  --ws-probe: #f6e05e;
+  --ws-held: rgba(183, 148, 244, 0.28);
+}
+
+figure.ws {
+  margin: 0;
+  padding: 0.9rem 1rem 0.8rem;
+  border: 1px solid var(--lightgray);
+  border-radius: var(--site-media-radius);
+
+  .ws-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+
+    button {
+      font: inherit;
+      font-size: 0.85rem;
+      padding: 0.2rem 0.6rem;
+      border: 1px solid var(--lightgray);
+      border-radius: 999px;
+      background: var(--light);
+      color: var(--darkgray);
+      cursor: pointer;
+    }
+
+    button[aria-pressed="true"] {
+      border-color: var(--secondary);
+      color: var(--secondary);
+      font-weight: 600;
+    }
+  }
+
+  .ws-note {
+    margin: 0.55rem 0 0.4rem;
+    font-size: 0.92rem;
+    min-height: 2.6em;
+  }
+
+  .ws-controls {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem 1.2rem;
+
+    fieldset {
+      border: 0;
+      margin: 0;
+      padding: 0;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    legend {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--gray);
+      padding: 0;
+      margin-bottom: 0.1rem;
+    }
+  }
+
+  .ws-slider {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.86rem;
+
+    span {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    output {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      text-align: right;
+    }
+
+    input {
+      width: 100%;
+      margin: 0.1rem 0 0;
+      accent-color: var(--secondary);
+    }
+
+    input:disabled {
+      opacity: 0.55;
+    }
+  }
+
+  .ws-toggle {
+    font-size: 0.86rem;
+    display: flex;
+    gap: 0.4rem;
+    align-items: baseline;
+
+    input {
+      accent-color: var(--secondary);
+      // Quartz styles task-list checkboxes with a negative inline margin.
+      margin-inline: 0;
+      flex: none;
+    }
+  }
+
+  .ws-bdp {
+    margin: 0.5rem 0 0.2rem;
+    font-size: 0.86rem;
+    color: var(--gray);
+  }
+
+  .ws-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 0.9rem;
+    font-size: 0.78rem;
+    color: var(--darkgray);
+    margin-top: 0.5rem;
+  }
+
+  .ws-key::before {
+    content: "";
+    display: inline-block;
+    width: 1.1em;
+    height: 0;
+    margin-right: 0.3em;
+    vertical-align: middle;
+    border-top: 2px solid currentColor;
+  }
+
+  .ws-key-seg::before { border-color: var(--ws-seg); }
+  .ws-key-ack::before { border-color: var(--ws-ack); }
+  .ws-key-right::before { border-color: var(--ws-right); border-top-style: dashed; }
+  .ws-key-read::before { border-color: var(--ws-read); border-top-style: dotted; }
+  .ws-key-rtx::before { border-color: var(--ws-rtx); border-top-width: 3px; }
+  .ws-key-update::before { border-color: var(--gray); border-top-style: dashed; }
+  .ws-key-offer::before { border-color: var(--ws-right); }
+
+  .ws-key-probe::before {
+    width: 0.6em;
+    height: 0.6em;
+    border: 2px solid var(--ws-probe);
+    border-radius: 50%;
+  }
+
+  .ws-key-held::before {
+    height: 0.7em;
+    border: 0;
+    background: var(--ws-held);
+  }
+
+  .ws-plot {
+    width: 100%;
+    touch-action: pan-y;
+    user-select: none;
+  }
+
+  .ws-chart {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  .ws-grid { stroke: var(--lightgray); stroke-width: 1; }
+  .ws-tick, .ws-axis { fill: var(--gray); font-size: 11px; font-family: var(--bodyFont); }
+  .ws-axis { fill: var(--darkgray); }
+  .ws-seg { stroke: var(--ws-seg); stroke-width: 1.4; fill: none; }
+  .ws-rtx { stroke: var(--ws-rtx); stroke-width: 3; fill: none; }
+  .ws-lost { stroke: var(--ws-rtx); stroke-width: 2; fill: none; }
+  .ws-ack { stroke: var(--ws-ack); stroke-width: 1.6; fill: none; }
+  .ws-right { stroke: var(--ws-right); stroke-width: 1.6; stroke-dasharray: 5 3; fill: none; }
+  .ws-read { stroke: var(--ws-read); stroke-width: 1.6; stroke-dasharray: 1.5 2.5; fill: none; }
+  .ws-probe { fill: var(--light); stroke: var(--ws-probe); stroke-width: 2; }
+  .ws-update { stroke: var(--gray); stroke-width: 1; stroke-dasharray: 3 3; }
+  .ws-update-lost { stroke: var(--ws-rtx); }
+  .ws-cap { stroke: var(--gray); stroke-width: 1; stroke-dasharray: 2 2; }
+  .ws-held { fill: var(--ws-held); stroke: var(--ws-read); stroke-width: 1; }
+  .ws-offer { stroke: var(--ws-right); stroke-width: 1.6; fill: none; }
+  .ws-brush { fill: var(--highlight); stroke: var(--secondary); stroke-width: 1; }
+
+  .ws-plot-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    color: var(--gray);
+
+    button {
+      font: inherit;
+      padding: 0.15rem 0.55rem;
+      border: 1px solid var(--lightgray);
+      border-radius: 4px;
+      background: var(--light);
+      color: var(--darkgray);
+      cursor: pointer;
+    }
+  }
+
+  .ws-readout {
+    margin: 0.6rem 0 0.3rem;
+    font-size: 0.92rem;
+    min-height: 4.2em;
+  }
+
+  figcaption {
+    font-size: 0.8rem;
+    color: var(--gray);
+  }
+
+  @media (max-width: 720px) {
+    .ws-controls {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 480px) {
+    padding: 0.7rem 0.6rem;
+
+    .ws-controls {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}

@@ -12,6 +12,7 @@ import { render as renderQueueLab } from "./queue-lab/render";
 import { render as renderPageReplacement } from "./page-replacement/render";
 import { render as renderCommitSim } from "./commit-sim/render";
 import { render as renderIntervalGreedy } from "./interval-greedy/render";
+import { render as renderWindowSim } from "./window-sim/render";
 
 export interface Component {
   render: (props: Record<string, unknown>) => string;
@@ -29,4 +30,5 @@ export const components: Record<string, Component> = {
   PageReplacement: { render: renderPageReplacement, module: "page-replacement" },
   CommitSim: { render: renderCommitSim, module: "commit-sim" },
   IntervalGreedy: { render: renderIntervalGreedy, module: "interval-greedy" },
+  WindowSim: { render: renderWindowSim, module: "window-sim" },
 };
