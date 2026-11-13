@@ -99,10 +99,24 @@ registering.
 - Lead with intuition, then the precise definition and formulas.
 - Keep it concrete. Cut generic filler, repetition, and phrasing that sounds
   machine-written.
-- Use progressive disclosure: collapsed callouts (`> [!info]- Title`) for deep
-  dives, and a separate linked note when an aside outgrows the page.
+- Use progressive disclosure: collapsed callouts (`> [!note]- Deep dive: ...`)
+  for deep dives, and a separate linked note when an aside outgrows the page.
 - Put sources inline, at the claim they support. Link related notes on the site
   where a concept branches, and cover recent work where it matters.
+- Optionally, end the note with a collapsed section of ideas that came up
+  while you researched it, such as an open question a paper raised or a
+  variant the experiments hinted at but didn't test:
+
+  ```md
+  > [!note]- Potentially interesting ideas
+  > - An idea, with a sentence on why it might be worth exploring and a link to
+  >   whatever raised it.
+  ```
+
+  Write only ideas that actually came up during the work. Don't go looking for
+  discoveries to fill the section. Phrase each one as an idea, not a result,
+  and say what is unknown about it. Leave the section out when nothing came
+  up.
 - Keep the frontmatter to the rules in `notes/AGENTS.md` and
   `notes/.notes/frontmatter.yml`, including the `authors` rule.
 
