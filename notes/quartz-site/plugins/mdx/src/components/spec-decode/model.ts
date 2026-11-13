@@ -5,7 +5,9 @@
 // here samples; the figure replays what the models did.
 
 import traceData from "../../../../../../content/ml/serving-systems/speculative-decoding/trace.json";
-import resultsData from "../../../../../../content/ml/serving-systems/speculative-decoding/results.json";
+// Named imports let the bundler drop the parts of results.json the figures
+// do not use (corpus and environment metadata).
+import { alpha, costs, run_setup, runs } from "../../../../../../content/ml/serving-systems/speculative-decoding/results.json";
 
 /** [token id, draft probability p, target probability q] */
 export type Top = [number, number, number];
@@ -58,7 +60,7 @@ interface Results {
   run_setup: { gammas: number[] };
 }
 
-export const results = resultsData as unknown as Results;
+export const results = { alpha, runs, costs, run_setup } as unknown as Results;
 
 export const piece = (trace: Trace, id: number): string => trace.pieces[String(id)] ?? "?";
 
