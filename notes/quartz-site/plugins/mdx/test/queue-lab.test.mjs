@@ -139,5 +139,8 @@ test("renders a complete figure with no missing numbers", () => {
     assert.ok(html.startsWith('<figure class="ql"'));
     assert.ok(!/NaN|undefined/.test(html), "no NaN or undefined in the markup");
     assert.equal((html.match(/class="ql-pt /g) ?? []).length, 2 * m.SWEEP_RHOS.length, "a mean and a p99 point per load");
+    // Two figures on one page must not share a radio group, so each keeps its
+    // controls in a form of its own.
+    assert.match(html, /<form class="ql-controls">[^]*name="servers"[^]*<\/form>/, "server radios sit inside the figure's form");
   }
 });

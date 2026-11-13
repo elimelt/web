@@ -248,6 +248,8 @@ export function mount(root: HTMLElement): () => void {
   observer.observe(canvas);
 
   const onPlay = () => setPlaying(!playing);
+  const onSubmit = (e: Event) => e.preventDefault();
+  q<HTMLFormElement>("form.ql-controls").addEventListener("submit", onSubmit);
   playButton.addEventListener("click", onPlay);
   figure.addEventListener("change", onChange);
   rhoInput.addEventListener("input", () => {
@@ -288,5 +290,6 @@ export function mount(root: HTMLElement): () => void {
     observer.disconnect();
     playButton.removeEventListener("click", onPlay);
     figure.removeEventListener("change", onChange);
+    q<HTMLFormElement>("form.ql-controls").removeEventListener("submit", onSubmit);
   };
 }

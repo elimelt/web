@@ -1888,6 +1888,13 @@ figure.ql {
   .ql-table {
     width: 100%;
     margin: 0;
+    padding: 0;
+    border-collapse: collapse;
+
+    > * {
+      line-height: 1.4;
+    }
+
     font-size: 0.85rem;
     font-variant-numeric: tabular-nums;
 

@@ -267,12 +267,14 @@ export function render(props: Props): string {
   ).join("");
   return [
     `<figure class="ql" data-config="${esc(JSON.stringify(config))}" data-seed="${seed}">`,
-    `<div class="ql-controls">`,
+    // A form of its own scopes the server radio group to this figure; without
+    // it, every QueueLab on the page would share one "servers" group.
+    `<form class="ql-controls">`,
     `<label class="ql-slider"><span>Load ρ <output name="rho-out">${rhoLabel(config.rho)}</output></span><input type="range" name="rho" min="0.05" max="0.95" step="0.01" value="${config.rho}" disabled></label>`,
     `<fieldset class="ql-servers"><legend>Servers</legend><div class="ql-segs">${serverButtons}</div></fieldset>`,
     `<label class="ql-select"><span>Dispatch</span><select name="policy" disabled>${options(POLICIES, config.policy)}</select></label>`,
     `<label class="ql-select"><span>Service time</span><select name="dist" disabled>${options(DISTS, config.dist)}</select></label>`,
-    `</div>`,
+    `</form>`,
     `<div class="ql-stage"><canvas class="ql-anim" width="640" height="150" aria-label="Animation of the simulated queues: one column per server, with the job in service at the bottom and waiting jobs stacked above it."></canvas>`,
     `<div class="ql-stage-bar"><button type="button" name="play" disabled>Play</button><span class="ql-clock" data-part="clock">Animation runs once the page's script loads.</span></div></div>`,
     `<div class="ql-legend" aria-hidden="true"><span class="ql-key ql-mean">● mean</span><span class="ql-key ql-p99">■ p99</span><span class="ql-key">- - exact, where a formula exists</span><span class="ql-key ql-key-ghost" data-part="ghost-key" hidden></span></div>`,
