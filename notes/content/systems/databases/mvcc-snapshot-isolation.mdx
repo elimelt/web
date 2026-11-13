@@ -1,0 +1,287 @@
+---
+title: MVCC and Snapshot Isolation
+category: Database Systems
+tags:
+  - mvcc
+  - snapshot isolation
+  - concurrency control
+  - versioning
+  - garbage collection
+  - postgresql
+date: 2026-08-01
+updated: 2026-11-13
+status: evergreen
+description: How multiversion concurrency control works, with PostgreSQL as the running example. Covers version chains, snapshots and the visibility rule, what snapshot isolation does and does not prevent (replayed on a real PostgreSQL 16 server), how serializable snapshot isolation closes the gap, and what one idle snapshot does to an update-heavy table.
+sources:
+  - title: PostgreSQL docs, Concurrency Control
+    url: https://www.postgresql.org/docs/current/mvcc.html
+    type: docs
+  - title: Berenson et al. (1995), A Critique of ANSI SQL Isolation Levels
+    url: https://arxiv.org/abs/cs/0701157
+    type: paper
+  - title: Fekete, O'Neil, O'Neil (2004), A Read-Only Transaction Anomaly Under Snapshot Isolation
+    url: https://dl.acm.org/doi/10.1145/1031570.1031573
+    type: paper
+  - title: Fekete et al. (2005), Making Snapshot Isolation Serializable
+    url: https://dl.acm.org/doi/10.1145/1071610.1071615
+    type: paper
+  - title: Cahill, Röhm, Fekete (2008), Serializable Isolation for Snapshot Databases
+    url: https://dl.acm.org/doi/10.1145/1376616.1376690
+    type: paper
+  - title: Ports and Grittner (2012), Serializable Snapshot Isolation in PostgreSQL
+    url: https://arxiv.org/abs/1208.4179
+    type: paper
+  - title: Neumann, Mühlbauer, Kemper (2015), Fast Serializable Multi-Version Concurrency Control for Main-Memory Database Systems
+    url: https://db.in.tum.de/~muehlbau/papers/mvcc.pdf
+    type: paper
+  - title: Wu et al. (2017), An Empirical Evaluation of In-Memory Multi-Version Concurrency Control
+    url: https://www.vldb.org/pvldb/vol10/p781-Wu.pdf
+    type: paper
+  - title: Kleppmann, Designing Data-Intensive Applications, chapter 7
+    url: https://dataintensive.net/
+    type: book
+---
+
+## Purpose
+
+Most databases you will use run their transactions on multiversion concurrency control (MVCC). A write doesn't overwrite a row. It adds a new version and leaves the old one where it was, so a reader can keep reading the version that was current when it started. In the [PostgreSQL docs' phrasing](https://www.postgresql.org/docs/current/mvcc-intro.html), "reading never blocks writing and writing never blocks reading."
+
+That one change explains most of how these systems behave. Readers get a consistent picture without taking locks. Writers still conflict with each other. The isolation level you get by default, snapshot isolation or something weaker, still allows anomalies that a lock-based serializable system would not. And the old versions have to be cleaned up by something, which can only happen once no open transaction might still read them.
+
+This note explains the mechanism and its consequences, with PostgreSQL as the running example because its versions are visible from SQL. The theory it implements (anomalies, serializability, the isolation ladder) is in [[systems/databases/transactions-serializability-isolation|Transactions, Serializability, and Isolation Levels]]. The claims about PostgreSQL's behavior were replayed on a PostgreSQL 16 server, and the measurements near the end come from the same server.
+
+## Versions, snapshots and visibility
+
+Every MVCC design answers three questions: where old versions live, how a reader picks the version it should see, and when an old version can be thrown away.
+
+**Where versions live.** [Wu et al. (2017)](https://www.vldb.org/pvldb/vol10/p781-Wu.pdf) sort real systems into three storage schemes (their table 1):
+
+- **Append-only.** Every version is a complete row in the main table. PostgreSQL does this: an `UPDATE` writes a whole new row and marks the old one as replaced. Hekaton, MemSQL and NuoDB also append.
+- **Delta (undo) storage.** The table holds only the newest version, updated in place, and older versions are rebuilt from undo records when a reader needs them. Oracle, MySQL's InnoDB and HyPer work this way.
+- **Time-travel.** The newest version stays in the table and complete old versions move to a separate area (SAP HANA).
+
+Append-only stores also choose a direction for the chain. In PostgreSQL an index entry points at the oldest version still on the page, and each version's `t_ctid` field points forward to its replacement ([README.HOT](https://github.com/postgres/postgres/blob/REL_16_STABLE/src/backend/access/heap/README.HOT)). So a lookup for the current row starts at the old end and walks forward. That chain only works while updates stay on the same page; an update that has to move to another page gets an index entry of its own, and a lookup then checks one index entry per version. Delta stores do the opposite: the current row is right there, and a reader with an old snapshot pays to rebuild the past. Who pays for old versions, new readers or old ones, comes up again in the measurements below.
+
+**How a reader picks a version.** Each version is stamped with the transaction that created it and, once it is replaced, the transaction that replaced it. In PostgreSQL these are the hidden columns `xmin` and `xmax`, both transaction ids (xids). A transaction gets an xid only when it first writes (`txid_current_if_assigned()` returns null until then), which keeps read-only transactions cheap.
+
+A snapshot records which transactions count as finished. PostgreSQL's has three parts ([pg_current_snapshot](https://www.postgresql.org/docs/current/functions-info.html)):
+
+- `xmin`, the lowest xid that was still running. Everything below it has finished.
+- `xmax`, one past the highest finished xid. Everything at or above it is treated as running, even after it commits.
+- `xip`, the xids between the two that were still running.
+
+A version is visible to a snapshot when its creator had committed as of the snapshot and its replacer, if it has one, had not. A transaction also sees its own writes. The rest of the implementation (hint bits, the commit log, the in-progress list) exists to answer that question quickly.
+
+**When a version can go.** A replaced version is garbage once every snapshot that could still see it is gone. PostgreSQL tracks the oldest `xmin` among open snapshots and running transactions, called the removal horizon. A version whose replacer committed below the horizon is invisible to everyone and can be removed. One old snapshot holds the horizon back for its whole database, and that is the source of most MVCC pain in production.
+
+## Step through it
+
+The figure runs short schedules of two or three transactions through a model of PostgreSQL's rules: versions stamped with `xmin` and `xmax`, snapshots taken the way PostgreSQL takes them, waits on row locks, and serializable snapshot isolation as `predicate.c` implements it. Each scenario was also replayed step by step on a real PostgreSQL 16 server, along with 80 random schedules, and the model matches the server on every step: the values read, which writes waited, which statements failed and with which error, and the final table. The harness is [`schedule.py`](mvcc-experiments/schedule.py), and the comparison runs as part of the figure's tests.
+
+<MvccLab scenario="write_skew" />
+
+Things to try:
+
+- **On-call doctors** at each level. Read committed and repeatable read both commit, and nobody is left on call. Serializable fails one doctor's commit.
+- **Two increments** at read committed: the second writer waits for the first, then writes 1 over the 1 that is already there. At repeatable read the waiting writer fails instead.
+- **A long reader holds back cleanup.** Step through at repeatable read and watch T1's snapshot keep two dead versions alive until T1 commits.
+- **Three transactions in a chain** at serializable: T2 fails. Pick T3's commit, press Later twice, and run it again: all three commit.
+
+## Snapshot isolation
+
+Under snapshot isolation (SI), a transaction reads everything from one snapshot, taken at its first statement, and two concurrent transactions may not both change the same row. The [Critique of ANSI SQL Isolation Levels](https://arxiv.org/abs/cs/0701157) defined SI with a first-committer-wins rule: when two concurrent transactions wrote the same item, whichever commits second aborts. PostgreSQL's REPEATABLE READ is SI, but it enforces the rule at the write rather than at commit, which is often called first-updater-wins. A transaction that tries to update a row that another running transaction has already updated [waits for that transaction to finish](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-REPEATABLE-READ). If the other one rolls back, the update goes ahead. If it commits, the waiting transaction fails with `could not serialize access due to concurrent update`.
+
+A frozen snapshot plus a ban on concurrent writes to one row rules out a lot. Table 4 of the Critique lists dirty writes and dirty reads (P0, P1), fuzzy reads (P2), lost updates (P4) and read skew (A5A) as impossible under SI. It also rules out the strict form of phantoms (A3), though not every predicate-based variant (P3). What remains possible is **write skew** (A5B).
+
+The standard example ([Ports and Grittner 2012](https://arxiv.org/abs/1208.4179), section 2.1.1, based on [Cahill et al. 2008](https://dl.acm.org/doi/10.1145/1376616.1376690); also in [Kleppmann, chapter 7](https://dataintensive.net/)): a hospital requires at least one doctor on call. Alice and Bob are both on call and both feel unwell. Each runs a transaction that counts the doctors on call, sees two, and takes themselves off. Alice writes Alice's row and Bob writes Bob's row, so no row is written twice and SI has nothing to object to. Both commit, and nobody is on call. Each transaction was correct on its own, and each one's check went stale in exactly the row the other one changed.
+
+There is a subtler case. [Fekete, O'Neil and O'Neil (2004)](https://dl.acm.org/doi/10.1145/1031570.1031573) showed that a transaction that only reads can observe a state that fits no serial order, even when the writers by themselves are serializable. Checking account X and savings account Y both start at 0, and a withdrawal that takes X + Y below zero costs a fee of 1. T2 starts a withdrawal of 10 and reads both balances. T1 deposits 20 into savings and commits. T3, a report, prints X = 0 and Y = 20 and commits. Then T2 writes X = −11, charging the fee because its snapshot showed X + Y = 0. The final state says the withdrawal happened before the deposit, while T3's report says the deposit happened and the withdrawal hadn't. No serial order of the three explains both. Without T3 the history is fine: it is equivalent to T2 then T1.
+
+### What PostgreSQL 16 actually did
+
+[`schedule.py`](mvcc-experiments/schedule.py) replays each interleaving on a real server, one step at a time, with one connection per transaction. These are the figure's schedules, and the outcomes are in [`pg_outcomes.json`](mvcc-experiments/pg_outcomes.json):
+
+| Interleaving | Read committed | Repeatable read (SI) | Serializable (SSI) |
+| --- | --- | --- | --- |
+| Two increments of a counter at 0 | both commit, counter = 1 (lost update) | second writer waits, then fails | second writer waits, then fails |
+| On-call doctors, both write, then both commit | both commit, nobody on call | both commit, nobody on call | second commit fails |
+| On-call doctors, Alice commits before Bob writes | both commit, nobody on call | both commit, nobody on call | Bob's write fails |
+| A transfer read halfway by T1 | T1 adds up 110 (read skew) | T1 adds up 100 | T1 adds up 100 |
+| Fekete's read-only anomaly | all commit, anomaly | all commit, anomaly | the withdrawal's write fails |
+| rw chain T1 → T2 → T3, T3 commits first | all commit | all commit | T2's commit fails |
+| The same chain, commits in order | all commit | all commit | all commit |
+
+The last two rows are the same three transactions with a different commit order. The first of them is in fact serializable (running T1, T2, T3 in that order reads the same values), and PostgreSQL aborts T2 anyway. That is the price of the cheap test described below.
+
+### Read committed in an MVCC engine
+
+Read committed takes a new snapshot for every statement instead of one per transaction. That prevents dirty reads, but a transaction can see a transfer halfway through and add up 110, as in the table. Updates get special treatment. When an `UPDATE` finds that the row it wants is being changed by another transaction, it waits. If the other transaction commits, PostgreSQL re-reads the newest version of the row, checks that it still matches the `WHERE` clause, and updates that version ([docs](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-READ-COMMITTED)). So `UPDATE t SET v = v + 1` is safe under read committed. A read followed by a write of a value computed in the application is not: the second writer overwrites the first with the same value, and one increment is lost. The fixes are an atomic `UPDATE`, `SELECT ... FOR UPDATE`, or a higher isolation level.
+
+> [!info]- MySQL's REPEATABLE READ is not quite snapshot isolation
+> InnoDB is a delta store: rows carry a transaction id and a pointer into the undo log, and old versions are rebuilt from undo records until purge discards them ([InnoDB multi-versioning](https://dev.mysql.com/doc/refman/8.4/en/innodb-multi-versioning.html)). Its consistent snapshot, though, "applies to SELECT statements within a transaction, not necessarily to DML statements" ([consistent nonlocking reads](https://dev.mysql.com/doc/refman/8.4/en/innodb-consistent-read.html)). An `UPDATE` or `DELETE` under REPEATABLE READ acts on the newest committed row, including rows that other transactions committed after the snapshot. Where PostgreSQL would fail the update with a serialization error, InnoDB lets it proceed, so a read-modify-write under InnoDB's REPEATABLE READ can lose an update the way read committed does. The docs don't use the words "lost update"; that conclusion follows from the behavior they describe. The usual remedy there is a locking read, `SELECT ... FOR UPDATE`.
+
+## Making snapshot isolation serializable
+
+[Fekete et al. (2005)](https://dl.acm.org/doi/10.1145/1071610.1071615) proved the result the rest builds on. Draw the dependency graph of a history: an edge T → U when T must come before U in any equivalent serial order. The edges are ww (U overwrote T's write), wr (U read T's write) and rw (T read a version that U then replaced). Under SI, every cycle in that graph contains two rw edges in a row, T1 → T2 → T3, where each adjacent pair ran concurrently (T1 and T3 may be the same transaction). The middle transaction read something that a concurrent transaction overwrote and wrote something that a concurrent transaction had read. It is usually called the pivot.
+
+Write skew is the two-transaction case. Alice → Bob because Alice read Bob's row before Bob changed it, and Bob → Alice the same way. That is the red cycle in the figure.
+
+[Cahill, Röhm and Fekete (2008)](https://dl.acm.org/doi/10.1145/1376616.1376690) turned the theorem into an algorithm, serializable snapshot isolation (SSI). Run everything under SI. Record what each transaction reads with SIREAD locks, which block nobody and are kept after commit until every overlapping transaction has finished. Flag an rw-conflict whenever a write lands on something a concurrent transaction read, or a read skips a version written by a concurrent transaction. Abort a transaction when it has both an incoming and an outgoing rw-conflict. The test is conservative: it never lets a cycle through, but two consecutive rw edges don't always close a cycle, so it also aborts some transactions whose history would have been serializable.
+
+PostgreSQL has used SSI for SERIALIZABLE since 9.1 ([Ports and Grittner 2012](https://arxiv.org/abs/1208.4179)). It refines the test in two main ways:
+
+- **Commit order.** A dangerous structure T1 → T2 → T3 can only produce an anomaly if T3 commits first (section 3.3.1). The two chain rows in the table show both sides of this rule.
+- **Read-only transactions.** A transaction that only reads can be in trouble only if T3 committed before its snapshot was taken. A `SERIALIZABLE READ ONLY DEFERRABLE` transaction waits for a snapshot on which no anomaly is possible, then runs with no SSI overhead at all. It is the one case where SERIALIZABLE blocks and REPEATABLE READ doesn't ([docs](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-SERIALIZABLE)).
+
+The application has to retry any transaction that fails with SQLSTATE `40001`. Ports and Grittner report a cost of less than 7% against SI on their benchmarks: a 5% slowdown on an in-memory DBT-2 variant, and 10 to 20% more CPU on the SIBENCH microbenchmark.
+
+> [!info]- How PostgreSQL decides which transaction to abort
+> The checks live in [`predicate.c`](https://github.com/postgres/postgres/blob/REL_16_STABLE/src/backend/storage/lmgr/predicate.c), and the figure's model follows them.
+>
+> - **Recording conflicts.** Reading a version whose `xmax` belongs to a concurrent serializable transaction flags reader → replacer (a conflict out). Updating a version that a concurrent transaction holds a SIREAD lock on flags lock holder → updater (a conflict in).
+> - **On each new conflict** R → W, `OnConflict_CheckForSerializationFailure` looks for a dangerous structure that is already certain to matter. One case: W has an outgoing conflict to a T2 that has already committed, and neither R nor W committed before T2. The other: W has committed, or is committing, and R has an incoming conflict from a transaction that didn't commit before W. If the current transaction is the writer, it fails immediately. Otherwise the writer is marked doomed and fails at its next statement or at commit.
+> - **At commit**, `PreCommit_CheckForSerializationFailure` looks for transactions that read something this one wrote and are themselves the target of a conflict from a transaction still running. Each is a pivot whose T3 is about to commit first, so it is doomed. Dooming the pivot rather than the committer guarantees progress: the committing transaction keeps its writes, and a retry of the pivot will see them.
+> - **Conflicts are summarized at commit.** Conflicts to transactions that already committed are replaced by a flag and the sequence number of the earliest such commit, and a transaction that commits without writing is treated as read-only from then on.
+>
+> Predicate locks start at row granularity and are promoted to page or relation locks when a transaction holds many of them (`max_pred_locks_per_transaction`, `max_pred_locks_per_relation`, `max_pred_locks_per_page`), and a sequential scan locks the whole relation. Both make false positives more likely, which is why the replays read every row through an index.
+
+### What SSI cost here
+
+[`pgbench.sh`](mvcc-experiments/pgbench.sh) runs pgbench's built-in TPC-B-like workload for 30 seconds with 8 clients at each level, letting pgbench retry a transaction that fails with a serialization error up to 10 times. Each transaction updates one account, one teller and one branch row, and at this scale there are only 10 branches, so concurrent transactions often update the same branch. The tables were rebuilt before every run. Mean ± standard deviation over 3 runs ([`pgbench.txt`](mvcc-experiments/pgbench.txt)):
+
+| | Transactions per second | Retried at least once | Failed after 10 tries |
+| --- | --- | --- | --- |
+| Read committed | 7,857 ± 111 | 0% | 0% |
+| Repeatable read (SI) | 5,849 ± 164 | 39.1% | 0.10% |
+| Serializable (SSI) | 1,364 ± 41 | 86.5% | 43.2% |
+| Serializable, sequential scans off | 5,614 ± 36 | 39.2% | 0.09% |
+
+Repeatable read costs a quarter of the throughput here, and none of that is SSI. It is first-updater-wins: two transactions that update the same branch row can't both commit, so 39% of transactions had to run again, where read committed just updated the newest version.
+
+Serializable with default settings collapsed, and the reason is one line in the plan. `pgbench_branches` is so small that the planner updates it with a sequential scan, and a sequential scan [takes a predicate lock on the whole table](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-SERIALIZABLE). Every transaction then "read" every branch, so any two that overlapped had rw-conflicts in both directions whichever branches they touched. Turning sequential scans off lets each transaction lock only the branch row it reads, and SSI then cost 4% more than SI: the same retry rate, and throughput within the range Ports and Grittner report. In a first pass that reused the tables from run to run ([`pgbench_first_pass.txt`](mvcc-experiments/pgbench_first_pass.txt)), serializable runs swung between the two outcomes, which is why the runs above start from fresh tables.
+
+## An in-memory design: HyPer
+
+PostgreSQL's design dates from disk-based systems. [Neumann, Mühlbauer and Kemper (2015)](https://db.in.tum.de/~muehlbau/papers/mvcc.pdf) show what MVCC looks like when it is built for main memory:
+
+- **Delta storage, newest to oldest.** The table holds the newest version in place, and each transaction keeps an undo buffer of before-images. A row's version chain runs from the current value back through those undo entries.
+- **Timestamps instead of snapshots.** Start and commit times come from one counter. An uncommitted undo entry carries its writer's transaction id, and those ids start at 2^63, so the entry looks newer than every reader's start time and stays invisible to other transactions. Committing restamps the entries with the commit time.
+- **Rows nobody changed recently cost nothing.** A reader walks a chain only if the row has a version newer than its start time.
+- **Optimistic validation instead of SSI.** "In contrast to SSI" (section 5.2), HyPer doesn't track dependencies. Each transaction logs the predicates it read, and at commit it checks them against the before- and after-images of the transactions that committed while it ran, a form of precision locking. If any of those writes would have changed what a predicate matched, the transaction aborts.
+
+```text
+write(T, row, value):
+    if row has an uncommitted version, or one committed after T.start: abort T
+    append (row, current value) to T.undo, stamped T.id     # T.id >= 2^63
+    link that entry at the head of row's chain; write value in place
+
+read(T, row):
+    v = value in place; e = head of row's chain
+    while e and e.stamp > T.start and e is not T's own:
+        v = e.before_image; e = e.next                     # walk back in time
+    return v
+
+commit(T):
+    check T's read predicates against the undo buffers of the
+        transactions that committed after T.start; abort T on a hit
+    T.commit = next counter value; restamp T's undo entries with it
+```
+
+On TPC-C, full serializability costs around 20% of throughput against the same engine with single-version concurrency control, still more than 100,000 transactions per second, while two-phase locking gives about a fifth of the throughput (section 4.3). The abstract concludes that with this design "there is little need to prefer SI over full serializability any longer."
+
+Wu et al. compared these design choices inside one in-memory engine. They found that the version storage scheme matters more for scaling than the concurrency control protocol, against the usual focus on the protocol, and that collecting garbage per transaction rather than per row gave the best performance with the smallest memory footprint (section 8).
+
+## The cost: garbage
+
+### One idle snapshot
+
+[`bloat.py`](mvcc-experiments/bloat.py) runs three writer threads that update random rows of a 10,000-row table at 1,500 updates per second, for 210 seconds. In one condition nothing else happens. In the other, a REPEATABLE READ transaction reads one row at the start and then sits idle for 150 seconds before committing, which is what a forgotten `BEGIN` in a psql window or a stalled job looks like. Every 5 seconds a sampler records the table's size and point-read cost. Mean ± standard deviation over 3 runs of each, read at 145 seconds, just before the idle transaction ends ([`bloat.txt`](mvcc-experiments/bloat.txt)):
+
+| | No idle snapshot | One idle snapshot |
+| --- | --- | --- |
+| Table (heap) size | 1.3 MB | 29.1 MB |
+| Index size | 0.23 MB | 1.74 MB |
+| Dead versions | 441 ± 24 | 217,072 ± 630 |
+| Updates that were HOT | 99.8% | 0.9% |
+| Buffers touched by one point read, new session | 3.0 | 24.6 ± 0.3 |
+| Server time of that read (median) | 11 ± 3 µs | 30 ± 4 µs |
+| Buffers touched by the same read in the idle transaction | | 24.9 ± 0.2 |
+| `count(*)` over the table | 1.2 ± 0.3 ms | 9.3 ± 1.9 ms |
+
+The idle transaction never touched more than one row, yet the whole table grew about 22 times, by roughly 2 MB every 10 seconds. Without it, the updates cleaned up after themselves: each one found the page holding its row, pruned the dead versions there and wrote the new version into the freed space as a heap-only tuple. With the horizon pinned nothing on the page could be pruned, so the new version went to another page, which also needed a new index entry.
+
+The point reads show where that cost lands. After 145 seconds each row had about 22 dead versions (217,072 over 10,000 rows), each with its own index entry, and a lookup checks every entry for its key: about 22 heap pages, plus the index pages, comes to the 24.6 buffers measured. A new session pays that even though it wants only the newest version, and so does the idle transaction, which wants the oldest. Autovacuum ran during the held runs too but could remove almost nothing.
+
+Committing the idle transaction fixed reads quickly: within 15 seconds autovacuum had run and a point read was back to 3 buffers. By the end of the run the dead count was 14,178 ± 645. The space did not come back. The table stayed at 30.1 MB and `count(*)` still took 7.0 ± 1.7 ms against 0.9 ms, because `VACUUM` marks space as free for reuse inside the table rather than returning it. Shrinking it takes `VACUUM FULL` or another full rewrite, which locks the table while it runs.
+
+### Which snapshots count
+
+Which open transactions count? [`horizon.py`](mvcc-experiments/horizon.py) updates every row of a 10,000-row table five times, making 50,000 dead versions, and then runs `VACUUM (VERBOSE)` while one other session sits in an open transaction that never touches the table ([`horizon.json`](mvcc-experiments/horizon.json)):
+
+| The other session | Removed by `VACUUM` | Dead but not removable |
+| --- | --- | --- |
+| none | 10,015 | 0 |
+| REPEATABLE READ, same database, has run a query | 0 | 50,000 |
+| REPEATABLE READ, another database on the same server | 10,015 | 0 |
+| READ COMMITTED, same database, idle between queries | 10,015 | 0 |
+| READ COMMITTED, same database, has a transaction id | 0 | 50,000 |
+
+With nobody holding, the updates must have already pruned about 40,000 of the dead versions themselves, and `VACUUM` removed the rest. What pins the horizon is a snapshot that stays open, which READ COMMITTED doesn't keep between statements, or a transaction id, which any transaction gets once it writes. So an idle `BEGIN` that has run one `UPDATE` holds back cleanup for its whole database whatever its isolation level, while a session in another database doesn't, because the horizon for ordinary tables is computed per database ([`procarray.c`](https://github.com/postgres/postgres/blob/REL_16_STABLE/src/backend/storage/ipc/procarray.c), `ComputeXidHorizons`). The shared system catalogs are the exception and use a horizon across all databases. Other things that hold the horizon, not tested here, include prepared transactions that were never finished and replication slots. `pg_stat_activity.backend_xmin` and `backend_xid` show which sessions are holding it, and `idle_in_transaction_session_timeout` ends sessions that sit idle inside a transaction.
+
+### Cleaning up in PostgreSQL
+
+PostgreSQL removes dead versions in two ways. Reading or updating a page can prune it: dead versions in a chain of heap-only tuples (HOT) are cut out and their space reused without touching any index. An update is HOT when it changes no indexed column and the new version fits on the same page. `VACUUM` removes dead versions everywhere, index entries included, and records the free space for reuse. Autovacuum runs it on a table once roughly 20% of its rows are dead (`autovacuum_vacuum_scale_factor` 0.2 plus 50 rows, by default). Neither can remove a version that some open snapshot can still see.
+
+> [!info]- Transaction id wraparound and freezing
+> Transaction ids are 32 bits and compared modulo 2^32, so from any xid about two billion others are in the past and two billion in the future. A row stamped with an old enough xid would suddenly look as if it had been written in the future, and vanish. [`VACUUM` prevents that](https://www.postgresql.org/docs/current/routine-vacuuming.html#VACUUM-FOR-WRAPAROUND) by freezing old rows, marking them visible to everyone whatever their `xmin`, and every table must be vacuumed at least once every two billion transactions. Autovacuum forces a freezing pass on any table whose oldest unfrozen xid is more than `autovacuum_freeze_max_age` (default 200 million) transactions old, even when autovacuum is otherwise off.
+>
+> If freezing falls behind anyway, usually because a snapshot or a forgotten prepared transaction pins the horizon, PostgreSQL starts warning when fewer than 40 million xids remain. Below three million it stops assigning new xids: anything that would write fails with `database is not accepting commands that assign new transaction IDs to avoid wraparound data loss`, while reads and `VACUUM` still work. Older releases told administrators to stop the server and vacuum in single-user mode; the current docs say that is neither necessary nor desirable.
+
+## MVCC compared with locking
+
+- **Reads.** MVCC readers take no locks and never wait, so a long report can run against a snapshot while writes continue. Under two-phase locking, a long reader blocks every writer that touches what it read.
+- **Writes.** Writers still conflict with writers. PostgreSQL makes the second writer wait for the first and then, above read committed, fail if the first one committed. Some of the cost moves from waiting to retrying.
+- **Serializability.** Locking gets it by blocking. MVCC gets it by detecting dangerous structures and aborting (SSI), or by validating at commit (HyPer), and the application has to retry.
+- **Storage.** A single-version engine updates in place and is done. MVCC leaves dead versions behind, and something has to find and remove them: `VACUUM` in PostgreSQL, purge in InnoDB, per-transaction garbage collection in in-memory engines.
+- **Long transactions.** The removal rule makes a database wait for its oldest snapshot. One session left `idle in transaction`, or a day-long analytics query, keeps every dead version in its database alive, whichever tables it touched.
+
+MVCC moves the cost of concurrency out of the lock manager and into storage maintenance, and the operational work moves with it.
+
+> [!note]- How this was measured
+> Everything ran on one Linux 6.18 virtual machine with 4 vCPUs and 15 GB of memory, against a local PostgreSQL 16.15 server with `shared_buffers` at 1 GB, `max_connections` at 200 and every other setting at its default (autovacuum on, `synchronous_commit` on). The clients were Python 3.13 with psycopg 3.3.9, and pgbench 16. Each experiment ran on its own, one after another, because an open transaction in one experiment holds back cleanup for every other experiment in the same database. The scripts and their raw output are in [`mvcc-experiments/`](mvcc-experiments/schedule.py):
+>
+> - `python3 schedule.py schedules.json > pg_outcomes.json` and `python3 schedule.py random_schedules.json > pg_random.json` replay the schedules, in a database of their own. A step still running after half a second counts as blocked.
+> - `python3 bloat.py --reps 3 > bloat.json`, then `python3 summarize.py bloat.json > bloat.txt`, take about 21 minutes.
+> - `python3 horizon.py > horizon.json` takes a few seconds.
+> - `sh pgbench.sh > pgbench.txt` takes about 8 minutes.
+>
+> The figure's tests (`plugins/mdx/test/mvcc-lab.test.mjs`) replay both schedule files through the model and require every step to match. The first replay of the random schedules disagreed with the model on 17 of 80 schedules. Two causes were in the harness: it handled a statement sent by a transaction that was still waiting differently from a real client, and its "add 1" used the value last read instead of the value last written. The third was in the model, which recorded a statement queued behind a waiting one as if it had run straight away. After fixing all three, all 80 match at all three levels.
+
+> [!tip]- Potentially interesting ideas
+> These came up while doing the research for this note. None of them was tested, and each would need its own experiment before it could be called a result.
+
+- **Who pays for an old snapshot may depend on the storage scheme.** In the bloat runs, PostgreSQL's new and old readers paid the same 25 buffers per lookup, because every version had its own index entry. A delta store such as InnoDB keeps one index entry per row and rebuilds old versions from undo, so the same idle snapshot might cost new readers almost nothing there while the old reader walks the undo chain. Running `bloat.py`'s workload against MySQL would check this.
+- **How many SSI aborts are false positives.** The two chain schedules show that PostgreSQL's commit-order test aborts some histories that were serializable. The figure's model already has a brute-force serializability check, so it could count what share of the aborts in its 2,000 random serializable runs were unnecessary. That share in a random model says little about a real workload, though.
+- **The replay harness as a checker for other engines.** Replaying a schedule on a real server, step by step, caught two problems in the harness and one in the model before the two agreed on all 80 random schedules. The same schedules replayed on MySQL's REPEATABLE READ would show, step by step, where it departs from snapshot isolation.
+
+## Related notes
+
+- [[systems/databases/transactions-serializability-isolation|Transactions, Serializability, and Isolation Levels]]: the anomalies and isolation levels this note implements.
+- [[systems/distributed-systems/two-phase-commit|Two-Phase Commit]]: atomic commit across machines, and the strict two-phase locking that MVCC avoids for reads.
+- [[systems/distributed-systems/clocks|Clocks]]: how distributed MVCC systems such as Spanner and CockroachDB choose snapshot timestamps without a single counter.
+- [[systems/databases/foundations/ch3-storage-and-retrieval|Storage and Retrieval]]: the storage engines underneath.
+- [[systems/distributed-systems/bigtable|Bigtable]]: versioned cells with timestamps, without multi-row transactions.
+
+## Sources
+
+- [PostgreSQL docs: concurrency control](https://www.postgresql.org/docs/current/mvcc.html), [transaction isolation](https://www.postgresql.org/docs/current/transaction-iso.html), [routine vacuuming](https://www.postgresql.org/docs/current/routine-vacuuming.html), [snapshot functions](https://www.postgresql.org/docs/current/functions-info.html)
+- PostgreSQL 16 source: [`predicate.c`](https://github.com/postgres/postgres/blob/REL_16_STABLE/src/backend/storage/lmgr/predicate.c), [`procarray.c`](https://github.com/postgres/postgres/blob/REL_16_STABLE/src/backend/storage/ipc/procarray.c), [`README.HOT`](https://github.com/postgres/postgres/blob/REL_16_STABLE/src/backend/access/heap/README.HOT)
+- [Berenson, Bernstein, Gray, Melton, O'Neil, O'Neil (1995), A Critique of ANSI SQL Isolation Levels](https://arxiv.org/abs/cs/0701157)
+- [Fekete, O'Neil, O'Neil (2004), A Read-Only Transaction Anomaly Under Snapshot Isolation](https://dl.acm.org/doi/10.1145/1031570.1031573)
+- [Fekete, Liarokapis, O'Neil, O'Neil, Shasha (2005), Making Snapshot Isolation Serializable](https://dl.acm.org/doi/10.1145/1071610.1071615)
+- [Cahill, Röhm, Fekete (2008), Serializable Isolation for Snapshot Databases](https://dl.acm.org/doi/10.1145/1376616.1376690)
+- [Ports and Grittner (2012), Serializable Snapshot Isolation in PostgreSQL](https://arxiv.org/abs/1208.4179)
+- [Neumann, Mühlbauer, Kemper (2015), Fast Serializable Multi-Version Concurrency Control for Main-Memory Database Systems](https://db.in.tum.de/~muehlbau/papers/mvcc.pdf)
+- [Wu, Arulraj, Lin, Xian, Pavlo (2017), An Empirical Evaluation of In-Memory Multi-Version Concurrency Control](https://www.vldb.org/pvldb/vol10/p781-Wu.pdf)
+- [MySQL 8.4 reference: InnoDB multi-versioning](https://dev.mysql.com/doc/refman/8.4/en/innodb-multi-versioning.html), [consistent nonlocking reads](https://dev.mysql.com/doc/refman/8.4/en/innodb-consistent-read.html)
+- [Kleppmann, Designing Data-Intensive Applications, chapter 7](https://dataintensive.net/)

@@ -1,0 +1,483 @@
+// MVCC lab (mvcc-lab). Each transaction keeps one series color everywhere it
+// appears: its steps, the versions it wrote and its node in the graph.
+// T1 blue, T2 orange, T3 purple; versions from the initial load are gray.
+
+figure.mv {
+  @include fig-frame;
+  font-size: 0.9rem;
+
+  --mv-t1: var(--fig-blue);
+  --mv-t2: var(--fig-orange);
+  --mv-t3: var(--fig-purple);
+  --mv-t0: var(--gray);
+
+  .t1 { --mv-c: var(--mv-t1); }
+  .t2 { --mv-c: var(--mv-t2); }
+  .t3 { --mv-c: var(--mv-t3); }
+  .t0 { --mv-c: var(--mv-t0); }
+
+  h4 {
+    margin: 0 0 0.35rem;
+    font-size: 0.82rem;
+    color: var(--darkgray);
+  }
+
+  button {
+    @include fig-button(0.25rem 0.65rem, 0.84rem);
+    @include fig-button-hover;
+  }
+
+  .mv-bar button:disabled {
+    cursor: default;
+    opacity: 0.55;
+  }
+
+  .mv-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.5rem 1rem;
+  }
+
+  .mv-scenario {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+    font-size: 0.8rem;
+    color: var(--gray);
+
+    select {
+      @include fig-button(0.25rem 0.4rem, 0.86rem);
+      max-width: 100%;
+    }
+  }
+
+  .mv-levels {
+    display: flex;
+    gap: 0.3rem;
+
+    button {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      line-height: 1.2;
+
+      small {
+        color: var(--gray);
+        font-size: 0.72rem;
+        font-weight: 400;
+      }
+    }
+
+    button[aria-pressed="true"] {
+      @include fig-pressed;
+    }
+  }
+
+  .mv-story {
+    margin: 0.6rem 0 0.5rem;
+    color: var(--darkgray);
+    font-size: 0.86rem;
+    line-height: 1.45;
+  }
+
+  .mv-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: mv-step;
+
+    li {
+      margin: 0;
+      padding: 0;
+      counter-increment: mv-step;
+    }
+  }
+
+  .mv-chip {
+    padding: 0.2rem 0.45rem;
+    border-left: 4px solid var(--mv-c);
+    border-radius: 3px;
+    color: var(--darkgray);
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+
+    &::before {
+      content: counter(mv-step) ". ";
+      color: var(--gray);
+    }
+
+    &.pending {
+      border-style: dashed;
+      border-left-style: solid;
+      color: var(--gray);
+    }
+
+    &.done {
+      background: color-mix(in srgb, var(--mv-c) 12%, transparent);
+    }
+
+    &.blocked {
+      background: repeating-linear-gradient(135deg, transparent 0 5px, var(--highlight) 5px 10px);
+    }
+
+    &.error {
+      background: color-mix(in srgb, var(--fig-red) 14%, transparent);
+      text-decoration: line-through;
+      text-decoration-color: var(--fig-red);
+    }
+
+    &.skipped {
+      opacity: 0.5;
+      text-decoration: line-through;
+    }
+
+    &.next {
+      outline: 2px solid var(--secondary);
+      outline-offset: 1px;
+    }
+
+    &.picked {
+      box-shadow: 0 0 0 2px var(--secondary) inset;
+    }
+
+    .mv-res {
+      color: var(--gray);
+      font-weight: 600;
+    }
+  }
+
+  .mv-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.55rem;
+  }
+
+  .mv-move {
+    display: flex;
+    gap: 0.3rem;
+    margin-left: auto;
+  }
+
+  .mv-note {
+    min-height: 2.6em;
+    margin: 0.5rem 0;
+    padding: 0.35rem 0.55rem;
+    border-left: 3px solid var(--secondary);
+    background: var(--highlight);
+    font-size: 0.84rem;
+    line-height: 1.4;
+  }
+
+  .mv-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 0.8rem;
+    align-items: start;
+  }
+
+  .mv-key {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    margin-bottom: 0.45rem;
+  }
+
+  .mv-keyname {
+    flex: 0 0 2.6rem;
+    padding-top: 0.45rem;
+    font-family: var(--codeFont);
+    font-size: 0.82rem;
+    overflow-wrap: anywhere;
+  }
+
+  .mv-chain {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .mv-ver {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 4.4rem;
+    margin: 0;
+    padding: 0.2rem 0.4rem;
+    border: 1px solid var(--lightgray);
+    border-top: 4px solid var(--mv-c);
+    border-radius: 3px;
+    line-height: 1.2;
+
+    b {
+      font-size: 1rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    small {
+      color: var(--gray);
+      font-size: 0.7rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    em {
+      color: var(--gray);
+      font-size: 0.68rem;
+      font-style: normal;
+    }
+
+    &.life-uncommitted {
+      border-style: dashed;
+      border-top-style: solid;
+    }
+
+    &.life-aborted {
+      opacity: 0.5;
+
+      b {
+        text-decoration: line-through;
+      }
+    }
+
+    &.life-kept {
+      background: color-mix(in srgb, var(--fig-orange) 10%, transparent);
+    }
+
+    &.life-removable {
+      background: repeating-linear-gradient(135deg, transparent 0 4px, var(--highlight) 4px 8px);
+
+      b {
+        color: var(--gray);
+      }
+    }
+
+    &.seen {
+      outline: 2px solid var(--secondary);
+      outline-offset: 1px;
+    }
+  }
+
+  .mv-horizon {
+    margin: 0.2rem 0 0;
+    color: var(--gray);
+    font-size: 0.76rem;
+    line-height: 1.35;
+  }
+
+  [data-part="txns"] {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .mv-txn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.1rem;
+    width: 100%;
+    padding: 0.3rem 0.5rem;
+    border-left: 4px solid var(--mv-c);
+    text-align: left;
+    font-size: 0.78rem;
+    line-height: 1.3;
+
+    &.focus {
+      border-color: var(--secondary);
+      border-left-color: var(--mv-c);
+      background: var(--highlight);
+    }
+
+    &.st-aborted .mv-txnhead {
+      text-decoration: line-through;
+    }
+
+    .mv-txnhead {
+      font-size: 0.84rem;
+
+      b {
+        color: var(--mv-c);
+      }
+    }
+
+    .mv-fail,
+    .mv-doom {
+      color: var(--fig-red);
+      font-weight: 600;
+    }
+  }
+
+  .mv-why {
+    margin-top: 0.6rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+
+    p {
+      margin: 0 0 0.2rem;
+      font-weight: 600;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 1.1rem;
+    }
+
+    li {
+      margin: 0.05rem 0;
+    }
+
+    li.yes {
+      font-weight: 600;
+    }
+
+    li.no {
+      color: var(--gray);
+    }
+  }
+
+  .mv-result {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: 0.8rem;
+    align-items: center;
+    margin-top: 0.6rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--lightgray);
+  }
+
+  .mv-graph {
+    @include fig-chart;
+    aspect-ratio: 300 / 170;
+
+    circle {
+      fill: var(--light);
+      stroke: var(--mv-c);
+      stroke-width: 3;
+    }
+
+    .st-aborted circle {
+      stroke-dasharray: 4 3;
+      opacity: 0.6;
+    }
+
+    .st-idle circle {
+      stroke-dasharray: 2 3;
+    }
+
+    .mv-node text {
+      fill: var(--darkgray);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .mv-edge {
+      fill: none;
+      stroke: var(--gray);
+      stroke-width: 1.6;
+
+      &.rw {
+        stroke-dasharray: 5 3;
+      }
+
+      &.cycle {
+        stroke: var(--fig-red);
+        stroke-width: 2.2;
+      }
+    }
+
+    .mv-head {
+      fill: var(--gray);
+
+      &.hot {
+        fill: var(--fig-red);
+      }
+    }
+
+    .mv-elabel {
+      fill: var(--darkgray);
+      font-size: 11px;
+      paint-order: stroke;
+      stroke: var(--light);
+      stroke-width: 3px;
+
+      &.cycle {
+        fill: var(--fig-red);
+      }
+    }
+  }
+
+  .mv-verdict {
+    margin: 0;
+    font-size: 0.86rem;
+    line-height: 1.45;
+
+    &[data-tone="good"] {
+      color: var(--fig-green);
+      font-weight: 600;
+    }
+
+    &[data-tone="bad"] {
+      color: var(--fig-red);
+      font-weight: 600;
+    }
+  }
+
+  .mv-ssi {
+    margin: 0.3rem 0 0;
+    color: var(--gray);
+    font-size: 0.78rem;
+
+    &:empty {
+      display: none;
+    }
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    padding: 0.8rem 0.7rem;
+
+    .mv-levels {
+      width: 100%;
+
+      button {
+        flex: 1 1 0;
+        min-width: 0;
+        padding: 0.25rem 0.35rem;
+      }
+    }
+
+    .mv-move {
+      margin-left: 0;
+    }
+
+    .mv-grid,
+    .mv-result {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .mv-graph {
+      max-width: 320px;
+
+      .mv-elabel {
+        font-size: 13px;
+      }
+
+      .mv-node text {
+        font-size: 16px;
+      }
+    }
+  }
+}

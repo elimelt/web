@@ -1,0 +1,52 @@
+[
+ {
+  "holder_db": null,
+  "holder_level": null,
+  "holder_level_seen": null,
+  "holder_has_xid": null,
+  "removed": 10015,
+  "remain": 10000,
+  "dead_not_removable": 0,
+  "cutoff": 3268435
+ },
+ {
+  "holder_db": "mvcc",
+  "holder_level": "repeatable read",
+  "holder_level_seen": "repeatable read",
+  "holder_has_xid": false,
+  "removed": 0,
+  "remain": 60000,
+  "dead_not_removable": 50000,
+  "cutoff": 3268438
+ },
+ {
+  "holder_db": "other",
+  "holder_level": "repeatable read",
+  "holder_level_seen": "repeatable read",
+  "holder_has_xid": false,
+  "removed": 10015,
+  "remain": 10000,
+  "dead_not_removable": 0,
+  "cutoff": 3268451
+ },
+ {
+  "holder_db": "mvcc",
+  "holder_level": "read committed",
+  "holder_level_seen": "read committed",
+  "holder_has_xid": false,
+  "removed": 10015,
+  "remain": 10000,
+  "dead_not_removable": 0,
+  "cutoff": 3268459
+ },
+ {
+  "holder_db": "mvcc",
+  "holder_level": "read committed",
+  "holder_level_seen": "read committed",
+  "holder_has_xid": true,
+  "removed": 0,
+  "remain": 60000,
+  "dead_not_removable": 50000,
+  "cutoff": 3268462
+ }
+]

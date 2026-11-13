@@ -1,0 +1,63 @@
+### level=read\ committed rep=1
+number of transactions actually processed: 226609
+number of failed transactions: 0 (0.000%)
+number of transactions retried: 0 (0.000%)
+total number of retries: 0
+latency average = 1.059 ms
+tps = 7552.966658 (without initial connection time)
+### level=repeatable\ read rep=1
+number of transactions actually processed: 181194
+number of failed transactions: 147 (0.081%)
+number of transactions retried: 71125 (39.222%)
+total number of retries: 118695
+latency average = 1.324 ms (including failures)
+tps = 6038.845862 (without initial connection time)
+### level=serializable rep=1
+number of transactions actually processed: 152165
+number of failed transactions: 151 (0.099%)
+number of transactions retried: 60021 (39.406%)
+total number of retries: 100648
+latency average = 1.576 ms (including failures)
+tps = 5071.900223 (without initial connection time)
+### level=read\ committed rep=2
+number of transactions actually processed: 190257
+number of failed transactions: 0 (0.000%)
+number of transactions retried: 0 (0.000%)
+total number of retries: 0
+latency average = 1.262 ms
+tps = 6341.219587 (without initial connection time)
+### level=repeatable\ read rep=2
+number of transactions actually processed: 136331
+number of failed transactions: 109 (0.080%)
+number of transactions retried: 53719 (39.372%)
+total number of retries: 89604
+latency average = 1.759 ms (including failures)
+tps = 4544.551933 (without initial connection time)
+### level=serializable rep=2
+number of transactions actually processed: 139251
+number of failed transactions: 134 (0.096%)
+number of transactions retried: 54862 (39.360%)
+total number of retries: 91791
+latency average = 1.722 ms (including failures)
+tps = 4642.399919 (without initial connection time)
+### level=read\ committed rep=3
+number of transactions actually processed: 199336
+number of failed transactions: 0 (0.000%)
+number of transactions retried: 0 (0.000%)
+total number of retries: 0
+latency average = 1.204 ms
+tps = 6643.639542 (without initial connection time)
+### level=repeatable\ read rep=3
+number of transactions actually processed: 140794
+number of failed transactions: 144 (0.102%)
+number of transactions retried: 55437 (39.334%)
+total number of retries: 93071
+latency average = 1.703 ms (including failures)
+tps = 4691.488966 (without initial connection time)
+### level=serializable rep=3
+number of transactions actually processed: 59244
+number of failed transactions: 19101 (24.381%)
+number of transactions retried: 42359 (54.067%)
+total number of retries: 242632
+latency average = 3.063 ms (including failures)
+tps = 1974.723183 (without initial connection time)

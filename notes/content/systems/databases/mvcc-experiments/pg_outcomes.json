@@ -1,0 +1,2157 @@
+{
+ "server_version": "16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+ "scenarios": {
+  "lost_update": {
+   "rc": {
+    "level": "rc",
+    "steps": [
+     {
+      "step": [
+       "r",
+       1,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       1,
+       "x",
+       {
+        "add": 1
+       }
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "x",
+       {
+        "add": 1
+       }
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "result": "committed"
+     }
+    ],
+    "final": {
+     "x": 1
+    }
+   },
+   "rr": {
+    "level": "rr",
+    "steps": [
+     {
+      "step": [
+       "r",
+       1,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       1,
+       "x",
+       {
+        "add": 1
+       }
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "x",
+       {
+        "add": 1
+       }
+      ],
+      "error": "40001",
+      "message": "could not serialize access due to concurrent update"
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "skipped": true
+     }
+    ],
+    "final": {
+     "x": 1
+    }
+   },
+   "ser": {
+    "level": "ser",
+    "steps": [
+     {
+      "step": [
+       "r",
+       1,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       1,
+       "x",
+       {
+        "add": 1
+       }
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "x",
+       {
+        "add": 1
+       }
+      ],
+      "error": "40001",
+      "message": "could not serialize access due to concurrent update"
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "skipped": true
+     }
+    ],
+    "final": {
+     "x": 1
+    }
+   }
+  },
+  "lost_update_wait": {
+   "rc": {
+    "level": "rc",
+    "steps": [
+     {
+      "step": [
+       "r",
+       1,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       1,
+       "x",
+       {
+        "add": 1
+       }
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "x",
+       {
+        "add": 1
+       }
+      ],
+      "blocked": true,
+      "released_at": 4,
+      "result": 1
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "result": "committed"
+     }
+    ],
+    "final": {
+     "x": 1
+    }
+   },
+   "rr": {
+    "level": "rr",
+    "steps": [
+     {
+      "step": [
+       "r",
+       1,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       1,
+       "x",
+       {
+        "add": 1
+       }
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "x",
+       {
+        "add": 1
+       }
+      ],
+      "blocked": true,
+      "released_at": 4,
+      "error": "40001",
+      "message": "could not serialize access due to concurrent update"
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "skipped": true
+     }
+    ],
+    "final": {
+     "x": 1
+    }
+   },
+   "ser": {
+    "level": "ser",
+    "steps": [
+     {
+      "step": [
+       "r",
+       1,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       1,
+       "x",
+       {
+        "add": 1
+       }
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "x",
+       {
+        "add": 1
+       }
+      ],
+      "blocked": true,
+      "released_at": 4,
+      "error": "40001",
+      "message": "could not serialize access due to concurrent update"
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "skipped": true
+     }
+    ],
+    "final": {
+     "x": 1
+    }
+   }
+  },
+  "write_skew": {
+   "rc": {
+    "level": "rc",
+    "steps": [
+     {
+      "step": [
+       "r",
+       1,
+       "alice"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "r",
+       1,
+       "bob"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "alice"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "bob"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "w",
+       1,
+       "alice",
+       0
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "bob",
+       0
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "result": "committed"
+     }
+    ],
+    "final": {
+     "alice": 0,
+     "bob": 0
+    }
+   },
+   "rr": {
+    "level": "rr",
+    "steps": [
+     {
+      "step": [
+       "r",
+       1,
+       "alice"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "r",
+       1,
+       "bob"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "alice"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "bob"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "w",
+       1,
+       "alice",
+       0
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "bob",
+       0
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "result": "committed"
+     }
+    ],
+    "final": {
+     "alice": 0,
+     "bob": 0
+    }
+   },
+   "ser": {
+    "level": "ser",
+    "steps": [
+     {
+      "step": [
+       "r",
+       1,
+       "alice"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "r",
+       1,
+       "bob"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "alice"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "bob"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "w",
+       1,
+       "alice",
+       0
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "bob",
+       0
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "error": "40001",
+      "message": "could not serialize access due to read/write dependencies among transactions"
+     }
+    ],
+    "final": {
+     "alice": 0,
+     "bob": 1
+    }
+   }
+  },
+  "write_skew_late": {
+   "rc": {
+    "level": "rc",
+    "steps": [
+     {
+      "step": [
+       "r",
+       1,
+       "alice"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "r",
+       1,
+       "bob"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "alice"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "bob"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "w",
+       1,
+       "alice",
+       0
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "bob",
+       0
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "result": "committed"
+     }
+    ],
+    "final": {
+     "alice": 0,
+     "bob": 0
+    }
+   },
+   "rr": {
+    "level": "rr",
+    "steps": [
+     {
+      "step": [
+       "r",
+       1,
+       "alice"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "r",
+       1,
+       "bob"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "alice"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "bob"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "w",
+       1,
+       "alice",
+       0
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "bob",
+       0
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "result": "committed"
+     }
+    ],
+    "final": {
+     "alice": 0,
+     "bob": 0
+    }
+   },
+   "ser": {
+    "level": "ser",
+    "steps": [
+     {
+      "step": [
+       "r",
+       1,
+       "alice"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "r",
+       1,
+       "bob"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "alice"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "bob"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "w",
+       1,
+       "alice",
+       0
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "bob",
+       0
+      ],
+      "error": "40001",
+      "message": "could not serialize access due to read/write dependencies among transactions"
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "skipped": true
+     }
+    ],
+    "final": {
+     "alice": 0,
+     "bob": 1
+    }
+   }
+  },
+  "read_skew": {
+   "rc": {
+    "level": "rc",
+    "steps": [
+     {
+      "step": [
+       "r",
+       1,
+       "x"
+      ],
+      "result": 50
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "x"
+      ],
+      "result": 50
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "y"
+      ],
+      "result": 50
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "x",
+       {
+        "add": -10
+       }
+      ],
+      "result": 40
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "y",
+       {
+        "add": 10
+       }
+      ],
+      "result": 60
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "r",
+       1,
+       "y"
+      ],
+      "result": 60
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     }
+    ],
+    "final": {
+     "x": 40,
+     "y": 60
+    }
+   },
+   "rr": {
+    "level": "rr",
+    "steps": [
+     {
+      "step": [
+       "r",
+       1,
+       "x"
+      ],
+      "result": 50
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "x"
+      ],
+      "result": 50
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "y"
+      ],
+      "result": 50
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "x",
+       {
+        "add": -10
+       }
+      ],
+      "result": 40
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "y",
+       {
+        "add": 10
+       }
+      ],
+      "result": 60
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "r",
+       1,
+       "y"
+      ],
+      "result": 50
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     }
+    ],
+    "final": {
+     "x": 40,
+     "y": 60
+    }
+   },
+   "ser": {
+    "level": "ser",
+    "steps": [
+     {
+      "step": [
+       "r",
+       1,
+       "x"
+      ],
+      "result": 50
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "x"
+      ],
+      "result": 50
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "y"
+      ],
+      "result": 50
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "x",
+       {
+        "add": -10
+       }
+      ],
+      "result": 40
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "y",
+       {
+        "add": 10
+       }
+      ],
+      "result": 60
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "r",
+       1,
+       "y"
+      ],
+      "result": 50
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     }
+    ],
+    "final": {
+     "x": 40,
+     "y": 60
+    }
+   }
+  },
+  "read_only_anomaly": {
+   "rc": {
+    "level": "rc",
+    "steps": [
+     {
+      "step": [
+       "r",
+       2,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "y"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "r",
+       1,
+       "y"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       1,
+       "y",
+       {
+        "add": 20
+       }
+      ],
+      "result": 20
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "r",
+       3,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "r",
+       3,
+       "y"
+      ],
+      "result": 20
+     },
+     {
+      "step": [
+       "c",
+       3
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "x",
+       -11
+      ],
+      "result": -11
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "result": "committed"
+     }
+    ],
+    "final": {
+     "x": -11,
+     "y": 20
+    }
+   },
+   "rr": {
+    "level": "rr",
+    "steps": [
+     {
+      "step": [
+       "r",
+       2,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "y"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "r",
+       1,
+       "y"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       1,
+       "y",
+       {
+        "add": 20
+       }
+      ],
+      "result": 20
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "r",
+       3,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "r",
+       3,
+       "y"
+      ],
+      "result": 20
+     },
+     {
+      "step": [
+       "c",
+       3
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "x",
+       -11
+      ],
+      "result": -11
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "result": "committed"
+     }
+    ],
+    "final": {
+     "x": -11,
+     "y": 20
+    }
+   },
+   "ser": {
+    "level": "ser",
+    "steps": [
+     {
+      "step": [
+       "r",
+       2,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "y"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "r",
+       1,
+       "y"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       1,
+       "y",
+       {
+        "add": 20
+       }
+      ],
+      "result": 20
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "r",
+       3,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "r",
+       3,
+       "y"
+      ],
+      "result": 20
+     },
+     {
+      "step": [
+       "c",
+       3
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "x",
+       -11
+      ],
+      "error": "40001",
+      "message": "could not serialize access due to read/write dependencies among transactions"
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "skipped": true
+     }
+    ],
+    "final": {
+     "x": 0,
+     "y": 20
+    }
+   }
+  },
+  "long_reader": {
+   "rc": {
+    "level": "rc",
+    "steps": [
+     {
+      "step": [
+       "r",
+       1,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "x",
+       {
+        "add": 1
+       }
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "r",
+       3,
+       "x"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "w",
+       3,
+       "x",
+       {
+        "add": 1
+       }
+      ],
+      "result": 2
+     },
+     {
+      "step": [
+       "c",
+       3
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "r",
+       1,
+       "x"
+      ],
+      "result": 2
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     }
+    ],
+    "final": {
+     "x": 2
+    }
+   },
+   "rr": {
+    "level": "rr",
+    "steps": [
+     {
+      "step": [
+       "r",
+       1,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "x",
+       {
+        "add": 1
+       }
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "r",
+       3,
+       "x"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "w",
+       3,
+       "x",
+       {
+        "add": 1
+       }
+      ],
+      "result": 2
+     },
+     {
+      "step": [
+       "c",
+       3
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "r",
+       1,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     }
+    ],
+    "final": {
+     "x": 2
+    }
+   },
+   "ser": {
+    "level": "ser",
+    "steps": [
+     {
+      "step": [
+       "r",
+       1,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "x",
+       {
+        "add": 1
+       }
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "r",
+       3,
+       "x"
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "w",
+       3,
+       "x",
+       {
+        "add": 1
+       }
+      ],
+      "result": 2
+     },
+     {
+      "step": [
+       "c",
+       3
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "r",
+       1,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     }
+    ],
+    "final": {
+     "x": 2
+    }
+   }
+  },
+  "deadlock": {
+   "rc": {
+    "level": "rc",
+    "steps": [
+     {
+      "step": [
+       "w",
+       1,
+       "x",
+       1
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "y",
+       2
+      ],
+      "result": 2
+     },
+     {
+      "step": [
+       "w",
+       1,
+       "y",
+       1
+      ],
+      "blocked": true,
+      "released_at": 3,
+      "result": 1
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "x",
+       2
+      ],
+      "error": "40P01",
+      "message": "deadlock detected"
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "skipped": true
+     }
+    ],
+    "final": {
+     "x": 1,
+     "y": 1
+    }
+   },
+   "rr": {
+    "level": "rr",
+    "steps": [
+     {
+      "step": [
+       "w",
+       1,
+       "x",
+       1
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "y",
+       2
+      ],
+      "result": 2
+     },
+     {
+      "step": [
+       "w",
+       1,
+       "y",
+       1
+      ],
+      "blocked": true,
+      "released_at": 3,
+      "result": 1
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "x",
+       2
+      ],
+      "error": "40P01",
+      "message": "deadlock detected"
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "skipped": true
+     }
+    ],
+    "final": {
+     "x": 1,
+     "y": 1
+    }
+   },
+   "ser": {
+    "level": "ser",
+    "steps": [
+     {
+      "step": [
+       "w",
+       1,
+       "x",
+       1
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "y",
+       2
+      ],
+      "result": 2
+     },
+     {
+      "step": [
+       "w",
+       1,
+       "y",
+       1
+      ],
+      "blocked": true,
+      "released_at": 3,
+      "result": 1
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "x",
+       2
+      ],
+      "error": "40P01",
+      "message": "deadlock detected"
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "skipped": true
+     }
+    ],
+    "final": {
+     "x": 1,
+     "y": 1
+    }
+   }
+  },
+  "chain_safe": {
+   "rc": {
+    "level": "rc",
+    "steps": [
+     {
+      "step": [
+       "r",
+       1,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "x",
+       1
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "y"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       3,
+       "y",
+       1
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "c",
+       3
+      ],
+      "result": "committed"
+     }
+    ],
+    "final": {
+     "x": 1,
+     "y": 1
+    }
+   },
+   "rr": {
+    "level": "rr",
+    "steps": [
+     {
+      "step": [
+       "r",
+       1,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "x",
+       1
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "y"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       3,
+       "y",
+       1
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "c",
+       3
+      ],
+      "result": "committed"
+     }
+    ],
+    "final": {
+     "x": 1,
+     "y": 1
+    }
+   },
+   "ser": {
+    "level": "ser",
+    "steps": [
+     {
+      "step": [
+       "r",
+       1,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "x",
+       1
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "y"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       3,
+       "y",
+       1
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "c",
+       3
+      ],
+      "result": "committed"
+     }
+    ],
+    "final": {
+     "x": 1,
+     "y": 1
+    }
+   }
+  },
+  "chain_unsafe": {
+   "rc": {
+    "level": "rc",
+    "steps": [
+     {
+      "step": [
+       "r",
+       1,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "x",
+       1
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "y"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       3,
+       "y",
+       1
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "c",
+       3
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     }
+    ],
+    "final": {
+     "x": 1,
+     "y": 1
+    }
+   },
+   "rr": {
+    "level": "rr",
+    "steps": [
+     {
+      "step": [
+       "r",
+       1,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "x",
+       1
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "y"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       3,
+       "y",
+       1
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "c",
+       3
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     }
+    ],
+    "final": {
+     "x": 1,
+     "y": 1
+    }
+   },
+   "ser": {
+    "level": "ser",
+    "steps": [
+     {
+      "step": [
+       "r",
+       1,
+       "x"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       2,
+       "x",
+       1
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "r",
+       2,
+       "y"
+      ],
+      "result": 0
+     },
+     {
+      "step": [
+       "w",
+       3,
+       "y",
+       1
+      ],
+      "result": 1
+     },
+     {
+      "step": [
+       "c",
+       3
+      ],
+      "result": "committed"
+     },
+     {
+      "step": [
+       "c",
+       2
+      ],
+      "error": "40001",
+      "message": "could not serialize access due to read/write dependencies among transactions"
+     },
+     {
+      "step": [
+       "c",
+       1
+      ],
+      "result": "committed"
+     }
+    ],
+    "final": {
+     "x": 0,
+     "y": 1
+    }
+   }
+  }
+ }
+}
