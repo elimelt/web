@@ -8,6 +8,7 @@ import { render as renderClockDiagram } from "./clock-diagram/render";
 import { render as renderSvdGeometry } from "./svd-geometry/render";
 import { render as renderSvdImage } from "./svd-image/server";
 import { render as renderSvdPinv } from "./svd-pinv/render";
+import { render as renderQueueLab } from "./queue-lab/render";
 
 export interface Component {
   render: (props: Record<string, unknown>) => string;
@@ -21,4 +22,5 @@ export const components: Record<string, Component> = {
   SvdGeometry: { render: renderSvdGeometry, module: "svd-geometry" },
   SvdImage: { render: renderSvdImage, module: "svd-image" },
   SvdLeastSquares: { render: renderSvdPinv, module: "svd-pinv" },
+  QueueLab: { render: renderQueueLab, module: "queue-lab" },
 };
