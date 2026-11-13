@@ -3,9 +3,10 @@
 // script runs; the client module then redraws the output parts from the same
 // functions as the reader changes the controls.
 
+import { num } from "../../shared/format";
 import { analyze, BASE_NS, defaultState, repeat, verdict, type Analysis, type State } from "./model";
 
-const fmt = (value: number, digits = 1): string => value.toFixed(digits).replace("-", "−");
+const fmt = (value: number, digits = 1): string => num(value, digits);
 const pct = (fraction: number, digits = 1): string => `${fmt(fraction * 100, digits)}%`;
 const ns = (value: number): string => fmt(value, 1);
 export const speedupLabel = (fraction: number): string => `${+(fraction * 100).toFixed(1)}%`;

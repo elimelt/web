@@ -8,6 +8,7 @@
 // in every sort key are broken by finish time, then start time, then position
 // in the input, the same as the Python.
 
+import { mulberry32 } from "../../shared/random";
 export const HORIZON = 16;
 export const MAX_INTERVALS = 14;
 
@@ -216,16 +217,7 @@ export function commonTime(iv: Interval[], ids: number[]): number | null {
 }
 
 /** Seeded generator (mulberry32), so a search is repeatable from its seed. */
-export function rng(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
+export const rng = mulberry32;
 
 export function randomInstance(rand: () => number, n: number, maxLen = 6): Interval[] {
   return Array.from({ length: n }, () => {

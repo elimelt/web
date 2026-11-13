@@ -3,6 +3,7 @@
 // any script runs; the client module redraws the same parts from these
 // functions after every event.
 
+import { esc } from "../../shared/format";
 import {
   describeNext,
   holdsLocks,
@@ -24,8 +25,6 @@ import {
 export interface Props {
   scenario?: unknown;
 }
-
-const esc = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 export const W = 360;
 export const H = 200;

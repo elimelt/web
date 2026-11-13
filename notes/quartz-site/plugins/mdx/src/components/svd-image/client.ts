@@ -80,6 +80,8 @@ export function mount(root: HTMLElement): () => void {
 
   const draw = () => {
     frame = 0;
+    // Nothing to paint until the photo has loaded.
+    if (!n) return;
     const key = which();
     const src = sources[key];
     const k = Number(slider.value);

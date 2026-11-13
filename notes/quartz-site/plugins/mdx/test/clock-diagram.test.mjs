@@ -2,24 +2,10 @@
 // Each clock is checked against an independent definition computed from the
 // diagram's happens-before relation, on many random diagrams.
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
-import { after, test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import * as esbuild from "esbuild";
+import { test } from "node:test";
+import { load } from "./load.mjs";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const dir = mkdtempSync(path.join(tmpdir(), "clock-diagram-"));
-after(() => rmSync(dir, { recursive: true, force: true }));
-
-async function load(entry) {
-  const outfile = path.join(dir, `${path.basename(entry, ".ts")}.mjs`);
-  await esbuild.build({ entryPoints: [path.join(here, "../src/components/clock-diagram", entry)], outfile, bundle: true, format: "esm", platform: "node", logLevel: "silent" });
-  return import(pathToFileURL(outfile).href);
-}
-
-const m = await load("model.ts");
+const m = await load("components/clock-diagram/model.ts");
 
 function rng(seed) {
   let s = seed >>> 0;
@@ -158,7 +144,7 @@ test("edits reject impossible diagrams", () => {
 });
 
 test("renders the figure for both examples", async () => {
-  const { render } = await load("render.ts");
+  const { render } = await load("components/clock-diagram/render.ts");
   for (const [example, ex] of Object.entries(m.examples)) {
     const html = render({ example, view: "vector" });
     assert.match(html, new RegExp(`^<figure class="cd" data-example="${example}" data-view="vector">`));

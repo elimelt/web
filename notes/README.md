@@ -115,20 +115,24 @@ Place a component on its own lines at the top level of the note:
 ```
 
 - Components live in `quartz-site/plugins/mdx/src/components/<name>/`. Each
-  has a `render.ts` that returns the figure's full HTML at build time and a
-  `client.ts` whose `mount(element)` makes it interactive. Register new ones in
-  `src/components/index.ts`.
+  has a `component.ts` that names its tag, a `render.ts` that returns the
+  figure's full HTML at build time, a `client.ts` whose `mount(element)` makes
+  it interactive, and a `style.scss` for its styles. The build finds each
+  directory by itself, so there is no registry to edit. The plugin's
+  [README](quartz-site/plugins/mdx/README.md) covers adding a component and the
+  shared toolkit (frame, buttons, sliders, colors and browser helpers).
 - Pages only load a component's script when the component is on the page, and
-  the build-time markup means nothing moves when the script arrives. Style the
-  figure in `quartz-site/custom.scss` so it is styled before the script runs.
+  the build-time markup means nothing moves when the script arrives.
 - Attribute values must be literals (`seed={7}`, `label="x"`). Imports,
   exports, inline JSX and `{expressions}` fail the build with the line at fault;
   write a literal brace as `\{` or put it in code. `{/* comments */}` are
   dropped.
-- After changing anything under `quartz-site/plugins/mdx/src/`, run
-  `npm install && npm run build && npm test` in that directory and commit
-  `dist/index.js` and `quartz-site/static/mdx/`, since Quartz loads the bundled
-  files without installing dependencies.
+- `scripts/quartz.sh` builds the plugin before every site build, so its
+  bundled output (`dist/`, `quartz-site/static/mdx/`) is not committed. To run
+  a component's tests, run `npm install && npm run build && npm test` in
+  `quartz-site/plugins/mdx`.
+- To rework a note end to end, follow
+  [the enhance-note guide](../.claude/skills/enhance-note/SKILL.md).
 
 At build time `scripts/prepare_mdx.py` renames each `.mdx` note to `.md` in
 Quartz's copy of the content and marks it `mdx: true`, because Quartz only reads

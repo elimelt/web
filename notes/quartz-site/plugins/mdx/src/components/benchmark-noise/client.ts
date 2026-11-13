@@ -2,6 +2,7 @@
 // figure rendered at build time; this enables its controls and redraws the
 // output parts whenever they change.
 
+import { enableControls, frameScheduler, lookup } from "../../shared/dom";
 import { defaultState, type State } from "./model";
 import { parts, speedupLabel } from "./render";
 
@@ -10,14 +11,10 @@ export function mount(root: HTMLElement): () => void {
   if (!figure) return () => {};
   const seed = Number(figure.dataset.seed) || defaultState().seed;
   const state: State = defaultState(seed);
-  const input = (name: string) => figure.querySelector<HTMLInputElement>(`input[name="${name}"]`)!;
-  const output = (name: string) => figure.querySelector<HTMLOutputElement>(`output[name="${name}"]`)!;
-  const part = (name: string) => figure.querySelector<HTMLElement>(`[data-part="${name}"]`)!;
-  const button = figure.querySelector<HTMLButtonElement>('button[name="rerun"]')!;
-  let frame = 0;
+  const { input, output, part, button: named } = lookup(figure);
+  const button = named("rerun");
 
   const draw = () => {
-    frame = 0;
     state.speedup = Number(input("speedup").value) / 100;
     state.runs = Number(input("runs").value);
     for (const name of ["warmup", "pin", "freq", "quiet"] as const) state[name] = input(name).checked;
@@ -30,9 +27,7 @@ export function mount(root: HTMLElement): () => void {
     part("repeats").innerHTML = next.repeats;
     part("record").innerHTML = next.record;
   };
-  const schedule = () => {
-    if (!frame) frame = requestAnimationFrame(draw);
-  };
+  const { schedule, cancel } = frameScheduler(draw);
   const rerun = () => {
     state.seed = (state.seed + 1) | 0;
     schedule();
@@ -40,9 +35,7 @@ export function mount(root: HTMLElement): () => void {
 
   figure.addEventListener("input", schedule);
   button.addEventListener("click", rerun);
-  for (const control of figure.querySelectorAll<HTMLInputElement | HTMLButtonElement>("input, button")) {
-    control.disabled = false;
-  }
+  enableControls(figure);
   // Back and forward navigation can restore earlier control values, so draw
   // from the controls rather than assuming the defaults.
   draw();
@@ -50,6 +43,6 @@ export function mount(root: HTMLElement): () => void {
   return () => {
     figure.removeEventListener("input", schedule);
     button.removeEventListener("click", rerun);
-    if (frame) cancelAnimationFrame(frame);
+    cancel();
   };
 }

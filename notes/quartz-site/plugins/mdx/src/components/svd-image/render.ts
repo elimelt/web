@@ -2,6 +2,7 @@
 // controls and the photo's singular value spectrum (from the NumPy run); the
 // client computes the SVD itself and fills in the reconstructions.
 
+import { num } from "../../shared/format";
 export interface Spectra {
   photo: ArrayLike<number>;
   shuffled?: ArrayLike<number>;
@@ -11,7 +12,7 @@ const W = 520;
 const H = 190;
 const M = { left: 44, right: 12, top: 14, bottom: 30 };
 
-const fmt = (x: number, digits = 2): string => x.toFixed(digits).replace("-", "−");
+const fmt = (x: number, digits = 2): string => num(x, digits);
 export const pct = (x: number, digits = 1): string => `${fmt(100 * x, digits)}%`;
 
 export function spectrum(spectra: Spectra, k: number): string {

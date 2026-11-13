@@ -1,26 +1,17 @@
 // Checks the in-browser page replacement policies against pagesim.c, which
 // computed the fault counts the figure plots and the note's tables.
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import path from "node:path";
-import { after, test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 import { gunzipSync } from "node:zlib";
-import * as esbuild from "esbuild";
+import { load } from "./load.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const traces = path.join(here, "../../../../content/systems/operating-systems/lecture-notes/page-fault-experiments/traces");
-const dir = mkdtempSync(path.join(tmpdir(), "page-replacement-"));
-after(() => rmSync(dir, { recursive: true, force: true }));
 
-async function load(entry) {
-  const outfile = path.join(dir, `${path.basename(entry, ".ts")}.mjs`);
-  await esbuild.build({ entryPoints: [path.join(here, "../src/components/page-replacement", entry)], outfile, bundle: true, format: "esm", platform: "node", logLevel: "silent" });
-  return import(pathToFileURL(outfile).href);
-}
-
-const model = await load("model.ts");
+const model = await load("components/page-replacement/model.ts");
 const trace = (key) => {
   const buf = gunzipSync(readFileSync(path.join(traces, `${key}.u16.gz`)));
   return new Uint16Array(buf.buffer, buf.byteOffset, buf.byteLength / 2);
@@ -83,7 +74,7 @@ test("each eviction follows its policy's rule", () => {
 });
 
 test("renders the curves and marks every anomaly", async () => {
-  const { render } = await load("render.ts");
+  const { render } = await load("components/page-replacement/render.ts");
   const html = render({ base: "/x/" });
   assert.match(html, /^<figure class="pr" data-trace="gzip9" data-base="\/x\/">/);
   assert.equal((html.match(/<polyline class="pr-line/g) ?? []).length, 4);

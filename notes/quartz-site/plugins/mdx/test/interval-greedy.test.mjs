@@ -2,25 +2,16 @@
 // the same results as greedy_intervals.py on that script's fixtures, the
 // brute-force optimum, the depth bound, and the proof's invariants.
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import path from "node:path";
-import { after, test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import * as esbuild from "esbuild";
+import { test } from "node:test";
+import { fileURLToPath } from "node:url";
+import { load } from "./load.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const dir = mkdtempSync(path.join(tmpdir(), "interval-greedy-"));
-after(() => rmSync(dir, { recursive: true, force: true }));
 
-async function load(entry) {
-  const outfile = path.join(dir, `${path.basename(entry, ".ts")}.mjs`);
-  await esbuild.build({ entryPoints: [path.join(here, "../src/components/interval-greedy", entry)], outfile, bundle: true, format: "esm", platform: "node", logLevel: "silent" });
-  return import(pathToFileURL(outfile).href);
-}
-
-const m = await load("model.ts");
-const r = await load("render.ts");
+const m = await load("components/interval-greedy/model.ts");
+const r = await load("components/interval-greedy/render.ts");
 const results = JSON.parse(readFileSync(path.join(here, "../../../../content/algorithms/greedy-intervals/greedy_intervals_results.json"), "utf8"));
 const toIv = (pairs) => pairs.map(([s, f]) => ({ s, f }));
 
