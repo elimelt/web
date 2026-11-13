@@ -1,0 +1,250 @@
+// Replicated-text figure (list-crdt). Character chips are colored by the
+// replica that typed them: blue A, orange B, gray the shared starting text.
+// Tombstones and identifiers show only when the reader asks for them.
+figure.lc {
+  @include fig-frame;
+  font-size: 0.92rem;
+
+  button,
+  select {
+    @include fig-button(0.25rem 0.7rem, 0.88rem);
+    @include fig-button-hover;
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.55;
+    }
+  }
+
+  .lc-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1.2rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .lc-field {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+
+    span {
+      color: var(--darkgray);
+      font-size: 0.85rem;
+    }
+
+    select {
+      max-width: 100%;
+      min-width: 0;
+    }
+  }
+
+  .lc-check {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.88rem;
+    color: var(--darkgray);
+
+    input {
+      @include fig-native-check;
+    }
+  }
+
+  .lc-replicas {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 0.6rem;
+    align-items: start;
+  }
+
+  .lc-replica {
+    min-width: 0;
+  }
+
+  .lc-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.4rem;
+    margin-bottom: 0.25rem;
+    font-size: 0.85rem;
+  }
+
+  .lc-name {
+    font-weight: 600;
+  }
+
+  .lc-rA .lc-name {
+    color: var(--fig-blue);
+  }
+
+  .lc-rB .lc-name {
+    color: var(--fig-orange);
+  }
+
+  .lc-out {
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  input[type="text"] {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--lightgray);
+    border-radius: 4px;
+    background: var(--light);
+    color: var(--dark);
+    font-family: var(--codeFont);
+    font-size: 0.95rem;
+
+    &:focus {
+      outline: 2px solid var(--secondary);
+      outline-offset: 0;
+    }
+  }
+
+  .lc-rA input[type="text"] {
+    border-left: 3px solid var(--fig-blue);
+  }
+
+  .lc-rB input[type="text"] {
+    border-left: 3px solid var(--fig-orange);
+  }
+
+  .lc-seq {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-top: 0.45rem;
+    min-height: 1.6rem;
+  }
+
+  .lc-chip {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 1.15rem;
+    padding: 1px 3px;
+    border: 1px solid var(--lightgray);
+    border-bottom-width: 3px;
+    border-radius: 3px;
+    line-height: 1.2;
+
+    b {
+      font-family: var(--codeFont);
+      font-weight: 500;
+      font-size: 0.88rem;
+      white-space: pre;
+    }
+
+    i {
+      display: none;
+      font-style: normal;
+      font-size: 0.62rem;
+      color: var(--gray);
+      white-space: nowrap;
+    }
+  }
+
+  .lc-space b {
+    color: var(--gray);
+  }
+
+  .lc-o {
+    border-bottom-color: var(--gray);
+  }
+
+  .lc-A {
+    border-bottom-color: var(--fig-blue);
+    background: color-mix(in srgb, var(--fig-blue) 10%, transparent);
+  }
+
+  .lc-B {
+    border-bottom-color: var(--fig-orange);
+    background: color-mix(in srgb, var(--fig-orange) 12%, transparent);
+  }
+
+  .lc-del {
+    display: none;
+    border-style: dashed;
+    opacity: 0.6;
+
+    b {
+      text-decoration: line-through;
+    }
+  }
+
+  &.lc-show {
+    .lc-del {
+      display: inline-flex;
+    }
+
+    .lc-chip i {
+      display: block;
+    }
+  }
+
+  .lc-net {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    padding-top: 1.35rem;
+  }
+
+  button[name="sync"]:not(:disabled) {
+    border-color: var(--secondary);
+    color: var(--secondary);
+    font-weight: 600;
+  }
+
+  .lc-flight {
+    color: var(--gray);
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+
+  .lc-summary {
+    margin: 0.8rem 0 0;
+    padding: 0.45rem 0.65rem;
+    border-left: 3px solid var(--lightgray);
+    background: var(--highlight);
+    font-size: 0.88rem;
+
+    &[data-tone="good"] {
+      border-left-color: var(--fig-green);
+    }
+
+    &[data-tone="bad"] {
+      border-left-color: var(--fig-red);
+    }
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .lc-controls {
+      gap: 0.45rem 0.9rem;
+    }
+
+    .lc-replicas {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .lc-net {
+      flex-direction: row;
+      justify-content: flex-start;
+      padding-top: 0;
+    }
+
+    input[type="text"] {
+      font-size: 1rem; // keeps iOS from zooming on focus
+    }
+  }
+}
