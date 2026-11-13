@@ -13,6 +13,7 @@ import { render as renderPageReplacement } from "./page-replacement/render";
 import { render as renderCommitSim } from "./commit-sim/render";
 import { render as renderIntervalGreedy } from "./interval-greedy/render";
 import { render as renderWindowSim } from "./window-sim/render";
+import { renderReplay, renderSpeedup } from "./spec-decode/server";
 
 export interface Component {
   render: (props: Record<string, unknown>) => string;
@@ -31,4 +32,6 @@ export const components: Record<string, Component> = {
   CommitSim: { render: renderCommitSim, module: "commit-sim" },
   IntervalGreedy: { render: renderIntervalGreedy, module: "interval-greedy" },
   WindowSim: { render: renderWindowSim, module: "window-sim" },
+  SpecDecodeReplay: { render: renderReplay, module: "spec-decode" },
+  SpecDecodeSpeedup: { render: renderSpeedup, module: "spec-decode" },
 };
