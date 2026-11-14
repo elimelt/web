@@ -8,7 +8,9 @@ import { FLOOR, N, presetById, run, type Preset, type Run } from "./model";
 
 const W = 640;
 const H = 250;
-const M = { left: 50, right: 14, top: 12, bottom: 36 };
+// The bottom margin holds two rows, tick numbers and then the axis label, so
+// they stay apart at the larger phone font.
+const M = { left: 50, right: 14, top: 12, bottom: 48 };
 const LOG_TOP = 2;
 const LOG_BOTTOM = Math.log10(FLOOR);
 
@@ -35,10 +37,10 @@ export function chart(r: Run, preset: Preset): string {
   }
   const step = niceStep(steps);
   for (let k = 0; k <= steps; k += step) {
-    parts.push(`<text class="pi-tick" x="${x(k)}" y="${H - M.bottom + 16}" text-anchor="middle">${k}</text>`);
+    parts.push(`<text class="pi-tick" x="${x(k)}" y="${H - M.bottom + 19}" text-anchor="middle">${k}</text>`);
   }
   parts.push(
-    `<text class="pi-tick pi-axis" x="${W - M.right}" y="${H - 4}" text-anchor="end">step k →</text>`,
+    `<text class="pi-tick pi-axis" x="${W - M.right}" y="${H - 3}" text-anchor="end">step k →</text>`,
     `<line class="pi-tol" x1="${M.left}" x2="${W - M.right}" y1="${y(1e-8)}" y2="${y(1e-8)}"/>`,
   );
   const path = (vals: number[]) => vals.map((v, k) => `${k ? "L" : "M"}${x(k).toFixed(1)} ${y(v).toFixed(1)}`).join("");
