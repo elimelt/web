@@ -54,9 +54,9 @@ the Python interpreter and GCC's compiler proper) through simulated predictors, 
 [`branch-prediction-lab/`](https://github.com/elimelt/web/tree/main/notes/content/hardware/computer-architecture/branch-prediction-lab)
 beside this note.
 
-This note continues from [[hardware/computer-architecture/isa-datapath-control|ISA, datapath, and
-control]] and precedes [[hardware/computer-architecture/out-of-order-execution|out-of-order
-execution]], where register renaming removes most of the data hazards described here.
+This note continues from [[hardware/computer-architecture/isa-datapath-control|ISA, datapath, and control]]
+and precedes [[hardware/computer-architecture/out-of-order-execution|out-of-order execution]],
+where register renaming removes most of the data hazards described here.
 
 ## Five-stage RV32I pipeline
 
@@ -149,7 +149,7 @@ branch: 2 here, 15 or more on modern out-of-order cores (see
 How often does that cost come up? In the seven traced programs, conditional branches are 86 to 191
 of every 1000 instructions, between 1 in 12 and 1 in 5:
 
-| program | cond. branches per 1000 insns | taken | backward | backward that are taken | static branches seen | static branches covering 90% / 99% of executions |
+| program | branches per 1000 insns | taken | backward | backward, taken | branch sites | sites for 90% / 99% |
 |---|---|---|---|---|---|---|
 | gzip | 191.4 | 39.1% | 37.3% | 80.2% | 344 | 26 / 56 |
 | bzip2 | 108.3 | 38.3% | 59.2% | 32.6% | 525 | 5 / 10 |
@@ -159,8 +159,9 @@ of every 1000 instructions, between 1 in 12 and 1 in 5:
 | python | 182.6 | 26.4% | 32.4% | 42.9% | 8085 | 1168 / 3760 |
 | cc1 | 166.9 | 23.1% | 23.8% | 54.1% | 5451 | 472 / 1279 |
 
-Each row is the first 8 million user-mode instructions of one program; the
-[measurement notes](#how-this-was-measured) say exactly what ran. Two columns matter later. Fewer
+Each row is the first 8 million user-mode instructions of one program; "branch sites" counts the
+distinct conditional branches that ran, and the last column how few of them cover 90% and 99% of
+all branch executions. The [measurement notes](#how-this-was-measured) say exactly what ran. Two columns matter later. Fewer
 than half of branches are taken in five of the seven programs, so "predict taken" is a poor
 default. And a handful of static branches carry most of the work in the compressors and sort,
 while the interpreter and the compiler spread their branches over thousands of sites, which is
