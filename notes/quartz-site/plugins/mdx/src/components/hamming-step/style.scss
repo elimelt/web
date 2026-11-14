@@ -1,0 +1,202 @@
+// Hamming code figure (hamming-step).
+
+figure.hm {
+  @include fig-frame;
+  font-size: 0.88rem;
+
+  .hm-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+  }
+
+  .hm-row {
+    display: grid;
+    grid-template-columns: 5.6rem repeat(7, 2.1rem) minmax(0, 1fr);
+    align-items: center;
+  }
+
+  &.hm-ext .hm-row {
+    grid-template-columns: 5.6rem repeat(8, 2.1rem) minmax(0, 1fr);
+  }
+
+  .hm-label,
+  .hm-after {
+    color: var(--gray);
+    font-size: 0.76rem;
+  }
+
+  .hm-after {
+    padding-left: 0.5rem;
+  }
+
+  .hm-fail .hm-after {
+    color: var(--fig-red);
+    font-weight: 600;
+  }
+
+  .hm-cell {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 1.55rem;
+    margin: 0 0.1rem;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    background: transparent;
+    color: var(--darkgray);
+    font-family: var(--codeFont);
+    font-size: 0.86rem;
+    line-height: 1;
+
+    small {
+      color: var(--gray);
+      font-size: 0.62rem;
+      margin-top: 0.1rem;
+    }
+  }
+
+  .hm-pos .hm-cell {
+    height: 2rem;
+  }
+
+  .hm-role .hm-cell {
+    color: var(--gray);
+    font-size: 0.76rem;
+  }
+
+  .hm-role .hm-checkbit {
+    color: var(--fig-purple);
+    font-weight: 600;
+  }
+
+  .hm-recv .hm-bit,
+  .hm-out .hm-bit {
+    border-color: var(--lightgray);
+  }
+
+  button.hm-bit {
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      border-color: var(--secondary);
+    }
+
+    &:disabled {
+      cursor: default;
+    }
+  }
+
+  .hm-dot {
+    font-style: normal;
+    color: var(--darkgray);
+  }
+
+  .hm-check .hm-cell:has(.hm-dot) {
+    background: var(--highlight);
+  }
+
+  .hm-fail .hm-cell:has(.hm-dot) {
+    background: color-mix(in srgb, var(--fig-red) 16%, transparent);
+  }
+
+  .hm-out {
+    margin-top: 0.3rem;
+  }
+
+  .hm-flipped {
+    background: var(--fig-orange);
+    border-color: var(--fig-orange) !important;
+    color: var(--light);
+    font-weight: 700;
+  }
+
+  .hm-fixed {
+    border-color: var(--fig-blue) !important;
+    border-width: 2px;
+    color: var(--fig-blue);
+    font-weight: 700;
+  }
+
+  .hm-wrong {
+    background: var(--fig-red);
+    border-color: var(--fig-red) !important;
+    color: var(--light);
+    font-weight: 700;
+  }
+
+  .hm-verdict {
+    margin: 0.6rem 0 0;
+    padding: 0.4rem 0.6rem;
+    border-left: 3px solid var(--lightgray);
+    background: var(--highlight);
+
+    &[data-tone="ok"] {
+      border-color: var(--fig-green);
+    }
+
+    &[data-tone="caught"] {
+      border-color: var(--fig-orange);
+    }
+
+    &[data-tone="missed"] {
+      border-color: var(--fig-red);
+    }
+  }
+
+  .hm-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+
+    button {
+      @include fig-button(0.2rem 0.6rem, 0.82rem);
+      @include fig-button-hover;
+
+      &:disabled {
+        cursor: default;
+        opacity: 0.55;
+      }
+    }
+  }
+
+  .hm-hint {
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    padding: 0.8rem 0.6rem 0.7rem;
+
+    .hm-row,
+    &.hm-ext .hm-row {
+      grid-template-columns: 3.6rem repeat(7, minmax(0, 1.7rem)) minmax(0, 1fr);
+    }
+
+    &.hm-ext .hm-row {
+      grid-template-columns: 3.6rem repeat(8, minmax(0, 1.6rem)) minmax(0, 1fr);
+    }
+
+    .hm-label,
+    .hm-after {
+      font-size: 0.66rem;
+    }
+
+    .hm-after {
+      padding-left: 0.25rem;
+    }
+
+    .hm-cell {
+      margin: 0 0.06rem;
+    }
+  }
+}
