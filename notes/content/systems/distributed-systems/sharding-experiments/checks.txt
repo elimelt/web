@@ -1,0 +1,3 @@
+ketama agreement with uhashring: 1.0000
+n=8: mean peak over 2000 placements 2.728 +- 0.017, H_n = 2.718
+n=32: mean peak over 2000 placements 4.063 +- 0.023, H_n = 4.058
