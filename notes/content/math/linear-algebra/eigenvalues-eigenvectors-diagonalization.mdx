@@ -235,9 +235,9 @@ Power iteration only ever looks at the newest vector. Methods that keep more inf
 - **Inverse iteration and Rayleigh quotient iteration.** Iterating with $(A - \sigma I)^{-1}$ converges to the eigenvalue nearest $\sigma$, at a rate equal to the ratio of its distance from $\sigma$ to the next nearest eigenvalue's distance, so a shift close to an eigenvalue converges in a few steps. Updating the shift to the current Rayleigh quotient every step converges cubically for symmetric matrices, tripling the correct digits per step ([Trefethen and Bau, Theorem 27.3](https://doi.org/10.1137/1.9780898719574)). Each step costs a linear solve.
 - **Lanczos.** Keep every iterate and take the best vector in the Krylov space $\mathrm{span}\{x_0, Ax_0, \dots, A^{k-1}x_0\}$. The Kaniel-Paige-Saad bound puts the eigenvalue error under a factor $1/T_{k-1}(1 + 2\gamma)^2$, where $T$ is a Chebyshev polynomial and $\gamma = (\lambda_1 - \lambda_2)/(\lambda_2 - \lambda_n)$ ([Saad, 1980](https://doi.org/10.1137/0717059)). For a small gap that is roughly $(1 + 2\sqrt{\gamma})^{-2k}$, so the step count grows like $1/\sqrt{\text{gap}}$ instead of $1/\text{gap}$.
 
-On $400 \times 400$ symmetric matrices built like the table above (ten seeds each), counting matrix-vector products until the top eigenvector was within $10^{-8}$ (medians):
+On $400 \times 400$ symmetric matrices built like the table above (ten seeds each), counting matrix-vector products until the top eigenvector was within $10^{-8}$ (medians). The Lanczos column is plain Lanczos with full reorthogonalization, and the last is SciPy's `eigsh`:
 
-| $r$ | Power iteration | Lanczos, full reorthogonalization | `scipy.sparse.linalg.eigsh` |
+| $r$ | Power iteration | Lanczos | `eigsh` |
 | ---: | ---: | ---: | ---: |
 | 0.9 | 181 | 47 | 71 |
 | 0.99 | 1811.5 | 97.5 | 131 |
