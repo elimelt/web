@@ -1,0 +1,192 @@
+---
+title: Sharding
+aliases:
+  - distributed-systems/sharding
+category: Distributed Systems
+tags:
+  - sharding
+  - consistent-hashing
+  - indirection-tables
+  - load-balancing
+  - data-distribution
+  - virtual-nodes
+  - hot-keys
+date: 2024-05-06
+updated: 2026-11-13
+status: evergreen
+description: How a system decides which server owns which key, and what moves when servers join or load shifts. Covers hash mod n, consistent hashing and virtual nodes, indirection tables, hot keys and range sharding, with measurements on a Twitter cache trace.
+sources:
+  - title: Karger, Lehman, Leighton, Panigrahy, Levine, Lewin (1997), Consistent Hashing and Random Trees, STOC
+    url: https://doi.org/10.1145/258533.258660
+    type: paper
+  - title: "DeCandia et al. (2007), Dynamo: Amazon's Highly Available Key-value Store, SOSP"
+    url: https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf
+    type: paper
+  - title: "Stoica et al. (2001), Chord: A Scalable Peer-to-peer Lookup Service for Internet Applications, SIGCOMM"
+    url: https://pdos.csail.mit.edu/papers/chord:sigcomm01/chord_sigcomm.pdf
+    type: paper
+  - title: "Adya et al. (2016), Slicer: Auto-Sharding for Datacenter Applications, OSDI"
+    url: https://www.usenix.org/conference/osdi16/technical-sessions/presentation/adya
+    type: paper
+  - title: "Lee et al. (2021), Shard Manager: A Generic Shard Management Framework for Geo-distributed Applications, SOSP"
+    url: https://research.facebook.com/publications/shard-manager-a-generic-shard-management-framework-for-geo-distributed-applications/
+    type: paper
+  - title: Lamping and Veach (2014), A Fast, Minimal Memory, Consistent Hash Algorithm
+    url: https://arxiv.org/abs/1406.2294
+    type: paper
+  - title: "Eisenbud et al. (2016), Maglev: A Fast and Reliable Software Network Load Balancer, NSDI"
+    url: https://research.google/pubs/maglev-a-fast-and-reliable-software-network-load-balancer/
+    type: paper
+  - title: Redis Cluster specification
+    url: https://redis.io/docs/latest/operate/oss_and_stack/reference/cluster-spec/
+    type: docs
+  - title: "Yang, Yue, Rashmi (2020), A large scale analysis of hundreds of in-memory cache clusters at Twitter, OSDI"
+    url: https://www.usenix.org/conference/osdi20/presentation/yang
+    type: paper
+---
+
+## Purpose
+
+Sharding splits one keyspace across many servers so that each server stores and serves a slice of it. Any sharding scheme answers two questions. Given a key, which server owns it? And when a server joins, leaves or runs hot, which keys move?
+
+This note covers the two common answers for hashed keys: consistent hashing, where the owner is computed from the key and the server list, and indirection tables, where the owner is looked up in a small table that every client holds. It measures both on a real request trace, then covers hot keys and range sharding. Where the shards' replicas go is a separate question, covered in the [[systems/distributed-systems/dynamo-db|Dynamo]] and [[systems/distributed-systems/primary-backup|primary-backup]] notes.
+
+The measurements use 1,000,000 requests from a production cache at Twitter (cluster 52 of the [traces released with Yang, Yue and Rashmi, OSDI 2020](https://www.usenix.org/conference/osdi20/presentation/yang)). They cover 143,542 distinct keys over 509 seconds, and popularity is very skewed: the hottest key gets 5.9% of all requests, and the hottest 1% of keys get 57%.
+
+## The obvious mapping and why it fails
+
+Hash the key and take the remainder: `server = hash(key) mod n`. Every client computes the same answer with no shared state, and keys spread evenly. The trouble starts when `n` changes. A key stays put only if its hash leaves the same remainder mod `n` and mod `n + 1`, which happens for about one key in `n + 1`. Growing from 32 servers to 33 moved **97.0%** of the trace's keys. For a cache that is a near-total miss storm; for a database it is a full reshuffle of the data.
+
+Only $1/(n+1)$ of the keys have to move, since the new server should end up with its fair share and nothing else needs to change. Both schemes below get that close to the minimum. They differ in how evenly they spread keys and load, and in how much say an operator has over what moves.
+
+## Consistent hashing
+
+[Karger et al. (1997)](https://doi.org/10.1145/258533.258660) hash servers and keys into the same circular space. A key belongs to the first server at or after its position, going clockwise and wrapping past the top. Each server therefore owns the arc between its predecessor and itself. The paper names the property that matters here *monotonicity*: when a server joins, a key either stays where it was or moves to the new server, never between two old ones.
+
+Hashing a server to a single point gives uneven arcs. Each copy of the figure below is five servers hashed onto a ring once each. The dots are 60 keys from the trace.
+
+<HashRing scenario="placement" />
+
+Placing $n$ points at random cuts the circle into $n$ gaps, and the largest gap averages $H_n/n$ of the circle, where $H_n = 1 + 1/2 + \dots + 1/n \approx \ln n + 0.58$ is the $n$-th harmonic number ([the order statistics of uniform spacings](https://ar5iv.labs.arxiv.org/html/1405.6114)). The busiest server thus owns about $H_n$ times its fair share, and that ratio grows with the cluster. Over 2,000 random placements the simulation agrees: 2.73 against $H_8 = 2.72$ at 8 servers, and 4.06 against $H_{32} = 4.06$ at 32. At 128 servers, 20 placements averaged 5.75 and ranged from 4.0 to 7.7. [Chord](https://pdos.csail.mit.edu/papers/chord:sigcomm01/chord_sigcomm.pdf) states the same thing as a bound: with one point per node, the load on a node can exceed the average by an $O(\log N)$ factor.
+
+### Virtual nodes
+
+The standard fix hashes each server onto the ring many times, as *virtual nodes* or *tokens*. A server's share is then the sum of many small arcs, and sums of many small random pieces vary less. Karger et al. use $O(\log C)$ copies per bucket; [Dynamo](https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf) also uses the count to weight servers by capacity, and when a node fails its load spreads over many others instead of landing on one neighbor.
+
+<HashRing scenario="points" />
+
+On the trace with 32 servers, the busiest server's share of keys falls roughly as one over the square root of the point count:
+
+| Points per server | Busiest server, × fair share (mean of 20 placements) | Range |
+| --- | --- | --- |
+| 1 | 4.03 | 2.90 to 5.07 |
+| 4 | 2.23 | 1.72 to 3.03 |
+| 16 | 1.57 | 1.33 to 1.80 |
+| 64 | 1.27 | 1.14 to 1.41 |
+| 256 | 1.13 | 1.09 to 1.19 |
+| 1,024 | 1.07 | 1.04 to 1.11 |
+
+libmemcached's *ketama* scheme, with 160 points per server, gave 1.17 (1.08 to 1.22). Some imbalance remains however the ring is cut: with 4,486 keys per server, even 32 exactly equal arcs leave the busiest server at 1.04, from the randomness of which keys hash where.
+
+Points are not free. Every client keeps the whole ring, a lookup is a binary search over it, and a large cluster with hundreds of random tokens per node has many tiny ranges to stream and repair. [Cassandra 4.0](https://raw.githubusercontent.com/apache/cassandra/trunk/NEWS.txt) cut its default from 256 tokens per node to 16, and turned on an allocator that picks new tokens to even out the replicated load instead of placing them at random.
+
+> [!note]- Deep dive: other consistent hashes
+> The ring is one of several hashes with the monotonicity property. Each trades memory, lookup time, balance and flexibility differently.
+>
+> - **Rendezvous (highest random weight) hashing** ([Thaler and Ravishankar, 1998](https://www.cs.ucr.edu/~ravi/Papers/Jrnl/HRW98.pdf)) scores every server with `hash(key, server)` and picks the highest. It needs no ring and balances like a ring with infinitely many points, but a lookup costs $O(n)$.
+> - **Jump consistent hash** ([Lamping and Veach, 2014](https://arxiv.org/abs/1406.2294)) maps a key to a bucket number in under $\ln n + 1$ expected iterations and no memory. Buckets must be numbered $0$ to $n - 1$, so it suits storage shards that only grow or shrink at the end, not caches whose servers come and go by name. On the trace, growing from 32 to 33 buckets moved 3.09% of keys.
+> - **Maglev hashing** ([Eisenbud et al., 2016](https://research.google/pubs/maglev-a-fast-and-reliable-software-network-load-balancer/)) fills a lookup table of prime size, 65,537 entries by default, by letting backends take turns claiming slots. It deliberately favors even balance over minimal disruption; the paper reports that at that table size Karger and rendezvous hashing need 29.7% and 49.5% overprovisioning to match.
+> - **Multi-probe consistent hashing** ([Appleton and O'Reilly, 2015](https://arxiv.org/abs/1505.00062)) keeps one point per server and hashes each key $k$ times, taking the closest server. With 21 probes it reaches a peak-to-mean of 1.05.
+> - **Consistent hashing with bounded loads** ([Mirrokni, Thorup and Zadimoghaddam, SODA 2018](https://research.google/blog/consistent-hashing-with-bounded-loads/)) caps each server at $(1 + \varepsilon)$ times the average and sends overflow clockwise to the next server with room. Vimeo's implementation in HAProxy (`hash-balance-factor`) cut its cache servers' bandwidth by a factor of almost 8.
+
+### What moves when a server joins
+
+Adding a server puts its points on the ring, and each new point takes over the part of an arc just before it. With one point per server, the newcomer takes a slice of exactly one neighbor's arc, and the slice is whatever size the hash happened to make it.
+
+<HashRing scenario="add" />
+
+With 16 points it takes a small slice from many servers, and its total comes out close to a fair share.
+
+<HashRing scenario="add-points" />
+
+On the trace, growing from 32 to 33 servers should move 1/33 = 3.03% of the keys. Every ring configuration moved that much on average, and in every run every moved key went to the new server. What differed was where they came from and how much the new server ended up with:
+
+| Points per server | Keys moved (mean, range over 20 placements) | Servers that gave up keys | New server's load, × mean |
+| --- | --- | --- | --- |
+| 1 | 3.10% (0.13% to 7.76%) | 1 | 0.04 to 2.56 |
+| 16 | 3.07% (1.87% to 4.96%) | 9 to 16 | 0.62 to 1.64 |
+| 256 | 3.07% (2.79% to 3.37%) | all 32 | 0.92 to 1.11 |
+
+The original version of this note called the migration expensive. In volume it is as cheap as it can be; the real costs are that one neighbor does all the copying when servers have few points, and that the hash, not the operator, decides how much moves.
+
+## Indirection tables
+
+An indirection table adds one level of naming. Keys hash into a fixed number of *entries*, many more than there are servers, and a small table maps each entry to the server that holds it. Every client caches the table. Placement becomes a table edit: to rebalance, reassign entries, and only the keys in a reassigned entry move.
+
+<HashRing scenario="table-add" />
+
+Many production systems work this way under different names:
+
+- [Redis Cluster](https://redis.io/docs/latest/operate/oss_and_stack/reference/cluster-spec/) hashes keys with CRC16 into 16,384 *slots*. A client that asks the wrong node gets `-MOVED` and updates its copy of the table. During a migration the node answers `-ASK` for keys that have already left.
+- Dynamo started with random tokens and moved to what its paper calls Strategy 3: the ring split into $Q$ equal fixed partitions, with each of $S$ nodes holding $Q/S$ of them. That is a table. It gave the best load balancing of the three strategies the paper measured, made bootstrapping and archival simpler because a partition moves as one file, and shrank each node's membership state by three orders of magnitude. The cost the paper names is that changing membership needs coordination.
+- Google's [Slicer](https://www.usenix.org/conference/osdi16/technical-sessions/presentation/adya) hashes keys to 63-bit *slice keys*; a central Assigner splits and merges ranges of them and hands assignments to clerks in every client. In its evaluation, consistent hashing left the hottest task 50% hotter than the mean.
+- Meta's [Shard Manager](https://research.facebook.com/publications/shard-manager-a-generic-shard-management-framework-for-geo-distributed-applications/) lets each application map keys to shards and then places and moves the shards. Its paper reports that this kind of static sharding is about three times as common at Meta as consistent hashing.
+- [Vitess](https://vitess.io/docs/reference/features/vindexes/) maps rows to a *keyspace ID* through a vindex, and each shard owns a range of keyspace IDs.
+
+On the trace, a table of 2,048 entries dealt out in turn to 32 servers left the busiest at 1.03 times the mean key count, already better than a ring with 1,024 points per server. Adding a 33rd server meant moving 62 entries, one or two from every server, which moved 3.00% of keys and left the busiest server at 1.03 again. Granularity matters: with only 128 entries the newcomer could take 3 and ended up at 0.77 of the mean.
+
+The price is the table itself. It has to live somewhere authoritative, usually a small replicated service such as the [[systems/distributed-systems/load-balancing|shard master]] Paxos group, and clients hold copies that go stale. Systems handle staleness by having servers reject or redirect requests for entries they no longer own, as Redis Cluster does, or by versioning assignments, as Slicer does.
+
+## Load is not keys
+
+Even key counts do not mean even load, because requests are not uniform over keys. Measured by requests, the same trace looks much worse for every scheme. These numbers plan an assignment on the first half of the trace and score it on the second half, at 32 servers:
+
+| Scheme | Busiest server's requests, × mean |
+| --- | --- |
+| Ring, 1 point per server | 4.45 (3.01 to 6.32 over 20 placements) |
+| Ring, 256 points per server | 2.84 (2.50 to 3.76) |
+| Table, 2,048 entries dealt out in turn | 2.58 |
+| Table, 2,048 entries placed by measured load | 1.91 |
+| The hottest key alone | 1.90 |
+
+More points do little here: the ring spreads keys, not requests, and the servers holding two of the top ten keys stay hot. A table can be placed by load. Assigning entries heaviest first to the least loaded server brought the peak down to 1.91, within 1% of the floor set by the single hottest key.
+
+A table can also be fixed incrementally. Starting from the dealt-out table, moving one entry at a time from the busiest server to the idlest, choosing the entry that best evens the pair, reached the same 1.91 after 66 moves, which shifted 3.3% of the keys. Recomputing the whole placement from scratch would have changed 1,978 of the 2,048 entries. Balancing requests this way does unbalance storage a little: the busiest server ended up with 1.15 times the mean number of keys.
+
+<HashRing scenario="hot" />
+
+### Hot keys
+
+No partitioning scheme can split one key. On the trace the hottest key alone carries 1.90 times a server's mean load at 32 servers, so whichever server owns it is overloaded regardless of how everything else is placed, and adding servers makes the ratio worse. Systems get around this by changing what a key is or how many servers hold it:
+
+- **Replicate the hot key.** Facebook's memcache [replicates popular keys across a pool](https://pdos.csail.mit.edu/6.824/papers/memcache-fb.pdf) instead of dividing the key space further, at the cost of invalidating every copy on a write. Slicer gives hot slices more replicas.
+- **Split the key.** DynamoDB's guidance on [write sharding](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-sharding.html) appends a suffix such as `.1` to `.200` to a hot partition key, so writes spread over 200 keys and reads fan out and merge.
+- **Accept a ceiling.** DynamoDB's [adaptive capacity](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/burst-adaptive-capacity.html) can isolate a hot item on its own partition, but that item still gets at most one partition's throughput, 3,000 reads and 1,000 writes per second.
+
+Bounded-load consistent hashing handles the same problem for caches by spilling requests to the next server once the owner is full, which works when any server can fetch the value.
+
+> [!note]- How this was measured
+> Everything is in [sharding-experiments](https://github.com/elimelt/web/tree/main/notes/content/systems/distributed-systems/sharding-experiments) beside this note.
+>
+> - **Trace:** `sh fetch_trace.sh` downloads `twitter_cluster52.csv`, the first 1,000,000 requests of cluster 52 from the [Twitter cache traces](https://github.com/twitter/cache-trace), as shipped with [libCacheSim](https://github.com/1a1a11a/libCacheSim) at commit `4e3521a`, and checks its SHA-256. It holds 143,542 keys over 509 seconds. Only key names and request counts are used.
+> - **Experiments:** `python3 shard_exp.py > results.json` (Python 3.13.18, NumPy 2.5.3; 11 seconds on a 4-vCPU Intel Xeon at 2.10 GHz). Keys and ring points are hashed with MD5 (the first 8 bytes), as Dynamo does; ring points are named `s<seed>-<server>#<point>`, so each of the 20 seeds is an independent random placement. "Busiest × fair share" is the maximum over servers divided by the mean. Table entries are the top bits of the same hash. In the request experiment, the table is planned on requests 1 to 500,000 and scored on requests 500,001 to 1,000,000; the ring needs no plan.
+> - **Checks:** `python3 checks.py` confirms that the ketama implementation sends 20,000 keys to the same servers as the `uhashring` package's ketama, and that the busiest server's share with one point each matches $H_n$ over 2,000 placements.
+> - **Figure:** the figure hashes with 32-bit MurmurHash3 in your browser. `python3 figure_data.py` writes the 60 sample keys, the 24 hottest keys and the per-entry request counts it draws, and reference values that the figure's tests check against Python's `mmh3`.
+
+## Range sharding
+
+Hashing destroys key order, so a range query has to visit every shard. Systems that need ordered scans shard by key range instead: [[systems/distributed-systems/bigtable|Bigtable]] tablets, CockroachDB ranges and MongoDB chunks. A range partition is an indirection table by necessity, since nothing about a key says which range it falls in. Bigtable finds tablets through a three-level hierarchy (a Chubby file, a root tablet, then METADATA tablets) that clients cache.
+
+Range shards split when they grow or run hot. CockroachDB splits a range above [512 MiB](https://docs.cockroachlabs.com/docs/stable/configure-replication-zones) and also [splits by load](https://docs.cockroachlabs.com/docs/stable/load-based-splitting) above 2,500 queries per second by default. Its documentation notes the limit from above: when nearly all traffic goes to one key, no split point helps. Ranges have a hot-spot problem hashing avoids. Sequential keys such as timestamps send every insert to the last range, which is why DynamoDB's [split for heat](https://aws.amazon.com/blogs/database/part-2-scaling-dynamodb-how-partitions-hot-keys-and-split-for-heat-impact-performance/) does not split a steadily increasing sort key.
+
+> [!note]- Potentially interesting ideas
+> - The table placed on the first 500,000 requests held up on the next 500,000 (1.89 planned, 1.91 served), but the whole trace covers only 509 seconds. How long a load-based placement stays good on a real cache, and how many entry moves per hour it takes to keep it there, would need the full multi-day traces.
+> - On the trace, a ring with 256 points per server was almost as unbalanced by requests (2.84) as one with 16 (2.98), because a few keys dominate. A hybrid that keeps the ring for the long tail and pins only the hottest few dozen keys through a small table might get most of a table's benefit with little state. This is untested, and Slicer's hot-slice handling is the closest published design.
+
+## Related notes
+
+- [[systems/distributed-systems/load-balancing|load balancing]], including the shard master design and why skewed popularity hurts tail latency
+- [[systems/distributed-systems/dynamo-db|Dynamo]], for preference lists and replica placement on the ring
+- [[systems/distributed-systems/bigtable|Bigtable]], for range partitioning into tablets
+- [[systems/distributed-systems/scaling-web-services|scaling web services]]
+- [[systems/distributed-systems/paxos-intro|Paxos]], which keeps a shard table consistent
