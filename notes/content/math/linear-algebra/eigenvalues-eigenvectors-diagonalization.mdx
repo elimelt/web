@@ -167,17 +167,17 @@ $$
 
 The work grows like $1/(1-r)$: halve the gap and you double the steps. I measured it on symmetric $200 \times 200$ matrices with $\lambda_1 = 1$, $\lambda_2 = r$ and the other 198 eigenvalues uniform in $[-r, r]$, ten random matrices and starts per row, counting steps until $\sin \theta_k \le 10^{-8}$:
 
-| $r$ | Steps, median (range) | Bound, median | Measured per-step factor | Steps × $(1 - r)$ |
-| ---: | ---: | ---: | ---: | ---: |
-| 0.1 | 9.5 (9 to 10) | 10 | 0.094 | 8.6 |
-| 0.5 | 30 (27 to 32) | 33 | 0.488 | 15.0 |
-| 0.8 | 87.5 (80 to 97) | 101.5 | 0.794 | 17.5 |
-| 0.9 | 181 (168 to 200) | 215 | 0.897 | 18.1 |
-| 0.95 | 367.5 (315 to 392) | 440.5 | 0.949 | 18.4 |
-| 0.99 | 1825 (1562 to 1943) | 2246 | 0.990 | 18.3 |
-| 0.995 | 3659 (3132 to 3887) | 4502.5 | 0.995 | 18.3 |
+| $r$ | Steps, median (range) | Bound | Steps × $(1 - r)$ |
+| ---: | ---: | ---: | ---: |
+| 0.1 | 9.5 (9 to 10) | 10 | 8.6 |
+| 0.5 | 30 (27 to 32) | 33 | 15.0 |
+| 0.8 | 87.5 (80 to 97) | 101.5 | 17.5 |
+| 0.9 | 181 (168 to 200) | 215 | 18.1 |
+| 0.95 | 367.5 (315 to 392) | 440.5 | 18.4 |
+| 0.99 | 1825 (1562 to 1943) | 2246 | 18.3 |
+| 0.995 | 3659 (3132 to 3887) | 4502.5 | 18.3 |
 
-The measured contraction per step matches $r$ to two or three digits once the faster modes have died out. The last column settles near 18.3 for $r$ near 1, about $\ln(10^8) = 18.4$ adjusted by the log of the start's ratio $|c_2/c_1|$, which is the $1/(1-r)$ law in numbers. The bound runs 10 to 23% high because it charges every mode at rate $r$. In the figure below, move the slider toward 1 to watch the line flatten, and set it to 1 to watch it stop.
+The median measured contraction per step, taken once the faster modes have died out, came within 0.012 of $r$ in every row (0.488 at $r = 0.5$, 0.990 at $r = 0.99$). The last column settles near 18.3 for $r$ near 1, about $\ln(10^8) = 18.4$ adjusted by the log of the start's ratio $|c_2/c_1|$, which is the $1/(1-r)$ law in numbers. The bound runs 10 to 23% high because it charges every mode at rate $r$. In the figure below, move the slider toward 1 to watch the line flatten, and set it to 1 to watch it stop.
 
 <PowerIteration preset="narrow" />
 
