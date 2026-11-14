@@ -1,0 +1,315 @@
+---
+title: FIFO, SJF, SRPT, RR, and MLFQ
+category: Scheduling
+tags:
+  - scheduling
+  - fifo
+  - sjf
+  - srpt
+  - round robin
+  - processor sharing
+  - mlfq
+  - foreground-background
+  - fairness
+  - slowdown
+date: 2026-07-31
+updated: 2026-11-14
+status: evergreen
+description: The classic single-server scheduling policies, what each one needs to know and what it optimizes, the exchange argument behind shortest-first, and how they compare on 1.98 million real job durations from Azure Functions, with small interactive schedules and the measured slowdown of every job size.
+sources:
+  - title: Schrage (1968), A proof of the optimality of the shortest remaining processing time discipline
+    url: https://doi.org/10.1287/opre.16.3.687
+    type: paper
+  - title: Schrage and Miller (1966), The queue M/G/1 with the shortest remaining processing time discipline
+    url: https://doi.org/10.1287/opre.14.4.670
+    type: paper
+  - title: Smith (1978), A new proof of the optimality of the shortest remaining processing time discipline
+    url: https://doi.org/10.1287/opre.26.1.197
+    type: paper
+  - title: Smith (1956), Various optimizers for single-stage production
+    url: https://doi.org/10.1002/nav.3800030106
+    type: paper
+  - title: Lenstra, Rinnooy Kan and Brucker (1977), Complexity of machine scheduling problems
+    url: https://doi.org/10.1016/S0167-5060(08)70743-X
+    type: paper
+  - title: "Bansal and Harchol-Balter (2001), Analysis of SRPT scheduling: investigating unfairness"
+    url: https://www.cs.cmu.edu/~harchol/Papers/Sigmetrics01.pdf
+    type: paper
+  - title: Wierman and Harchol-Balter (2003), Classifying scheduling policies with respect to unfairness in an M/GI/1
+    url: https://www.cs.cmu.edu/~harchol/Papers/unfairness.pdf
+    type: paper
+  - title: Muthukrishnan, Rajaraman, Shaheen and Gehrke (2005), Online scheduling to minimize average stretch
+    url: https://doi.org/10.1137/S0097539701387544
+    type: paper
+  - title: "Kleinrock (1967), Time-shared systems: a theoretical treatment"
+    url: https://doi.org/10.1145/321386.321388
+    type: paper
+  - title: Harchol-Balter (2013), Performance Modeling and Design of Computer Systems
+    url: https://www.cs.cmu.edu/~harchol/PerformanceModeling/book.html
+    type: book
+  - title: Harchol-Balter and Downey (1997), Exploiting process lifetime distributions for dynamic load balancing
+    url: https://doi.org/10.1145/263326.263344
+    type: paper
+  - title: Aalto, Ayesta and Righter (2009), On the Gittins index in the M/G/1 queue
+    url: https://doi.org/10.1007/s11134-009-9141-x
+    type: paper
+  - title: "Nuyens and Wierman (2008), The Foreground-Background queue: a survey"
+    url: https://doi.org/10.1016/j.peva.2007.06.028
+    type: paper
+  - title: Arpaci-Dusseau and Arpaci-Dusseau, Operating Systems Three Easy Pieces, ch. 8, The Multi-Level Feedback Queue
+    url: https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-sched-mlfq.pdf
+    type: textbook
+  - title: Corbató, Merwin-Daggett and Daley (1962), An experimental time-sharing system
+    url: https://doi.org/10.1145/1460833.1460871
+    type: paper
+  - title: Harchol-Balter, Schroeder, Bansal and Agrawal (2003), Size-based scheduling to improve web performance
+    url: https://doi.org/10.1145/762483.762486
+    type: paper
+  - title: Mitzenmacher (2020), Scheduling with predictions and the price of misprediction
+    url: https://doi.org/10.4230/LIPIcs.ITCS.2020.14
+    type: paper
+  - title: Scully, Grosof and Mitzenmacher (2022), Uniform bounds for scheduling with job size estimates
+    url: https://doi.org/10.4230/LIPIcs.ITCS.2022.114
+    type: paper
+  - title: Zhang et al. (2021), Faster and cheaper serverless computing on harvested resources
+    url: https://www.csl.cornell.edu/~delimitrou/papers/2021.sosp.harvest.pdf
+    type: paper
+  - title: Azure Functions invocation trace 2021
+    url: https://github.com/Azure/AzurePublicDataset/blob/master/AzureFunctionsInvocationTrace2021.md
+    type: dataset
+  - title: Linux kernel documentation, EEVDF scheduler
+    url: https://docs.kernel.org/scheduler/sched-eevdf.html
+    type: docs
+---
+
+## Purpose
+
+One server, a queue of jobs, and one decision repeated forever: which job runs next. Every policy in this note makes that decision from different information. FIFO looks only at arrival order. SJF and SRPT look at job sizes. Round robin and processor sharing look at nothing and split the server evenly. FB and MLFQ look at how long each job has already run and use that as a guess at how long it will run.
+
+What a policy may know decides what it can achieve, and the objective decides which achievement matters. This note works through the policies in that order, proves the optimality result most of them are measured against, and then runs all of them on 1,979,313 real function invocations from Azure to see what each one does to short and long jobs. How load and service-time variability set the overall level of queueing delay is in [[systems/scheduling/0-foundations/queueing-models-and-tail-latency|Queueing Models and Tail Latency]]; this note is about the order of service.
+
+## Response Time, Slowdown and What a Policy Knows
+
+Job $i$ arrives at $a_i$, needs $p_i$ seconds of service and completes at $C_i$. Its **response time** is $T_i = C_i - a_i$, and its **slowdown** is $T_i / p_i$, how many times longer it took than it would on an empty server. Slowdown puts a 10 ms job and a 10 minute job on the same footing: waiting one second ruins the first and doesn't register for the second.
+
+Mean response time is the usual objective, and the jobs that wait longest dominate it. Mean slowdown is dominated by the shortest jobs, since there are usually many more of them. A third question, asked by [Wierman and Harchol-Balter (2003)](https://www.cs.cmu.edu/~harchol/Papers/unfairness.pdf), is whether any size of job is treated badly: they call a policy fair to jobs of size $x$ when their expected slowdown is at most $1/(1-\rho)$, the slowdown every job gets under processor sharing at load $\rho$.
+
+The policies differ in what they are allowed to look at:
+
+| Policy | Uses | Preempts | Best at |
+| --- | --- | --- | --- |
+| FIFO | arrival order | no | simplicity, and the tail when sizes vary little |
+| SJF | job sizes | no | mean response when all jobs are present at once |
+| SRPT | remaining sizes | yes | mean response, for any arrivals ([Schrage, 1968](https://doi.org/10.1287/opre.16.3.687)) |
+| RR, PS | nothing | yes | equal shares; every size gets the same slowdown |
+| FB | service received so far | yes | mean response among size-blind policies when sizes have a decreasing hazard rate |
+| MLFQ | service received so far, in a few levels | yes | an approximation of FB with a handful of queues |
+
+## FIFO
+
+First in, first out runs each job to completion in arrival order:
+
+```python
+ready_q.append(job)
+job = ready_q.popleft()
+run_to_completion(job)
+```
+
+It costs nothing to implement and treats every job alike. A short job that arrives just after a long one waits for all of it, and every job behind it waits too. This is the convoy effect. With sizes that vary little FIFO is hard to beat on the tail, as the [queueing note](/systems/scheduling/0-foundations/queueing-models-and-tail-latency#order-within-a-queue) measures for exponential service. With sizes that vary by orders of magnitude it is the worst policy in this note by a wide margin.
+
+## Shortest Job First and the Exchange Argument
+
+Suppose all jobs are present at time 0 and run back to back in some order. The $k$-th job completes after the sizes of the first $k$ jobs, so the sum of completion times is
+
+$$
+\sum_{k=1}^{n} C_{[k]} = \sum_{k=1}^{n} (n - k + 1)\, p_{[k]}
+$$
+
+where $p_{[k]}$ is the size of the job in position $k$. Each job's size is counted once for itself and once for every job after it. To make the sum small, the largest multipliers should go to the smallest sizes: shortest first.
+
+The **exchange argument** shows the same thing one swap at a time. Take two adjacent jobs, $i$ then $j$, starting at time $t$. Before the swap they complete at $t + p_i$ and $t + p_i + p_j$. After it they complete at $t + p_j$ and $t + p_j + p_i$. Every other job completes at the same time as before, because the pair occupies the same interval either way. So the total changes by
+
+$$
+(t + p_j) + (t + p_j + p_i) - (t + p_i) - (t + p_i + p_j) = p_j - p_i .
+$$
+
+If the longer job was first ($p_i > p_j$), the swap lowers the total by $p_i - p_j$. Any order with a long job directly ahead of a shorter one can therefore be improved, and the only order that can't is sorted by size. Since the number of jobs is fixed, minimizing the sum of completion times minimizes the mean.
+
+The schedule below starts in the order 8, 4, 1, which is FIFO for the convoy example. Click a job to swap it with the one after it, and watch $\Sigma C$ change by exactly the second size minus the first.
+
+<ScheduleTimeline jobs="0:8, 0:4, 0:1" policies="order" control="swap" caption="Three jobs present at time 0, run back to back. ΣC is the sum of completion times; the mean is ΣC / 3. FIFO's order 8, 4, 1 gives ΣC = 33 (mean 11) and the sorted order gives 19 (mean 6.33). Ticks under the bar mark completions." />
+
+The same argument with weights gives **Smith's rule**: to minimize $\sum w_i C_i$, sort by $p_i / w_i$, smallest first ([Smith, 1956](https://doi.org/10.1002/nav.3800030106)). Swapping an adjacent pair changes the weighted sum by $w_i p_j - w_j p_i$, which is negative exactly when $p_j / w_j < p_i / w_i$.
+
+The argument needs every job present from the start. Once jobs arrive over time and can't be preempted, a short job that arrives a moment after a long one has started must wait for all of it, and choosing the best non-preemptive order (the problem $1 \mid r_j \mid \sum C_j$) is strongly NP-hard ([Lenstra, Rinnooy Kan and Brucker, 1977](https://doi.org/10.1016/S0167-5060(08)70743-X)). SJF, which picks the shortest job present whenever the server frees up, is only a heuristic in that setting. SRPT removes the problem by allowing preemption.
+
+## SRPT
+
+Shortest remaining processing time is SJF with preemption: at every moment, run the job with the least work left, and when a new job arrives with less work than the running job has left, switch to it. In the schedule below, A needs 8 seconds and B needs 3. Move B's arrival and compare SJF, which can't stop A once it has started, with SRPT, which preempts A whenever B's 3 seconds are less than A's remaining $8 - t$.
+
+<ScheduleTimeline jobs="0:8, 2:3" policies="sjf,srpt" control="arrival" job={1} min={0} max={8} step={1} caption="SRPT preempts A for any arrival before 5, when A's remaining time is still more than 3. At 5 the two are tied and A keeps the server. The mean column is mean response time (completion minus arrival)." />
+
+[Schrage (1968)](https://doi.org/10.1287/opre.16.3.687) proved that SRPT minimizes the mean response time for every sequence of arrivals and sizes on one server, assuming sizes are known on arrival and preemption is free. [Smith (1978)](https://doi.org/10.1287/opre.26.1.197) gave a shorter proof of a stronger form: SRPT minimizes the number of jobs in the system at every instant. The intuition is the exchange argument applied to slices of time: any moment spent on a job other than the one closest to finishing delays some completion without bringing any other completion forward. The mean response time of each job size in an M/G/1 queue under SRPT was derived by [Schrage and Miller (1966)](https://doi.org/10.1287/opre.14.4.670). For slowdown the guarantee is weaker but still strong: SRPT is 2-competitive for mean slowdown on one machine ([Muthukrishnan et al., 2005](https://doi.org/10.1137/S0097539701387544)).
+
+The standard objection is starvation: a long job keeps being preempted by shorter ones. [Bansal and Harchol-Balter (2001)](https://www.cs.cmu.edu/~harchol/Papers/Sigmetrics01.pdf) measured how much that costs in M/G/1 and found it small. At load $\rho \le 1/2$, every job size has a lower expected response time under SRPT than under processor sharing, for any size distribution with finite variance (their Theorem 3). For a heavy-tailed bounded Pareto distribution at load 0.9, every size does better under SRPT, the largest job included (slowdown 9.54 against 10 under PS), and that stays true up to load 0.96. Closer to saturation the largest jobs can do worse under SRPT than under PS. In Wierman and Harchol-Balter's classification SRPT is *sometimes unfair*: fair below load 1/2, and unfair to the largest jobs for some distributions above it. The [experiment below](#on-real-job-sizes) finds the same on real job sizes.
+
+SRPT needs the sizes, which is its real limitation. Where they are known it works in practice: [Harchol-Balter et al. (2003)](https://doi.org/10.1145/762483.762486) scheduled the outgoing link of a Linux web server by the remaining bytes of each static file response and cut mean response time by a factor of 3 to 8 at high load, while the largest requests got about 1.2 times slower. Where sizes are only estimated, SRPT can go badly wrong, as the [experiment](#when-sizes-are-only-estimates) shows.
+
+## Round Robin and Processor Sharing
+
+Round robin runs each job for at most a quantum $q$ and sends it to the back of the queue:
+
+```python
+while ready_q:
+    job = ready_q.popleft()
+    run(job, quantum=q)
+    if not job.done:
+        ready_q.append(job)
+```
+
+As $q \to 0$ with free context switches, round robin becomes **processor sharing** (PS): every job present gets an equal share of the server at every instant. [Kleinrock (1967)](https://doi.org/10.1145/321386.321388) took that limit for time-shared systems. In an M/G/1 queue under PS a job of size $x$ has mean response time $x / (1-\rho)$, whatever the size distribution ([Harchol-Balter, 2013](https://www.cs.cmu.edu/~harchol/PerformanceModeling/book.html)). Every job's expected slowdown is the same $1/(1-\rho)$, which is why it serves as the fairness yardstick above.
+
+PS does not lower the mean response time below FIFO's when sizes are exponential; it moves delay from short jobs to long ones. Its value is that no job ever waits behind another job's entire service. On the three jobs from before, sizes 8, 4 and 1 all present at time 0, PS completes them at 13, 9 and 3, a mean of 8.33. That is better than FIFO's 11 and worse than SJF's 6.33. The size-1 job finishes at 3 because it gets a third of the server from the start. The loss against SJF comes from the size-4 job, which shares the server with the size-8 job until time 9 instead of finishing at 5.
+
+With a real quantum the result depends on how the quantum compares with the job sizes, and not monotonically. Drag the quantum below:
+
+<ScheduleTimeline jobs="0:8, 0:4, 0:1" policies="rr,ps" control="quantum" quantum={1} min={0.5} max={8} step={0.5} caption="Round robin on sizes 8, 4 and 1. A quantum of 1 or less gives the same completions as PS here (mean 8.33). A quantum of 3 is worse than a quantum of 4 (10.33 against 10), and a quantum of 8 or more is FIFO (11)." />
+
+Every switch also costs time. If a switch takes $c$, a fraction $c/(q + c)$ of the server is lost to switching, so a quantum short enough to approximate PS is paid for in throughput, and a long one turns round robin back into FIFO. Linux's current scheduler, [EEVDF](https://docs.kernel.org/scheduler/sched-eevdf.html) (since 6.6, replacing CFS, which dated from 2.6.23), gives each task a weighted share of the CPU through virtual time, which makes it a weighted PS rather than an MLFQ. The virtual-time bookkeeping is the same idea as in [[systems/scheduling/3-network-and-packet/fair-queueing-wfq-and-drr|weighted fair queueing]].
+
+## Without Sizes: FB and MLFQ
+
+A policy that can't see sizes can still see how long each job has already run, its **age**. Whether age helps depends on the size distribution. If sizes are heavy-tailed, a job that has already run a long time is likely to run a long time more. [Harchol-Balter and Downey (1997)](https://doi.org/10.1145/263326.263344) measured UNIX processes and found that a process that has used $T$ seconds of CPU, for $T$ above about a second, has roughly even odds of using $T$ more: the median remaining lifetime equals the current age.
+
+**Foreground-background** (FB, also called least attained service) acts on that: it always serves the jobs that have received the least service so far, sharing equally among ties. A new job starts at age 0 and preempts everything that has run. FB minimizes mean response time among policies that don't know sizes when the size distribution has a decreasing hazard rate, and only then ([Aalto, Ayesta and Righter, 2009](https://doi.org/10.1007/s11134-009-9141-x), building on Righter and Shanthikumar, 1989). For distributions that are "new better than used in expectation", FIFO is the optimum instead. In general the optimal size-blind policy is the Gittins index policy, which ranks each job by a function of its age computed from the size distribution. [Nuyens and Wierman (2008)](https://doi.org/10.1016/j.peva.2007.06.028) survey FB. Its cost is the opposite of SRPT's: FB is *always unfair* in Wierman and Harchol-Balter's sense, because the largest jobs are the oldest and always come last.
+
+**The multi-level feedback queue** (MLFQ) is FB with a handful of queues instead of a continuum of ages. [CTSS](https://doi.org/10.1145/1460833.1460871) used it in 1962 with quanta that doubled at each level. The modern textbook version, from [OSTEP chapter 8](https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-sched-mlfq.pdf), has five rules:
+
+1. If A's priority is higher than B's, A runs.
+2. Jobs of equal priority run round robin with their queue's quantum.
+3. A new job starts in the top queue.
+4. Once a job uses up its allotment at a level, however many times it gave up the CPU along the way, it moves down a level.
+5. After some period $S$, move every job to the top queue.
+
+Rule 4 is written the way it is because of gaming. An earlier version kept a job at its level whenever it gave up the CPU before its allotment ran out, so a program could stay at top priority by doing a short I/O just before each quantum ended. Counting total CPU time at the level closes that. Rule 5 bounds starvation and lets a job that turned interactive climb back.
+
+Rules 3 and 4 give a new job, which is short with high probability under a heavy-tailed distribution, the top of the order until it proves otherwise. In the schedule below a 6-second job A is joined by three short jobs. MLFQ (top quantum 1, doubling at each of three levels; subscripts show the queue each slice ran in) never sees a size and still lands close to SRPT, which does.
+
+<ScheduleTimeline jobs="0:6, 1:1, 3:2, 5:1" policies="fifo,mlfq,srpt" q0={1} levels={3} caption="A long job and three short ones under FIFO, MLFQ with three queues (quanta 1, 2 and 4) and SRPT. MLFQ's mean response time of 4 is close to SRPT's 3.5 and well below FIFO's 5.75. C pays for not being known: MLFQ demotes it after one quantum, and it finishes at 7 instead of 5." />
+
+Without rule 5, a steady stream of short jobs keeps a demoted job waiting indefinitely. Below, A needs 3 seconds and a 1-second job arrives every second. Without a boost A runs once and then waits for the whole stream. Set a boost period to bring it back to the top queue at regular intervals.
+
+<ScheduleTimeline jobs="0:3, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1, 7:1, 8:1" policies="mlfq" q0={1} levels={3} control="boost" boost={0} min={0} max={6} step={1} caption="MLFQ with quanta 1, 2 and 4. With no boost, A finishes at 11, after every short job. A boost every 2 seconds finishes it at 6, and the short jobs wait longer in exchange (mean response over all jobs 2.11 without a boost, 2.89 with a boost every 2)." />
+
+How long the boost period should be is a tuning question with no right answer; OSTEP calls it a voodoo constant. Solaris's time-sharing class used 60 queues, quanta from 20 ms at the top to a few hundred ms at the bottom, and a boost about once a second ([OSTEP §8.5](https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-sched-mlfq.pdf)). FreeBSD 4.3 computed priority from a decaying measure of CPU use, which boosts gradually instead of all at once, and Linux's O(1) scheduler gave sleeping tasks a priority bonus of up to five levels. The experiment below shows what a one-second boost costs on real job sizes.
+
+## On Real Job Sizes
+
+The [Azure Functions invocation trace](https://github.com/Azure/AzurePublicDataset/blob/master/AzureFunctionsInvocationTrace2021.md) records the duration of 1,979,313 function invocations over two weeks in 2021, released with [Zhang et al. (2021)](https://www.csl.cornell.edu/~delimitrou/papers/2021.sosp.harvest.pdf). The durations are heavy-tailed: the median is 31 ms, the 90th percentile 1.6 s, the 99th 72 s and the longest 579 s. The longest 1% of invocations carry 44% of the total work, and the longest 10% carry 96%. The mean is 3.35 s and the squared coefficient of variation is 30.5, against 1 for an exponential distribution.
+
+Each policy ran on these sizes as a single preemptive server with Poisson arrivals: an M/G/1 queue whose size distribution is the trace's. Five seeds each shuffle the sizes and draw new arrival times. Where a policy needs estimates, they come from the true size multiplied by $e^{Z}$, $Z \sim N(0, 1)$, so half of the estimates are off by more than a factor of 2. The simulators are exact and event-driven, and checked against independent references (the method box at the end of this section has the details). At load 0.9:
+
+| Policy | Mean response (s) | Median slowdown | 99th percentile slowdown | Mean slowdown, largest 0.1% |
+| --- | ---: | ---: | ---: | ---: |
+| FIFO | 467 ± 13 | 5,269 | 2.4 million | 2.4 |
+| SJF | 58.8 ± 0.1 | 412 | 311,000 | 7.0 |
+| SRPT | 10.6 ± 0.1 | 1.00 | 2.4 | 9.2 |
+| PS | 32.8 ± 0.9 | 7.0 | 42.5 | 9.7 |
+| FB | 24.2 ± 0.5 | 1.00 | 5.7 | 18.4 |
+| MLFQ, 8 levels | 31.5 ± 0.8 | 1.00 | 20.7 | 9.7 |
+| MLFQ, 16 levels | 24.2 ± 0.6 | 1.00 | 6.2 | 16.1 |
+| MLFQ, 8 levels, boost every 1 s | 32.8 ± 0.9 | 1.00 | 122 | 9.7 |
+| SRPT on estimates | 22.4 ± 0.6 | 1.00 | 82,000 | 7.4 |
+| SRPT-Bounce on estimates | 15.7 ± 0.4 | 1.00 | 5.6 | 7.8 |
+
+Means are over five seeds, ± one standard deviation. Slowdown percentiles are over all jobs, averaged over seeds. The MLFQ variants use a 10 ms top quantum that doubles at each level, so the bottom level's quantum is 1.28 s with 8 levels and 328 s with 16.
+
+The charts below break mean slowdown down by job size. Each point is the mean slowdown of the jobs in one size-percentile bucket, smallest jobs on the left; the bars show the range over seeds where it is visible, and hovering a point shows the bucket's sizes. The dashed line is PS, which gives every size the same slowdown $1/(1-\rho)$. Points above it are sizes the policy treats worse than PS does. The buttons switch between loads 0.5, 0.7 and 0.9.
+
+### Knowing sizes
+
+<SlowdownBySize policies="fifo,sjf,ps,srpt" rho={0.9} caption="Simulation on the trace's job sizes, M/G/1, five seeds. Under FIFO the smallest jobs wait hundreds of thousands of times their size. SJF knows sizes but can't preempt, which helps less than PS does. SRPT keeps 99.93% of jobs below PS's slowdown and, at load 0.9, the largest 0.1% too." />
+
+- **SRPT cuts mean response time to a third of PS's** at load 0.9 (10.6 s against 32.8 s) and to 1/44 of FIFO's.
+- **The largest jobs do not pay for it at this load.** The 0.1% of jobs longer than 254 s have mean slowdown 9.2 under SRPT (8.9 to 9.5 across seeds) and 9.7 under PS. Only 0.07% of all jobs have a slowdown above 10. This is Bansal and Harchol-Balter's heavy-tail result on real data.
+- **Preemption matters more than knowing sizes.** SJF knows every size and still has a mean response time of 58.8 s, almost twice PS's, because a short job that arrives during a 500 s job waits for all of it.
+
+### Not knowing sizes
+
+<SlowdownBySize policies="ps,fb,mlfq,mlfq16" rho={0.9} caption="Simulation on the trace's job sizes. FB gives almost every job slowdown near 1 and makes the largest 0.1% wait 18 times their size. MLFQ with 8 levels lumps every job longer than 2.55 s into its bottom queue, which is round robin with a 1.28 s quantum, so those jobs see PS-like slowdown. With 16 levels MLFQ tracks FB." />
+
+- **FB recovers most of SRPT's gain without seeing a size**: 24.2 s against SRPT's 10.6 and PS's 32.8, with median slowdown 1. The heavy tail is what makes age a good predictor here.
+- **The cost lands on the largest jobs.** The longest 0.1% have slowdown 18.4 under FB, twice PS's 9.7, which is what FB being always unfair means in practice.
+- **MLFQ is only as good as its number of levels.** With 8 levels the bottom queue starts at 2.55 s of service and holds the longest 8.9% of jobs, which share it round robin, so MLFQ's mean (31.5 s) is barely better than PS. With 16 levels its mean matches FB's.
+
+<SlowdownBySize policies="ps,mlfq,mlfq_boost1s" rho={0.9} caption="Simulation on the trace's job sizes. Boosting every second puts all the long jobs in the system back in the top queue, where each takes a 10 ms slice ahead of the short jobs that arrive next. At load 0.9 the shortest jobs then do worse than under PS." />
+
+- **A one-second boost undoes MLFQ at this load.** Each boost lifts every long job in the system back to the top queue, where each takes a full 10 ms slice. A job arriving just after a boost waits behind all of them, so the smallest 10% of jobs have slowdown 16, worse than PS's 9.9, and the 99th percentile slowdown rises from 21 to 122. At load 0.5 the same boost costs much less, because fewer long jobs are present at each boost: the smallest 10% have slowdown 1.29, against 2 under PS.
+
+### When sizes are only estimates
+
+<SlowdownBySize policies="ps,srpt,srpt_est1,srpt_bounce1" rho={0.9} caption="Simulation on the trace's job sizes, with each estimate off by a log-normal factor (σ = 1). SRPT on the raw estimates lets an underestimated long job outrank everything once it outlives its estimate, and the smallest jobs wait thousands of times their size. SRPT-Bounce, with the same estimates, stays close to true SRPT." />
+
+- **Naive SRPT on estimates can be worse than knowing nothing for short jobs.** Ranking by estimated remaining time, estimate minus service received, lets a long job that was underestimated reach a negative rank, after which it outranks every new arrival until it finishes. The mean (22.4 s) still beats PS, but the smallest 10% of jobs have mean slowdown 12,700. [Scully, Grosof and Mitzenmacher (2022)](https://doi.org/10.4230/LIPIcs.ITCS.2022.114) show that this naive policy can make the mean arbitrarily worse than SRPT's; [Mitzenmacher (2020)](https://doi.org/10.4230/LIPIcs.ITCS.2020.14) analyzes the cost of prediction errors for shortest-first policies more generally.
+- **SRPT-Bounce fixes it with one change.** Scully, Grosof and Mitzenmacher's policy ranks a job with estimate $z$ and age $a$ by $z - a$ until $a = z$, and after that by $a - z$, capped at $z$: a job that outlives its estimate falls back down the order. With the same estimates it gets 15.7 s, 1.5 times true SRPT, and only 0.52% of jobs have a slowdown above PS's. Their bound, mean response at most $3.5\,\alpha/\beta$ times SRPT's when every estimate is within $[\beta x, \alpha x]$, does not apply to log-normal errors, which are unbounded, but the measurement suggests the policy degrades gracefully anyway.
+
+> [!note]- How this was measured
+> - **Data.** [AzureFunctionsInvocationTraceForTwoWeeksJan2021](https://github.com/Azure/AzurePublicDataset/blob/master/AzureFunctionsInvocationTrace2021.md), downloaded from the dataset repository. The archive ends about 250 KB short of its full length, so the 1,979,313 complete rows were used and the partial last row dropped. Durations are in milliseconds; the 171,104 zero durations (8.6%) were set to 0.5 ms so every job has a slowdown. A quarter of all invocations take exactly 1 ms.
+> - **Model.** One server, work conserving, preemption and switches free. Poisson arrivals at rate $\rho / E[S]$; each seed (1 to 5) shuffles the sizes and draws arrivals with NumPy's `default_rng(seed)`. Every job is counted, including the drain after the last arrival. Loads 0.5, 0.7 and 0.9.
+> - **Policies.** [`policies.py`](./policy-experiments/policies.py): FIFO, non-preemptive SJF, SRPT, PS (exact, through a virtual-time clock), FB (exact, with groups of equal age), MLFQ (OSTEP's rules with CPU-bound jobs; a job preempted by a higher queue keeps its place and its allotment), SRPT on estimates (rank estimate minus age, negative allowed, preemptive) and SRPT-Bounce. Estimates are $x e^{Z}$, $Z \sim N(0,1)$, drawn with `default_rng(1000 + seed)`; both estimate-based policies see the same estimates.
+> - **Checks.** [`check_policies.py`](./policy-experiments/check_policies.py) compares FIFO, SRPT, PS, FB and boosted MLFQ with a separate time-stepped simulator on 60 random instances. It also checks that round robin with a tiny quantum approaches PS, that MLFQ with equal tiny quanta approaches FB, and that SRPT has the least total response time of every policy on every instance. It reproduces the M/M/1 mean for FIFO and PS, the M/G/1-PS response $x/(1-\rho)$ per size and the Pollaczek-Khinchine mean for FIFO, the last two within 4%.
+> - **Replaying the trace's own arrival times** (stretched so the two-week average load is 0.5, 0.7 or 0.9) was also run, but the result measures overload, not the policies: the busiest hour of the trace carries 118 times the work of an average hour, so the server spends days of simulated time far behind. At average load 0.5, SRPT's mean response time is 19,000 s and PS's 40,000 s. Those runs are in `summary.json` but not in the tables or charts.
+> - **Environment.** Intel Xeon at 2.30 GHz, 4 cores, Python 3.13.18, NumPy 2.5.3. The slowest runs are boosted MLFQ: about 2 minutes each with Poisson arrivals at load 0.9, under 5 minutes on the replayed trace. Results: [`summary.json`](./policy-experiments/summary.json); the charts read [`slowdown_by_size.json`](./policy-experiments/slowdown_by_size.json).
+>
+> ```sh
+> cd notes/content/systems/scheduling/1-single-resource/policy-experiments
+> python3 check_policies.py
+> # trace.npy: one row per invocation, (end_timestamp - duration, duration) in seconds
+> sh run_all.sh path/to/trace.npy results
+> python3 aggregate.py results
+> python3 make_fixtures.py   # fixtures for the timeline figure's test
+> ```
+
+## Choosing
+
+The objective and the information available pick the policy more than any ranking does. If sizes are known and preemption is cheap, use SRPT; its unfairness to long jobs is small below very high load. If sizes are estimated, rank with a policy that tolerates bad estimates, such as SRPT-Bounce, rather than plain SRPT. If nothing is known and sizes are heavy-tailed, use FB or an MLFQ with enough levels to span the size range. If sizes are similar, or the tail matters more than the mean, FIFO is hard to beat. If equal treatment is the requirement, use PS, or round robin with a quantum short enough to approximate it.
+
+> [!note]- Potentially interesting ideas
+> - **Gittins on the trace.** The optimal size-blind policy for a known distribution is the Gittins index ([Aalto, Ayesta and Righter, 2009](https://doi.org/10.1007/s11134-009-9141-x)). Computing its index from the empirical duration distribution and adding it to the experiment would show how much of the gap between FB (24.2 s) and SRPT (10.6 s) is reachable without sizes. FB is optimal only for a decreasing hazard rate, and the trace has spikes at particular durations (a quarter of invocations take exactly 1 ms), so it is not obvious how close FB is.
+> - **Per-job aging instead of a global boost.** The one-second boost hurt short jobs because it lifts every long job at once. Lifting only jobs that have waited longer than some multiple of their attained service might bound starvation without the burst. This came from reading the boosted MLFQ results and was not tested.
+> - **Levels from the measured size range.** MLFQ with 8 levels lost almost all of FB's advantage because the trace spans 0.5 ms to 579 s, about 20 doublings, and 8 levels cover only the first eight. Choosing the number of levels and the top quantum from observed sizes is a simple rule the experiment suggests but did not test beyond 8 and 16 levels.
+> - **Policies under real burstiness.** Replaying the trace's own arrival times overloaded the server for long stretches. How these policies behave together with [[systems/scheduling/4-cluster-and-datacenter/admission-control-backpressure-overload|admission control]], which would shed or delay work during those bursts, is a different experiment from the M/G/1 one here.
+
+## Related Notes
+
+- [[systems/scheduling/0-foundations/queueing-models-and-tail-latency|Queueing Models and Tail Latency]]: load, variability, and FCFS, PS and SRPT on exponential and bimodal sizes, including tail percentiles.
+- [[systems/operating-systems/v2-concurrency/7-uniprocessor-scheduling|Uniprocessor Scheduling]]: the same policies from the operating-systems course, with lottery and stride scheduling.
+- [[systems/scheduling/3-network-and-packet/fair-queueing-wfq-and-drr|Fair Queueing, WFQ, and DRR]]: PS for packets, and the virtual-time idea Linux's scheduler shares.
+- [[systems/scheduling/1-single-resource/real-time-scheduling-edf-and-rate-monotonic|Real-Time Scheduling]]: when the objective is meeting deadlines instead of mean response time.
+- [[systems/scheduling/5-ml-and-serving/request-scheduling-for-llm-serving|Request Scheduling for LLM Serving]]: shortest-first and its estimates applied to model requests.
+- [[systems/scheduling/2-parallel-and-multiprocessor/work-stealing-affinity-and-numa|Work Stealing, Affinity, and NUMA]]: more than one server.
+- [[systems/scheduling/benchmarks/README|Scheduling Benchmarks and Simulators]]
+
+## Sources
+
+- [Schrage (1968), A proof of the optimality of the shortest remaining processing time discipline](https://doi.org/10.1287/opre.16.3.687)
+- [Schrage and Miller (1966), The queue M/G/1 with the shortest remaining processing time discipline](https://doi.org/10.1287/opre.14.4.670)
+- [Smith (1978), A new proof of the optimality of the shortest remaining processing time discipline](https://doi.org/10.1287/opre.26.1.197)
+- [Smith (1956), Various optimizers for single-stage production](https://doi.org/10.1002/nav.3800030106)
+- [Lenstra, Rinnooy Kan and Brucker (1977), Complexity of machine scheduling problems](https://doi.org/10.1016/S0167-5060(08)70743-X)
+- [Bansal and Harchol-Balter (2001), Analysis of SRPT scheduling: investigating unfairness](https://www.cs.cmu.edu/~harchol/Papers/Sigmetrics01.pdf)
+- [Wierman and Harchol-Balter (2003), Classifying scheduling policies with respect to unfairness in an M/GI/1](https://www.cs.cmu.edu/~harchol/Papers/unfairness.pdf)
+- [Muthukrishnan, Rajaraman, Shaheen and Gehrke (2005), Online scheduling to minimize average stretch](https://doi.org/10.1137/S0097539701387544)
+- [Kleinrock (1967), Time-shared systems: a theoretical treatment](https://doi.org/10.1145/321386.321388)
+- [Harchol-Balter (2013), Performance Modeling and Design of Computer Systems](https://www.cs.cmu.edu/~harchol/PerformanceModeling/book.html)
+- [Harchol-Balter and Downey (1997), Exploiting process lifetime distributions for dynamic load balancing](https://doi.org/10.1145/263326.263344)
+- [Aalto, Ayesta and Righter (2009), On the Gittins index in the M/G/1 queue](https://doi.org/10.1007/s11134-009-9141-x)
+- [Nuyens and Wierman (2008), The Foreground-Background queue: a survey](https://doi.org/10.1016/j.peva.2007.06.028)
+- [Arpaci-Dusseau and Arpaci-Dusseau, Operating Systems Three Easy Pieces, ch. 8, The Multi-Level Feedback Queue](https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-sched-mlfq.pdf)
+- [Corbató, Merwin-Daggett and Daley (1962), An experimental time-sharing system](https://doi.org/10.1145/1460833.1460871)
+- [Harchol-Balter, Schroeder, Bansal and Agrawal (2003), Size-based scheduling to improve web performance](https://doi.org/10.1145/762483.762486)
+- [Mitzenmacher (2020), Scheduling with predictions and the price of misprediction](https://doi.org/10.4230/LIPIcs.ITCS.2020.14)
+- [Scully, Grosof and Mitzenmacher (2022), Uniform bounds for scheduling with job size estimates](https://doi.org/10.4230/LIPIcs.ITCS.2022.114)
+- [Zhang et al. (2021), Faster and cheaper serverless computing on harvested resources](https://www.csl.cornell.edu/~delimitrou/papers/2021.sosp.harvest.pdf)
+- [Azure Functions invocation trace 2021](https://github.com/Azure/AzurePublicDataset/blob/master/AzureFunctionsInvocationTrace2021.md)
+- [Linux kernel documentation, EEVDF scheduler](https://docs.kernel.org/scheduler/sched-eevdf.html)

@@ -1,0 +1,114 @@
+// The slowdown-by-size chart.
+
+figure.sb {
+  @include fig-frame(0.8rem 0.9rem 0.7rem);
+
+  .sb-top {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.4rem;
+  }
+
+  .sb-loads {
+    display: flex;
+    gap: 0.3rem;
+
+    button {
+      @include fig-button(0.15rem 0.5rem, 0.82rem);
+      @include fig-button-hover;
+    }
+
+    button[aria-pressed="true"] {
+      @include fig-pressed;
+    }
+  }
+
+  .sb-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 0.8rem;
+    font-size: 0.8rem;
+    color: var(--darkgray);
+  }
+
+  .sb-key i {
+    display: inline-block;
+    width: 0.8rem;
+    height: 3px;
+    margin-right: 0.3rem;
+    vertical-align: middle;
+    border-radius: 2px;
+  }
+
+  .sb-chart {
+    @include fig-chart;
+    aspect-ratio: 640 / 270;
+
+    text {
+      fill: var(--gray);
+      font-size: 11px;
+    }
+
+    .sb-axis {
+      font-size: 11.5px;
+    }
+
+    .sb-grid {
+      stroke: var(--lightgray);
+      stroke-width: 1;
+    }
+
+    .sb-fair {
+      stroke: var(--darkgray);
+      stroke-width: 1.2;
+      stroke-dasharray: 5 4;
+    }
+
+    .sb-fairlab {
+      fill: var(--darkgray);
+    }
+
+    .sb-series {
+      polyline {
+        fill: none;
+        stroke: var(--c);
+        stroke-width: 2;
+      }
+
+      .sb-err line {
+        stroke: var(--c);
+        stroke-width: 1.2;
+        opacity: 0.6;
+      }
+
+      circle {
+        fill: var(--c);
+      }
+    }
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    padding: 0.7rem 0.6rem 0.6rem;
+
+    .sb-chart {
+      text {
+        font-size: 17px;
+      }
+
+      .sb-axis {
+        font-size: 15px;
+      }
+
+      .sb-thin {
+        display: none;
+      }
+    }
+  }
+}
