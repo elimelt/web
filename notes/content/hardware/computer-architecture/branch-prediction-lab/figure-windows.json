@@ -1,0 +1,44 @@
+{
+  "loop": {
+    "offset": "0x51d6",
+    "outcomes": "TTTTTTTNTTTTTTTNTTTTTTTNTTTTTTTNTTTTTTTNTTTTTTTNTTTTTTTNTTTTTTTN",
+    "start": {
+      "1": 0,
+      "2": 2
+    },
+    "whole": {
+      "runs": 11485,
+      "miss1": 0.25,
+      "miss2": 0.125,
+      "missTage": 0.129
+    }
+  },
+  "alternate": {
+    "offset": "0xeb54",
+    "outcomes": "TNTNTTNTNTNTNTNTNTNTNTNNNNTNTNTNTTNTNTTNTNNNTNTNTNTNTNNTNTNTNTNT",
+    "start": {
+      "1": 0,
+      "2": 0
+    },
+    "whole": {
+      "runs": 12669,
+      "miss1": 0.826,
+      "miss2": 0.593,
+      "missTage": 0.334
+    }
+  },
+  "correlated": {
+    "offset": "0x51b5",
+    "outcomes": "TTNNNTTNNNNTTNNTNTTTTNTTTTNTTNNTTNTTTTTTTTTTTTTTTTTTTTTTTTTNTTTT",
+    "start": {
+      "1": 1,
+      "2": 3
+    },
+    "whole": {
+      "runs": 11485,
+      "miss1": 0.399,
+      "miss2": 0.381,
+      "missTage": 0.004
+    }
+  }
+}
