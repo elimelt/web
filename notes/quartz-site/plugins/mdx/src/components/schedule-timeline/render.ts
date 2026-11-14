@@ -73,11 +73,21 @@ export function stateFrom(props: Props): State {
   const max = typeof props.max === "number" ? props.max : control === "quantum" ? 8 : control === "boost" ? 10 : 8;
   const min = typeof props.min === "number" ? props.min : control === "quantum" ? 0.5 : 0;
   const step = typeof props.step === "number" && props.step > 0 ? props.step : control === "quantum" ? 0.5 : 1;
-  const total = jobs.reduce((t, j) => t + j.size, 0);
-  const latest = Math.max(0, ...jobs.map((j) => j.arrival), control === "arrival" ? max : 0);
+  const finalPolicies: Policy[] = policies.length ? policies : ["fifo"];
+  // The axis ends at the latest completion any slider position produces, so it
+  // stays put while the control moves and has no empty stretch at the end.
+  const values: number[] = [];
+  if (control === "arrival" || control === "quantum" || control === "boost") for (let v = min; v <= max + 1e-9; v += step) values.push(v);
+  else values.push(0);
+  let end = 1;
+  for (const v of values) {
+    const js = control === "arrival" ? jobs.map((j, i) => (i === job ? { ...j, arrival: v } : j)) : jobs;
+    const ps: Params = control === "quantum" ? { ...params, quantum: v } : control === "boost" ? { ...params, boost: v } : params;
+    for (const policy of finalPolicies) end = Math.max(end, ...simulate(policy, js, ps).done);
+  }
   return {
     jobs,
-    policies: policies.length ? policies : ["fifo"],
+    policies: finalPolicies,
     control,
     params,
     order: jobs.map((_, i) => i),
@@ -85,7 +95,7 @@ export function stateFrom(props: Props): State {
     min,
     max,
     step,
-    horizon: Math.ceil(latest + total),
+    horizon: Math.ceil(end),
   };
 }
 
@@ -115,7 +125,7 @@ export function chartHtml(s: State, interactive: boolean): string {
     const pieces = sched.pieces
       .map((p) => {
         const w = p.end - p.start;
-        const label = w / s.horizon >= 0.035 ? LETTERS[p.job] + (p.level !== undefined && w / s.horizon >= 0.07 ? `<sub>Q${p.level}</sub>` : "") : "";
+        const label = p.lanes <= 2 && w / s.horizon >= 0.035 ? LETTERS[p.job] + (p.level !== undefined && w / s.horizon >= 0.07 ? `<sub>Q${p.level}</sub>` : "") : "";
         const style = `left:${pct(p.start)};width:${pct(w)};top:${((p.lane / p.lanes) * 100).toFixed(2)}%;height:${(100 / p.lanes).toFixed(2)}%`;
         const title = `${LETTERS[p.job]} runs ${fmt(p.start)} to ${fmt(p.end)}${p.lanes > 1 ? ` at 1/${p.lanes} speed` : ""}${p.level !== undefined ? ` in queue ${p.level}` : ""}`;
         if (s.control === "swap" && policy === "order") {
