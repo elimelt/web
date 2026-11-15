@@ -1,0 +1,261 @@
+---
+title: Parallelism in LLM Serving Systems
+aliases:
+  - llm-serving-systems/parallelism
+category: Machine Learning Systems
+tags:
+  - parallelism
+  - performance
+  - throughput
+  - latency
+  - llm
+  - serving-systems
+  - machine-learning
+date: 2025-05-25
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
+status: evergreen
+description: Data, tensor and pipeline parallelism for large models, the GPipe, 1F1B and interleaved pipeline schedules simulated with their bubble and in-flight activations, activation memory under tensor and sequence parallelism, and ZeRO and FSDP sharding with per-rank memory and bytes sent measured on four CPU processes.
+sources:
+  - title: CSE 599K, LLM Serving Systems, University of Washington, Spring 2025 (lecture notes)
+    type: lecture
+  - title: "Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism"
+    url: https://arxiv.org/abs/1909.08053
+    type: paper
+  - title: Reducing Activation Recomputation in Large Transformer Models
+    url: https://arxiv.org/abs/2205.05198
+    type: paper
+  - title: "ZeRO: Memory Optimizations Toward Training Trillion Parameter Models"
+    url: https://arxiv.org/abs/1910.02054
+    type: paper
+  - title: "GPipe: Efficient Training of Giant Neural Networks using Pipeline Parallelism"
+    url: https://arxiv.org/abs/1811.06965
+    type: paper
+  - title: "PipeDream: Fast and Efficient Pipeline Parallel DNN Training"
+    url: https://arxiv.org/abs/1806.03377
+    type: paper
+  - title: "Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM"
+    url: https://arxiv.org/abs/2104.04473
+    type: paper
+  - title: Zero Bubble Pipeline Parallelism
+    url: https://arxiv.org/abs/2401.10241
+    type: paper
+  - title: Bandwidth optimal all-reduce algorithms for clusters of workstations
+    url: https://www.cs.fsu.edu/~xyuan/paper/09jpdc.pdf
+    type: paper
+  - title: DeepSeek-V3 Technical Report
+    url: https://arxiv.org/abs/2412.19437
+    type: paper
+  - title: FullyShardedDataParallel, PyTorch documentation
+    url: https://docs.pytorch.org/docs/stable/fsdp.html
+    type: docs
+  - title: Distributed Checkpoint, PyTorch documentation
+    url: https://docs.pytorch.org/docs/stable/distributed.checkpoint.html
+    type: docs
+  - title: NVIDIA A100 Tensor Core GPU specifications
+    url: https://www.nvidia.com/en-us/data-center/a100/
+    type: docs
+---
+
+Model parallelism distributes the computation and state of a single neural network across several devices. Data parallelism replicates the model and partitions the batch, pipeline parallelism partitions the layers into stages, and tensor parallelism partitions the matrices within each layer. Sharded data parallelism (ZeRO, FSDP) partitions the training state of a data-parallel group without partitioning the computation.
+
+Parallel execution becomes necessary when the model, its training state or its KV cache exceeds the memory of one device, or when one device is too slow. The strategies differ in which state they shard, in the quantity their communication volume scales with (parameters or activations), and in how often they communicate, and practical deployments combine them. The single-device constraints are described in [[ml/serving-systems/memory-management|memory constraints]], and the routing-specific case in [[ml/serving-systems/mixture-of-experts|Mixture of Experts]].
+
+The material began as notes for CSE 599K "LLM Serving Systems" at the University of Washington, Spring 2025, taught by Prof. Baris Kasikci with TA Kan Zhu. The pipeline figures run an event-driven simulation of each schedule in the browser, and the ZeRO measurements come from training a small transformer with four processes on a CPU ([How this was measured](#how-this-was-measured)).
+
+## Limits of a single GPU
+
+Single-GPU throughput has grown through narrower number formats (FP32 to FP16 to INT8), specialized matrix instructions (DP4A, HMMA, IMMA), process scaling, and structured sparsity. Model sizes grew faster over the same period: ELMo has 94M parameters, GPT-2 1.5B, GPT-3 175B and MT-NLG 530B. At 16 bytes of training state per parameter ([ZeRO and FSDP](#zero-and-fsdp)), a 175B model needs 2.8 TB before activations, 35 times the 80 GB of an A100 or H100.
+
+The interconnect hierarchy determines what distribution costs. An [A100](https://www.nvidia.com/en-us/data-center/a100/) has 600 GB/s of NVLink bandwidth to the other GPUs in its node and 64 GB/s over PCIe 4.0, both counted over the two directions. Between nodes, an HDR InfiniBand port runs at [200 Gb/s](https://www.nvidia.com/en-eu/networking/infiniband/qm8700/), which is 25 GB/s in each direction and 50 GB/s over both. With one port per GPU, bandwidth drops by a factor of 12 at the node boundary, and this drop determines where each form of parallelism is placed. [[ml/serving-systems/gpu-interconnects|GPU Interconnects]] covers later generations.
+
+## Collective communication primitives
+
+Four collective operations account for nearly all of the communication in these strategies. For $N$ devices and a tensor of $S$ bytes, a bandwidth-optimal ring implementation has each device send the amount in the last column:
+
+| Collective | Result on every device | Bytes sent per device (ring) |
+| --- | --- | --- |
+| AllReduce | elementwise reduction of all inputs | $2\frac{N-1}{N}S$ |
+| AllGather | concatenation of the $N$ shards | $\frac{N-1}{N}S$ |
+| ReduceScatter | one shard of the reduction | $\frac{N-1}{N}S$ |
+| Broadcast | one device's tensor | $\frac{N-1}{N}S$ (pipelined) |
+
+The ring AllReduce is a ReduceScatter followed by an AllGather, and [Patarasuk and Yuan](https://www.cs.fsu.edu/~xyuan/paper/09jpdc.pdf) show that its bandwidth term is optimal. ZeRO's analysis rounds $2\frac{N-1}{N}$ to 2 and counts an AllReduce of $\Psi$ elements as $2\Psi$ of data movement. Implementations can send more than the ring amounts. With PyTorch 2.15's gloo backend on four processes, an AllReduce sends $1.50S$ per process, an AllGather $0.75S$, a ReduceScatter $1.50S$ (as much as an AllReduce), and a Broadcast from rank 0 is a binomial tree in which ranks 0 and 1 send $2S$ and $S$ and the others nothing (measured with [`collective_bytes.py`](parallelism/collective_bytes.py)).
+
+## State to be distributed
+
+Training holds model parameters, gradients, the activations saved by the forward pass for the backward pass, and optimizer state (for Adam, momentum and variance, plus an FP32 master copy of the parameters under mixed precision). Serving holds parameters, the activations of the current step, and the KV cache. Each parallelism strategy shards a different subset.
+
+## Data parallelism
+
+Each device holds a full copy of the model and processes $1/N$ of the batch, and gradients are summed across devices after the backward pass. In the centralized implementation, workers send gradients to a parameter server that returns updated weights, and the server's link becomes the bottleneck. The decentralized implementation sums gradients with an AllReduce, which PyTorch's DistributedDataParallel issues in buckets during the backward pass so that communication overlaps computation.
+
+The communication volume per step is set by the parameter count and does not depend on the batch size. Every device still stores all parameters, gradients and optimizer state, so data parallelism alone cannot accommodate a model whose training state exceeds one device's memory.
+
+## Tensor parallelism
+
+Tensor parallelism splits the matrices of each layer, following [Megatron-LM](https://arxiv.org/abs/1909.08053). For an MLP block $Z = \text{Dropout}(\text{GeLU}(XA)B)$, $A$ is split by columns so that each of $t$ devices computes $Y_i = \text{GeLU}(XA_i)$ with no communication, and $B$ is split by rows so that each device computes $Z_i = Y_i B_i$; one AllReduce forms $Z = \sum_i Z_i$. Self-attention is split the same way. The Q, K and V projections are column-parallel, so each device computes a subset of the heads, and the output projection is row-parallel and followed by an AllReduce. A transformer layer therefore needs two AllReduces of the $b \times s \times h$ activation in the forward pass and two in the backward pass (Megatron-LM, Section 3).
+
+Each of those four AllReduces sends $2\frac{t-1}{t}bsh$ elements per device, so a layer costs about $8bsh$ elements per device per microbatch. Pipeline parallelism sends one $bsh$ activation forward and one $bsh$ gradient backward per stage boundary, and only at the boundaries rather than in every layer. Tensor-parallel communication sits on the critical path of every layer, so it requires NVLink-class links and is placed within a node. It introduces no pipeline bubble and has no minimum batch size.
+
+## Pipeline parallelism
+
+Pipeline parallelism assigns consecutive layers to $p$ devices (stages). A microbatch's activations flow forward through the stages and its gradients flow backward, and only the tensors at stage boundaries cross devices, point to point. A device idles whenever its input has not arrived, and the idle time at the start and end of each batch is the pipeline bubble.
+
+Splitting a batch into $m$ microbatches lets the stages work on different microbatches at once. Let $t_f$ and $t_b$ be the forward and backward times of one microbatch on one stage. The [GPipe](https://arxiv.org/abs/1811.06965) schedule runs all $m$ forwards, then all $m$ backwards, and takes $(m + p - 1)(t_f + t_b)$. Each device is busy for $m(t_f + t_b)$ of that and idle for $(p-1)(t_f + t_b)$. [Narayanan et al. (2021)](https://arxiv.org/abs/2104.04473), Section 2.2.1, define the bubble fraction as the idle time over the ideal (busy) time,
+
+$$\frac{(p-1)(t_f + t_b)}{m(t_f + t_b)} = \frac{p-1}{m},$$
+
+so the share of total time spent idle is $\frac{p-1}{m+p-1}$. Huang et al. found the bubble overhead negligible for $m \geq 4p$. Because every forward precedes every backward, each device holds the activations of all $m$ microbatches at once; GPipe reduces their size by storing only stage-boundary activations and recomputing the rest during the backward pass.
+
+The 1F1B schedule, introduced by [PipeDream](https://arxiv.org/abs/1806.03377) and used in its synchronous form (PipeDream-Flush) by Megatron-LM, starts each microbatch's backward as early as possible. Device $i$ (counting from 0) runs $p - i - 1$ warm-up forwards, then alternates one forward with one backward, then drains the remaining backwards. Its makespan, and therefore its bubble fraction $\frac{p-1}{m}$, equals GPipe's. The difference is memory: device $i$ holds at most $\min(p - i, m)$ microbatches in flight, so the first device holds $p$ and the last holds 1. PipeDream's input stage admits $\lceil \text{machines} / \text{machines in the input stage} \rceil$ microbatches, which is $p$ for a pipeline without replicated stages, and Megatron-LM states that 1F1B stashes activations for $p$ or fewer microbatches against $m$ for GPipe.
+
+<PipelineSchedule schedules="gpipe,1f1b" p={4} m={8} caption="Simulation with p = 4 stages, m = 8 microbatches, a backward twice as long as a forward, and no communication time. Both schedules end at 33 forward-pass times, of which each device is busy for 24, so the bubble is 3/8 of the busy time. GPipe's first device holds all 8 microbatches' activations; 1F1B's holds 4, and device i holds p − i." />
+
+The figure simulates both schedules: each device runs its operations in the schedule's order, and an operation starts once its device is idle and its input (the previous stage's forward, or the next stage's backward) has finished. At every setting the sliders allow, the simulated bubble equals $\frac{p-1}{m}$ and the in-flight peaks equal $\min(p-i, m)$, and a separately written Python simulator gives the same result for every $p \le 8$ and $m \le 32$ ([`pipeline_sim.py`](parallelism/pipeline_sim.py)).
+
+### Interleaved 1F1B
+
+The interleaved schedule of [Narayanan et al. (2021)](https://arxiv.org/abs/2104.04473), Section 2.2.2, reduces the bubble itself. The model is split into $pv$ chunks and device $i$ holds chunks $i, i + p, i + 2p, \dots$, so each device runs $v$ non-adjacent model chunks, each taking $t_f/v$ and $t_b/v$. Warm-up and drain then take $1/v$ as long, and the bubble fraction becomes
+
+$$\frac{p-1}{m} \cdot \frac{1}{v}.$$
+
+Every chunk boundary is a device boundary, so point-to-point communication grows by a factor of $v$. Megatron-LM's implementation requires $m$ to be a multiple of $p$. The paper's abstract reports throughput gains of more than 10% from the schedule "with memory footprint comparable to existing approaches." The first device holds slightly more activations than under 1F1B, $p\left(1 + \frac{p-1}{pv}\right)$ microbatches' worth, which [Korthikanti et al. (2022)](https://arxiv.org/abs/2205.05198), Section 4.2.3, give as a factor of $1 + \frac{p-1}{pv}$ on activation memory. In Megatron-LM's order, device $i$ runs $2(p-i-1) + (v-1)p$ warm-up chunk forwards, and when $m = p$ it runs every forward before any backward.
+
+<PipelineSchedule schedules="1f1b,interleaved" p={4} m={8} v={2} caption="Simulation with p = 4, m = 8 and two chunks per device. Interleaving cuts the bubble from 3/8 to 3/16 of the busy time and the makespan from 33 to 28.5 forward-pass times, and raises the first device's peak from 4 to 5.5 microbatches. With v = 4 the bubble is 3/32." />
+
+[Zero Bubble Pipeline Parallelism](https://arxiv.org/abs/2401.10241) (Qi et al. 2024) splits each backward into the gradient with respect to the stage's input, which the previous stage waits for, and the gradient with respect to its weights, which no other stage waits for, and schedules the weight-gradient work into the bubble. The authors report up to 23% higher throughput than 1F1B at a similar memory limit, and up to 31% with a looser one.
+
+Pipeline parallelism shards the model with little communication, but its efficiency depends on the number of microbatches per batch, and a small global batch yields a large bubble.
+
+## Activation memory and how to shrink it
+
+For a transformer layer with 16-bit activations and a $4h$ MLP, [Korthikanti et al.](https://arxiv.org/abs/2205.05198) count the activations saved for the backward pass as
+
+$$\text{Memory per layer} = sbh\left(34 + 5\frac{as}{h}\right)$$
+
+bytes, where $s$ is the sequence length, $b$ the microbatch size, $h$ the hidden size, and $a$ the number of attention heads. The $5as/h$ term holds the $s \times s$ attention scores, softmax output and dropout mask.
+
+Activation checkpointing (full recomputation) stores only each layer's input and recomputes the layer during the backward pass. It adds roughly one forward pass of compute, and Korthikanti et al. observe 30 to 40% execution-time overhead in their training runs. Selective recomputation recomputes only the attention-score part, which removes the $5as/h$ term, at 7% overhead in their measurements (4% with sequence parallelism).
+
+Tensor parallelism with $t$ ways shards the activations of the matrix multiplies but leaves the layer norms, the dropouts after attention and MLP, and the inputs of the first linear layer of each block replicated, which accounts for $10sbh$:
+
+$$sbh\left(10 + \frac{24}{t} + 5\frac{as}{ht}\right)$$
+
+Those operations are independent along the sequence dimension, so sequence parallelism splits them across the same $t$ devices. It replaces each tensor-parallel AllReduce with a ReduceScatter and an AllGather, which together send the same bytes, so it adds no communication:
+
+| Configuration | Activations per layer |
+| --- | --- |
+| No parallelism | $sbh(34 + 5\frac{as}{h})$ |
+| Tensor only | $sbh(10 + \frac{24}{t} + 5\frac{as}{ht})$ |
+| Tensor + sequence | $\frac{sbh}{t}(34 + 5\frac{as}{h})$ |
+| Tensor + sequence, selective recomputation | $\frac{34\,sbh}{t}$ |
+
+Pipeline parallelism does not reduce this total for the first stage. Under 1F1B the first stage holds $L/p$ layers for each of $p$ microbatches, which is $L$ layers' worth whatever $p$ is (Korthikanti et al., Section 4.2.3).
+
+## ZeRO and FSDP
+
+Data parallelism keeps $N_d$ identical copies of the training state, and [ZeRO](https://arxiv.org/abs/1910.02054) removes that redundancy. For $\Psi$ parameters trained with Adam in mixed precision, each device holds $2\Psi$ bytes of FP16 parameters, $2\Psi$ of FP16 gradients, and $K\Psi$ of optimizer state, with $K = 12$ for the FP32 master parameters, momentum and variance at $4\Psi$ each. ZeRO-DP shards this state across the $N_d$ data-parallel devices in three stages:
+
+| Stage | Sharded | Per-device model state | Data movement per step | 7.5B model, $N_d = 64$ |
+| --- | --- | --- | --- | --- |
+| Data parallel | nothing | $(2 + 2 + K)\Psi$ | $2\Psi$ (AllReduce) | 120 GB |
+| ZeRO-1 ($P_{os}$) | optimizer state | $4\Psi + \frac{K\Psi}{N_d}$ | $2\Psi$ | 31.4 GB |
+| ZeRO-2 ($P_{os+g}$) | and gradients | $2\Psi + \frac{(2+K)\Psi}{N_d}$ | $2\Psi$: ReduceScatter of gradients, AllGather of updated parameters | 16.6 GB |
+| ZeRO-3 ($P_{os+g+p}$) | and parameters | $\frac{(2+2+K)\Psi}{N_d}$ | $3\Psi$: AllGather of parameters in the forward and again in the backward, ReduceScatter of gradients | 1.9 GB |
+
+The volumes and the 7.5B column are from ZeRO's Sections 5 and 7. Stages 1 and 2 keep the data-parallel volume because an AllReduce is itself a ReduceScatter and an AllGather: each device reduces only its shard of the gradients and updates only its shard of the parameters, and the AllGather that would have completed the AllReduce distributes the updated parameters instead. Stage 3 discards each layer's gathered parameters after use and gathers them again for the backward pass, so it moves 1.5 times as much.
+
+PyTorch implements stage 1 as `torch.distributed.optim.ZeroRedundancyOptimizer` and stages 2 and 3 in Fully Sharded Data Parallel. FSDP's `FULL_SHARD` (in FSDP2, `fully_shard(reshard_after_forward=True)`) is stage 3. `SHARD_GRAD_OP` (FSDP2's `reshard_after_forward=False`) shards gradients and optimizer state and, per its documentation, shards parameters outside computation: it gathers them before the forward pass and frees them after the backward pass. Its peak memory therefore matches ZeRO-2 with replicated parameters, and its traffic is the same $2\Psi$, with the AllGather at the start of the step rather than the end.
+
+### Measured on four processes
+
+I trained a 4-layer GPT-style transformer ($\Psi = 28{,}844{,}800$ parameters, width 768) on the bytes of this site's Markdown notes with four processes on a CPU over PyTorch's gloo backend, under plain DistributedDataParallel, ZeroRedundancyOptimizer on DDP, and FSDP2 without and with resharding after the forward pass. Training is in FP32 with Adam, so the per-parameter bytes are $4 + 4 + 8$ in place of ZeRO's $2 + 2 + 12$. Each process counted the bytes of parameters, gradients and optimizer state it held and the bytes it wrote to its sockets during each step, over three seeds and six measured steps per seed:
+
+| Strategy | Params | Grads | Optimizer | Total at rest | Peak params in step | FP32 ZeRO formula | Bytes sent per step | Ring prediction |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| DDP | 4 | 4 | 8 | 16 | 4 | 16 | 1.50 | 1.50 |
+| ZeroRedundancyOptimizer | 4 | 4 | 1.97 to 2.02 | 10 | 4 | 10 | 2.24 to 2.26 | 1.50 |
+| FSDP2, no reshard after forward (ZeRO-2) | 1 | 1 | 2 | 4 | 5 | 7 | 2.25 | 1.50 |
+| FSDP2, reshard after forward (ZeRO-3) | 1 | 1 | 2 | 4 | 2.05 | 4 | 3.00 | 2.25 |
+
+Memory columns are bytes per parameter on each rank; multiply by $\Psi$ for bytes. Bytes sent are per rank, as multiples of $4\Psi$ (one FP32 copy of the parameters, 110 MiB). No value changed across seeds or steps, and ranges are across ranks.
+
+- **Memory matches the formulas.** DDP holds 16 bytes per parameter on every rank. ZeroRedundancyOptimizer cuts optimizer state to a quarter; its ranks hold between 1.97 and 2.02 bytes per parameter, because it assigns whole parameter tensors to ranks (largest first, each to the least-loaded rank) and cannot split them evenly. FSDP2 holds 4 bytes per parameter between steps in both modes. Without resharding, the gathered parameters stay resident from the first forward to the end of the backward, so the peak is $4 + 1 = 5$ bytes per parameter for parameters alone, the same as ZeRO-2's replicated parameters. With resharding, at most one block's parameters and the small root group are gathered at a time, and the peak is 2.05.
+- **Communication volume matches ZeRO's counts, and wire bytes depend on the implementation.** In ZeRO's units, the collectives each rank issued add up to $2\Psi$ for DDP, $2\Psi$ for FSDP2 without resharding and $3\Psi$ with it, which are the paper's numbers. ZeroRedundancyOptimizer issues $3\Psi$: DDP's AllReduce of all gradients, then a Broadcast of each rank's updated parameters, where ZeRO's algorithm uses a ReduceScatter and an AllGather. On the wire, gloo's ReduceScatter sends as much as its AllReduce, so both FSDP2 modes send $0.75 \times 4\Psi$ more per rank than a ring would, and the measured ZeRO-3 to DDP ratio is 2.0 rather than ZeRO's 1.5.
+- **Training is unchanged.** For each seed, the four strategies' final losses agree to within $2.4 \times 10^{-7}$; sharding changes where the state is stored and how it moves, not the computed updates.
+- **Time is a weak signal on this machine.** Mean step times over the three seeds were 1.46 ± 0.28 s for DDP, 1.57 ± 0.15 s for ZeroRedundancyOptimizer, 2.04 ± 0.10 s for FSDP2 without resharding and 2.12 ± 0.42 s with it, over loopback TCP on a VM shared with other jobs. Peak resident set size grew during training by 729, 583, 561 and 536 MiB (± 2 to 12 MiB). The differences are smaller than the model-state differences because the resident set also holds activations, communication buffers and allocator caches.
+
+## Comparing the sharding strategies
+
+The strategies differ in which of parameters, gradients, optimizer state and activations each one shards, and in what each adds to the communication of plain data parallelism:
+
+| Strategy | Params | Gradients | Optimizer state | Activations | Communication |
+| --- | --- | --- | --- | --- | --- |
+| Data parallel | replicated | replicated | replicated | split by batch | AllReduce of gradients, $2\Psi$ per step |
+| Tensor parallel | sharded (layer norms and some biases replicated) | sharded | sharded | partially sharded | 2 AllReduces of activations per layer forward, 2 backward |
+| Pipeline parallel | sharded by layer | sharded by layer | sharded by layer | up to $p$ microbatches per stage (1F1B) | point-to-point activations and gradients at stage boundaries |
+| Sequence parallel (with TP) | as TP | as TP | as TP | fully sharded | ReduceScatter and AllGather in place of TP's AllReduce, same bytes |
+| Expert parallel (MoE) | sharded by expert | sharded by expert | sharded by expert | tokens routed to local experts | two all-to-alls per MoE layer (see [[ml/serving-systems/mixture-of-experts|Mixture of Experts]]) |
+| ZeRO-1 | replicated | replicated | sharded | split by batch | same $2\Psi$ as data parallel |
+| ZeRO-2, FSDP `SHARD_GRAD_OP` | replicated (in FSDP, gathered for the step) | sharded | sharded | split by batch | same $2\Psi$ as data parallel |
+| ZeRO-3, FSDP `FULL_SHARD` | sharded | sharded | sharded | split by batch | $3\Psi$: parameters gathered per layer in forward and backward |
+
+Data parallelism and the ZeRO stages move a volume set by the parameter count, independent of the batch size. Tensor, sequence, pipeline and expert parallelism move activations or tokens, so their volume grows with the number of tokens per step and with the hidden size.
+
+## Collectives: which links they stress
+
+Tensor parallelism issues its AllReduces (or, with sequence parallelism, ReduceScatters and AllGathers) inside every layer, on activation-sized tensors, and the next computation waits on each. This frequency confines it to NVLink-class links. Pipeline parallelism sends one activation tensor per microbatch per stage boundary, point to point, and is the pattern placed across the slower inter-node links. Data-parallel gradient synchronization moves $2\Psi$ per step, but most of it overlaps with the backward pass bucket by bucket, so data-parallel groups span nodes. ZeRO-3 and FSDP `FULL_SHARD` are an intermediate case: they gather parameters once per wrapped unit in the forward pass and again in the backward pass, and rely on prefetching the next unit's AllGather while the current unit computes. FSDP's `HYBRID_SHARD` shards within a node and replicates across nodes, so only gradient synchronization crosses the slower links.
+
+## Composing: 3D parallelism
+
+Deployment proceeds in two phases. The first fits the model in memory, using tensor parallelism within a node, where NVLink sustains the per-layer collectives, and pipeline parallelism across nodes, where only point-to-point activations cross the slower links. The second scales throughput by adding data parallelism across groups, with gradient accumulation over microbatches to amortize its communication.
+
+A cluster of 8-GPU nodes therefore often runs 8-way tensor parallelism inside each node, pipeline parallelism across nodes, and data parallelism across groups of nodes; Narayanan et al. (2021) state this placement as their first takeaway. The global batch must provide enough microbatches per pipeline to keep the bubble small, and the tensor-parallel degree must be small enough that each device's matrix multiplies remain large enough to run efficiently. The best configuration depends on the model shape, the batch size and the bandwidth topology.
+
+## Memory worked example: a 70B model
+
+Take $\Psi = 70 \times 10^9$ parameters trained with mixed-precision Adam. The model state is $16\Psi = 1.12$ TB, the memory of 14 GPUs of 80 GB each with no redundancy. With $N_d = 64$ data-parallel devices, the ZeRO stages give a per-device model state of
+
+- data parallel: 1,120 GB;
+- ZeRO-1: $4\Psi + 12\Psi/64 = 293$ GB;
+- ZeRO-2: $2\Psi + 14\Psi/64 = 155$ GB;
+- ZeRO-3: $16\Psi/64 = 17.5$ GB,
+
+so only ZeRO-3 fits in 80 GB, with 62.5 GB left for activations and the parameters it gathers per layer.
+
+For activations, take a GPT-style model of that size with $h = 8192$, $a = 64$ heads and $L = 80$ layers ($12Lh^2 = 64 \times 10^9$ parameters in the layers), at $s = 4096$ and $b = 1$. The per-layer formula gives $sbh(34 + 5as/h) = 33.6\text{M} \times 194 = 6.5$ GB per layer and 521 GB for 80 layers, of which the attention-score term is 160 of the 194 parts. With tensor and sequence parallelism at $t = 8$ this becomes 0.81 GB per layer and 65 GB for the model. Selective recomputation removes the score term, leaving $34sbh/t = 143$ MB per layer and 11.4 GB for all 80 layers. Under 1F1B the first pipeline stage holds $L$ layers' worth for any $p$, so these totals are also the first stage's. Llama-style models use grouped-query attention and a SwiGLU MLP, which change the coefficients but not the structure of the calculation, and [FlashAttention](https://arxiv.org/abs/2205.14135)-style kernels avoid storing the $s \times s$ scores, with the same effect on memory as selective recomputation.
+
+## Training parallelism vs. inference parallelism
+
+These strategies were designed around training's memory profile: large batches, activations stored or recomputed for a backward pass, and optimizer state. Inference has no backward pass and no optimizer state, and [[ml/serving-systems/batching|batching]] and [[ml/serving-systems/performance-modeling|performance modeling]] treat prefill and decode as separate workloads. Prefill processes many tokens per request and is compute-bound, like training's forward pass. Decode generates one token per request per step and is bound by memory bandwidth, since every step reads all weights and the KV cache.
+
+Tensor parallelism serves decode differently from training. Each of $t$ devices reads $1/t$ of the weights per token, which shortens the memory-bound step, and each layer adds two AllReduces of only $b \times h$ elements, whose cost is dominated by latency rather than bandwidth. Pipeline parallelism does not shorten one request's step, since the stages run in sequence, but it raises throughput when several batches are in flight. Disaggregated serving (in [[ml/serving-systems/batching|Batching]]) runs prefill and decode on separately configured devices for this reason. DeepSeek-V3 ([technical report](https://arxiv.org/abs/2412.19437), Section 3.4) deploys prefill in units of 32 GPUs (attention with TP4, sequence parallelism and DP8, MoE with EP32) and decode in units of 320 GPUs (TP4 with sequence parallelism and DP80, EP320) for the same weights; see [[ml/serving-systems/mixture-of-experts|Mixture of Experts]].
+
+## Checkpointing, restart, and topology placement for long jobs
+
+A checkpoint under a sharded strategy records which shard of the parameters, gradients and optimizer state each rank holds, in addition to the values. PyTorch's [Distributed Checkpoint](https://docs.pytorch.org/docs/stable/distributed.checkpoint.html) writes each rank's shards in parallel with metadata describing the layout and "handles load-time resharding which enables saving in one cluster topology and loading into another," so a job can restart with a different data-parallel or sharding width. Topology placement matters most for tensor parallelism, the axis most sensitive to link bandwidth. A scheduler that places a tensor-parallel group across a node boundary moves its per-layer collectives from 600 GB/s NVLink to a 25 GB/s-per-direction InfiniBand port without reporting an error. See [[ml/serving-systems/distributed-training|Distributed Training of Large Language Models]] for checkpoint formats and stragglers, and [[systems/scheduling/4-cluster-and-datacenter/stragglers-speculation-and-overload|Stragglers, Speculation, and Overload]] for the general scheduling treatment.
+
+## How this was measured
+
+> [!note]- How this was measured
+> - **Pipeline simulation.** [`pipeline_sim.py`](parallelism/pipeline_sim.py) is an event-driven simulator with a heap of completion events. Each device runs its schedule's operations in order, and an operation starts when its device is idle and its one dependency has finished. A forward on one chunk takes 1 time unit and a backward 2, and communication takes none. It checks the bubble fraction and every device's peak in-flight count against the closed forms above for all $p \le 8$, $m \le 32$ and $v \in \{2, 3, 4\}$ (767 cases; for interleaving, $m$ a multiple of $p$) and writes [`pipeline-fixtures.json`](parallelism/pipeline-fixtures.json). The figure's TypeScript simulator, written separately, is tested against those fixtures operation by operation (device, order and start time) for $p \le 6$ and $m \le 12$, and against the closed forms over its slider range. The interleaved order follows Megatron-LM's `forward_backward_pipelining_with_interleaving`.
+> - **ZeRO measurement.** [`zero_measure.py`](parallelism/zero_measure.py) trains a pre-LayerNorm decoder (4 layers, width 768, 12 heads, context 128, byte vocabulary, untied output layer; 28,844,800 parameters) on the 251 Markdown files under `notes/content/` at commit `d23985c` (2.03 MB), with 4 sequences per rank per step, Adam at learning rate $10^{-3}$, and FP32. Each launch runs 2 warm-up and 6 measured steps. Seeds 1 to 3 set the initialization and the data order, and the four strategies see the same data for a given seed. FSDP2 wraps each block and the root module.
+> - **What is counted.** Bytes sent are the increase in `wchar` in `/proc/self/io` during a step; gloo's TCP sends are the process's only writes in that interval, and [`collective_bytes.py`](parallelism/collective_bytes.py) confirms that an AllReduce of $S$ bytes on 4 ranks adds $1.5S$, the ring amount. Collective volumes come from wrappers around the `torch.distributed` functions that DDP's comm hook, ZeroRedundancyOptimizer and FSDP2 call. Parameter, gradient and optimizer bytes are the local tensor storage after `optimizer.step()`. Peak parameter bytes are sampled at the entry and exit of every block's forward and backward, as the sharded storage plus any unsharded copies. Peak RSS growth is `VmHWM` minus `VmRSS` after model construction.
+> - **Commands.** From `notes/`: `sh content/ml/serving-systems/parallelism/run_all.sh`, which runs `collective_bytes.py`, then `zero_measure.py --strategy <dp|zero1|zero2|zero3> --seed <1|2|3>` with `OMP_NUM_THREADS=1` under `torch.distributed.run --nproc_per_node 4`, then [`zero_summarize.py`](parallelism/zero_summarize.py), which writes [`zero-results.json`](parallelism/zero-results.json). Raw records per launch are in `parallelism/zero-runs/`. The whole run took about 5 minutes.
+> - **Environment.** A 4-core Intel Xeon (x86-64) cloud VM with no GPU, shared with other jobs while the measurements ran; Python 3.13.18, PyTorch 2.15.0 (the PyPI build, run on CPU), gloo over loopback TCP, one thread per process.
+> - **Not measured.** NCCL, GPUs, mixed precision, multi-node links, and tensor or pipeline parallelism on real hardware. The pipeline figures are simulations with zero communication time and fixed operation costs.
+
+## Related notes
+
+- [[ml/serving-systems/memory-management|Memory Management]]
+- [[ml/serving-systems/mixture-of-experts|Mixture of Experts]]
+- [[ml/serving-systems/performance-modeling|Performance Modeling]]
+- [[ml/serving-systems/peft-and-preference-optimization|PEFT and Preference Optimization]]
+- [[ml/serving-systems/batching|Batching]]
+- [[ml/serving-systems/distributed-training|Distributed Training of Large Language Models]]
+- [[ml/serving-systems/distributed-ml-runtimes|Distributed ML Runtimes]]
+- [[ml/serving-systems/gpu-interconnects|GPU Interconnects and Collective Communication]] for the physical hierarchy behind the bandwidth numbers used here, NCCL's topology mapping, and a ring-AllReduce bandwidth derivation
+- [[hardware/computer-architecture/simd-vectors-gpus-accelerators|From SIMD to SIMT: Vectors, GPUs, and Accelerators]]

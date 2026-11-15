@@ -1,0 +1,598 @@
+{
+ "strategy": "dp",
+ "seed": 3,
+ "config": {
+  "strategy": "dp",
+  "seed": 3,
+  "d": 768,
+  "layers": 4,
+  "heads": 12,
+  "ctx": 128,
+  "batch": 4,
+  "warmup": 2,
+  "steps": 6
+ },
+ "torch": "2.15.0+cu132",
+ "ranks": [
+  {
+   "rank": 0,
+   "world": 4,
+   "psi": 28844800,
+   "rss_after_build": 690872320,
+   "peak_rss": 1467809792,
+   "records": [
+    {
+     "step": 0,
+     "warmup": true,
+     "loss": 5.721348762512207,
+     "seconds": 1.908010953999792,
+     "bytes_sent": 173093024,
+     "collectives": {
+      "all_reduce": [
+       1,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 1,
+     "warmup": true,
+     "loss": 5.7211198806762695,
+     "seconds": 1.7274826059999668,
+     "bytes_sent": 173094856,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 2,
+     "warmup": false,
+     "loss": 5.103405475616455,
+     "seconds": 1.4651631930000804,
+     "bytes_sent": 173093992,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 3,
+     "warmup": false,
+     "loss": 5.184269428253174,
+     "seconds": 1.5041742480000266,
+     "bytes_sent": 173093992,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 4,
+     "warmup": false,
+     "loss": 4.323389053344727,
+     "seconds": 1.6108074080000279,
+     "bytes_sent": 173093992,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 5,
+     "warmup": false,
+     "loss": 3.6260557174682617,
+     "seconds": 1.5608907680000357,
+     "bytes_sent": 173093992,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 6,
+     "warmup": false,
+     "loss": 3.3638696670532227,
+     "seconds": 1.58963235300007,
+     "bytes_sent": 173093992,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 7,
+     "warmup": false,
+     "loss": 3.1186769008636475,
+     "seconds": 1.7358071870000913,
+     "bytes_sent": 173093992,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    }
+   ]
+  },
+  {
+   "rank": 1,
+   "world": 4,
+   "psi": 28844800,
+   "rss_after_build": 690626560,
+   "peak_rss": 1485148160,
+   "records": [
+    {
+     "step": 0,
+     "warmup": true,
+     "loss": 5.721348762512207,
+     "seconds": 1.8392964899999242,
+     "bytes_sent": 173092960,
+     "collectives": {
+      "all_reduce": [
+       1,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 1,
+     "warmup": true,
+     "loss": 5.7211198806762695,
+     "seconds": 1.790056019999838,
+     "bytes_sent": 173094248,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 2,
+     "warmup": false,
+     "loss": 5.103405475616455,
+     "seconds": 1.4341349139999693,
+     "bytes_sent": 173093720,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 3,
+     "warmup": false,
+     "loss": 5.184269428253174,
+     "seconds": 1.6674482040000385,
+     "bytes_sent": 173093720,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 4,
+     "warmup": false,
+     "loss": 4.323389053344727,
+     "seconds": 1.5387536250000267,
+     "bytes_sent": 173093720,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 5,
+     "warmup": false,
+     "loss": 3.6260557174682617,
+     "seconds": 1.5785244369999418,
+     "bytes_sent": 173093720,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 6,
+     "warmup": false,
+     "loss": 3.3638696670532227,
+     "seconds": 1.6538356210000984,
+     "bytes_sent": 173093720,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 7,
+     "warmup": false,
+     "loss": 3.1186769008636475,
+     "seconds": 1.6405048059998535,
+     "bytes_sent": 173093720,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    }
+   ]
+  },
+  {
+   "rank": 2,
+   "world": 4,
+   "psi": 28844800,
+   "rss_after_build": 690528256,
+   "peak_rss": 1443889152,
+   "records": [
+    {
+     "step": 0,
+     "warmup": true,
+     "loss": 5.721348762512207,
+     "seconds": 1.7719875300001604,
+     "bytes_sent": 173092960,
+     "collectives": {
+      "all_reduce": [
+       1,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 1,
+     "warmup": true,
+     "loss": 5.7211198806762695,
+     "seconds": 1.6757727980000254,
+     "bytes_sent": 173093816,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 2,
+     "warmup": false,
+     "loss": 5.103405475616455,
+     "seconds": 1.4349099840001145,
+     "bytes_sent": 173093720,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 3,
+     "warmup": false,
+     "loss": 5.184269428253174,
+     "seconds": 1.6865199649998885,
+     "bytes_sent": 173093720,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 4,
+     "warmup": false,
+     "loss": 4.323389053344727,
+     "seconds": 1.6379736030000913,
+     "bytes_sent": 173093720,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 5,
+     "warmup": false,
+     "loss": 3.6260557174682617,
+     "seconds": 1.4666143940000893,
+     "bytes_sent": 173093720,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 6,
+     "warmup": false,
+     "loss": 3.3638696670532227,
+     "seconds": 1.6528589480001301,
+     "bytes_sent": 173093720,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 7,
+     "warmup": false,
+     "loss": 3.1186769008636475,
+     "seconds": 1.663662101,
+     "bytes_sent": 173093720,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    }
+   ]
+  },
+  {
+   "rank": 3,
+   "world": 4,
+   "psi": 28844800,
+   "rss_after_build": 690479104,
+   "peak_rss": 1443291136,
+   "records": [
+    {
+     "step": 0,
+     "warmup": true,
+     "loss": 5.721348762512207,
+     "seconds": 1.8833082329999797,
+     "bytes_sent": 173093024,
+     "collectives": {
+      "all_reduce": [
+       1,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 1,
+     "warmup": true,
+     "loss": 5.7211198806762695,
+     "seconds": 1.797553538999864,
+     "bytes_sent": 173094088,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 2,
+     "warmup": false,
+     "loss": 5.103405475616455,
+     "seconds": 1.4985900149999907,
+     "bytes_sent": 173093992,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 3,
+     "warmup": false,
+     "loss": 5.184269428253174,
+     "seconds": 1.624669109000024,
+     "bytes_sent": 173093992,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 4,
+     "warmup": false,
+     "loss": 4.323389053344727,
+     "seconds": 1.61802268800011,
+     "bytes_sent": 173093992,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 5,
+     "warmup": false,
+     "loss": 3.6260557174682617,
+     "seconds": 1.5514041120000002,
+     "bytes_sent": 173093992,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 6,
+     "warmup": false,
+     "loss": 3.3638696670532227,
+     "seconds": 1.5955681850000474,
+     "bytes_sent": 173093992,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    },
+    {
+     "step": 7,
+     "warmup": false,
+     "loss": 3.1186769008636475,
+     "seconds": 1.7515895259998615,
+     "bytes_sent": 173093992,
+     "collectives": {
+      "all_reduce": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 115379200,
+     "grad_bytes": 115379200,
+     "optimizer_bytes": 230758400,
+     "peak_param_bytes": 115379200
+    }
+   ]
+  }
+ ]
+}

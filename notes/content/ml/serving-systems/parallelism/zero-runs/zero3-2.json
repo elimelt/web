@@ -1,0 +1,726 @@
+{
+ "strategy": "zero3",
+ "seed": 2,
+ "config": {
+  "strategy": "zero3",
+  "seed": 2,
+  "d": 768,
+  "layers": 4,
+  "heads": 12,
+  "ctx": 128,
+  "batch": 4,
+  "warmup": 2,
+  "steps": 6
+ },
+ "torch": "2.15.0+cu132",
+ "ranks": [
+  {
+   "rank": 0,
+   "world": 4,
+   "psi": 28844800,
+   "rss_after_build": 691109888,
+   "peak_rss": 1241071616,
+   "records": [
+    {
+     "step": 0,
+     "warmup": true,
+     "loss": 5.708194732666016,
+     "seconds": 1.7767435900000237,
+     "bytes_sent": 346172320,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 1,
+     "warmup": true,
+     "loss": 4.524728298187256,
+     "seconds": 1.5664352189999136,
+     "bytes_sent": 346172320,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 2,
+     "warmup": false,
+     "loss": 5.1415696144104,
+     "seconds": 1.5727859040000567,
+     "bytes_sent": 346172320,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 3,
+     "warmup": false,
+     "loss": 4.902563095092773,
+     "seconds": 1.56804573300019,
+     "bytes_sent": 346172320,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 4,
+     "warmup": false,
+     "loss": 3.9816904067993164,
+     "seconds": 1.6285816720001094,
+     "bytes_sent": 346172320,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 5,
+     "warmup": false,
+     "loss": 3.4359288215637207,
+     "seconds": 1.5547579110000243,
+     "bytes_sent": 346172320,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 6,
+     "warmup": false,
+     "loss": 3.3600730895996094,
+     "seconds": 1.585426353999992,
+     "bytes_sent": 346172320,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 7,
+     "warmup": false,
+     "loss": 3.3360097408294678,
+     "seconds": 1.9825801789997968,
+     "bytes_sent": 346172320,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    }
+   ]
+  },
+  {
+   "rank": 1,
+   "world": 4,
+   "psi": 28844800,
+   "rss_after_build": 690532352,
+   "peak_rss": 1234157568,
+   "records": [
+    {
+     "step": 0,
+     "warmup": true,
+     "loss": 5.708194732666016,
+     "seconds": 1.7501831340000535,
+     "bytes_sent": 346172000,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 1,
+     "warmup": true,
+     "loss": 4.524728298187256,
+     "seconds": 1.5633779569998296,
+     "bytes_sent": 346172000,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 2,
+     "warmup": false,
+     "loss": 5.1415696144104,
+     "seconds": 1.5772008889998688,
+     "bytes_sent": 346172000,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 3,
+     "warmup": false,
+     "loss": 4.902563095092773,
+     "seconds": 1.5548325520001072,
+     "bytes_sent": 346172000,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 4,
+     "warmup": false,
+     "loss": 3.9816904067993164,
+     "seconds": 1.6284239139999954,
+     "bytes_sent": 346172000,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 5,
+     "warmup": false,
+     "loss": 3.4359288215637207,
+     "seconds": 1.5520689969998784,
+     "bytes_sent": 346172000,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 6,
+     "warmup": false,
+     "loss": 3.3600730895996094,
+     "seconds": 1.5856726879999314,
+     "bytes_sent": 346172000,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 7,
+     "warmup": false,
+     "loss": 3.3360097408294678,
+     "seconds": 1.9663527650000105,
+     "bytes_sent": 346172000,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    }
+   ]
+  },
+  {
+   "rank": 2,
+   "world": 4,
+   "psi": 28844800,
+   "rss_after_build": 690536448,
+   "peak_rss": 1245138944,
+   "records": [
+    {
+     "step": 0,
+     "warmup": true,
+     "loss": 5.708194732666016,
+     "seconds": 1.7669744289999016,
+     "bytes_sent": 346172000,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 1,
+     "warmup": true,
+     "loss": 4.524728298187256,
+     "seconds": 1.5587584459999562,
+     "bytes_sent": 346172000,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 2,
+     "warmup": false,
+     "loss": 5.1415696144104,
+     "seconds": 1.5703088489999573,
+     "bytes_sent": 346172000,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 3,
+     "warmup": false,
+     "loss": 4.902563095092773,
+     "seconds": 1.569589667999935,
+     "bytes_sent": 346172000,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 4,
+     "warmup": false,
+     "loss": 3.9816904067993164,
+     "seconds": 1.642450666999821,
+     "bytes_sent": 346172000,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 5,
+     "warmup": false,
+     "loss": 3.4359288215637207,
+     "seconds": 1.545911819000139,
+     "bytes_sent": 346172000,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 6,
+     "warmup": false,
+     "loss": 3.3600730895996094,
+     "seconds": 1.5976482389999092,
+     "bytes_sent": 346172000,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 7,
+     "warmup": false,
+     "loss": 3.3360097408294678,
+     "seconds": 1.9959850600000664,
+     "bytes_sent": 346172000,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    }
+   ]
+  },
+  {
+   "rank": 3,
+   "world": 4,
+   "psi": 28844800,
+   "rss_after_build": 690458624,
+   "peak_rss": 1232564224,
+   "records": [
+    {
+     "step": 0,
+     "warmup": true,
+     "loss": 5.708194732666016,
+     "seconds": 1.7601203849999365,
+     "bytes_sent": 346172320,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 1,
+     "warmup": true,
+     "loss": 4.524728298187256,
+     "seconds": 1.5700917960000425,
+     "bytes_sent": 346172320,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 2,
+     "warmup": false,
+     "loss": 5.1415696144104,
+     "seconds": 1.571271741999908,
+     "bytes_sent": 346172320,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 3,
+     "warmup": false,
+     "loss": 4.902563095092773,
+     "seconds": 1.5517815750001773,
+     "bytes_sent": 346172320,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 4,
+     "warmup": false,
+     "loss": 3.9816904067993164,
+     "seconds": 1.6258871760001057,
+     "bytes_sent": 346172320,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 5,
+     "warmup": false,
+     "loss": 3.4359288215637207,
+     "seconds": 1.5625981139999112,
+     "bytes_sent": 346172320,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 6,
+     "warmup": false,
+     "loss": 3.3600730895996094,
+     "seconds": 1.5883379720000903,
+     "bytes_sent": 346172320,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    },
+    {
+     "step": 7,
+     "warmup": false,
+     "loss": 3.3360097408294678,
+     "seconds": 1.9666619550000632,
+     "bytes_sent": 346172320,
+     "collectives": {
+      "all_gather_single": [
+       10,
+       230758400
+      ],
+      "reduce_scatter_single": [
+       5,
+       115379200
+      ]
+     },
+     "param_bytes": 28844800,
+     "grad_bytes": 28844800,
+     "optimizer_bytes": 57689600,
+     "peak_param_bytes": 59169536
+    }
+   ]
+  }
+ ]
+}
