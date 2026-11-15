@@ -1,0 +1,178 @@
+// Stale-read figure (stale-reads): a Monte Carlo curve of P(stale) against the
+// time from commit to read, for the reader's N, R, W, latency profile and
+// failure rate, beside a dashed reference curve fixed by the preset.
+figure.sr {
+  @include fig-frame;
+  font-size: 0.9rem;
+
+  .sr-main {
+    --sr-c: var(--fig-blue);
+  }
+
+  .sr-compare {
+    --sr-c: var(--fig-orange);
+  }
+
+  form.sr-controls {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem 0.9rem;
+    margin: 0 0 0.6rem;
+  }
+
+  .sr-slider {
+    @include fig-slider;
+    font-size: 0.82rem;
+    color: var(--darkgray);
+  }
+
+  .sr-select {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.82rem;
+    color: var(--darkgray);
+    grid-column: span 2;
+
+    select {
+      @include fig-button(0.2rem 0.4rem, 0.85rem);
+      @include fig-button-hover;
+      width: 100%;
+    }
+  }
+
+  .sr-chart {
+    @include fig-chart;
+    aspect-ratio: 640 / 250;
+  }
+
+  .sr-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .sr-vgrid {
+    stroke-dasharray: 2 3;
+  }
+
+  .sr-tick {
+    fill: var(--gray);
+    font-size: 12px;
+  }
+
+  .sr-axis {
+    fill: var(--darkgray);
+    font-size: 12.5px;
+  }
+
+  .sr-cursor {
+    stroke: var(--secondary);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+  }
+
+  .sr-series {
+    polyline,
+    path {
+      fill: none;
+      stroke: var(--sr-c);
+      stroke-width: 2.2;
+      stroke-linejoin: round;
+    }
+
+    .sr-zero {
+      stroke-dasharray: 1 4;
+      stroke-width: 1.6;
+    }
+
+    circle {
+      fill: var(--sr-c);
+    }
+  }
+
+  .sr-compare polyline {
+    stroke-dasharray: 6 4;
+    stroke-width: 1.8;
+  }
+
+  ul.sr-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 1.2rem;
+    margin: 0.2rem 0 0.4rem;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin: 0;
+      padding: 0;
+      font-size: 0.82rem;
+      color: var(--darkgray);
+
+      &::before {
+        content: none;
+      }
+    }
+  }
+
+  .sr-swatch {
+    flex: none;
+    width: 1.2rem;
+    height: 0;
+    border-top: 2.5px solid var(--sr-c);
+
+    &.sr-compare {
+      border-top-style: dashed;
+    }
+  }
+
+  .sr-readout {
+    font-size: 0.85rem;
+
+    p {
+      margin: 0.15rem 0;
+    }
+
+    b {
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .sr-big {
+    font-size: 0.95rem;
+  }
+
+  .sr-ci {
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    padding: 0.8rem 0.7rem 0.7rem;
+
+    form.sr-controls {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .sr-select {
+      grid-column: span 1;
+    }
+
+    .sr-tick,
+    .sr-axis {
+      font-size: 20px;
+    }
+
+    .sr-minor,
+    .sr-ylab {
+      display: none;
+    }
+  }
+}

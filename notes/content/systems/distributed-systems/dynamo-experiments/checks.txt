@@ -1,0 +1,70 @@
+PBS k-staleness, non-expanding quorums, LNKD-DISK delays
+PASS  N=3 R=1 W=1 k=1: simulated 0.66627, reference 0.66667, |difference| 0.00040 (allowed 0.00155)
+PASS  N=3 R=1 W=1 k=2: simulated 0.44443, reference 0.44444, |difference| 0.00002 (allowed 0.00163)
+PASS  N=3 R=1 W=1 k=3: simulated 0.29612, reference 0.29630, |difference| 0.00018 (allowed 0.00150)
+PASS  N=3 R=1 W=2 k=1: simulated 0.33332, reference 0.33333, |difference| 0.00002 (allowed 0.00155)
+PASS  N=3 R=1 W=2 k=2: simulated 0.11107, reference 0.11111, |difference| 0.00004 (allowed 0.00103)
+PASS  N=3 R=1 W=2 k=3: simulated 0.03692, reference 0.03704, |difference| 0.00011 (allowed 0.00062)
+PASS  N=5 R=1 W=2 k=1: simulated 0.60014, reference 0.60000, |difference| 0.00014 (allowed 0.00161)
+PASS  N=5 R=1 W=2 k=2: simulated 0.36036, reference 0.36000, |difference| 0.00036 (allowed 0.00158)
+PASS  N=5 R=1 W=2 k=3: simulated 0.21584, reference 0.21600, |difference| 0.00016 (allowed 0.00135)
+PASS  N=5 R=2 W=2 k=1: simulated 0.29984, reference 0.30000, |difference| 0.00016 (allowed 0.00151)
+PASS  N=5 R=2 W=2 k=2: simulated 0.09030, reference 0.09000, |difference| 0.00030 (allowed 0.00094)
+PASS  N=5 R=2 W=2 k=3: simulated 0.02705, reference 0.02700, |difference| 0.00006 (allowed 0.00053)
+PASS  N=10 R=1 W=1 k=1: simulated 0.90031, reference 0.90000, |difference| 0.00031 (allowed 0.00099)
+PASS  N=10 R=1 W=1 k=2: simulated 0.80988, reference 0.81000, |difference| 0.00012 (allowed 0.00129)
+PASS  N=10 R=1 W=1 k=3: simulated 0.72957, reference 0.72900, |difference| 0.00057 (allowed 0.00146)
+
+Exponential write delays (rate 0.1 per ms), A = R = S = 0
+PASS  N=3 R=1 W=1 t=0: simulated 0.66665, reference 0.66667, |difference| 0.00001 (allowed 0.00069)
+PASS  N=3 R=1 W=1 t=5: simulated 0.40382, reference 0.40435, |difference| 0.00053 (allowed 0.00072)
+PASS  N=3 R=1 W=1 t=20: simulated 0.09017, reference 0.09022, |difference| 0.00005 (allowed 0.00042)
+PASS  N=3 R=1 W=2 t=0: simulated 0.33342, reference 0.33333, |difference| 0.00009 (allowed 0.00069)
+PASS  N=3 R=1 W=2 t=5: simulated 0.20214, reference 0.20218, |difference| 0.00003 (allowed 0.00059)
+PASS  N=3 R=1 W=2 t=20: simulated 0.04525, reference 0.04511, |difference| 0.00014 (allowed 0.00031)
+PASS  N=5 R=2 W=1 t=0: simulated 0.60005, reference 0.60000, |difference| 0.00005 (allowed 0.00072)
+PASS  N=5 R=2 W=1 t=5: simulated 0.22061, reference 0.22073, |difference| 0.00012 (allowed 0.00061)
+PASS  N=5 R=2 W=1 t=20: simulated 0.01098, reference 0.01099, |difference| 0.00001 (allowed 0.00015)
+PASS  N=5 R=1 W=3 t=0: simulated 0.40004, reference 0.40000, |difference| 0.00004 (allowed 0.00072)
+PASS  N=5 R=1 W=3 t=5: simulated 0.24267, reference 0.24261, |difference| 0.00006 (allowed 0.00063)
+PASS  N=5 R=1 W=3 t=20: simulated 0.05407, reference 0.05413, |difference| 0.00007 (allowed 0.00033)
+
+PBS Equation 4
+PASS  exact, R delay 0, N=3 R=1 W=1 t=0: simulated 0.60684, reference 0.60713, |difference| 0.00028 (allowed 0.00227)
+PASS  exact, R delay 0, N=3 R=1 W=1 t=2: simulated 0.34650, reference 0.34663, |difference| 0.00014 (allowed 0.00221)
+PASS  exact, R delay 0, N=3 R=1 W=1 t=10: simulated 0.07660, reference 0.07694, |difference| 0.00034 (allowed 0.00124)
+PASS  exact, R delay 0, N=3 R=2 W=1 t=0: simulated 0.27706, reference 0.27684, |difference| 0.00022 (allowed 0.00208)
+PASS  exact, R delay 0, N=3 R=2 W=1 t=2: simulated 0.09065, reference 0.09147, |difference| 0.00082 (allowed 0.00134)
+PASS  exact, R delay 0, N=3 R=2 W=1 t=10: simulated 0.00443, reference 0.00450, |difference| 0.00006 (allowed 0.00031)
+PASS  exact, R delay 0, N=5 R=1 W=2 t=0: simulated 0.54150, reference 0.54101, |difference| 0.00049 (allowed 0.00232)
+PASS  exact, R delay 0, N=5 R=1 W=2 t=2: simulated 0.32212, reference 0.32209, |difference| 0.00003 (allowed 0.00217)
+PASS  exact, R delay 0, N=5 R=1 W=2 t=10: simulated 0.07267, reference 0.07270, |difference| 0.00003 (allowed 0.00121)
+PASS  bound, LNKD-DISK N=3 R=W=1 t=0: simulated at most the bound: simulated 0.56292, reference 0.60681, |difference| 0.04390 (allowed 0.00163)
+PASS  bound, LNKD-DISK N=3 R=W=1 t=5: simulated at most the bound: simulated 0.18150, reference 0.19039, |difference| 0.00889 (allowed 0.00127)
+PASS  bound, LNKD-DISK N=3 R=W=1 t=50: simulated at most the bound: simulated 0.00107, reference 0.00109, |difference| 0.00001 (allowed 0.00011)
+PASS  bound, YMMR N=3 R=W=1 t=0: simulated at most the bound: simulated 0.11284, reference 0.19727, |difference| 0.08442 (allowed 0.00104)
+PASS  bound, YMMR N=3 R=W=1 t=5: simulated at most the bound: simulated 0.06737, reference 0.07369, |difference| 0.00631 (allowed 0.00082)
+PASS  bound, YMMR N=3 R=W=1 t=50: simulated at most the bound: simulated 0.05214, reference 0.05226, |difference| 0.00012 (allowed 0.00073)
+
+Full store without failures against the WARS fast path
+PASS  LNKD-DISK N=3 R=1 W=1 t=5: simulated 0.18152, reference 0.18141, |difference| 0.00012 (allowed 0.00179)
+PASS  YMMR N=3 R=2 W=1 t=50: simulated 0.00247, reference 0.00255, |difference| 0.00008 (allowed 0.00023)
+PASS  WAN N=3 R=1 W=1 t=50: simulated 0.66195, reference 0.66097, |difference| 0.00098 (allowed 0.00220)
+
+Two-state failure process
+PASS  P(down at 100 | down at 0): simulated 0.90400, reference 0.90536, |difference| 0.00136 (allowed 0.00306)
+PASS  P(down at 100): simulated 0.09992, reference 0.10000, |difference| 0.00008 (allowed 0.00099)
+PASS  P(down at 1000 | down at 0): simulated 0.39842, reference 0.39627, |difference| 0.00215 (allowed 0.00509)
+PASS  P(down at 1000): simulated 0.10017, reference 0.10000, |difference| 0.00017 (allowed 0.00099)
+PASS  P(down at 5000 | down at 0): simulated 0.10252, reference 0.10348, |difference| 0.00096 (allowed 0.00315)
+PASS  P(down at 5000): simulated 0.10049, reference 0.10000, |difference| 0.00049 (allowed 0.00099)
+
+Strict quorum intersection
+PASS  N=3 R=2 W=2, f=0.2: stale reads: simulated 0.00000, reference 0.00000, |difference| 0.00000 (allowed 0.00000)
+PASS  N=3 R=1 W=3, f=0.2: stale reads: simulated 0.00000, reference 0.00000, |difference| 0.00000 (allowed 0.00000)
+PASS  N=5 R=3 W=3, f=0.2: stale reads: simulated 0.00000, reference 0.00000, |difference| 0.00000 (allowed 0.00000)
+
+Preference lists
+PASS  2,000 keys: preference lists match a brute-force walk (0 mismatches)
+
+0 failed
