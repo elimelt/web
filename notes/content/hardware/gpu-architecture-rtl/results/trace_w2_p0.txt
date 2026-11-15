@@ -1,0 +1,20 @@
+cyc | rdy  | issue | latch | collector  operands | exec s1 s2 s3 s4 | writeback
+  0 | 0011 |  w0   |   .   |     .          .    |      .  .  .  . | .
+  1 | 0010 |  w1   |  w0   |     .          .    |      .  .  .  . | .
+  2 | 0000 |   .   |  w1   | w0 read        .    |      .  .  .  . | .
+  3 | 0000 |   .   |   .   | w1 read     w0 opnd |      .  .  .  . | .
+  4 | 0000 |   .   |   .   |     .       w1 opnd |     w0  .  .  . | .
+  5 | 0000 |   .   |   .   |     .          .    |     w1 w0  .  . | .
+  6 | 0000 |   .   |   .   |     .          .    |      . w1 w0  . | .
+  7 | 0000 |   .   |   .   |     .          .    |      .  . w1 w0 | w0 R3
+  8 | 0001 |  w0   |   .   |     .          .    |      .  .  . w1 | w1 R3
+  9 | 0010 |  w1   |  w0   |     .          .    |      .  .  .  . | .
+ 10 | 0000 |   .   |  w1   | w0 read        .    |      .  .  .  . | .
+ 11 | 0000 |   .   |   .   | w1 read     w0 opnd |      .  .  .  . | .
+ 12 | 0000 |   .   |   .   |     .       w1 opnd |     w0  .  .  . | .
+ 13 | 0000 |   .   |   .   |     .          .    |     w1 w0  .  . | .
+ 14 | 0000 |   .   |   .   |     .          .    |      . w1 w0  . | .
+ 15 | 0000 |   .   |   .   |     .          .    |      .  . w1 w0 | w0 R3
+ 16 | 0000 |   .   |   .   |     .          .    |      .  .  . w1 | w1 R3
+ 17 | 0000 |   .   |   .   |     .          .    |      .  .  .  . | .
+RESULT banks=2 ports=2 depth=4 pattern=0 warps=2 seed=1 instr=4 cycles=18 read_cycles=4 conflict_cycles=0 check=PASS

@@ -1,0 +1,18 @@
+icarus    arbiter +SEED=1: ARB_RESULT worst_share=1:1 random_mismatches=0/20000 protocol_errors=0
+verilator arbiter +SEED=1: ARB_RESULT worst_share=1:1 random_mismatches=0/20000 protocol_errors=0
+icarus    arbiter +SEED=2: ARB_RESULT worst_share=1:1 random_mismatches=0/20000 protocol_errors=0
+verilator arbiter +SEED=2: ARB_RESULT worst_share=1:1 random_mismatches=0/20000 protocol_errors=0
+icarus    arbiter +SEED=3: ARB_RESULT worst_share=1:1 random_mismatches=0/20000 protocol_errors=0
+verilator arbiter +SEED=3: ARB_RESULT worst_share=1:1 random_mismatches=0/20000 protocol_errors=0
+icarus    stage +MODE=0 +SEED=1: STAGE_RESULT mode=0 seed=1 sent=1749 received=1748 in_flight=1 order_errors=0 stability_errors=0
+verilator stage +MODE=0 +SEED=1: STAGE_RESULT mode=0 seed=1 sent=1749 received=1748 in_flight=1 order_errors=0 stability_errors=0
+icarus    stage +MODE=0 +SEED=2: STAGE_RESULT mode=0 seed=2 sent=1716 received=1715 in_flight=1 order_errors=0 stability_errors=0
+verilator stage +MODE=0 +SEED=2: STAGE_RESULT mode=0 seed=2 sent=1716 received=1715 in_flight=1 order_errors=0 stability_errors=0
+icarus    stage +MODE=1: STAGE_RESULT mode=1 seed=1 sent=4000 received=3999 in_flight=1 order_errors=0 stability_errors=0
+verilator stage +MODE=1: STAGE_RESULT mode=1 seed=1 sent=4000 received=3999 in_flight=1 order_errors=0 stability_errors=0
+icarus    mac +MODE=0 +SEED=1: MAC_RESULT mode=0 seed=1 checked=2000 wrong_sums=0 valid_timing_errors=0
+verilator mac +MODE=0 +SEED=1: MAC_RESULT mode=0 seed=1 checked=2000 wrong_sums=0 valid_timing_errors=0
+icarus    mac +MODE=0 +SEED=2: MAC_RESULT mode=0 seed=2 checked=2000 wrong_sums=0 valid_timing_errors=0
+verilator mac +MODE=0 +SEED=2: MAC_RESULT mode=0 seed=2 checked=2000 wrong_sums=0 valid_timing_errors=0
+icarus    mac +MODE=1: MAC_RESULT mode=1 seed=1 checked=500 wrong_sums=0 valid_timing_errors=0
+verilator mac +MODE=1: MAC_RESULT mode=1 seed=1 checked=500 wrong_sums=0 valid_timing_errors=0

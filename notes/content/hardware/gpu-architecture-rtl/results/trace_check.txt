@@ -1,0 +1,3 @@
+trace_w1_p0: icarus and verilator identical
+trace_w2_p0: icarus and verilator identical
+trace_w3_p1: icarus and verilator identical

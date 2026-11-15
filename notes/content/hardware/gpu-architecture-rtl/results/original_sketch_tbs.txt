@@ -1,0 +1,8 @@
+icarus    warp_issue_arbiter: 1 assertion failures
+verilator warp_issue_arbiter: 0 assertion failures
+icarus    lane_register_file: 32 assertion failures
+verilator lane_register_file: 0 assertion failures
+icarus    pipelined_mac_chain: does not compile: reg acc; cannot be driven by primitives or continuous assignment.
+verilator pipelined_mac_chain: 0 assertion failures
+icarus    issue_handshake: 1 assertion failures
+verilator issue_handshake: 0 assertion failures

@@ -1,0 +1,2 @@
+STAGE_RESULT mode=0 seed=1 sent=1358 received=1358 in_flight=0 order_errors=1357 stability_errors=0
+STAGE_RESULT mode=1 seed=1 sent=2000 received=2000 in_flight=0 order_errors=1999 stability_errors=0

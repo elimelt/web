@@ -1,0 +1,2 @@
+Icarus Verilog version 12.0 (stable) ()
+Verilator 5.020 2024-01-01 rev (Debian 5.020-1)

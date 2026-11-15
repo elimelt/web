@@ -1,0 +1,2 @@
+MAC_RESULT mode=0 seed=1 checked=2000 wrong_sums=1999 valid_timing_errors=0
+MAC_RESULT mode=1 seed=1 checked=500 wrong_sums=0 valid_timing_errors=0

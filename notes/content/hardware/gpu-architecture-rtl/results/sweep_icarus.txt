@@ -1,0 +1,8 @@
+RESULT banks=2 ports=2 depth=4 pattern=3 warps=1 seed=1 instr=256 cycles=1273 read_cycles=277 conflict_cycles=21 check=PASS
+RESULT banks=2 ports=2 depth=4 pattern=3 warps=1 seed=2 instr=256 cycles=1262 read_cycles=276 conflict_cycles=20 check=PASS
+RESULT banks=2 ports=2 depth=4 pattern=3 warps=4 seed=1 instr=1024 cycles=1426 read_cycles=1118 conflict_cycles=94 check=PASS
+RESULT banks=2 ports=2 depth=4 pattern=3 warps=4 seed=2 instr=1024 cycles=1403 read_cycles=1121 conflict_cycles=97 check=PASS
+RESULT banks=2 ports=2 depth=4 pattern=3 warps=8 seed=1 instr=2048 cycles=2245 read_cycles=2237 conflict_cycles=189 check=PASS
+RESULT banks=2 ports=2 depth=4 pattern=3 warps=8 seed=2 instr=2048 cycles=2234 read_cycles=2226 conflict_cycles=178 check=PASS
+RESULT banks=2 ports=2 depth=4 pattern=3 warps=16 seed=1 instr=4096 cycles=4512 read_cycles=4504 conflict_cycles=408 check=PASS
+RESULT banks=2 ports=2 depth=4 pattern=3 warps=16 seed=2 instr=4096 cycles=4464 read_cycles=4456 conflict_cycles=360 check=PASS
