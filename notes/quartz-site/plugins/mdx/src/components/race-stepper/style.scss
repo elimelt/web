@@ -1,0 +1,214 @@
+// Race stepper (race-stepper): two threads side by side, the shared words
+// above them. Thread A is blue, B orange; the critical section is shaded and
+// the line each thread runs next is outlined.
+figure.rs {
+  @include fig-frame;
+  font-size: 0.92rem;
+
+  button {
+    @include fig-button(0.3rem 0.9rem, 0.88rem);
+    @include fig-button-hover;
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.5;
+    }
+  }
+
+  .rs-mem {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .rs-cell {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    padding: 0.25rem 0.7rem;
+    border: 1px solid var(--lightgray);
+    border-radius: 4px;
+    background: var(--highlight);
+
+    span {
+      color: var(--darkgray);
+      font-family: var(--codeFont);
+      font-size: 0.85rem;
+    }
+
+    b {
+      font-family: var(--codeFont);
+      font-size: 1.05rem;
+    }
+  }
+
+  .rs-threads {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.8rem;
+  }
+
+  .rs-thread {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    min-width: 0;
+    padding: 0.5rem 0.6rem 0.6rem;
+    border: 1px solid var(--lightgray);
+    border-top: 3px solid var(--rs-color);
+    border-radius: 4px;
+  }
+
+  .rs-A {
+    --rs-color: var(--fig-blue);
+  }
+
+  .rs-B {
+    --rs-color: var(--fig-orange);
+  }
+
+  .rs-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.3rem;
+  }
+
+  .rs-name {
+    font-weight: 600;
+    color: var(--rs-color);
+  }
+
+  .rs-reg {
+    font-family: var(--codeFont);
+    font-size: 0.85rem;
+    color: var(--darkgray);
+  }
+
+  .rs-line {
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    padding: 0.1rem 0.35rem;
+    border: 1px solid transparent;
+    border-radius: 3px;
+
+    code {
+      padding: 0;
+      border: none;
+      background: none;
+      font-size: 0.82rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+  }
+
+  .rs-no {
+    flex: none;
+    width: 0.9rem;
+    color: var(--gray);
+    font-size: 0.75rem;
+    text-align: right;
+  }
+
+  .rs-short {
+    display: none;
+  }
+
+  .rs-cs {
+    background: color-mix(in srgb, var(--rs-color) 9%, transparent);
+  }
+
+  .rs-next {
+    border-color: var(--rs-color);
+    font-weight: 600;
+  }
+
+  .rs-state {
+    min-height: 1.1rem;
+    font-size: 0.78rem;
+    color: var(--gray);
+  }
+
+  .rs-thread button {
+    align-self: flex-start;
+  }
+
+  .rs-thread button:not(:disabled) {
+    border-color: var(--rs-color);
+    color: var(--rs-color);
+    font-weight: 600;
+  }
+
+  .rs-summary {
+    margin: 0.8rem 0 0;
+    padding: 0.45rem 0.65rem;
+    border-left: 3px solid var(--lightgray);
+    background: var(--highlight);
+    font-size: 0.88rem;
+
+    &[data-tone="good"] {
+      border-left-color: var(--fig-green);
+    }
+
+    &[data-tone="bad"] {
+      border-left-color: var(--fig-red);
+    }
+  }
+
+  .rs-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+  }
+
+  .rs-order {
+    color: var(--gray);
+    font-family: var(--codeFont);
+    font-size: 0.8rem;
+    overflow-wrap: anywhere;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    padding: 0.8rem 0.7rem 0.7rem;
+
+    .rs-threads {
+      gap: 0.5rem;
+    }
+
+    .rs-thread {
+      padding: 0.4rem 0.4rem 0.5rem;
+    }
+
+    .rs-line {
+      gap: 0.3rem;
+      padding: 0.1rem 0.2rem;
+
+      code {
+        font-size: 0.72rem;
+      }
+    }
+
+    .rs-long {
+      display: none;
+    }
+
+    .rs-short {
+      display: inline;
+    }
+
+    .rs-no {
+      width: 0.6rem;
+      font-size: 0.65rem;
+    }
+  }
+}

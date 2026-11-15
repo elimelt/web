@@ -1,0 +1,520 @@
+{
+ "racy": [
+  {
+   "threads": 1,
+   "runs": 5,
+   "median": 395981595,
+   "min": 386328793,
+   "max": 403914946,
+   "share": 1.0,
+   "lost": 0.0
+  },
+  {
+   "threads": 2,
+   "runs": 5,
+   "median": 794946619,
+   "min": 784840835,
+   "max": 815118975,
+   "share": 0.9946,
+   "lost": 0.4846
+  },
+  {
+   "threads": 3,
+   "runs": 5,
+   "median": 1179308852,
+   "min": 1167562387,
+   "max": 1199869213,
+   "share": 0.9907,
+   "lost": 0.6556
+  },
+  {
+   "threads": 4,
+   "runs": 5,
+   "median": 1531176090,
+   "min": 1452410970,
+   "max": 1568810019,
+   "share": 0.9785,
+   "lost": 0.7404
+  },
+  {
+   "threads": 6,
+   "runs": 5,
+   "median": 1527666314,
+   "min": 1510222424,
+   "max": 1554084337,
+   "share": 0.7572,
+   "lost": 0.7786
+  },
+  {
+   "threads": 8,
+   "runs": 5,
+   "median": 1502270243,
+   "min": 1489216515,
+   "max": 1535697522,
+   "share": 0.9672,
+   "lost": 0.8357
+  },
+  {
+   "threads": 12,
+   "runs": 5,
+   "median": 1565480007,
+   "min": 1462833582,
+   "max": 1618525899,
+   "share": 0.9559,
+   "lost": 0.8857
+  },
+  {
+   "threads": 16,
+   "runs": 5,
+   "median": 1539801840,
+   "min": 1483944722,
+   "max": 1634516284,
+   "share": 0.9473,
+   "lost": 0.9042
+  }
+ ],
+ "atomic": [
+  {
+   "threads": 1,
+   "runs": 5,
+   "median": 119834322,
+   "min": 116561664,
+   "max": 127052682,
+   "share": 1.0,
+   "lost": 0.0
+  },
+  {
+   "threads": 2,
+   "runs": 5,
+   "median": 54841884,
+   "min": 53591262,
+   "max": 56518345,
+   "share": 0.9471,
+   "lost": 0.0
+  },
+  {
+   "threads": 3,
+   "runs": 5,
+   "median": 49826333,
+   "min": 48052928,
+   "max": 50795895,
+   "share": 0.8403,
+   "lost": 0.0
+  },
+  {
+   "threads": 4,
+   "runs": 5,
+   "median": 45078296,
+   "min": 44302828,
+   "max": 48536994,
+   "share": 0.9762,
+   "lost": 0.0
+  },
+  {
+   "threads": 6,
+   "runs": 5,
+   "median": 47949275,
+   "min": 46706612,
+   "max": 49630860,
+   "share": 0.777,
+   "lost": 0.0
+  },
+  {
+   "threads": 8,
+   "runs": 5,
+   "median": 48737808,
+   "min": 45688301,
+   "max": 51518358,
+   "share": 0.7829,
+   "lost": 0.0
+  },
+  {
+   "threads": 12,
+   "runs": 5,
+   "median": 47379824,
+   "min": 46149277,
+   "max": 48432409,
+   "share": 0.7899,
+   "lost": 0.0
+  },
+  {
+   "threads": 16,
+   "runs": 5,
+   "median": 47810549,
+   "min": 46790848,
+   "max": 50918482,
+   "share": 0.8044,
+   "lost": 0.0
+  }
+ ],
+ "tas": [
+  {
+   "threads": 1,
+   "runs": 5,
+   "median": 126349321,
+   "min": 120101257,
+   "max": 133704542,
+   "share": 1.0,
+   "lost": 0.0
+  },
+  {
+   "threads": 2,
+   "runs": 5,
+   "median": 21467097,
+   "min": 19661599,
+   "max": 22896362,
+   "share": 0.9591,
+   "lost": 0.0
+  },
+  {
+   "threads": 3,
+   "runs": 5,
+   "median": 12228675,
+   "min": 11836275,
+   "max": 13137372,
+   "share": 0.7527,
+   "lost": 0.0
+  },
+  {
+   "threads": 4,
+   "runs": 5,
+   "median": 8926063,
+   "min": 8834156,
+   "max": 9377206,
+   "share": 0.7355,
+   "lost": 0.0
+  },
+  {
+   "threads": 6,
+   "runs": 5,
+   "median": 6181273,
+   "min": 6014591,
+   "max": 6409059,
+   "share": 0.5734,
+   "lost": 0.0
+  },
+  {
+   "threads": 8,
+   "runs": 5,
+   "median": 4498328,
+   "min": 4287206,
+   "max": 4643529,
+   "share": 0.1838,
+   "lost": 0.0
+  },
+  {
+   "threads": 12,
+   "runs": 5,
+   "median": 3002029,
+   "min": 2985603,
+   "max": 3334913,
+   "share": 0.2457,
+   "lost": 0.0
+  },
+  {
+   "threads": 16,
+   "runs": 5,
+   "median": 2214124,
+   "min": 2174358,
+   "max": 2508669,
+   "share": 0.0499,
+   "lost": 0.0
+  }
+ ],
+ "ttas": [
+  {
+   "threads": 1,
+   "runs": 5,
+   "median": 131350360,
+   "min": 121257280,
+   "max": 136883866,
+   "share": 1.0,
+   "lost": 0.0
+  },
+  {
+   "threads": 2,
+   "runs": 5,
+   "median": 16072050,
+   "min": 15628734,
+   "max": 17213569,
+   "share": 0.9173,
+   "lost": 0.0
+  },
+  {
+   "threads": 3,
+   "runs": 5,
+   "median": 10960941,
+   "min": 10334415,
+   "max": 11585616,
+   "share": 0.8911,
+   "lost": 0.0
+  },
+  {
+   "threads": 4,
+   "runs": 5,
+   "median": 9296042,
+   "min": 8350148,
+   "max": 9394678,
+   "share": 0.904,
+   "lost": 0.0
+  },
+  {
+   "threads": 6,
+   "runs": 5,
+   "median": 6372203,
+   "min": 6125088,
+   "max": 6628003,
+   "share": 0.6919,
+   "lost": 0.0
+  },
+  {
+   "threads": 8,
+   "runs": 5,
+   "median": 4871222,
+   "min": 4575897,
+   "max": 5001179,
+   "share": 0.5792,
+   "lost": 0.0
+  },
+  {
+   "threads": 12,
+   "runs": 5,
+   "median": 3162555,
+   "min": 2956468,
+   "max": 3276772,
+   "share": 0.4006,
+   "lost": 0.0
+  },
+  {
+   "threads": 16,
+   "runs": 5,
+   "median": 2534138,
+   "min": 2239410,
+   "max": 2593771,
+   "share": 0.4156,
+   "lost": 0.0
+  }
+ ],
+ "ticket": [
+  {
+   "threads": 1,
+   "runs": 5,
+   "median": 112489359,
+   "min": 109130963,
+   "max": 114583600,
+   "share": 1.0,
+   "lost": 0.0
+  },
+  {
+   "threads": 2,
+   "runs": 5,
+   "median": 5270001,
+   "min": 4842835,
+   "max": 6051171,
+   "share": 0.999,
+   "lost": 0.0
+  },
+  {
+   "threads": 3,
+   "runs": 5,
+   "median": 4324217,
+   "min": 3797341,
+   "max": 4703115,
+   "share": 0.9996,
+   "lost": 0.0
+  },
+  {
+   "threads": 4,
+   "runs": 5,
+   "median": 4113660,
+   "min": 3386592,
+   "max": 4603921,
+   "share": 0.9998,
+   "lost": 0.0
+  },
+  {
+   "threads": 6,
+   "runs": 5,
+   "median": 16535,
+   "min": 6969,
+   "max": 17026,
+   "share": 0.0384,
+   "lost": 0.0
+  },
+  {
+   "threads": 8,
+   "runs": 5,
+   "median": 16788,
+   "min": 7228,
+   "max": 18630,
+   "share": 0.0334,
+   "lost": 0.0
+  },
+  {
+   "threads": 12,
+   "runs": 5,
+   "median": 14877,
+   "min": 14047,
+   "max": 16429,
+   "share": 0.0179,
+   "lost": 0.0
+  },
+  {
+   "threads": 16,
+   "runs": 5,
+   "median": 14479,
+   "min": 6854,
+   "max": 15864,
+   "share": 0.011,
+   "lost": 0.0
+  }
+ ],
+ "mcs": [
+  {
+   "threads": 1,
+   "runs": 5,
+   "median": 56863452,
+   "min": 55343825,
+   "max": 58753508,
+   "share": 1.0,
+   "lost": 0.0
+  },
+  {
+   "threads": 2,
+   "runs": 5,
+   "median": 4716472,
+   "min": 4167047,
+   "max": 4982937,
+   "share": 0.9989,
+   "lost": 0.0
+  },
+  {
+   "threads": 3,
+   "runs": 5,
+   "median": 4817444,
+   "min": 4275868,
+   "max": 5097026,
+   "share": 0.9999,
+   "lost": 0.0
+  },
+  {
+   "threads": 4,
+   "runs": 5,
+   "median": 4966229,
+   "min": 4538506,
+   "max": 5575982,
+   "share": 0.9997,
+   "lost": 0.0
+  },
+  {
+   "threads": 6,
+   "runs": 5,
+   "median": 20697,
+   "min": 16423,
+   "max": 23517,
+   "share": 0.0307,
+   "lost": 0.0
+  },
+  {
+   "threads": 8,
+   "runs": 5,
+   "median": 21366,
+   "min": 19602,
+   "max": 23137,
+   "share": 0.0246,
+   "lost": 0.0
+  },
+  {
+   "threads": 12,
+   "runs": 5,
+   "median": 20658,
+   "min": 10233,
+   "max": 21409,
+   "share": 0.0122,
+   "lost": 0.0
+  },
+  {
+   "threads": 16,
+   "runs": 5,
+   "median": 19245,
+   "min": 17532,
+   "max": 22198,
+   "share": 0.0077,
+   "lost": 0.0
+  }
+ ],
+ "mutex": [
+  {
+   "threads": 1,
+   "runs": 5,
+   "median": 50912191,
+   "min": 49740520,
+   "max": 52140457,
+   "share": 1.0,
+   "lost": 0.0
+  },
+  {
+   "threads": 2,
+   "runs": 5,
+   "median": 13670690,
+   "min": 13089746,
+   "max": 13852016,
+   "share": 0.9349,
+   "lost": 0.0
+  },
+  {
+   "threads": 3,
+   "runs": 5,
+   "median": 29456458,
+   "min": 28137336,
+   "max": 29820760,
+   "share": 0.9606,
+   "lost": 0.0
+  },
+  {
+   "threads": 4,
+   "runs": 5,
+   "median": 14153096,
+   "min": 14074682,
+   "max": 14325089,
+   "share": 0.8804,
+   "lost": 0.0
+  },
+  {
+   "threads": 6,
+   "runs": 5,
+   "median": 16940736,
+   "min": 16598487,
+   "max": 17833520,
+   "share": 0.7466,
+   "lost": 0.0
+  },
+  {
+   "threads": 8,
+   "runs": 5,
+   "median": 17876765,
+   "min": 17179692,
+   "max": 18076567,
+   "share": 0.9365,
+   "lost": 0.0
+  },
+  {
+   "threads": 12,
+   "runs": 5,
+   "median": 12782533,
+   "min": 12026715,
+   "max": 13641511,
+   "share": 0.9224,
+   "lost": 0.0
+  },
+  {
+   "threads": 16,
+   "runs": 5,
+   "median": 12189722,
+   "min": 10486413,
+   "max": 12373228,
+   "share": 0.9326,
+   "lost": 0.0
+  }
+ ]
+}
