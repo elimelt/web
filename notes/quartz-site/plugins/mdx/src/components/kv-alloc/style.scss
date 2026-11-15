@@ -1,0 +1,195 @@
+// KV allocation figure. Blue is KV in use, green slots reserved for tokens a
+// request will still generate, orange internal fragmentation, red external
+// fragmentation; free memory is the plain row background.
+figure.kva {
+  --kva-used: var(--fig-blue);
+  --kva-reserved: var(--fig-green);
+  --kva-internal: var(--fig-orange);
+  --kva-external: var(--fig-red);
+  @include fig-frame;
+
+  .kva-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.9rem;
+    align-items: center;
+    margin-bottom: 0.7rem;
+    font-size: 0.85rem;
+  }
+
+  .kva-seg {
+    display: inline-flex;
+
+    button + button {
+      margin-left: -1px;
+    }
+
+    button:first-child {
+      border-radius: 4px 0 0 4px;
+    }
+
+    button:last-child {
+      border-radius: 0 4px 4px 0;
+    }
+  }
+
+  button,
+  select {
+    @include fig-button(0.15rem 0.5rem, 0.85rem);
+    @include fig-button-hover;
+
+    &[aria-pressed="true"] {
+      position: relative;
+      @include fig-pressed;
+    }
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.6;
+    }
+  }
+
+  .kva-block {
+    display: inline-flex;
+    gap: 0.35rem;
+    align-items: center;
+    color: var(--darkgray);
+  }
+
+  .kva-label {
+    margin-bottom: 0.25rem;
+    color: var(--gray);
+    font-size: 0.78rem;
+  }
+
+  .kva-map,
+  .kva-chart {
+    @include fig-chart;
+  }
+
+  .kva-map {
+    aspect-ratio: 640 / 166;
+  }
+
+  .kva-chart {
+    aspect-ratio: 640 / 150;
+    margin-top: 0.5rem;
+  }
+
+  .kva-used {
+    fill: var(--kva-used);
+    background: var(--kva-used);
+  }
+
+  .kva-reserved {
+    fill: var(--kva-reserved);
+    background: var(--kva-reserved);
+  }
+
+  .kva-internal {
+    fill: var(--kva-internal);
+    background: var(--kva-internal);
+  }
+
+  .kva-external {
+    fill: var(--kva-external);
+    background: var(--kva-external);
+  }
+
+  .kva-free {
+    fill: var(--lightgray);
+    background: var(--lightgray);
+    opacity: 0.55;
+  }
+
+  rect.kva-ext {
+    fill: var(--kva-external);
+    opacity: 0.45;
+  }
+
+  .kva-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .kva-qe {
+    stroke: var(--gray);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+  }
+
+  .kva-cursor {
+    stroke: var(--dark);
+    stroke-width: 1.5;
+  }
+
+  .kva-tick {
+    fill: var(--gray);
+    font-size: 11px;
+  }
+
+  .kva-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.9rem;
+    margin-top: 0.4rem;
+    color: var(--darkgray);
+    font-size: 0.78rem;
+
+    span {
+      display: inline-flex;
+      gap: 0.3rem;
+      align-items: center;
+    }
+  }
+
+  .kva-sw {
+    display: inline-block;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 2px;
+  }
+
+  .kva-sw.kva-free {
+    opacity: 1;
+  }
+
+  .kva-play {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    margin-top: 0.4rem;
+
+    button {
+      min-width: 4.2rem;
+    }
+
+    input {
+      flex: 1;
+      min-width: 0;
+      accent-color: var(--secondary);
+    }
+  }
+
+  .kva-now,
+  .kva-sum {
+    margin: 0.5rem 0 0;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .kva-sum {
+    color: var(--darkgray);
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .kva-tick {
+      font-size: 18px;
+    }
+  }
+}
