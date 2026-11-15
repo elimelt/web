@@ -1,0 +1,370 @@
+---
+title: Network Flow Algorithms and Applications in Graph Theory
+category: Algorithms
+tags:
+  - max flow min cut
+  - ford-fulkerson algorithm
+  - edmonds-karp algorithm
+  - dinic algorithm
+  - push-relabel
+  - bipartite graphs
+  - bipartite matching
+  - vertex cover
+  - independent set
+date: 2024-05-17
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
+status: evergreen
+description: "Max flow and min cut: the max-flow min-cut theorem, Ford-Fulkerson, Edmonds-Karp, Dinic and push-relabel with their bounds, a figure that steps through Edmonds-Karp to the minimum cut, measurements of all three on DIMACS generator families and image-segmentation instances, and reductions from bipartite matching, vertex cover, segmentation and disjoint paths."
+sources:
+  - title: Ford and Fulkerson (1956), Maximal Flow Through a Network
+    url: https://doi.org/10.4153/CJM-1956-045-5
+    type: paper
+  - title: Elias, Feinstein and Shannon (1956), A Note on the Maximum Flow Through a Network
+    url: https://doi.org/10.1109/TIT.1956.1056816
+    type: paper
+  - title: Edmonds and Karp (1972), Theoretical Improvements in Algorithmic Efficiency for Network Flow Problems
+    url: https://doi.org/10.1145/321694.321699
+    type: paper
+  - title: Dinitz (2006), Dinitz' Algorithm, the Original Version and Even's Version
+    url: https://doi.org/10.1007/11685654_10
+    type: paper
+  - title: Goldberg and Tarjan (1988), A New Approach to the Maximum-Flow Problem
+    url: https://doi.org/10.1145/48014.61051
+    type: paper
+  - title: Cheriyan and Maheshwari (1989), Analysis of Preflow Push Algorithms for Maximum Network Flow
+    url: https://doi.org/10.1137/0218072
+    type: paper
+  - title: Cherkassky and Goldberg (1997), On Implementing the Push-Relabel Method for the Maximum Flow Problem
+    url: https://doi.org/10.1007/PL00009180
+    type: paper
+  - title: Chen, Kyng, Liu, Peng, Probst Gutenberg and Sachdeva (2022), Maximum Flow and Minimum-Cost Flow in Almost-Linear Time
+    url: https://arxiv.org/abs/2203.00671
+    type: paper
+  - title: Boykov and Kolmogorov (2004), An Experimental Comparison of Min-Cut/Max-Flow Algorithms for Energy Minimization in Vision
+    url: https://doi.org/10.1109/TPAMI.2004.60
+    type: paper
+  - title: Kleinberg and Tardos (2005), Algorithm Design, chapter 7
+    url: https://www.cs.princeton.edu/~wayne/kleinberg-tardos/
+    type: book
+---
+
+A **flow network** is a directed graph $G = (V, E)$ with a capacity $c(e) \ge 0$ on every edge and two distinguished vertices, a source $s$ and a sink $t$. A **flow** is a function $f : E \to \mathbb{R}$ with $0 \le f(e) \le c(e)$ on every edge (the capacity constraint) and, at every vertex other than $s$ and $t$, total flow in equal to total flow out (conservation). Its **value** $v(f)$ is the net flow out of $s$. An **$s$-$t$ cut** is a partition $(A, B)$ of $V$ with $s \in A$ and $t \in B$, and its capacity is
+
+$$
+cap(A, B) = \sum_{(u, v) \in E,\ u \in A,\ v \in B} c(u, v).
+$$
+
+The **maximum-flow problem** asks for a flow of largest value and the **minimum-cut problem** for a cut of smallest capacity. The two optima are equal: the maximum flow value is the minimum cut capacity ([Ford and Fulkerson 1956](https://doi.org/10.4153/CJM-1956-045-5); proved independently by [Elias, Feinstein and Shannon 1956](https://doi.org/10.1109/TIT.1956.1056816)). Throughout, $n = |V|$ and $m = |E|$.
+
+In plain terms, a flow routes as much material as possible from $s$ to $t$ without exceeding any edge's capacity, and a cut is a set of edges whose removal disconnects $t$ from $s$. Every unit of flow crosses every cut, so no flow is larger than any cut; the theorem states that the bound is tight. Many problems reduce to one of the two: routing through a network whose links have limited capacity, and partitioning a set of objects into two groups at minimum cost. When the objects have a natural order, [[algorithms/dynamic-programming|dynamic programming]] is often an alternative, and problems on trees may admit a greedy algorithm or dynamic programming on subtrees. Max flow is also a [[algorithms/linear-programming|linear program]], and the theorem is LP duality specialized to it.
+
+## The max-flow min-cut theorem
+
+For any flow $f$ and any cut $(A, B)$, summing conservation over the vertices of $A$ other than $s$ gives
+
+$$
+v(f) = \sum_{e \text{ out of } A} f(e) - \sum_{e \text{ into } A} f(e) \le \sum_{e \text{ out of } A} c(e) = cap(A, B),
+$$
+
+so $\max v(f) \le \min cap(A, B)$ (weak duality). Equality holds exactly when every edge from $A$ to $B$ is saturated and every edge from $B$ to $A$ carries no flow.
+
+> [!abstract] Max-flow min-cut theorem
+> The maximum value of an $s$-$t$ flow equals the minimum capacity of an $s$-$t$ cut. If all capacities are integers, some maximum flow is integral (the integrality theorem).
+
+The Ford-Fulkerson method below proves both statements. When it stops, the set $A$ of vertices reachable from $s$ in the residual graph has every outgoing edge saturated and every incoming edge empty, so $v(f) = cap(A, V \setminus A)$, and the flow it built is integral whenever the capacities are.
+
+## Residual graphs and augmenting paths
+
+Given a flow $f$, the **residual graph** $G_f$ has, for each edge $(u, v)$, a forward arc $u \to v$ with residual capacity $c(u, v) - f(u, v)$ when that is positive, and a backward arc $v \to u$ with residual capacity $f(u, v)$ when that is positive. Pushing $\delta$ units along a backward arc lowers $f(u, v)$ by $\delta$, which cancels flow assigned earlier and lets it be rerouted.
+
+An **augmenting path** is an $s$-$t$ path in $G_f$. The **Ford-Fulkerson method** repeatedly finds one, pushes its bottleneck (the minimum residual capacity on the path) along it, and stops when $G_f$ has no $s$-$t$ path. The method leaves the choice of path open, and that choice determines the running time.
+
+The figure runs the method with breadth-first search, which picks a path with the fewest arcs (Edmonds-Karp, [below](#shortest-augmenting-paths-edmonds-karp-and-dinic)). Each step highlights the next augmenting path in the current residual graph; backward arcs are dashed. The third path in this network crosses the backward arc $d \to a$: it cancels 2 of the 3 units that the first path sent along $a \to d$ and sends them on through $a \to b$, which frees $d \to t$ for the flow arriving from $c$. After the last augmentation the vertices still reachable from $s$ are shaded, and the saturated edges leaving them form a minimum cut. The Flow button shows the same state as $f(e)/c(e)$ on the original edges.
+
+<AugmentingPaths preset="network" />
+
+A minimal implementation with depth-first search:
+
+```python
+from collections import defaultdict
+
+def ford_fulkerson(G, s, t, c):
+    # G: adjacency lists, c[u][v]: capacity of edge (u, v)
+    # r holds residual capacities, including backward edges
+    r = defaultdict(dict)
+    for u in G:
+        for v in G[u]:
+            r[u][v] = r[u].get(v, 0) + c[u][v]
+            r[v].setdefault(u, 0)
+
+    def find_augmenting_path():
+        stack = [(s, [s])]
+        seen = {s}
+        while stack:
+            u, path = stack.pop()
+            if u == t:
+                return path
+            for v, cap in r[u].items():
+                if cap > 0 and v not in seen:
+                    seen.add(v)
+                    stack.append((v, path + [v]))
+        return None
+
+    flow = 0
+    while True:
+        path = find_augmenting_path()
+        if path is None:
+            return flow
+        bottleneck = min(r[u][v] for u, v in zip(path, path[1:]))
+        for u, v in zip(path, path[1:]):
+            r[u][v] -= bottleneck
+            r[v][u] += bottleneck
+        flow += bottleneck
+```
+
+The dictionary merges an edge $(u, v)$ and an antiparallel edge $(v, u)$ into one pair of residual entries, which is correct because only the net flow between $u$ and $v$ matters.
+
+### Running time with integer capacities
+
+With integer capacities every residual capacity stays an integer, so each augmentation raises the value by at least $1$, and the method stops after at most $v(f^*)$ augmentations, where $f^*$ is a maximum flow. In a graph without parallel edges and with capacities at most $C$, at most $n - 1$ edges leave $s$, so $v(f^*) \le (n - 1)C$. Each augmentation finds a path in $O(m)$, for $O(m \cdot v(f^*)) = O(mnC)$ in total.
+
+> [!warning] The bound is pseudo-polynomial
+> $C$ occupies only $\log_2 C$ bits of the input, so $O(mnC)$ can be exponential in the input size, and the number of augmentations can grow with $C$. In the diamond network $s \to a$, $s \to b$, $a \to t$, $b \to t$ with capacity $C$ and a middle edge $a \to b$ of capacity $1$, a path search that alternates between $s \to a \to b \to t$ and $s \to b \to a \to t$ (the second through the backward arc $b \to a$) gains $1$ unit per augmentation and takes $2C$ augmentations to reach the maximum flow $2C$. With irrational capacities the method need not terminate, and its flow values can converge to a value below the maximum; [Zwick (1995)](https://doi.org/10.1016/0304-3975(95)00022-O) gives the smallest such networks.
+
+Breadth-first search never uses the middle edge of the diamond: with $C = 1000$, both shortest paths have two arcs, and the maximum flow of $2000$ takes two augmentations.
+
+<AugmentingPaths preset="diamond" />
+
+## Shortest augmenting paths: Edmonds-Karp and Dinic
+
+[Edmonds and Karp (1972)](https://doi.org/10.1145/321694.321699) proved that augmenting along a path with the fewest arcs bounds the number of augmentations independently of the capacities; their Theorem 1 gives at most $(n^3 - n)/4$. The bound usually taught is sharper for sparse graphs (Cormen, Leiserson, Rivest and Stein, *Introduction to Algorithms*, 3rd edition, section 26.2). Let $d_f(v)$ be the number of arcs on a shortest $s$-$v$ path in $G_f$.
+
+- **Distances never decrease.** An augmentation along a shortest path removes at least one arc (a bottleneck) and adds only backward arcs $v \to u$ with $d_f(v) = d_f(u) + 1$, which cannot shorten any path from $s$.
+- **Each arc is a bottleneck at most $n/2$ times.** If $u \to v$ is a bottleneck, $d(v) = d(u) + 1$ at that moment. It can reappear in the residual graph only after a later augmentation uses $v \to u$, at which point $d'(u) = d'(v) + 1 \ge d(v) + 1 = d(u) + 2$. Distances are below $n$, so this happens at most $n/2$ times.
+
+The residual graph has at most $2m$ arcs, so there are $O(nm)$ augmentations, each costing a breadth-first search of $O(m)$, for $O(nm^2)$ in total. The same paper analyzes augmenting along the path of largest bottleneck, which needs $O(m \log v(f^*))$ augmentations on integer capacities.
+
+**Dinic's algorithm** (Dinitz 1970, *Soviet Mathematics Doklady* 11), published two years before Edmonds and Karp, organizes the same shortest-path augmentations into **phases**. A phase computes the level $d_f(v)$ of every vertex by one breadth-first search, restricts attention to the **level graph** of arcs $u \to v$ with $d_f(v) = d_f(u) + 1$, and finds a **blocking flow** in it: a flow after which every $s$-$t$ path of the level graph has a saturated arc. A depth-first search with a current-arc pointer per vertex finds the blocking flow; an arc that leads to a dead end or becomes saturated is not examined again in that phase, so a phase costs $O(nm)$. Every phase increases $d_f(t)$, so there are at most $n - 1$ phases and $O(n^2 m)$ time in total. The version with depth-first search and dead-end removal is the one Even and Itai popularized; [Dinitz (2006)](https://doi.org/10.1007/11685654_10) describes how his original layered-network maintenance differs. On networks with unit capacities a phase costs $O(m)$ and there are $O(\sqrt{m})$ phases, or $O(n^{2/3})$ without parallel edges ([Even and Tarjan 1975](https://doi.org/10.1137/0204043)); on bipartite matching networks there are $O(\sqrt{n})$, which is the $O(m\sqrt{n})$ matching algorithm of [Hopcroft and Karp (1973)](https://doi.org/10.1137/0202019).
+
+Within a phase, the shortest $s$-$t$ paths of $G_f$ are exactly the $s$-$t$ paths of the phase's level graph that still have positive residual capacity, because an augmentation along a shortest path only adds arcs that go back one level. When both algorithms scan each vertex's arcs in the same order, breadth-first search with parent pointers returns the path whose sequence of arc positions is lexicographically first among the shortest paths. Dinic's depth-first search with current-arc pointers returns the same path, since every arc it has skipped is saturated or leads to a dead end. The two algorithms then perform the same augmentations, and Dinic's algorithm differs only in amortizing the search for each path over the phase instead of repeating a breadth-first search of the whole graph. In the measurements below, the augmentation counts of the two implementations are identical on every instance.
+
+## Push-relabel
+
+Augmenting-path algorithms maintain a feasible flow and search for a path that improves it. The **push-relabel** method of [Goldberg and Tarjan (1988)](https://doi.org/10.1145/48014.61051) instead maintains a **preflow**, in which a vertex may receive more flow than it sends, and works locally. The **excess** $e(v)$ is inflow minus outflow at $v$, and a vertex other than $s$ and $t$ with positive excess is **active**. Each vertex carries an integer **label** $d(v)$ with $d(s) = n$, $d(t) = 0$, and $d(u) \le d(v) + 1$ for every residual arc $u \to v$, so $d(v)$ is a lower bound on the residual distance from $v$ to $t$.
+
+- **Push** from an active $u$ along a residual arc $u \to v$ with $d(u) = d(v) + 1$: move $\min(e(u), c_f(u, v))$ units.
+- **Relabel** an active $u$ with no such arc: set $d(u) = 1 + \min d(v)$ over residual arcs $u \to v$.
+
+The method starts by saturating every edge out of $s$ and applies the two operations until no vertex is active. Labels never exceed $2n - 1$, which bounds relabels by $O(n^2)$, saturating pushes by $O(nm)$ and non-saturating pushes by $O(n^2 m)$ for any order of operations. Processing active vertices in FIFO order gives $O(n^3)$; choosing an active vertex with the highest label gives $O(n^2\sqrt{m})$ ([Cheriyan and Maheshwari 1989](https://doi.org/10.1137/0218072); a shorter proof is in [Cheriyan and Mehlhorn 1999](https://math.uwaterloo.ca/~jcheriya/PDF_files/me3.0.pdf)); and Sleator and Tarjan's dynamic trees give $O(nm \log(n^2/m))$.
+
+Two heuristics determine its practical speed ([Cherkassky and Goldberg 1997](https://doi.org/10.1007/PL00009180)). **Global relabeling** periodically resets every label to the exact residual distance to $t$ by a backward breadth-first search. The **gap heuristic** uses the fact that if no vertex has label $k$, no vertex with a label above $k$ can reach $t$, and raises all of them to $n$ at once. Implementations also split the work into two phases. The first processes only vertices with $d(v) < n$ and ends with a maximum preflow, whose value is the maximum flow value and whose residual graph already determines a minimum cut. The second returns the remaining excess to $s$ to obtain a flow. Cherkassky and Goldberg report that the second phase took at most twice the time of the first on all their instances, and usually a small fraction of it.
+
+## Measured: three algorithms on DIMACS families and segmentation instances
+
+I implemented the three algorithms in one C++ file ([`maxflow.cpp`](network-flow-experiments/maxflow.cpp)): Edmonds-Karp with breadth-first search; Dinic with an iterative depth-first search and current-arc pointers; and highest-label push-relabel with global relabeling, the gap heuristic and a second phase that returns excess to $s$ along a topological order of the flow, as in Cherkassky and Goldberg. Every run is verified: capacity and conservation constraints hold, the three algorithms return the same value on every instance, and the set of vertices reachable from $s$ in the final residual graph defines a cut whose capacity equals the flow value. Before timing, all three were checked against NetworkX's preflow-push and Edmonds-Karp on 607 random networks ([`check.py`](network-flow-experiments/check.py)).
+
+The instances come from two sources. The **DIMACS families** are reimplementations of the generators of the first DIMACS implementation challenge: GENRMF (stacked $a \times a$ grids joined by random permutations), in a long variant with $b = a^2$ frames and a wide variant with $a = b^2$; Anderson's random level graphs (RLG), with $2^x$ vertices per level, 64 levels and three random arcs from each vertex to the next level; and Cherkassky and Goldberg's AK networks, built so that augmenting-path and push-relabel codes do quadratic work. The **segmentation instances** apply the construction of the [segmentation section](#foregroundbackground-segmentation) to four photographs from scikit-image ("camera" and "astronaut" at 512 × 512, "coffee" at 400 × 600 and "coins" at 303 × 384), with Boykov-Jolly neighbor weights, plus the camera image downscaled to 256, 128 and 64 pixels on a side. They have the 4-connected grid structure of the University of Western Ontario vision instances that [Boykov and Kolmogorov (2004)](https://doi.org/10.1109/TPAMI.2004.60) benchmark, which I could not download from this machine. Times are milliseconds, the median of 5 runs on each segmentation instance and of 9 runs (3 generated instances × 3 runs) per generator size, with the minimum and maximum in parentheses; an algorithm that passed its time limit (30 s for Edmonds-Karp, 60 s for the others) is marked over limit and not run on larger sizes.
+
+| image | $n$ | $m$ | Edmonds-Karp | Dinic | push-relabel | augmentations | Dinic phases |
+|---|---|---|---|---|---|---|---|
+| camera | 262,146 | 1,290,752 | 14,617 (13,762–14,807) | 138 (135–165) | 67.9 (65.5–78.8) | 4,942 | 14 |
+| astronaut | 262,146 | 1,289,367 | over limit | 278 (262–342) | 73 (68.5–76) | 25,886 | 22 |
+| coffee | 240,002 | 1,179,474 | over limit | 775 (581–837) | 93.6 (69.6–109) | 41,143 | 48 |
+| coins | 116,354 | 571,838 | 10,046 (9,693–11,641) | 197 (186–267) | 29.8 (19.3–32.9) | 10,453 | 45 |
+| camera, 256² | 65,538 | 321,220 | 1,152 (1,110–1,199) | 28.5 (27.9–29.6) | 12.3 (11.5–14.9) | 1,671 | 13 |
+| camera, 128² | 16,386 | 79,773 | 87.5 (86.4–99.6) | 5.94 (5.61–6.17) | 2.51 (2.15–2.78) | 548 | 11 |
+| camera, 64² | 4,098 | 19,820 | 9.47 (9.31–9.61) | 1.08 (1.06–1.16) | 0.636 (0.599–0.68) | 179 | 6 |
+
+On the 512 × 512 camera image, Edmonds-Karp and Dinic perform the same 4,942 augmentations, as the argument in the [previous section](#shortest-augmenting-paths-edmonds-karp-and-dinic) predicts; Edmonds-Karp scans $8.8 \times 10^9$ arcs to find them and Dinic $6.3 \times 10^7$, and Dinic is 106 times faster. Push-relabel scans $6.2 \times 10^6$ arcs and takes 42 to 59% of Dinic's time on the camera image at every resolution and 12 to 26% on the other three photographs. All the counts are far below the worst-case bounds: 14 phases against the bound $n - 1 = 262{,}145$, and 4,942 augmentations against $nm/2 \approx 1.7 \times 10^{11}$. Almost every pixel of a segmentation instance has an edge from $s$ or to $t$, so augmenting paths stay short, and the number of phases, which is at most the largest value $d_f(t)$ reaches, stays small.
+
+The generator families show how the work grows with $n$. The exponents below are least-squares slopes of the log of the median time against $\log n$, over the sizes at which the algorithm finished every run, so Edmonds-Karp's exponents cover only the GENRMF and RLG instances up to about 16,000 vertices and Dinic's GENRMF exponents those up to about 65,000; the operation counts are fitted the same way.
+
+| family | $n$ range | Edmonds-Karp time | Dinic time | push-relabel time | augmentations | Dinic phases | relabels |
+|---|---|---|---|---|---|---|---|
+| GENRMF long | 1,152 to 270,848 | $n^{2.24}$ | $n^{1.72}$ | $n^{1.09}$ | $n^{1.09}$ | $n^{0.64}$ | $n^{1.16}$ |
+| GENRMF wide | 1,024 to 259,308 | $n^{2.38}$ | $n^{1.65}$ | $n^{1.43}$ | $n^{1.09}$ | $n^{0.51}$ | $n^{1.37}$ |
+| RLG wide | 4,098 to 131,074 | $n^{2.13}$ | $n^{1.53}$ | $n^{1.34}$ | $n^{1.07}$ | $n^{0.48}$ | $n^{1.26}$ |
+| AK | 1,006 to 32,006 | $n^{2.02}$ | $n^{2.02}$ | $n^{2.02}$ | $n^{1.00}$ | $n^{1.00}$ | $n^{2.00}$ |
+
+On these sparse graphs ($m \approx 5n$ or less) the worst-case bounds are $O(nm^2) = O(n^3)$ for Edmonds-Karp, $O(n^2 m) = O(n^3)$ for Dinic and $O(n^2 \sqrt{m}) = O(n^{2.5})$ for highest-label push-relabel. On GENRMF and RLG all three grow more slowly. The number of augmentations grows roughly linearly in $n$, against the $O(nm)$ bound, so Edmonds-Karp's time is about $n$ breadth-first searches of $O(m)$ each, and its measured exponents lie between 2.1 and 2.4. Dinic's phases grow like $n^{0.5}$ to $n^{0.64}$, against the bound $n - 1$. The largest instances separate the algorithms: on GENRMF long with 270,848 vertices push-relabel takes 262 ms, while Dinic exceeds 60 s and Edmonds-Karp exceeded 30 s already at 65,536 vertices. The AK networks are built to defeat these behaviors, and on them all three algorithms do quadratic work: AK($k$) has $n = 4k + 6$ vertices, both augmenting-path algorithms need $2k + 3 = n/2$ augmentations, Dinic needs $1.5k + 1$ phases, and push-relabel performs about $0.029n^2$ relabels. Edmonds-Karp is faster than Dinic there, because Dinic spends a breadth-first search per phase and finds only about $4/3$ paths per phase.
+
+Push-relabel's second phase took 0 to 44% of its total time (one minus the ratio of the median first-phase time to the median total): 35 to 44% on segmentation, 16 to 28% on GENRMF, 4 to 11% on RLG and under 1% on AK.
+
+> [!note]- Per-size tables
+> The full tables, with operation counts for every size, are printed by [`analyze.py`](network-flow-experiments/analyze.py) from [`results.json`](network-flow-experiments/results.json); the 507 individual runs are in [`results-raw.jsonl`](network-flow-experiments/results-raw.jsonl). Augmentations are the mean over the three generated instances of a size.
+>
+> | family | $n$ | Edmonds-Karp | Dinic | push-relabel | augmentations | phases | relabels |
+> |---|---|---|---|---|---|---|---|
+> | GENRMF long | 1,152 | 22.8 (20.1–23.7) | 4.78 (3.97–5.25) | 0.586 (0.479–0.718) | 681 | 46 | 2,659 |
+> | GENRMF long | 4,096 | 470 (369–629) | 47.4 (34.7–52) | 3.43 (2.22–3.85) | 2,823 | 107 | 14,523 |
+> | GENRMF long | 15,488 | 7,681 (6,802–9,660) | 383 (315–707) | 10.5 (6.55–17) | 11,557 | 258 | 58,640 |
+> | GENRMF long | 65,536 | over limit | 5,347 (3,747–7,427) | 50.9 (38.7–74.5) | 53,268 | 598 | 300,867 |
+> | GENRMF long | 270,848 | not run | over limit | 262 (249–422) | | | 1,599,174 |
+> | GENRMF wide | 1,024 | 19.6 (17.9–23) | 5.08 (4.62–5.8) | 1.64 (1.49–2.4) | 853 | 66 | 9,721 |
+> | GENRMF wide | 3,920 | 531 (473–616) | 44.5 (39.6–69.7) | 11.3 (9.05–17.1) | 3,590 | 133 | 64,633 |
+> | GENRMF wide | 16,807 | 15,414 (14,567–16,129) | 573 (492–742) | 78 (68.4–103) | 17,982 | 305 | 462,884 |
+> | GENRMF wide | 63,504 | over limit | 4,391 (3,569–5,145) | 562 (507–687) | 71,024 | 529 | 2,844,614 |
+> | GENRMF wide | 259,308 | not run | over limit | 4,682 (4,176–5,236) | | | 18,848,345 |
+> | RLG wide | 4,098 | 826 (734–932) | 14.5 (8.06–18.3) | 3.7 (2.93–4.57) | 4,744 | 28 | 18,596 |
+> | RLG wide | 8,194 | 3,517 (3,222–3,710) | 36.4 (26.3–50) | 6.21 (5.96–9.86) | 9,817 | 38 | 37,921 |
+> | RLG wide | 16,386 | 15,717 (15,141–16,586) | 97.5 (95.5–141) | 17.6 (15.3–27.3) | 20,968 | 51 | 104,852 |
+> | RLG wide | 32,770 | over limit | 341 (321–439) | 45.1 (40.7–60.1) | 45,141 | 87 | 233,998 |
+> | RLG wide | 65,538 | not run | 829 (759–1,660) | 107 (89.1–149) | 91,719 | 104 | 514,784 |
+> | RLG wide | 131,074 | not run | 2,927 (2,707–4,290) | 378 (280–450) | 191,817 | 141 | 1,467,836 |
+> | AK | 1,006 | 3.48 (3.41–3.48) | 5.87 (5.82–5.92) | 1.83 (1.8–1.85) | 503 | 376 | 29,465 |
+> | AK | 2,006 | 13.4 (13.1–13.4) | 22.2 (22.1–22.3) | 6.9 (6.74–7) | 1,003 | 751 | 117,526 |
+> | AK | 4,006 | 54.2 (54.1–55.8) | 96.3 (91.1–99.2) | 28.2 (28.2–29.5) | 2,003 | 1,501 | 469,273 |
+> | AK | 8,006 | 242 (215–260) | 373 (364–379) | 130 (119–132) | 4,003 | 3,001 | 1,873,365 |
+> | AK | 16,006 | 920 (866–936) | 1,572 (1,450–1,733) | 459 (454–520) | 8,003 | 6,001 | 7,502,724 |
+> | AK | 32,006 | 3,582 (3,527–3,679) | 6,285 (5,920–6,359) | 1,913 (1,843–1,972) | 16,003 | 12,001 | 29,995,867 |
+
+> [!note]- How this was measured
+> The harness is in [`network-flow-experiments/`](network-flow-experiments/maxflow.cpp). To rerun:
+>
+> ```sh
+> python3 -m pip install scikit-image numpy networkx
+> cd notes/content/algorithms/network-flow-experiments
+> g++ -O2 -std=c++17 -o maxflow maxflow.cpp
+> python3 check.py ./maxflow                  # cross-check against NetworkX
+> python3 instances.py /tmp/flows             # writes 61 DIMACS files, about 350 MB
+> python3 run.py ./maxflow /tmp/flows > results.json
+> python3 analyze.py results.json
+> python3 figure_reference.py > figure_fixtures.json
+> ```
+>
+> - **Machine.** A shared cloud VM: 4-core Intel Xeon at 2.10 GHz, Linux 6.18.44, while other agents ran their own experiments on the same machine (load average 4.9 at the end of the run). Every timed process was pinned to one core with `taskset -c 2`, which removes migration but not contention for caches and memory bandwidth from the other cores; the spread in the tables includes that noise.
+> - **Software.** g++ 13.3.0 with `-O2 -std=c++17`; Python 3.13.18, NumPy 2.5.3, scikit-image 0.26.0 and NetworkX 3.7 for instance generation and checks. The whole timing run took about 18 minutes.
+> - **Timing.** Wall time of the algorithm alone with `std::chrono::steady_clock`, after the file is parsed and the graph is built; the residual capacities are reset before each run, and the order of the three algorithms rotates between repetitions. Push-relabel's time includes both phases.
+> - **Implementation details.** Push-relabel runs a global relabeling at the start and whenever relabeling work (12 plus the vertex's degree per relabel) exceeds $2(6n + 2m)$; the gap heuristic keeps a doubly linked list of the vertices at each label. Its second phase cancels flow cycles by depth-first search over arcs carrying flow, then returns excess along a reverse topological order.
+> - **Instances.** [`instances.py`](network-flow-experiments/instances.py) ports the DIMACS generators from their C sources (GENRMF by Badics, the Washington RLG generator by Anderson, AK by Cherkassky and Goldberg, as mirrored in the pbbsbench repository) instead of compiling them, so the instances follow the same construction with Python's random numbers. GENRMF uses capacities in $[1, 10000]$ with $a = 2^{x/4}, b = 2^{x/2}$ (long) or $a = 2^{2x/5}, b = 2^{x/5}$ (wide), rounded, for $x = 10, 12, \ldots, 18$. The segmentation weights use a two-class Gaussian intensity model from Otsu's threshold for the terminal edges and $2 \exp(-(I_p - I_q)^2 / 2\sigma^2)$ for neighbor edges, scaled by 100 and rounded. The UWO vision instances and the DIMACS archive were not reachable from this machine.
+> - **The figure** runs the same Edmonds-Karp in the browser. Its tests compare every augmenting path, the flow value and the source side of the minimum cut on 400 random networks with a separate Python Edmonds-Karp and with NetworkX ([`figure_reference.py`](network-flow-experiments/figure_reference.py), [`figure_fixtures.json`](network-flow-experiments/figure_fixtures.json)), and check flow feasibility, nondecreasing path lengths and the $O(nm)$ augmentation bound on 500 more.
+
+## Faster algorithms
+
+[Orlin (2013)](https://doi.org/10.1145/2488608.2488705) gives an $O(nm)$ algorithm for all $n$ and $m$. [Chen, Kyng, Liu, Peng, Probst Gutenberg and Sachdeva (2022)](https://arxiv.org/abs/2203.00671), at FOCS 2022, compute exact maximum flows and minimum-cost flows in $m^{1+o(1)}$ time on directed graphs whose integer capacities and costs are polynomially bounded. Their algorithm is an interior-point method that advances through a sequence of approximate minimum-ratio cycles, each found with a new dynamic graph data structure. The $m^{o(1)}$ factor is large for graphs of practical size, and the codes used in practice remain augmenting-path and push-relabel implementations like the ones measured above.
+
+## Maximum matching
+
+Given an undirected graph $G = (V, E)$, a **matching** is a set $M \subseteq E$ in which no two edges share an endpoint, and the problem asks for one of maximum cardinality. In general graphs it is solvable in polynomial time by [Edmonds's blossom algorithm (1965)](https://doi.org/10.4153/CJM-1965-045-4); when $G$ is [[algorithms/bipartite-graphs|bipartite]] it reduces to maximum flow.
+
+### Bipartite maximum matching
+
+Given a bipartite graph $G = (X \cup Y, E)$, orient every edge from $X$ to $Y$ with capacity $\infty$, add a source $s$ with an edge $(s, x)$ of capacity $1$ for each $x \in X$, and add a sink $t$ with an edge $(y, t)$ of capacity $1$ for each $y \in Y$. Call the result $H$.
+
+**Claim.** The maximum flow value of $H$ equals the size of a maximum matching of $G$.
+
+$|M| \le v(f^*)$: for each edge $(x, y)$ of a matching $M$, send one unit along $s \to x \to y \to t$. No two of these paths share $x$ or $y$, so every capacity-$1$ edge carries at most one unit, conservation holds, and the value is $|M|$.
+
+$v(f^*) \le |M|$: by the integrality theorem there is an integral maximum flow, of value $k$ say. Each $x \in X$ receives at most $1$ unit through $(s, x)$ and each $y \in Y$ sends at most $1$ unit through $(y, t)$, so each vertex of $X$ sends flow along at most one middle edge and each vertex of $Y$ receives flow along at most one. The $k$ middle edges that carry flow therefore form a matching of size $k$.
+
+A minimum cut of $H$ also gives a minimum vertex cover of $G$: the vertices of $X$ on the $t$ side together with the vertices of $Y$ on the $s$ side (proof in [P3](#p3---minimum-vertex-cover-maximum-independent-set-bipartite)). The equality of the maximum matching size and the minimum vertex cover size in bipartite graphs is **Kőnig's theorem** (Kőnig 1931, *Gráfok és mátrixok*, Matematikai és Fizikai Lapok 38; Egerváry proved a weighted version in the same volume). In the figure, the first two augmenting paths match $x_1$ with $y_1$ and $x_2$ with $y_2$. The third, $s \to x_3 \to y_2 \to x_2 \to y_1 \to x_1 \to y_3 \to t$, crosses the backward arcs $y_2 \to x_2$ and $y_1 \to x_1$: it is an alternating path, and pushing one unit along it rematches $x_2$ with $y_1$ and $x_1$ with $y_3$ so that $x_3$ can take $y_2$. Nothing more fits, because $x_3$ and $x_4$ are adjacent only to $y_2$. The infinite middle arcs are left unlabelled, and the cut at the end reads off the cover $\{x_1, x_2, y_2\}$.
+
+<AugmentingPaths preset="matching" />
+
+## Foreground/background segmentation
+
+Label each pixel of an image as foreground or background. Let $V$ be the set of pixels and $E$ the pairs of neighboring pixels. Following Kleinberg and Tardos (section 7.10):
+
+- $a_i \ge 0$ is the likelihood of pixel $i$ being in the foreground;
+- $b_i \ge 0$ is the likelihood of pixel $i$ being in the background;
+- $p_{ij} \ge 0$ is the penalty for labeling one of $i$ and $j$ foreground and the other background.
+
+Accuracy favors labeling $i$ foreground when $a_i > b_i$, and smoothness favors giving neighbors the same label. The problem is to find a partition $(A, B)$ of $V$, with $A$ the foreground, that maximizes
+
+$$
+q(A, B) = \sum_{i \in A} a_i + \sum_{j \in B} b_j - \sum_{\{i, j\} \in E,\ |\{i, j\} \cap A| = 1} p_{ij}.
+$$
+
+Let $Q = \sum_{i \in V} (a_i + b_i)$. Since $\sum_{i \in A} a_i + \sum_{j \in B} b_j = Q - \sum_{i \in B} a_i - \sum_{j \in A} b_j$, maximizing $q$ is the same as minimizing
+
+$$
+q'(A, B) = \sum_{i \in B} a_i + \sum_{j \in A} b_j + \sum_{\{i, j\} \in E,\ |\{i, j\} \cap A| = 1} p_{ij} = Q - q(A, B).
+$$
+
+Build a network on the pixels, a source $s$ and a sink $t$, with an edge $(s, i)$ of capacity $a_i$ and an edge $(i, t)$ of capacity $b_i$ for every pixel and, for every neighboring pair, two edges $(i, j)$ and $(j, i)$, each of capacity $p_{ij}$. For the cut $(A \cup \{s\}, B \cup \{t\})$, the edges leaving the source side are $(s, i)$ for $i \in B$, $(j, t)$ for $j \in A$, and exactly one of $(i, j)$ and $(j, i)$ for each neighboring pair the cut separates, so its capacity is $q'(A, B)$, and a minimum cut gives an optimal segmentation. Both directions of each neighbor edge are needed: with only $(i, j)$, a boundary with $i \in B$ and $j \in A$ would cost nothing. [Boykov and Jolly (2001)](https://doi.org/10.1109/ICCV.2001.937505) use this construction for interactive segmentation, and instances built with it are the segmentation rows of the [measurements](#measured-three-algorithms-on-dimacs-families-and-segmentation-instances).
+
+## P1 - Count disjoint paths
+
+Given an undirected graph $G = (V, E)$ and disjoint vertex sets $S, T \subseteq V$, find in polynomial time the maximum number of vertex-disjoint paths from $S$ to $T$ (each vertex, including those of $S$ and $T$, lies on at most one path).
+
+**Algorithm.** Build a directed graph $G'$:
+
+- split every vertex $v$ into $v_{in}$ and $v_{out}$, joined by an edge $(v_{in}, v_{out})$ of capacity $1$;
+- for every undirected edge $\{u, v\} \in E$, add $(u_{out}, v_{in})$ and $(v_{out}, u_{in})$ with capacity $1$;
+- add a source $s$ with an edge $(s, v_{in})$ for each $v \in S$, and a sink $t$ with an edge $(u_{out}, t)$ for each $u \in T$, all of capacity $1$.
+
+Return the maximum flow value of $G'$.
+
+**Correctness.** Given $k$ vertex-disjoint $S$-$T$ paths in $G$, send one unit along each: from $s$, through $v_{in} \to v_{out}$ for each vertex $v$ of the path in order, to $t$. The paths share no vertex, so each splitting edge carries at most one unit and each edge $\{u, v\}$ is used by at most one path in at most one direction; the flow is feasible with value $k$. Conversely, take an integral maximum flow of value $k$ and decompose it into $k$ unit $s$-$t$ paths and possibly some cycles, which are discarded. Every unit through a vertex $v$ crosses $(v_{in}, v_{out})$, which has capacity $1$, so no two paths pass through the same vertex. Removing $s$, $t$ and the split copies leaves $k$ vertex-disjoint paths in $G$, each from a vertex of $S$ to a vertex of $T$.
+
+**Running time.** $G'$ has $2|V| + 2$ vertices and $O(|V| + |E|)$ edges and takes linear time to build. The flow value is at most $|S| \le |V|$, so Ford-Fulkerson performs at most $|V|$ augmentations of $O(|V| + |E|)$ each, for $O(|V|(|V| + |E|))$ in total.
+
+## P2 - Edge-disjoint paths through an intermediate vertex
+
+Given a directed graph $G = (V, E)$ and vertices $s, t, u$, suppose there are $k$ edge-disjoint paths from $s$ to $t$ and $k$ edge-disjoint paths from $t$ to $u$. Prove that there are $k$ edge-disjoint paths from $s$ to $u$.
+
+Concatenating the two families does not give a proof: an edge used by one $s$-$t$ path and by one $t$-$u$ path would carry two units, so the combined routing can violate unit capacities. A cut argument avoids constructing the paths.
+
+**Proof.** Give every edge capacity $1$. By the max-flow min-cut and integrality theorems, the maximum number of edge-disjoint paths from $x$ to $y$ equals the maximum $x$-$y$ flow value, which equals the minimum number of edges leaving a set that contains $x$ and not $y$ (Menger's theorem for edges). It therefore suffices to show that every set $A \subseteq V$ with $s \in A$ and $u \notin A$ has at least $k$ edges leaving it.
+
+- If $t \notin A$, then $A$ contains $s$ and not $t$. Each of the $k$ edge-disjoint $s$-$t$ paths starts in $A$ and ends outside it, so each contains an edge leaving $A$, and these $k$ edges are distinct.
+- If $t \in A$, then $A$ contains $t$ and not $u$, and the same argument applied to the $k$ edge-disjoint $t$-$u$ paths gives $k$ distinct edges leaving $A$.
+
+Every $s$-$u$ cut has capacity at least $k$, so the maximum $s$-$u$ flow is at least $k$. An integral maximum flow decomposes into unit $s$-$u$ paths and cycles; discarding the cycles leaves at least $k$ paths, and capacity $1$ on every edge makes them edge-disjoint. $\blacksquare$
+
+## P3 - Minimum vertex cover, maximum independent set (bipartite)
+
+A polynomial-time algorithm for a minimum vertex cover and a maximum independent set of a bipartite graph $G = (X, Y, E)$.
+
+### (a) Construct H
+
+Let $H$ be the directed graph on $X \cup Y \cup \{s, t\}$ with each edge of $E$ oriented from $X$ to $Y$ with capacity $\infty$, an edge $(s, x)$ of capacity $1$ for every $x \in X$ (the set $E_s$), and an edge $(y, t)$ of capacity $1$ for every $y \in Y$ (the set $E_t$).
+
+### (b) From a minimum cut to a vertex cover
+
+Let $(A, B)$ be a minimum $s$-$t$ cut of $H$, and write $A_X = A \cap X$, $B_X = B \cap X$, $A_Y = A \cap Y$, $B_Y = B \cap Y$.
+
+1. $cap(A, B) \le |X|$, because the cut $(\{s\}, V(H) \setminus \{s\})$ has capacity $|X|$.
+2. No edge of $E$ goes from $A_X$ to $B_Y$, since such an edge would give the cut infinite capacity, contradicting (1).
+3. By (2), the edges leaving $A$ are the edges $(s, x)$ with $x \in B_X$ and the edges $(y, t)$ with $y \in A_Y$, each of capacity $1$, so $cap(A, B) = |B_X| + |A_Y|$.
+
+By (2), every edge of $E$ joins $A_X$ to $A_Y$, $B_X$ to $A_Y$, or $B_X$ to $B_Y$. Each has an endpoint in $S = B_X \cup A_Y$, so $S$ is a vertex cover, and $|S| = cap(A, B)$ by (3).
+
+### (c) From a vertex cover to a cut
+
+Let $S$ be any vertex cover of $G$, with $S_X = S \cap X$ and $S_Y = S \cap Y$. Take $A = \{s\} \cup (X \setminus S_X) \cup S_Y$ and $B = S_X \cup (Y \setminus S_Y) \cup \{t\}$. An edge $(x, y) \in E$ from $A$ to $B$ would have $x \in X \setminus S_X$ and $y \in Y \setminus S_Y$, so neither endpoint would be in $S$, which is impossible. The edges leaving $A$ are therefore $(s, x)$ for $x \in S_X$ and $(y, t)$ for $y \in S_Y$, and $cap(A, B) = |S_X| + |S_Y| = |S|$.
+
+### (d) The algorithm
+
+- Build $H$ as in (a), with capacity $n + 1$ in place of $\infty$ on the edges of $E$, where $n = |X| + |Y|$.
+- Compute a maximum flow and the minimum cut $(A, B)$ given by residual reachability from $s$.
+- Return $S = (B \cap X) \cup (A \cap Y)$ as a minimum vertex cover and $(X \cup Y) \setminus S$ as a maximum independent set.
+
+**Correctness.** A cut that contains an edge of capacity $n + 1$ has capacity above $|X|$, so by (1) no minimum cut contains one, and (2) still holds. By (b), $S$ is a vertex cover of size $cap(A, B)$. If some vertex cover $S'$ were smaller, (c) would give a cut of capacity $|S'| < cap(A, B)$, contradicting minimality. A set is independent exactly when its complement is a vertex cover, so $(X \cup Y) \setminus S$ is a maximum independent set. $\blacksquare$
+
+**Running time.** Building $H$ takes $O(n + m)$ for $m = |E|$. The maximum flow value is at most $|X| \le n$, so Ford-Fulkerson performs at most $n$ augmentations of $O(n + m)$ each, and reading off $S$ takes $O(n)$, for $O(n(n + m))$ in total. Hopcroft-Karp reduces this to $O(m\sqrt{n})$.
+
+## P4 - Knights
+
+Given an $n \times n$ chess board with some cells removed, find in polynomial time the maximum number of knights that can be placed on the remaining cells so that no two attack each other.
+
+**Algorithm.**
+
+- Let $V$ be the set of remaining cells, and join cells $(i, j)$ and $(i', j')$ by an edge when a knight on one attacks the other: $|i - i'| = 2$ and $|j - j'| = 1$, or $|i - i'| = 1$ and $|j - j'| = 2$.
+- A knight move changes $i + j$ by an odd amount, so every edge joins a cell with $i + j$ even to one with $i + j$ odd, and the graph is bipartite with the checkerboard coloring as its sides.
+- Compute a minimum vertex cover $S$ with P3 and return $|V| - |S|$.
+
+**Correctness.** A placement of knights is non-attacking exactly when its cells form an independent set of the graph, so the answer is the size of a maximum independent set, which is $|V| - |S|$ by P3. $\blacksquare$
+
+**Running time.** The graph has $|V| \le n^2$ vertices and, since each cell attacks at most 8 others, $|E| \le 4n^2$ edges; building it takes $O(n^2)$. P3 then takes $O(|V|(|V| + |E|)) = O(n^4)$, or $O(n^3)$ with Hopcroft-Karp.
+
+## Related notes
+
+- [[algorithms/graphs-intro|Graph fundamentals]]
+- [[algorithms/bipartite-graphs|Bipartite graphs]]
+- [[algorithms/linear-programming|Linear programming]], where max flow is an LP and the theorem is LP duality
+- [[algorithms/approximation-algorithms|Approximation algorithms]], where vertex cover on general graphs is approximated with a maximal matching
+- [[algorithms/practice/4|Problem Set 4 Notes]]

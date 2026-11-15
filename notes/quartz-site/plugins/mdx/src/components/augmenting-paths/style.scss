@@ -1,0 +1,228 @@
+// The augmenting-path figure (augmenting-paths). Gray arrows are residual
+// arcs, purple ones backward arcs, the orange path is the next augmentation;
+// at the end the source side of the cut is filled and the cut edges are red.
+figure.ap {
+  --ap-path: var(--fig-orange);
+  --ap-back: var(--fig-purple);
+  --ap-reach: var(--fig-blue);
+  --ap-cut: var(--fig-red);
+  @include fig-frame;
+
+  .ap-svg {
+    @include fig-chart;
+    font-family: var(--bodyFont);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .ap-arc line,
+  .ap-edge line {
+    stroke: var(--gray);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+  }
+
+  .ap-arc polygon,
+  .ap-edge polygon {
+    fill: var(--gray);
+  }
+
+  .ap-backward line {
+    stroke: var(--ap-back);
+    stroke-dasharray: 5 3;
+  }
+
+  .ap-backward polygon {
+    fill: var(--ap-back);
+  }
+
+  .ap-backward .ap-label {
+    fill: var(--ap-back);
+  }
+
+  .ap-edge.ap-carries line {
+    stroke: var(--darkgray);
+    stroke-width: 2.6;
+  }
+
+  .ap-edge.ap-carries polygon {
+    fill: var(--darkgray);
+  }
+
+  .ap-edge.ap-full .ap-label {
+    font-weight: 700;
+  }
+
+  .ap-on-path line {
+    stroke: var(--ap-path);
+    stroke-width: 4;
+    stroke-dasharray: none;
+  }
+
+  .ap-on-path polygon {
+    fill: var(--ap-path);
+  }
+
+  .ap-on-path .ap-label {
+    fill: var(--ap-path);
+    font-weight: 700;
+  }
+
+  .ap-cut line {
+    stroke: var(--ap-cut);
+    stroke-width: 3;
+    stroke-dasharray: 6 4;
+  }
+
+  .ap-cut polygon {
+    fill: var(--ap-cut);
+  }
+
+  .ap-ghost line {
+    opacity: 0.8;
+  }
+
+  .ap-label {
+    fill: var(--darkgray);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    paint-order: stroke;
+    stroke: var(--light);
+    stroke-width: 4px;
+    stroke-linejoin: round;
+  }
+
+  .ap-node circle {
+    fill: var(--light);
+    stroke: var(--gray);
+    stroke-width: 2;
+  }
+
+  .ap-terminal circle {
+    stroke: var(--darkgray);
+    stroke-width: 2.5;
+  }
+
+  .ap-reach circle {
+    fill: color-mix(in srgb, var(--ap-reach) 35%, var(--light));
+    stroke: var(--ap-reach);
+  }
+
+  .ap-name {
+    fill: var(--dark);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .ap-tally {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 1.2rem;
+    margin: 0.3rem 0 0;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ap-steps {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+
+    button {
+      @include fig-button;
+      @include fig-button-hover;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    button[aria-pressed="true"] {
+      @include fig-pressed;
+    }
+
+    output {
+      min-width: 3.5rem;
+      font-variant-numeric: tabular-nums;
+      color: var(--gray);
+      font-size: 0.9rem;
+    }
+  }
+
+  .ap-views {
+    display: inline-flex;
+    gap: 0.3rem;
+    margin-left: auto;
+  }
+
+  .ap-narration {
+    margin: 0.5rem 0 0;
+    min-height: 4.4em;
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+
+  .ap-key {
+    @include fig-caption(0.8rem, 0.4rem);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 1rem;
+
+    span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      white-space: nowrap;
+    }
+
+    i {
+      display: inline-block;
+    }
+  }
+
+  .ap-key-path {
+    width: 1.2rem;
+    height: 4px;
+    background: var(--ap-path);
+  }
+
+  .ap-key-back {
+    width: 1.2rem;
+    border-top: 2px dashed var(--ap-back);
+  }
+
+  .ap-key-reach {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+    border: 2px solid var(--ap-reach);
+    background: color-mix(in srgb, var(--ap-reach) 35%, var(--light));
+  }
+
+  .ap-key-cut {
+    width: 1.2rem;
+    border-top: 3px dashed var(--ap-cut);
+  }
+
+  @include fig-phone {
+    .ap-label {
+      font-size: 22px;
+      stroke-width: 6px;
+    }
+
+    .ap-name {
+      font-size: 20px;
+    }
+
+    .ap-node circle {
+      r: 19px;
+    }
+
+    .ap-views {
+      margin-left: 0;
+    }
+  }
+}
