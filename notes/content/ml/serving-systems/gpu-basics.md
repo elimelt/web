@@ -312,7 +312,7 @@ For this reason kernel fusion matters more for decode (many small, launch-overhe
 
 Advertised peak FLOPs are an upper bound on achieved throughput. A kernel falls short of peak for three independent reasons.
 
-1. **Arithmetic intensity below the ridge point**: the [[ml/serving-systems/performance-modeling|roofline model]] shows H100 FP16 critical intensity is about 333 FLOPs/byte; anything below that is memory bound and cannot reach compute peak regardless of how well-tuned the kernel is.
+1. **Arithmetic intensity below the ridge point**: the [[ml/serving-systems/performance-modeling|roofline model]] shows H100 FP16 critical intensity is about 295 FLOPs/byte (H100 SXM); anything below that is memory bound and cannot reach compute peak regardless of how well-tuned the kernel is.
 2. **Occupancy or launch configuration**: too few warps to hide memory latency, or a grid too small to fill all SMs, leaves compute units idle even for compute-bound work.
 3. **Non-ideal instruction mix**: register spills, bank conflicts, uncoalesced accesses, and warp divergence all reduce achieved throughput below the ideal-case peak the vendor spec sheet assumes.
 

@@ -51,11 +51,11 @@ Above that ratio the kernel is compute bound, below it memory bound. In the memo
 
 ## H100 numbers
 
-Peak FP16 tensor throughput is about 1000 TFLOPs dense (2000 with 2:4 structured sparsity) and memory bandwidth about 3000 GB/s, so the critical intensity is
+On the [H100 SXM](https://www.nvidia.com/en-us/data-center/h100/), peak dense FP16/BF16 tensor throughput is 989 TFLOPs (NVIDIA lists 1,979 with 2:4 structured sparsity) and HBM3 bandwidth is 3.35 TB/s, so the critical intensity is
 
-$$\frac{1000 \times 10^{12}}{3000 \times 10^9} \approx 333 \text{ FLOPs/Byte}$$
+$$\frac{989 \times 10^{12}}{3.35 \times 10^{12}} \approx 295 \text{ FLOPs/Byte}$$
 
-Any kernel below 333 FLOPs per byte moved is memory bound on this part.
+Any kernel below about 295 FLOPs per byte moved is memory bound on this part. Rounding the inputs to 1,000 TFLOPs and 3 TB/s gives 333.
 
 ### Dot product
 
@@ -71,7 +71,7 @@ For FP16 matrices $[M,N] \times [N,K] \rightarrow [M,K]$: reads are $2MN + 2NK$ 
 
 $$\text{OI} = \frac{2MNK}{2MN + 2NK + 2MK} \approx M \quad \text{when } N, K \gg M$$
 
-For the batched GEMMs in LLM serving, $M$ is the batch dimension, so matmul on the H100 becomes compute bound at a batch size of about 333. This threshold motivates the large batch sizes pursued in [[ml/serving-systems/batching|Batching]].
+For the batched GEMMs in LLM serving, $M$ is the batch dimension, so matmul on the H100 becomes compute bound at a batch size of about 295. This threshold motivates the large batch sizes pursued in [[ml/serving-systems/batching|Batching]].
 
 In a cluster, bandwidth is not a single number, since the cluster is hierarchical. HBM bandwidth is measured in TB/s, while the network moves 25 GB/s (200 Gb/s), so the same roofline argument applies again at the cluster level with a different denominator, a NUMA effect at rack scale.
 

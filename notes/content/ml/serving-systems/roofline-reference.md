@@ -55,7 +55,7 @@ $$
 \text{Intensity (dot product)} = \frac{2n - 1}{4n + 2} \to \frac{1}{2} \text{ as } n \to \infty
 $$
 
-An H100 has a critical intensity of roughly 333 FLOPs per byte ([Roofline plot](#roofline-plot)), so the dot product is deeply memory bound and the GPU spends most of its time waiting on loads.
+An H100 has a critical intensity of about 295 FLOPs per byte ([Roofline plot](#roofline-plot)), so the dot product is deeply memory bound and the GPU spends most of its time waiting on loads.
 
 ## Roofline plot
 
@@ -69,7 +69,7 @@ Roofline plots put arithmetic intensity on the x-axis and performance on the y-a
 
 Within the memory-bound region, performance improves through better data movement (coalesced access, tiling, faster memory). Once compute is the bound, it improves through higher arithmetic throughput (multithreading, SIMD). NUMA effects complicate the memory side, since memory is "local" or "remote" relative to a core and poor placement adds communication overhead.
 
-Writing $\text{OI}$ for operational intensity, a workload is compute bound when $\text{OI}(\text{algorithm}) > \text{OI}(\text{accelerator})$ and memory bound when the inequality flips. The balance point is the critical operational intensity, $\text{OI}(\text{algorithm}) = \text{OI}(\text{accelerator})$. For an H100 at ~1000 FP16 TFLOPs and ~3 TB/s, the critical intensity is about 333 FLOPs/byte, so the dot product's intensity of $\frac{1}{2}$ lies far into the memory-bound region.
+Writing $\text{OI}$ for operational intensity, a workload is compute bound when $\text{OI}(\text{algorithm}) > \text{OI}(\text{accelerator})$ and memory bound when the inequality flips. The balance point is the critical operational intensity, $\text{OI}(\text{algorithm}) = \text{OI}(\text{accelerator})$. For an H100 SXM at 989 dense FP16 TFLOPs and 3.35 TB/s, the critical intensity is about 295 FLOPs/byte, so the dot product's intensity of $\frac{1}{2}$ lies far into the memory-bound region.
 
 ## Matrix multiplication with FP16
 
@@ -79,7 +79,7 @@ $$
 \text{OI}(\text{matmul}) = \frac{2MNK}{2MN + 2NK + 2MK} \approx M \text{ if } N, K \gg M
 $$
 
-With $M$ as the batch dimension, matmul is therefore compute bound on the H100 once $M > 333$.
+With $M$ as the batch dimension, matmul is therefore compute bound on the H100 once $M$ exceeds about 295.
 
 ## Key hardware specs for serving throughput
 

@@ -41,7 +41,7 @@ The material began as notes for CSE 599K "LLM Serving Systems" at the University
 
 ## Core idea
 
-An H100 requires a GEMM batch size of about 333 before it becomes compute bound (see the critical intensity derivation in [[ml/serving-systems/performance-modeling|Performance Modeling]]), so a serving system that decodes one request at a time leaves almost all of its FLOPs unused. Batching recovers that throughput at the cost of added latency, and batching strategies differ in how much latency they add and to which phase.
+An H100 requires a GEMM batch size of about 295 before it becomes compute bound (see the critical intensity derivation in [[ml/serving-systems/performance-modeling|Performance Modeling]]), so a serving system that decodes one request at a time leaves almost all of its FLOPs unused. Batching recovers that throughput at the cost of added latency, and batching strategies differ in how much latency they add and to which phase.
 
 ## User experience metrics
 
