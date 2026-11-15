@@ -1,0 +1,438 @@
+{
+ "2m": {
+  "latency_ns": 151.591,
+  "fitted_cap": 14.83,
+  "fit_rms_log_error": 0.0422,
+  "plateau_concurrency_k18_to_32": [
+   15.02,
+   15.52
+  ],
+  "plateau_ns": 9.832,
+  "light_load_latency_ns": 145.282,
+  "rows": [
+   {
+    "chains": 0,
+    "n": 12,
+    "median": 10.306,
+    "min": 9.419,
+    "max": 12.214,
+    "concurrency": 14.709
+   },
+   {
+    "chains": 1,
+    "n": 12,
+    "median": 151.591,
+    "min": 142.376,
+    "max": 168.583,
+    "concurrency": 1.0
+   },
+   {
+    "chains": 2,
+    "n": 12,
+    "median": 73.026,
+    "min": 67.221,
+    "max": 89.296,
+    "concurrency": 2.076
+   },
+   {
+    "chains": 3,
+    "n": 12,
+    "median": 48.25,
+    "min": 44.318,
+    "max": 50.157,
+    "concurrency": 3.142
+   },
+   {
+    "chains": 4,
+    "n": 12,
+    "median": 36.32,
+    "min": 34.081,
+    "max": 37.952,
+    "concurrency": 4.174
+   },
+   {
+    "chains": 5,
+    "n": 12,
+    "median": 28.826,
+    "min": 28.013,
+    "max": 31.914,
+    "concurrency": 5.259
+   },
+   {
+    "chains": 6,
+    "n": 12,
+    "median": 24.662,
+    "min": 23.59,
+    "max": 25.532,
+    "concurrency": 6.147
+   },
+   {
+    "chains": 7,
+    "n": 12,
+    "median": 20.655,
+    "min": 20.16,
+    "max": 22.754,
+    "concurrency": 7.339
+   },
+   {
+    "chains": 8,
+    "n": 12,
+    "median": 18.605,
+    "min": 17.755,
+    "max": 20.474,
+    "concurrency": 8.148
+   },
+   {
+    "chains": 9,
+    "n": 12,
+    "median": 16.874,
+    "min": 16.072,
+    "max": 17.771,
+    "concurrency": 8.984
+   },
+   {
+    "chains": 10,
+    "n": 12,
+    "median": 15.155,
+    "min": 14.367,
+    "max": 23.106,
+    "concurrency": 10.003
+   },
+   {
+    "chains": 11,
+    "n": 12,
+    "median": 13.963,
+    "min": 13.308,
+    "max": 14.879,
+    "concurrency": 10.857
+   },
+   {
+    "chains": 12,
+    "n": 12,
+    "median": 13.137,
+    "min": 12.582,
+    "max": 14.162,
+    "concurrency": 11.539
+   },
+   {
+    "chains": 13,
+    "n": 12,
+    "median": 12.127,
+    "min": 11.585,
+    "max": 12.669,
+    "concurrency": 12.501
+   },
+   {
+    "chains": 14,
+    "n": 12,
+    "median": 11.582,
+    "min": 10.915,
+    "max": 12.802,
+    "concurrency": 13.089
+   },
+   {
+    "chains": 15,
+    "n": 12,
+    "median": 11.319,
+    "min": 10.588,
+    "max": 17.036,
+    "concurrency": 13.392
+   },
+   {
+    "chains": 16,
+    "n": 12,
+    "median": 10.745,
+    "min": 10.083,
+    "max": 15.586,
+    "concurrency": 14.108
+   },
+   {
+    "chains": 18,
+    "n": 12,
+    "median": 10.091,
+    "min": 9.404,
+    "max": 10.51,
+    "concurrency": 15.023
+   },
+   {
+    "chains": 20,
+    "n": 12,
+    "median": 9.832,
+    "min": 8.932,
+    "max": 11.0,
+    "concurrency": 15.418
+   },
+   {
+    "chains": 24,
+    "n": 12,
+    "median": 9.813,
+    "min": 8.582,
+    "max": 11.021,
+    "concurrency": 15.448
+   },
+   {
+    "chains": 28,
+    "n": 12,
+    "median": 9.768,
+    "min": 8.605,
+    "max": 11.379,
+    "concurrency": 15.52
+   },
+   {
+    "chains": 32,
+    "n": 12,
+    "median": 10.061,
+    "min": 8.658,
+    "max": 11.325,
+    "concurrency": 15.066
+   }
+  ]
+ },
+ "4k": {
+  "latency_ns": 243.767,
+  "fitted_cap": 13.73,
+  "fit_rms_log_error": 0.1595,
+  "plateau_concurrency_k18_to_32": [
+   13.14,
+   13.91
+  ],
+  "plateau_ns": 17.883,
+  "light_load_latency_ns": 190.563,
+  "rows": [
+   {
+    "chains": 0,
+    "n": 12,
+    "median": 18.2,
+    "min": 17.684,
+    "max": 25.376,
+    "concurrency": 13.393
+   },
+   {
+    "chains": 1,
+    "n": 12,
+    "median": 243.767,
+    "min": 220.887,
+    "max": 261.033,
+    "concurrency": 1.0
+   },
+   {
+    "chains": 2,
+    "n": 12,
+    "median": 105.237,
+    "min": 97.231,
+    "max": 116.053,
+    "concurrency": 2.316
+   },
+   {
+    "chains": 3,
+    "n": 12,
+    "median": 64.766,
+    "min": 62.367,
+    "max": 67.939,
+    "concurrency": 3.764
+   },
+   {
+    "chains": 4,
+    "n": 12,
+    "median": 47.635,
+    "min": 46.234,
+    "max": 54.081,
+    "concurrency": 5.117
+   },
+   {
+    "chains": 5,
+    "n": 12,
+    "median": 37.967,
+    "min": 36.231,
+    "max": 40.859,
+    "concurrency": 6.421
+   },
+   {
+    "chains": 6,
+    "n": 12,
+    "median": 31.761,
+    "min": 30.547,
+    "max": 34.78,
+    "concurrency": 7.675
+   },
+   {
+    "chains": 7,
+    "n": 12,
+    "median": 26.893,
+    "min": 26.099,
+    "max": 29.042,
+    "concurrency": 9.064
+   },
+   {
+    "chains": 8,
+    "n": 12,
+    "median": 23.854,
+    "min": 23.095,
+    "max": 25.1,
+    "concurrency": 10.219
+   },
+   {
+    "chains": 9,
+    "n": 12,
+    "median": 21.832,
+    "min": 20.859,
+    "max": 25.104,
+    "concurrency": 11.166
+   },
+   {
+    "chains": 10,
+    "n": 12,
+    "median": 19.714,
+    "min": 19.115,
+    "max": 21.825,
+    "concurrency": 12.365
+   },
+   {
+    "chains": 11,
+    "n": 12,
+    "median": 18.293,
+    "min": 17.863,
+    "max": 21.332,
+    "concurrency": 13.326
+   },
+   {
+    "chains": 12,
+    "n": 12,
+    "median": 18.128,
+    "min": 17.139,
+    "max": 22.178,
+    "concurrency": 13.447
+   },
+   {
+    "chains": 13,
+    "n": 12,
+    "median": 17.395,
+    "min": 16.54,
+    "max": 18.689,
+    "concurrency": 14.014
+   },
+   {
+    "chains": 14,
+    "n": 12,
+    "median": 17.715,
+    "min": 16.542,
+    "max": 20.399,
+    "concurrency": 13.761
+   },
+   {
+    "chains": 15,
+    "n": 12,
+    "median": 17.249,
+    "min": 16.537,
+    "max": 20.559,
+    "concurrency": 14.132
+   },
+   {
+    "chains": 16,
+    "n": 12,
+    "median": 17.32,
+    "min": 16.38,
+    "max": 20.297,
+    "concurrency": 14.075
+   },
+   {
+    "chains": 18,
+    "n": 12,
+    "median": 17.881,
+    "min": 16.346,
+    "max": 19.115,
+    "concurrency": 13.633
+   },
+   {
+    "chains": 20,
+    "n": 12,
+    "median": 17.518,
+    "min": 16.72,
+    "max": 21.474,
+    "concurrency": 13.915
+   },
+   {
+    "chains": 24,
+    "n": 12,
+    "median": 17.883,
+    "min": 16.636,
+    "max": 22.146,
+    "concurrency": 13.631
+   },
+   {
+    "chains": 28,
+    "n": 12,
+    "median": 17.933,
+    "min": 16.742,
+    "max": 20.606,
+    "concurrency": 13.593
+   },
+   {
+    "chains": 32,
+    "n": 12,
+    "median": 18.553,
+    "min": 17.239,
+    "max": 20.702,
+    "concurrency": 13.139
+   }
+  ]
+ },
+ "per_process": [
+  {
+   "process": 1,
+   "pages": "2m",
+   "chain1": 143.0,
+   "chain16": 10.57,
+   "independent": 9.45
+  },
+  {
+   "process": 2,
+   "pages": "4k",
+   "chain1": 249.1,
+   "chain16": 18.26,
+   "independent": 19.55
+  },
+  {
+   "process": 3,
+   "pages": "4k",
+   "chain1": 254.4,
+   "chain16": 17.22,
+   "independent": 18.12
+  },
+  {
+   "process": 4,
+   "pages": "2m",
+   "chain1": 158.0,
+   "chain16": 10.93,
+   "independent": 11.26
+  },
+  {
+   "process": 5,
+   "pages": "2m",
+   "chain1": 152.0,
+   "chain16": 10.47,
+   "independent": 9.99
+  },
+  {
+   "process": 6,
+   "pages": "4k",
+   "chain1": 223.5,
+   "chain16": 17.84,
+   "independent": 17.71
+  },
+  {
+   "process": 7,
+   "pages": "4k",
+   "chain1": 240.5,
+   "chain16": 16.82,
+   "independent": 18.26
+  },
+  {
+   "process": 8,
+   "pages": "2m",
+   "chain1": 155.7,
+   "chain16": 10.85,
+   "independent": 11.54
+  }
+ ]
+}

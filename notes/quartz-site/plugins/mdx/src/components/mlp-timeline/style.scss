@@ -1,0 +1,181 @@
+// Memory-level parallelism timeline (mlp-timeline).
+figure.mt {
+  @include fig-frame;
+  font-size: 0.9rem;
+
+  .mt-controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem 1.2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .mt-slider {
+    @include fig-slider;
+    font-size: 0.85rem;
+    color: var(--darkgray);
+  }
+
+  .mt-timeline,
+  .mt-chart {
+    @include fig-chart;
+  }
+
+  .mt-timeline {
+    aspect-ratio: 640 / 200;
+  }
+
+  .mt-chart {
+    aspect-ratio: 640 / 230;
+  }
+
+  .mt-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .mt-tick {
+    fill: var(--gray);
+    font-size: 12px;
+  }
+
+  .mt-axis {
+    fill: var(--darkgray);
+    font-size: 12.5px;
+  }
+
+  .mt-miss {
+    fill: var(--fig-blue);
+  }
+
+  .mt-wait {
+    fill: var(--fig-orange);
+    opacity: 0.55;
+  }
+
+  .mt-key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem 1rem;
+    margin: 0.1rem 0 0.3rem;
+    color: var(--gray);
+    font-size: 0.8rem;
+
+    > span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    i {
+      display: inline-block;
+      width: 0.9rem;
+      height: 0.55rem;
+      border-radius: 1px;
+    }
+
+    .mt-key-miss {
+      background: var(--fig-blue);
+    }
+
+    .mt-key-wait {
+      background: var(--fig-orange);
+      opacity: 0.55;
+    }
+
+    .mt-key-model,
+    .mt-key-floor {
+      height: 0;
+      border-top: 2px solid var(--fig-blue);
+    }
+
+    .mt-key-floor {
+      border-top: 1px dashed var(--gray);
+    }
+
+    .mt-key-measured {
+      width: 0.45rem;
+      height: 0.45rem;
+      border-radius: 50%;
+      background: var(--fig-orange);
+    }
+  }
+
+  .mt-label {
+    margin: 0.4rem 0 0.1rem;
+    color: var(--darkgray);
+    font-size: 0.8rem;
+  }
+
+  .mt-readout {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 1.1rem;
+    margin: 0.2rem 0 0.5rem;
+    color: var(--darkgray);
+    font-variant-numeric: tabular-nums;
+
+    b {
+      color: var(--dark);
+    }
+  }
+
+  .mt-cursor {
+    stroke: var(--secondary);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+  }
+
+  .mt-floor {
+    stroke: var(--gray);
+    stroke-width: 1;
+    stroke-dasharray: 5 4;
+  }
+
+  .mt-model {
+    fill: none;
+    stroke: var(--fig-blue);
+    stroke-width: 2.2;
+    stroke-linejoin: round;
+  }
+
+  .mt-here {
+    fill: var(--fig-blue);
+    stroke: var(--light);
+    stroke-width: 1.5;
+  }
+
+  .mt-measured {
+    line {
+      stroke: var(--fig-orange);
+      stroke-width: 1.4;
+    }
+
+    circle {
+      fill: var(--fig-orange);
+    }
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .mt-controls {
+      grid-template-columns: 1fr;
+    }
+
+    .mt-tick {
+      font-size: 22px;
+    }
+
+    .mt-dense {
+      display: none;
+    }
+
+    .mt-axis,
+    .mt-minor {
+      display: none;
+    }
+  }
+}

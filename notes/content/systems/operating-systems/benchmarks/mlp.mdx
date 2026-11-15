@@ -1,0 +1,189 @@
+---
+title: Memory-Level Parallelism Benchmarks
+aliases:
+  - operating-systems/benchmarks/mlp
+category: Performance Engineering
+tags:
+  - memory-level-parallelism
+  - mlp
+  - pointer-chasing
+  - mshr
+  - fill-buffers
+  - littles-law
+  - latency-hiding
+  - benchmarks
+date: 2025-12-29
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
+status: needs-review
+description: The overlap of DRAM misses across independent pointer chains, on the author's unrecorded machine and on an Emerald Rapids cloud VM, where Little's law puts about 15 misses in flight at the plateau against the 16 L1D fill buffers Intel documents for the core.
+sources:
+  - title: Original benchmark measurements by Elijah Melton
+    type: experiment
+  - title: "Chou, Fahs, Abraham (2004), Microarchitecture Optimizations for Exploiting Memory-Level Parallelism, ISCA"
+    url: https://doi.org/10.1109/ISCA.2004.1310765
+    type: paper
+  - title: "Little (1961), A Proof for the Queuing Formula: L = λW, Operations Research 9(3)"
+    url: https://doi.org/10.1287/opre.9.3.383
+    type: paper
+  - title: Intel 64 and IA-32 Architectures Optimization Reference Manual, documentation changes 355308-051 (October 2026), section 2.4, The Golden Cove Microarchitecture
+    url: https://cdrdv2-public.intel.com/930023/355308-051-optimization-reference-manual-changes-doc.pdf
+    type: documentation
+  - title: Linux arch/x86/include/asm/intel-family.h (CPU model numbers)
+    url: https://codebrowser.dev/linux/linux/arch/x86/include/asm/intel-family.h.html
+    type: source
+  - title: "Bhargava, Serebrin, Spadini, Manne (2008), Accelerating Two-Dimensional Page Walks for Virtualized Systems, ASPLOS"
+    url: https://doi.org/10.1145/1346281.1346286
+    type: paper
+  - title: What Every Programmer Should Know About Memory (Ulrich Drepper)
+    url: https://www.akkadia.org/drepper/cpumemory.pdf
+    type: paper
+---
+
+Memory-level parallelism (MLP) is the number of long-latency memory accesses a processor has outstanding at the same time. [Chou, Fahs and Abraham](https://doi.org/10.1109/ISCA.2004.1310765) define average MLP as "the average number of useful long-latency off-chip accesses outstanding when there is at least one such access outstanding."
+
+A pointer chase, in which each load's address is the value returned by the previous load, has an MLP of exactly 1. The core cannot issue the next load until the current miss returns, so every access costs the full DRAM latency. Running $k$ independent chases in one loop lets the out-of-order core keep $k$ misses in flight, and the time per access falls until a structure that tracks outstanding misses is full. The benchmark measures where that happens on two machines, kept separate throughout: the author's machine, whose model was not recorded, and a cloud VM on an Intel Xeon (Emerald Rapids).
+
+## The limit: fill buffers and Little's law
+
+A load that misses the L1 data cache is tracked until its line returns, in a structure the literature calls a Miss Status Holding Register (MSHR; [[hardware/computer-architecture/caches-virtual-memory|caches and virtual memory]] walks through Rocket's implementation). Intel calls the L1D structure the fill buffer. Intel's optimization manual lists "16 FB" for the Golden Cove core and deepens its L2 miss queues from 32 to 48 entries ([section 2.4](https://cdrdv2-public.intel.com/930023/355308-051-optimization-reference-manual-changes-doc.pdf)). A demand load that misses L1 needs a fill buffer, so on that core at most 16 such misses are outstanding at once.
+
+[Little's law](https://doi.org/10.1287/opre.9.3.383) relates the number of misses in flight $N$, the throughput $X$ (misses completed per unit time) and the latency $W$ of each miss:
+
+$$N = X \cdot W.$$
+
+With $C$ fill buffers, $N \le C$, so $X \le C / W$ and the time per access $t = 1/X$ is at least $W / C$. With $k$ chains and no other traffic, each chain has exactly one miss outstanding, so $N = \min(k, C)$. If the per-miss latency stays at its single-chain value $L$,
+
+$$t_k = \frac{L}{\min(k, C)}.$$
+
+The ratio $L / t_k$ is therefore the number of misses in flight implied by Little's law, provided the per-miss latency does not change with load. When it does change, $L / t_k$ and the true $N$ differ. For $k \le C$ the loaded latency can then be read off directly as $W_k = k \cdot t_k$, because $N = k$.
+
+<MlpTimeline />
+
+The simulation is a closed queue with zero think time, in which a chain re-issues the moment its load returns. For any latency distribution its throughput is $\min(k, C) / \bar L$, where $\bar L$ is the mean latency, and the figure's tests check it against that closed form and against a separate Python implementation. The measured points depart from the model in two places, discussed under [[#Cloud VM (Emerald Rapids)]]: the per-miss latency with 2 to 8 chains is slightly lower than with one, and the time per access keeps falling for a few chains past 16.
+
+## Workload
+
+The array is divided into 64-byte lines. Each line's first word points to the next line of one random cycle through every line, built with Sattolo's algorithm, which yields a uniformly random cyclic permutation. The order is random at cache-line granularity, so no stride or adjacent-line prefetch fetches a line before the chase asks for it. The baseline is one chase:
+
+```c
+line_t *p = start;
+for (size_t s = 0; s < steps; s++)
+    p = p->next;          // the next address is the value this load returns
+```
+
+The variant with $k$ chains advances $k$ pointers per iteration. The chains start $N/k$ positions apart on the same cycle, and each run performs at most $N$ accesses in total, so no line is visited twice in a run:
+
+```c
+for (size_t s = 0; s < steps; s++)
+    for (int j = 0; j < K; j++)   // fully unrolled, K a compile-time constant
+        p[j] = p[j]->next;        // the K loads do not depend on each other
+```
+
+GCC 13.3 at `-O2` compiles the four-chain loop to four independent loads, each chain in its own register (from `objdump -d` of the benchmark binary):
+
+```asm
+1f68:  add    $0x1,%rdx
+1f6c:  mov    (%rdi),%rdi
+1f6f:  mov    (%r8),%r8
+1f72:  mov    (%rcx),%rcx
+1f75:  mov    (%rax),%rax
+1f78:  cmp    %rdx,%rsi
+1f7b:  jne    1f68
+```
+
+Past 14 chains some pointers live in stack slots. A spilled chain adds a store and a reload through the store buffer to its own step, a few cycles against a miss of more than 100 ns, and the loads of different chains stay independent.
+
+The reference with the most parallelism, "independent loads", computes each address from a linear congruential generator rather than from loaded data, so the core issues loads as fast as its buffers allow.
+
+## Author's machine
+
+These numbers come from the original version of the note. The CPU model, compiler and flags were not recorded; the array was 256 MB.
+
+| Chains | ns/access | Speedup | Speedup / chains | $k \cdot t_k$ |
+|---:|---:|---:|---:|---:|
+| 1 | 92.6 | 1.0x | 100% | 93 ns |
+| 2 | 53.6 | 1.7x | 86% | 107 ns |
+| 4 | 31.0 | 3.0x | 75% | 124 ns |
+| 8 | 15.6 | 5.9x | 74% | 125 ns |
+| 16 | 8.9 | 10.4x | 65% | 142 ns |
+
+The independent random-access loop (`ran` in the original harness) took 7.6 ns per access, $92.6 / 7.6 = 12.2$ times faster than one chain.
+
+The scaling is sublinear from 2 chains on. The speedup per chain falls from 86% at 2 chains to 74 to 75% at 4 and 8, and to 65% at 16. If the core has at least 16 fill buffers, every chain holds one miss for $k \le 16$, so $k \cdot t_k$ is the latency of each miss, and it rises from 93 ns alone to 124 ns at 4 to 8 chains and 142 ns at 16. Under that assumption the sublinear scaling on this machine is a rise in per-miss latency under load (queueing between the core and DRAM), not a cap on outstanding misses below 16. Without the CPU model the fill-buffer count, and with it this reading, cannot be confirmed.
+
+The single-chain figure of 92.6 ns is a different measurement from the 97.4 ns pointer chase in [[systems/operating-systems/benchmarks/README|measuring real DRAM latency]]. That note used a 4 GB array on an Intel Core i9-13900HK; this one used a 256 MB array on a machine that was not recorded. The two numbers differ by 5%. On the cloud VM below, the single-chain median moved by 15% between two passes ten minutes apart (178 ns and 152 ns), so a 5% difference between runs with different array sizes, and possibly different machines, is within the spread this kind of measurement shows.
+
+## Cloud VM (Emerald Rapids)
+
+The VM is a KVM guest with 4 vCPUs on a CPU that reports family 6, model 207. Linux's [`intel-family.h`](https://codebrowser.dev/linux/linux/arch/x86/include/asm/intel-family.h.html) maps model `0xCF` to `INTEL_EMERALDRAPIDS_X` with the core name Raptor Cove. Intel's manual describes Golden Cove and gives no separate figure for Raptor Cove, so the 16 fill buffers are Golden Cove's number, assumed to carry over. The guest sees a 48 KB L1D, a 2 MB L2 and a 260 MB L3, and the array is 4 GiB, 15.75 times the L3. Each median below is over 12 runs (4 processes of 3 blocks each), with the minimum and maximum in parentheses.
+
+| Chains | 2 MB pages: ns/access | $L / t$ | 4 KB pages: ns/access | $L / t$ |
+|---:|---:|---:|---:|---:|
+| 1 | 151.6 (142.4–168.6) | 1.0 | 243.8 (220.9–261.0) | 1.0 |
+| 2 | 73.0 (67.2–89.3) | 2.1 | 105.2 (97.2–116.1) | 2.3 |
+| 3 | 48.2 (44.3–50.2) | 3.1 | 64.8 (62.4–67.9) | 3.8 |
+| 4 | 36.3 (34.1–38.0) | 4.2 | 47.6 (46.2–54.1) | 5.1 |
+| 6 | 24.7 (23.6–25.5) | 6.1 | 31.8 (30.5–34.8) | 7.7 |
+| 8 | 18.6 (17.8–20.5) | 8.1 | 23.9 (23.1–25.1) | 10.2 |
+| 10 | 15.2 (14.4–23.1) | 10.0 | 19.7 (19.1–21.8) | 12.4 |
+| 12 | 13.1 (12.6–14.2) | 11.5 | 18.1 (17.1–22.2) | 13.4 |
+| 14 | 11.6 (10.9–12.8) | 13.1 | 17.7 (16.5–20.4) | 13.8 |
+| 16 | 10.7 (10.1–15.6) | 14.1 | 17.3 (16.4–20.3) | 14.1 |
+| 18 | 10.1 (9.4–10.5) | 15.0 | 17.9 (16.3–19.1) | 13.6 |
+| 20 | 9.8 (8.9–11.0) | 15.4 | 17.5 (16.7–21.5) | 13.9 |
+| 24 | 9.8 (8.6–11.0) | 15.4 | 17.9 (16.6–22.1) | 13.6 |
+| 32 | 10.1 (8.7–11.3) | 15.1 | 18.6 (17.2–20.7) | 13.1 |
+| independent loads | 10.3 (9.4–12.2) | 14.7 | 18.2 (17.7–25.4) | 13.4 |
+
+With 2 MB pages the speedup per chain is 102% to 105% up to 8 chains, and the time per access stops falling between 18 and 20 chains. The median over 18 to 32 chains is 9.8 ns. By Little's law that is $151.6 / 9.8 = 15.4$ misses in flight if each miss keeps its single-chain latency, or $145.3 / 9.8 = 14.8$ using the median per-miss latency $k \cdot t_k$ at 2 to 8 chains. A least-squares fit of $t_k = L / \min(k, C)$ in log time, with $L$ fixed at the single-chain median, gives $C = 14.8$. All three estimates fall one to two misses short of the 16 fill buffers. Two candidate reasons, neither tested, are that a fill buffer stays occupied for longer than the load-to-use latency the benchmark measures, and that other requests, such as L1 prefetches, hold some buffers. The independent-load loop reaches the same plateau (10.3 ns), so the limit is the same whether the parallelism comes from separate chains or from the reorder buffer running ahead.
+
+The plateau is not a DRAM bandwidth limit. At 9.8 ns per 64-byte line one core reads 6.5 GB/s, a sixth of the 38.4 GB/s peak of a single DDR5-4800 channel (4,800 MT/s × 8 bytes). The limit is in the core.
+
+The measurements depart from the zero-think-time model in two places. First, $k \cdot t_k$ at 2 to 8 chains is 144 to 149 ns, 2 to 5% below the single-chain 151.6 ns, so the per-miss latency falls slightly once more than one miss is in flight; in the first pass, described under How this was measured, it fell by 13%, from 178 to 155 ns. The cause was not measured. Second, the time per access falls by 8% between 16 and 20 chains (10.7 to 9.8 ns), where the model is already flat. One possible explanation is that a chain whose load has returned holds no buffer while its next load is issued, which acts as a short think time, and a few chains beyond 16 keep every buffer occupied during those gaps.
+
+With 4 KB pages each access also misses the TLB. In a VM a TLB miss starts a two-dimensional walk of the guest and host page tables, which takes up to $nm + n + m = 24$ page-table references with four-level tables on both sides ([Bhargava et al.](https://doi.org/10.1145/1346281.1346286)). The single-chain time rises by 92 ns to 243.8 ns, and the plateau rises from 9.8 to 17.9 ns, where $L / t$ is 13.1 to 13.9. The walks therefore lower throughput as well as raising latency. The benchmark cannot attribute the lower plateau to fill buffers held by page-table loads, to the number of page-miss handlers (which Intel's manual says was increased in Golden Cove without giving a count), or to the host's own page size, which the guest cannot see.
+
+> [!note]- How this was measured
+> - **Machine:** a shared 4-vCPU KVM guest (Firecracker kernel `6.18.44-fc-v470`) whose CPU reports "Intel(R) Xeon(R) Processor @ 2.10GHz", family 6, model 207, stepping 2; L1D 48 KB, L2 2 MB and L3 260 MB as reported by `/sys/devices/system/cpu/cpu0/cache`. The guest exposes no hardware performance counters, so cache and TLB miss counts were not measured.
+> - **Code:** [`mlp_bench.c`](mlp_bench.c), compiled by [`run_mlp_bench.sh`](run_mlp_bench.sh) with GCC 13.3.0 (`-O2 -std=gnu11 -Wall -Wextra`). The program checks that the permutation is a single cycle through all 67,108,864 lines before timing.
+> - **Pages:** 2 MB pages through transparent huge pages (`madvise(MADV_HUGEPAGE)`, THP mode `madvise`); `/proc/self/smaps` reported all 4,194,304 KiB of the array as huge pages in every 2 MB process. The 4 KB runs use `MADV_NOHUGEPAGE` and report 0 KiB.
+> - **Procedure:** each process builds its own array and permutation from its own seed, runs a warm-up walk, then runs each of 22 configurations (chain counts 1 to 16, 18, 20, 24, 28, 32 and the independent loop) once per block, in an order shuffled by the seed, for 3 blocks. Each run times 8,000,000 accesses (rounded down to a multiple of $k$) with `CLOCK_MONOTONIC_RAW`. Eight processes run in the page-size order 2m, 4k, 4k, 2m, 2m, 4k, 4k, 2m, pinned with `taskset` to CPU 1. The run took 5 minutes.
+> - **Load:** single-threaded, on a VM shared with other agents. The 1-minute load average before each process was 0.72 to 1.20, and the busiest other process used 3.3% of a CPU, so no other experiment was running.
+> - **Spread:** the per-process median for one chain ranged from 143.0 to 158.0 ns with 2 MB pages and from 223.5 to 254.4 ns with 4 KB pages. An earlier pass with the same binary (4 processes of 5 blocks, pinned to CPU 2, [raw output](mlp_bench-results-pass1.txt)) overlapped with another agent's job starting on a different core (load average 1.07 to 1.91). With 2 MB pages it gave a single-chain median of 178.2 ns, a plateau of 11.1 ns and $L / t$ of 15.9 to 16.6 past 18 chains; with 4 KB pages, 273.6 ns and 19.1 ns. The tables above use only the second pass.
+> - **Results:** every sample is in [`mlp_bench-results.txt`](mlp_bench-results.txt). [`analyze_mlp_bench.py`](analyze_mlp_bench.py) (Python 3.13.18, standard library only) prints the tables and writes [`mlp_bench-summary.json`](mlp_bench-summary.json), which the figure's test compares with the points it draws.
+> - **Figure check:** [`mlp_queue_reference.py`](mlp_queue_reference.py) is an independent simulator of the same queue, written with two heaps instead of the figure's queue, and writes the reference cases the figure's tests compare against.
+
+## What the results mean for code
+
+Real code lies between the single chase and the independent loop, and on the VM the two differ by a factor of 15 with 2 MB pages (151.6 against 10.3 ns). Up to 8 chains the time per access falls in proportion to the number of independent chains, and past about 16 outstanding misses one core gains nothing from more independent work. Restructuring a linked structure so that several traversals proceed at once (batching lookups in a hash table or a B-tree, or interleaving several list walks), and unrolling loops so the compiler keeps independent loads in flight, move a program toward the parallel end. Prefetching helps when future addresses are computable, as measured in [[systems/operating-systems/benchmarks/prefetch|software prefetching]]; a software prefetch that misses L1 also needs a fill buffer, so it competes with demand loads for the same entries. On the VM, 2 MB pages cut the single-chain time by 38% and the plateau by 45%, a larger change for random access over a large heap than any number of chains beyond 16.
+
+## Reproduction
+
+On Linux x86-64, from this directory:
+
+```bash
+./run_mlp_bench.sh                  # 4 GiB array, 8,000,000 accesses per run, 3 blocks, CPU 1
+CPU=3 ./run_mlp_bench.sh 4096 8000000 3
+python3 analyze_mlp_bench.py        # tables and mlp_bench-summary.json
+python3 mlp_queue_reference.py      # reference cases for the figure's tests
+```
+
+The runner needs about 4.5 GB of free memory and overwrites `mlp_bench-results.txt`. `CPU` should name an idle logical CPU.
+
+> [!note]- Potentially interesting ideas
+> - The guest has no performance counters. On bare metal, Linux perf's Intel events `L1D_PEND_MISS.PENDING` (outstanding L1D misses, counted each cycle) and `L1D_PEND_MISS.FB_FULL` (cycles a demand request waited for a fill buffer) would measure $N$ directly instead of inferring it from Little's law, and would show whether the plateau near 15 is set by the fill buffers.
+> - The per-miss latency fell when a second miss was in flight on the VM, by 13% in one pass and 4% in the other. Whether that comes from power management of the uncore or memory at low traffic, or from the host, is unknown; running one chain while a second core generates a controlled background load might separate the two.
+> - The author's machine showed the opposite trend, with per-miss latency rising from 93 to 142 ns between 1 and 16 chains. Rerunning this harness there with the CPU model recorded would show whether that machine also reaches about 16 outstanding misses.
+
+## Related notes
+
+- [[systems/operating-systems/benchmarks/README|measuring real DRAM latency]]
+- [[hardware/computer-architecture/caches-virtual-memory|caches and virtual memory]], for MSHRs, TLBs and AMAT
+- [[systems/operating-systems/benchmarks/tlb|TLB and page walks]]
+- [[systems/operating-systems/benchmarks/prefetch|software prefetching]]
+- [[systems/operating-systems/benchmarks/bandwidth|memory bandwidth]]
+- [[systems/performance/streaming_benchmarks/cache_line_efficiency/README|cache line efficiency]]
+- [[systems/operating-systems/benchmarks/store_fwd|store-to-load forwarding]]
