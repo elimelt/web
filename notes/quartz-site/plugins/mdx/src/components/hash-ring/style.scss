@@ -1,0 +1,272 @@
+// The hash ring figure (hash-ring). One color per server: A to E use the
+// shared series colors plus a teal, and F, the server that joins, is red so
+// it stands out from the five that were there first.
+figure.hr {
+  --hr-s0: var(--fig-blue);
+  --hr-s1: var(--fig-orange);
+  --hr-s2: var(--fig-green);
+  --hr-s3: var(--fig-purple);
+  --hr-s4: #178a8a;
+  --hr-s5: var(--fig-red);
+  @include fig-frame;
+  font-size: 0.9rem;
+
+  [saved-theme="dark"] & {
+    --hr-s4: #3bb2b2;
+  }
+
+  @for $i from 0 through 5 {
+    .hr-s#{$i} {
+      --hr-c: var(--hr-s#{$i});
+    }
+  }
+
+  .hr-body {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .hr-left {
+    flex: 0 0 15.5rem;
+  }
+
+  .hr-right {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .hr-ring {
+    @include fig-chart;
+  }
+
+  .hr-track {
+    fill: none;
+    stroke: var(--lightgray);
+    stroke-width: 14;
+  }
+
+  .hr-arc {
+    fill: none;
+    stroke: var(--hr-c);
+    stroke-width: 14;
+  }
+
+  .hr-point,
+  .hr-tick {
+    stroke-width: 2;
+  }
+
+  .hr-point {
+    stroke: var(--darkgray);
+  }
+
+  .hr-tick {
+    stroke: var(--light);
+  }
+
+  .hr-name,
+  .hr-entry {
+    fill: var(--darkgray);
+    font-size: 13px;
+    font-weight: 600;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+
+  .hr-name {
+    fill: var(--hr-c);
+  }
+
+  .hr-entry {
+    fill: var(--gray);
+    font-size: 10px;
+    font-weight: 400;
+  }
+
+  .hr-moved-text {
+    fill: var(--darkgray);
+    font-weight: 700;
+  }
+
+  .hr-key {
+    fill: var(--hr-c);
+    stroke: var(--light);
+    stroke-width: 0.8;
+  }
+
+  .hr-halo {
+    fill: none;
+    stroke: var(--darkgray);
+    stroke-width: 1.4;
+  }
+
+  .hr-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.6rem;
+  }
+
+  button {
+    @include fig-button(0.2rem 0.6rem, 0.85rem);
+    @include fig-button-hover;
+
+    &[aria-pressed="true"] {
+      @include fig-pressed;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+  }
+
+  .hr-slider {
+    @include fig-slider;
+    width: 100%;
+    max-width: 18rem;
+  }
+
+  .hr-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .hr-bar-row {
+    display: grid;
+    grid-template-columns: 1rem minmax(0, 1fr) 7.5rem;
+    gap: 0.45rem;
+    align-items: center;
+  }
+
+  .hr-bar-name {
+    color: var(--hr-c);
+    font-weight: 700;
+  }
+
+  .hr-bar-track {
+    position: relative;
+    height: 0.75rem;
+    background: var(--highlight);
+    border-radius: 2px;
+  }
+
+  .hr-bar {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: var(--hr-c);
+    border-radius: 2px;
+  }
+
+  .hr-fair {
+    position: absolute;
+    top: -0.15rem;
+    bottom: -0.15rem;
+    border-left: 1.5px dashed var(--darkgray);
+  }
+
+  .hr-bar-detail {
+    color: var(--gray);
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .hr-bar-key {
+    margin: 0.15rem 0 0;
+    color: var(--gray);
+    font-size: 0.78rem;
+  }
+
+  .hr-fair-key {
+    display: inline-block;
+    height: 0.8em;
+    margin: 0 0.25rem 0 1.45rem;
+    vertical-align: -0.1em;
+    border-left: 1.5px dashed var(--darkgray);
+  }
+
+  .hr-readout {
+    min-height: 3.9em;
+    margin: 0.55rem 0 0;
+  }
+
+  .hr-strip {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.6rem;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  .hr-strip-label {
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  .hr-cells {
+    display: grid;
+    flex: 1 1 auto;
+    grid-template-columns: repeat(20, minmax(0, 1fr));
+    gap: 2px;
+  }
+
+  .hr-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.05rem 0;
+    border-bottom: 3px solid var(--hr-c);
+    color: var(--hr-c);
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.1;
+
+    small {
+      color: var(--gray);
+      font-size: 0.62rem;
+      font-weight: 400;
+    }
+  }
+
+  .hr-cell-moved {
+    background: var(--highlight);
+    outline: 1.5px solid var(--darkgray);
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .hr-body {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .hr-left {
+      flex: none;
+      width: min(15.5rem, 100%);
+      margin: 0 auto;
+    }
+
+    .hr-strip {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.2rem;
+    }
+
+    .hr-cells {
+      grid-template-columns: repeat(10, minmax(0, 1fr));
+    }
+
+    .hr-bar-row {
+      grid-template-columns: 1rem minmax(0, 1fr) 6.8rem;
+    }
+  }
+}
