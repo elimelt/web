@@ -1,0 +1,183 @@
+// The vertex cover matching figure (vc-matching). Orange edges are the
+// matching the algorithm builds, filled blue vertices are the cover, dashed
+// edges are not covered yet.
+figure.vm {
+  --vm-match: var(--fig-orange);
+  --vm-cover: var(--fig-blue);
+  @include fig-frame;
+
+  .vm-svg {
+    @include fig-chart;
+    font-family: var(--bodyFont);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .vm-edge {
+    stroke-linecap: round;
+  }
+
+  .vm-covered {
+    stroke: var(--gray);
+    stroke-width: 1.5;
+    opacity: 0.55;
+  }
+
+  .vm-open {
+    stroke: var(--gray);
+    stroke-width: 1.5;
+    stroke-dasharray: 4 4;
+  }
+
+  .vm-matched {
+    stroke: var(--vm-match);
+    stroke-width: 5;
+  }
+
+  .vm-halo {
+    stroke: var(--secondary);
+    stroke-width: 12;
+    stroke-linecap: round;
+    opacity: 0.25;
+  }
+
+  .vm-halo-node {
+    fill: var(--secondary);
+    opacity: 0.3;
+  }
+
+  .vm-node circle {
+    stroke-width: 2;
+  }
+
+  .vm-out circle {
+    fill: var(--light);
+    stroke: var(--gray);
+  }
+
+  .vm-in circle {
+    fill: var(--vm-cover);
+    stroke: var(--vm-cover);
+  }
+
+  .vm-name {
+    fill: var(--darkgray);
+    font-size: 13px;
+    paint-order: stroke;
+    stroke: var(--light);
+    stroke-width: 4px;
+    stroke-linejoin: round;
+  }
+
+  .vm-short {
+    display: none;
+  }
+
+  .vm-tally {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 1.2rem;
+    margin: 0.3rem 0 0;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .vm-steps {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+
+    button {
+      @include fig-button;
+      @include fig-button-hover;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    output {
+      min-width: 3.5rem;
+      font-variant-numeric: tabular-nums;
+      color: var(--gray);
+      font-size: 0.9rem;
+    }
+
+    button[name="reorder"] {
+      margin-left: auto;
+    }
+  }
+
+  .vm-narration {
+    margin: 0.5rem 0 0;
+    min-height: 3em;
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+
+  .vm-key {
+    @include fig-caption(0.8rem, 0.4rem);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 1rem;
+
+    span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      white-space: nowrap;
+    }
+
+    i {
+      display: inline-block;
+    }
+  }
+
+  .vm-key-halo {
+    width: 1.2rem;
+    height: 0.6rem;
+    border-radius: 0.3rem;
+    background: color-mix(in srgb, var(--secondary) 30%, transparent);
+  }
+
+  .vm-key-matched {
+    width: 1.2rem;
+    height: 4px;
+    background: var(--vm-match);
+  }
+
+  .vm-key-in {
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 50%;
+    background: var(--vm-cover);
+  }
+
+  .vm-key-open {
+    width: 1.2rem;
+    border-top: 2px dashed var(--gray);
+  }
+
+  @include fig-phone {
+    .vm-long {
+      display: none;
+    }
+
+    .vm-node circle {
+      r: 11px;
+    }
+
+    .vm-short {
+      display: inline;
+      font-size: 21px;
+      stroke-width: 6px;
+    }
+
+    .vm-steps button[name="reorder"] {
+      margin-left: 0;
+    }
+  }
+}

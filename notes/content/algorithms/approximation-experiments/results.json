@@ -1,0 +1,1119 @@
+{
+ "environment": {
+  "python": "3.13.18",
+  "numpy": "2.5.3",
+  "scipy": "1.18.1",
+  "networkx": "3.7",
+  "machine": "x86_64",
+  "processor": "x86_64"
+ },
+ "vertex_cover": {
+  "random": [
+   {
+    "family": "G(n=60, average degree 1)",
+    "runs": 30,
+    "matching": {
+     "mean": 1.8389,
+     "min": 1.5,
+     "max": 2.0
+    },
+    "matching_pruned": {
+     "mean": 1.0372,
+     "min": 1.0,
+     "max": 1.125
+    },
+    "lp_round": {
+     "mean": 1.0016,
+     "min": 1.0,
+     "max": 1.0476
+    },
+    "max_degree": {
+     "mean": 1.0219,
+     "min": 1.0,
+     "max": 1.125
+    },
+    "certificate": {
+     "mean": 2.0,
+     "min": 2.0,
+     "max": 2.0
+    },
+    "opt_over_matched": {
+     "mean": 1.0924,
+     "min": 1.0,
+     "max": 1.3333
+    },
+    "lp_gap": {
+     "mean": 1.0008,
+     "min": 1.0,
+     "max": 1.0244
+    },
+    "half_integral_all": true,
+    "mean_opt": 16.17
+   },
+   {
+    "family": "G(n=60, average degree 2)",
+    "runs": 30,
+    "matching": {
+     "mean": 1.7094,
+     "min": 1.4167,
+     "max": 2.0
+    },
+    "matching_pruned": {
+     "mean": 1.0709,
+     "min": 1.0,
+     "max": 1.1739
+    },
+    "lp_round": {
+     "mean": 1.0144,
+     "min": 1.0,
+     "max": 1.2174
+    },
+    "max_degree": {
+     "mean": 1.0368,
+     "min": 1.0,
+     "max": 1.125
+    },
+    "certificate": {
+     "mean": 2.0,
+     "min": 2.0,
+     "max": 2.0
+    },
+    "opt_over_matched": {
+     "mean": 1.1762,
+     "min": 1.0,
+     "max": 1.4118
+    },
+    "lp_gap": {
+     "mean": 1.0037,
+     "min": 1.0,
+     "max": 1.0455
+    },
+    "half_integral_all": true,
+    "mean_opt": 23.23
+   },
+   {
+    "family": "G(n=60, average degree 4)",
+    "runs": 30,
+    "matching": {
+     "mean": 1.5132,
+     "min": 1.3529,
+     "max": 1.6774
+    },
+    "matching_pruned": {
+     "mean": 1.089,
+     "min": 1.0294,
+     "max": 1.1818
+    },
+    "lp_round": {
+     "mean": 1.6167,
+     "min": 1.0,
+     "max": 1.8125
+    },
+    "max_degree": {
+     "mean": 1.0505,
+     "min": 1.0,
+     "max": 1.1333
+    },
+    "certificate": {
+     "mean": 2.0,
+     "min": 2.0,
+     "max": 2.0
+    },
+    "opt_over_matched": {
+     "mean": 1.3258,
+     "min": 1.1923,
+     "max": 1.4783
+    },
+    "lp_gap": {
+     "mean": 1.0836,
+     "min": 1.0,
+     "max": 1.1667
+    },
+    "half_integral_all": true,
+    "mean_opt": 31.9
+   },
+   {
+    "family": "G(n=60, average degree 8)",
+    "runs": 30,
+    "matching": {
+     "mean": 1.3622,
+     "min": 1.2683,
+     "max": 1.4872
+    },
+    "matching_pruned": {
+     "mean": 1.0913,
+     "min": 1.0,
+     "max": 1.1538
+    },
+    "lp_round": {
+     "mean": 1.5025,
+     "min": 1.439,
+     "max": 1.5789
+    },
+    "max_degree": {
+     "mean": 1.0386,
+     "min": 1.0,
+     "max": 1.075
+    },
+    "certificate": {
+     "mean": 2.0,
+     "min": 2.0,
+     "max": 2.0
+    },
+    "opt_over_matched": {
+     "mean": 1.47,
+     "min": 1.3448,
+     "max": 1.5769
+    },
+    "lp_gap": {
+     "mean": 1.3274,
+     "min": 1.2667,
+     "max": 1.3667
+    },
+    "half_integral_all": true,
+    "mean_opt": 39.8
+   },
+   {
+    "family": "G(n=60, average degree 16)",
+    "runs": 30,
+    "matching": {
+     "mean": 1.2241,
+     "min": 1.1739,
+     "max": 1.2609
+    },
+    "matching_pruned": {
+     "mean": 1.063,
+     "min": 1.0,
+     "max": 1.1304
+    },
+    "lp_round": {
+     "mean": 1.2842,
+     "min": 1.25,
+     "max": 1.3333
+    },
+    "max_degree": {
+     "mean": 1.0365,
+     "min": 1.0,
+     "max": 1.1087
+    },
+    "certificate": {
+     "mean": 2.0,
+     "min": 2.0,
+     "max": 2.0
+    },
+    "opt_over_matched": {
+     "mean": 1.6345,
+     "min": 1.5862,
+     "max": 1.7037
+    },
+    "lp_gap": {
+     "mean": 1.5578,
+     "min": 1.5,
+     "max": 1.6
+    },
+    "half_integral_all": true,
+    "mean_opt": 46.73
+   },
+   {
+    "family": "G(n=200, average degree 3)",
+    "runs": 30,
+    "matching": {
+     "mean": 1.6119,
+     "min": 1.5208,
+     "max": 1.7234
+    },
+    "matching_pruned": {
+     "mean": 1.0858,
+     "min": 1.0326,
+     "max": 1.1489
+    },
+    "lp_round": {
+     "mean": 1.2442,
+     "min": 1.0,
+     "max": 1.6105
+    },
+    "max_degree": {
+     "mean": 1.0453,
+     "min": 1.0108,
+     "max": 1.0957
+    },
+    "certificate": {
+     "mean": 2.0,
+     "min": 2.0,
+     "max": 2.0
+    },
+    "opt_over_matched": {
+     "mean": 1.242,
+     "min": 1.1605,
+     "max": 1.3151
+    },
+    "lp_gap": {
+     "mean": 1.01,
+     "min": 1.0,
+     "max": 1.0319
+    },
+    "half_integral_all": true,
+    "mean_opt": 93.3
+   },
+   {
+    "family": "Barabási-Albert (n=100, m=1)",
+    "runs": 30,
+    "matching": {
+     "mean": 1.8112,
+     "min": 1.6111,
+     "max": 2.0
+    },
+    "matching_pruned": {
+     "mean": 1.0089,
+     "min": 1.0,
+     "max": 1.0645
+    },
+    "lp_round": {
+     "mean": 1.0,
+     "min": 1.0,
+     "max": 1.0
+    },
+    "max_degree": {
+     "mean": 1.0079,
+     "min": 1.0,
+     "max": 1.04
+    },
+    "certificate": {
+     "mean": 2.0,
+     "min": 2.0,
+     "max": 2.0
+    },
+    "opt_over_matched": {
+     "mean": 1.1065,
+     "min": 1.0,
+     "max": 1.2414
+    },
+    "lp_gap": {
+     "mean": 1.0,
+     "min": 1.0,
+     "max": 1.0
+    },
+    "half_integral_all": true,
+    "mean_opt": 30.03
+   },
+   {
+    "family": "Barabási-Albert (n=100, m=3)",
+    "runs": 30,
+    "matching": {
+     "mean": 1.517,
+     "min": 1.3333,
+     "max": 1.6735
+    },
+    "matching_pruned": {
+     "mean": 1.0519,
+     "min": 1.0,
+     "max": 1.1346
+    },
+    "lp_round": {
+     "mean": 1.6968,
+     "min": 1.0,
+     "max": 1.9608
+    },
+    "max_degree": {
+     "mean": 1.0322,
+     "min": 1.0,
+     "max": 1.1042
+    },
+    "certificate": {
+     "mean": 2.0,
+     "min": 2.0,
+     "max": 2.0
+    },
+    "opt_over_matched": {
+     "mean": 1.3211,
+     "min": 1.1951,
+     "max": 1.5
+    },
+    "lp_gap": {
+     "mean": 1.0393,
+     "min": 1.0,
+     "max": 1.16
+    },
+    "half_integral_all": true,
+    "mean_opt": 51.8
+   },
+   {
+    "family": "Random geometric (n=100, r=0.15)",
+    "runs": 30,
+    "matching": {
+     "mean": 1.2492,
+     "min": 1.1944,
+     "max": 1.3333
+    },
+    "matching_pruned": {
+     "mean": 1.0588,
+     "min": 1.0141,
+     "max": 1.1286
+    },
+    "lp_round": {
+     "mean": 1.3862,
+     "min": 1.2973,
+     "max": 1.4412
+    },
+    "max_degree": {
+     "mean": 1.0369,
+     "min": 1.0139,
+     "max": 1.0704
+    },
+    "certificate": {
+     "mean": 2.0,
+     "min": 2.0,
+     "max": 2.0
+    },
+    "opt_over_matched": {
+     "mean": 1.6021,
+     "min": 1.5,
+     "max": 1.6744
+    },
+    "lp_gap": {
+     "mean": 1.4146,
+     "min": 1.36,
+     "max": 1.4845
+    },
+    "half_integral_all": true,
+    "mean_opt": 70.47
+   }
+  ],
+  "real": [
+   {
+    "family": "Florentine families (15 nodes, 20 edges)",
+    "runs": 30,
+    "matching": {
+     "mean": 1.5083,
+     "min": 1.25,
+     "max": 1.75
+    },
+    "matching_pruned": {
+     "mean": 1.0,
+     "min": 1.0,
+     "max": 1.0
+    },
+    "lp_round": {
+     "mean": 1.125,
+     "min": 1.125,
+     "max": 1.125
+    },
+    "max_degree": {
+     "mean": 1.0,
+     "min": 1.0,
+     "max": 1.0
+    },
+    "certificate": {
+     "mean": 2.0,
+     "min": 2.0,
+     "max": 2.0
+    },
+    "opt_over_matched": {
+     "mean": 1.3422,
+     "min": 1.1429,
+     "max": 1.6
+    },
+    "lp_gap": {
+     "mean": 1.0667,
+     "min": 1.0667,
+     "max": 1.0667
+    },
+    "half_integral_all": true,
+    "mean_opt": 8.0
+   },
+   {
+    "family": "Zachary karate club (34, 78)",
+    "runs": 30,
+    "matching": {
+     "mean": 1.5333,
+     "min": 1.2857,
+     "max": 1.7143
+    },
+    "matching_pruned": {
+     "mean": 1.0167,
+     "min": 1.0,
+     "max": 1.0714
+    },
+    "lp_round": {
+     "mean": 1.1429,
+     "min": 1.1429,
+     "max": 1.1429
+    },
+    "max_degree": {
+     "mean": 1.0071,
+     "min": 1.0,
+     "max": 1.0714
+    },
+    "certificate": {
+     "mean": 2.0,
+     "min": 2.0,
+     "max": 2.0
+    },
+    "opt_over_matched": {
+     "mean": 1.3135,
+     "min": 1.1667,
+     "max": 1.5556
+    },
+    "lp_gap": {
+     "mean": 1.037,
+     "min": 1.037,
+     "max": 1.037
+    },
+    "half_integral_all": true,
+    "mean_opt": 14.0
+   },
+   {
+    "family": "Davis southern women (32, 89)",
+    "runs": 30,
+    "matching": {
+     "mean": 1.7952,
+     "min": 1.5714,
+     "max": 2.0
+    },
+    "matching_pruned": {
+     "mean": 1.1905,
+     "min": 1.0714,
+     "max": 1.2857
+    },
+    "lp_round": {
+     "mean": 1.0,
+     "min": 1.0,
+     "max": 1.0
+    },
+    "max_degree": {
+     "mean": 1.0,
+     "min": 1.0,
+     "max": 1.0
+    },
+    "certificate": {
+     "mean": 2.0,
+     "min": 2.0,
+     "max": 2.0
+    },
+    "opt_over_matched": {
+     "mean": 1.1197,
+     "min": 1.0,
+     "max": 1.2727
+    },
+    "lp_gap": {
+     "mean": 1.0,
+     "min": 1.0,
+     "max": 1.0
+    },
+    "half_integral_all": true,
+    "mean_opt": 14.0
+   },
+   {
+    "family": "Les Misérables co-appearance (77, 254)",
+    "runs": 30,
+    "matching": {
+     "mean": 1.2968,
+     "min": 1.1905,
+     "max": 1.381
+    },
+    "matching_pruned": {
+     "mean": 1.0159,
+     "min": 1.0,
+     "max": 1.0714
+    },
+    "lp_round": {
+     "mean": 1.1429,
+     "min": 1.1429,
+     "max": 1.1429
+    },
+    "max_degree": {
+     "mean": 1.0,
+     "min": 1.0,
+     "max": 1.0
+    },
+    "certificate": {
+     "mean": 2.0,
+     "min": 2.0,
+     "max": 2.0
+    },
+    "opt_over_matched": {
+     "mean": 1.5446,
+     "min": 1.4483,
+     "max": 1.68
+    },
+    "lp_gap": {
+     "mean": 1.2923,
+     "min": 1.2923,
+     "max": 1.2923
+    },
+    "half_integral_all": true,
+    "mean_opt": 42.0
+   }
+  ],
+  "johnson": [
+   {
+    "k": 6,
+    "vertices": 14,
+    "edges": 27,
+    "opt": 6,
+    "greedy_adversarial": 8,
+    "ratio_adversarial": 1.3333,
+    "greedy_random_ties_mean": 1.3333,
+    "H_k_minus_1": 1.45,
+    "right_side": 8
+   },
+   {
+    "k": 10,
+    "vertices": 27,
+    "edges": 77,
+    "opt": 10,
+    "greedy_adversarial": 17,
+    "ratio_adversarial": 1.7,
+    "greedy_random_ties_mean": 1.7,
+    "H_k_minus_1": 1.929,
+    "right_side": 17
+   },
+   {
+    "k": 20,
+    "vertices": 66,
+    "edges": 319,
+    "opt": 20,
+    "greedy_adversarial": 46,
+    "ratio_adversarial": 2.3,
+    "greedy_random_ties_mean": 2.3,
+    "H_k_minus_1": 2.5977,
+    "right_side": 46
+   },
+   {
+    "k": 40,
+    "vertices": 158,
+    "edges": 1302,
+    "opt": 40,
+    "greedy_adversarial": 118,
+    "ratio_adversarial": 2.95,
+    "greedy_random_ties_mean": 2.95,
+    "H_k_minus_1": 3.2785,
+    "right_side": 118
+   },
+   {
+    "k": 80,
+    "vertices": 368,
+    "edges": 5234,
+    "opt": 80,
+    "greedy_adversarial": 288,
+    "ratio_adversarial": 3.6,
+    "greedy_random_ties_mean": 3.6,
+    "H_k_minus_1": 3.9655,
+    "right_side": 288
+   }
+  ]
+ },
+ "set_cover": {
+  "random": [
+   {
+    "family": "n=100 elements, m=50 sets, density 0.03",
+    "runs": 30,
+    "mean_opt": 35.4,
+    "ratio": {
+     "mean": 1.0114,
+     "min": 1.0,
+     "max": 1.0625
+    },
+    "optimal_runs": 21,
+    "Hd": {
+     "mean": 2.7114,
+     "min": 2.45,
+     "max": 2.929
+    },
+    "mean_d": 8.0,
+    "lp_gap": {
+     "mean": 1.0005,
+     "min": 1.0,
+     "max": 1.0149
+    },
+    "any_bound_violated": false
+   },
+   {
+    "family": "n=100 elements, m=50 sets, density 0.06",
+    "runs": 30,
+    "mean_opt": 24.83,
+    "ratio": {
+     "mean": 1.0592,
+     "min": 1.0,
+     "max": 1.1818
+    },
+    "optimal_runs": 7,
+    "Hd": {
+     "mean": 3.0985,
+     "min": 2.829,
+     "max": 3.3807
+    },
+    "mean_d": 12.0,
+    "lp_gap": {
+     "mean": 1.004,
+     "min": 1.0,
+     "max": 1.0455
+    },
+    "any_bound_violated": false
+   },
+   {
+    "family": "n=100 elements, m=50 sets, density 0.12",
+    "runs": 30,
+    "mean_opt": 13.57,
+    "ratio": {
+     "mean": 1.1219,
+     "min": 1.0,
+     "max": 1.2667
+    },
+    "optimal_runs": 2,
+    "Hd": {
+     "mean": 3.5826,
+     "min": 3.3807,
+     "max": 3.776
+    },
+    "mean_d": 19.8,
+    "lp_gap": {
+     "mean": 1.1251,
+     "min": 1.029,
+     "max": 1.2069
+    },
+    "any_bound_violated": false
+   },
+   {
+    "family": "n=200 elements, m=100 sets, density 0.03",
+    "runs": 30,
+    "mean_opt": 49.4,
+    "ratio": {
+     "mean": 1.0675,
+     "min": 1.0,
+     "max": 1.1277
+    },
+    "optimal_runs": 2,
+    "Hd": {
+     "mean": 3.1855,
+     "min": 3.0199,
+     "max": 3.3807
+    },
+    "mean_d": 13.1,
+    "lp_gap": {
+     "mean": 1.001,
+     "min": 1.0,
+     "max": 1.0105
+    },
+    "any_bound_violated": false
+   },
+   {
+    "family": "n=200 elements, m=100 sets, density 0.08",
+    "runs": 30,
+    "mean_opt": 20.7,
+    "ratio": {
+     "mean": 1.1505,
+     "min": 1.0476,
+     "max": 1.25
+    },
+    "optimal_runs": 0,
+    "Hd": {
+     "mean": 3.851,
+     "min": 3.7343,
+     "max": 4.0272
+    },
+    "mean_d": 26.0,
+    "lp_gap": {
+     "mean": 1.2187,
+     "min": 1.1126,
+     "max": 1.2901
+    },
+    "any_bound_violated": false
+   },
+   {
+    "family": "n=50 elements, m=200 sets, density 0.05",
+    "runs": 30,
+    "mean_opt": 13.1,
+    "ratio": {
+     "mean": 1.1303,
+     "min": 1.0,
+     "max": 1.2308
+    },
+    "optimal_runs": 2,
+    "Hd": {
+     "mean": 2.6613,
+     "min": 2.45,
+     "max": 2.929
+    },
+    "mean_d": 7.6,
+    "lp_gap": {
+     "mean": 1.0869,
+     "min": 1.0176,
+     "max": 1.1686
+    },
+    "any_bound_violated": false
+   }
+  ],
+  "domination": [
+   {
+    "family": "Dominating set: Florentine families (15 nodes, 20 edges)",
+    "runs": 30,
+    "mean_opt": 5.0,
+    "ratio": {
+     "mean": 1.0733,
+     "min": 1.0,
+     "max": 1.2
+    },
+    "optimal_runs": 19,
+    "Hd": {
+     "mean": 2.5929,
+     "min": 2.5929,
+     "max": 2.5929
+    },
+    "mean_d": 7.0,
+    "lp_gap": {
+     "mean": 1.0,
+     "min": 1.0,
+     "max": 1.0
+    },
+    "any_bound_violated": false
+   },
+   {
+    "family": "Dominating set: Zachary karate club (34, 78)",
+    "runs": 30,
+    "mean_opt": 4.0,
+    "ratio": {
+     "mean": 1.0,
+     "min": 1.0,
+     "max": 1.0
+    },
+    "optimal_runs": 30,
+    "Hd": {
+     "mean": 3.4951,
+     "min": 3.4951,
+     "max": 3.4951
+    },
+    "mean_d": 18.0,
+    "lp_gap": {
+     "mean": 1.0,
+     "min": 1.0,
+     "max": 1.0
+    },
+    "any_bound_violated": false
+   },
+   {
+    "family": "Dominating set: Davis southern women (32, 89)",
+    "runs": 30,
+    "mean_opt": 5.0,
+    "ratio": {
+     "mean": 1.0,
+     "min": 1.0,
+     "max": 1.0
+    },
+    "optimal_runs": 30,
+    "Hd": {
+     "mean": 3.3182,
+     "min": 3.3182,
+     "max": 3.3182
+    },
+    "mean_d": 15.0,
+    "lp_gap": {
+     "mean": 1.1539,
+     "min": 1.1539,
+     "max": 1.1539
+    },
+    "any_bound_violated": false
+   },
+   {
+    "family": "Dominating set: Les Misérables co-appearance (77, 254)",
+    "runs": 30,
+    "mean_opt": 10.0,
+    "ratio": {
+     "mean": 1.0367,
+     "min": 1.0,
+     "max": 1.1
+    },
+    "optimal_runs": 19,
+    "Hd": {
+     "mean": 4.2016,
+     "min": 4.2016,
+     "max": 4.2016
+    },
+    "mean_d": 37.0,
+    "lp_gap": {
+     "mean": 1.0,
+     "min": 1.0,
+     "max": 1.0
+    },
+    "any_bound_violated": false
+   },
+   {
+    "family": "Dominating set: G(n=100, average degree 4)",
+    "runs": 30,
+    "mean_opt": 24.9,
+    "ratio": {
+     "mean": 1.1258,
+     "min": 1.0,
+     "max": 1.24
+    },
+    "optimal_runs": 1,
+    "Hd": {
+     "mean": 2.9518,
+     "min": 2.829,
+     "max": 3.1032
+    },
+    "mean_d": 10.3,
+    "lp_gap": {
+     "mean": 1.0222,
+     "min": 1.0,
+     "max": 1.0604
+    },
+    "any_bound_violated": false
+   },
+   {
+    "family": "Dominating set: random geometric (n=100, r=0.15)",
+    "runs": 30,
+    "mean_opt": 17.07,
+    "ratio": {
+     "mean": 1.1272,
+     "min": 1.0556,
+     "max": 1.3125
+    },
+    "optimal_runs": 0,
+    "Hd": {
+     "mean": 3.1998,
+     "min": 3.0199,
+     "max": 3.4396
+    },
+    "mean_d": 13.4,
+    "lp_gap": {
+     "mean": 1.0048,
+     "min": 1.0,
+     "max": 1.0323
+    },
+    "any_bound_violated": false
+   }
+  ],
+  "two_rows": [
+   {
+    "m": 2,
+    "n": 6,
+    "opt": 2,
+    "greedy": 2,
+    "greedy_order": [
+     "block 2",
+     "block 1"
+    ],
+    "bound_ceil_k_ln_n": 4,
+    "bound_Hn_k": 4.9,
+    "bound_Hd_k": 4.167
+   },
+   {
+    "m": 3,
+    "n": 14,
+    "opt": 2,
+    "greedy": 3,
+    "greedy_order": [
+     "block 3",
+     "block 2",
+     "block 1"
+    ],
+    "bound_ceil_k_ln_n": 6,
+    "bound_Hn_k": 6.503,
+    "bound_Hd_k": 5.436
+   },
+   {
+    "m": 4,
+    "n": 30,
+    "opt": 2,
+    "greedy": 4,
+    "greedy_order": [
+     "block 4",
+     "block 3",
+     "block 2",
+     "block 1"
+    ],
+    "bound_ceil_k_ln_n": 7,
+    "bound_Hn_k": 7.99,
+    "bound_Hd_k": 6.761
+   },
+   {
+    "m": 5,
+    "n": 62,
+    "opt": 2,
+    "greedy": 5,
+    "greedy_order": [
+     "block 5",
+     "block 4",
+     "block 3",
+     "block 2",
+     "block 1"
+    ],
+    "bound_ceil_k_ln_n": 9,
+    "bound_Hn_k": 9.425,
+    "bound_Hd_k": 8.117
+   },
+   {
+    "m": 6,
+    "n": 126,
+    "opt": 2,
+    "greedy": 6,
+    "greedy_order": [
+     "block 6",
+     "block 5",
+     "block 4",
+     "block 3",
+     "block 2",
+     "block 1"
+    ],
+    "bound_ceil_k_ln_n": 10,
+    "bound_Hn_k": 10.835,
+    "bound_Hd_k": 9.488
+   },
+   {
+    "m": 7,
+    "n": 254,
+    "opt": 2,
+    "greedy": 7,
+    "greedy_order": [
+     "block 7",
+     "block 6",
+     "block 5",
+     "block 4",
+     "block 3",
+     "block 2",
+     "block 1"
+    ],
+    "bound_ceil_k_ln_n": 12,
+    "bound_Hn_k": 12.233,
+    "bound_Hd_k": 10.866
+   },
+   {
+    "m": 8,
+    "n": 510,
+    "opt": 2,
+    "greedy": 8,
+    "greedy_order": [
+     "block 8",
+     "block 7",
+     "block 6",
+     "block 5",
+     "block 4",
+     "block 3",
+     "block 2",
+     "block 1"
+    ],
+    "bound_ceil_k_ln_n": 13,
+    "bound_Hn_k": 13.625,
+    "bound_Hd_k": 12.249
+   },
+   {
+    "m": 9,
+    "n": 1022,
+    "opt": 2,
+    "greedy": 9,
+    "greedy_order": [
+     "block 9",
+     "block 8",
+     "block 7",
+     "block 6",
+     "block 5",
+     "block 4",
+     "block 3",
+     "block 2",
+     "block 1"
+    ],
+    "bound_ceil_k_ln_n": 14,
+    "bound_Hn_k": 15.014,
+    "bound_Hd_k": 13.633
+   },
+   {
+    "m": 10,
+    "n": 2046,
+    "opt": 2,
+    "greedy": 10,
+    "greedy_order": [
+     "block 10",
+     "block 9",
+     "block 8",
+     "block 7",
+     "block 6",
+     "block 5",
+     "block 4",
+     "block 3",
+     "block 2",
+     "block 1"
+    ],
+    "bound_ceil_k_ln_n": 16,
+    "bound_Hn_k": 16.402,
+    "bound_Hd_k": 15.018
+   },
+   {
+    "m": 11,
+    "n": 4094,
+    "opt": 2,
+    "greedy": 11,
+    "greedy_order": [
+     "block 11",
+     "block 10",
+     "block 9",
+     "block 8",
+     "block 7",
+     "block 6",
+     "block 5",
+     "block 4",
+     "block 3",
+     "block 2",
+     "block 1"
+    ],
+    "bound_ceil_k_ln_n": 17,
+    "bound_Hn_k": 17.789,
+    "bound_Hd_k": 16.404
+   },
+   {
+    "m": 12,
+    "n": 8190,
+    "opt": 2,
+    "greedy": 12,
+    "greedy_order": [
+     "block 12",
+     "block 11",
+     "block 10",
+     "block 9",
+     "block 8",
+     "block 7",
+     "block 6",
+     "block 5",
+     "block 4",
+     "block 3",
+     "block 2",
+     "block 1"
+    ],
+    "bound_ceil_k_ln_n": 19,
+    "bound_Hn_k": 19.176,
+    "bound_Hd_k": 17.79
+   }
+  ],
+  "weighted_tight": [
+   {
+    "n": 4,
+    "greedy_cost": 2.0833,
+    "opt_cost": 1.01,
+    "H_n": 2.0833,
+    "sets_taken": 4
+   },
+   {
+    "n": 10,
+    "greedy_cost": 2.929,
+    "opt_cost": 1.01,
+    "H_n": 2.929,
+    "sets_taken": 10
+   },
+   {
+    "n": 100,
+    "greedy_cost": 5.1874,
+    "opt_cost": 1.01,
+    "H_n": 5.1874,
+    "sets_taken": 100
+   },
+   {
+    "n": 1000,
+    "greedy_cost": 7.4855,
+    "opt_cost": 1.01,
+    "H_n": 7.4855,
+    "sets_taken": 1000
+   }
+  ]
+ },
+ "seconds": 227.6
+}

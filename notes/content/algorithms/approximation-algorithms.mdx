@@ -1,0 +1,289 @@
+---
+title: Approximation Algorithms
+category: Algorithms
+tags:
+  - approximation
+  - algorithms
+  - vertex cover
+  - set cover
+  - greedy
+  - linear programming
+  - np-hardness
+date: 2024-05-10
+updated: 2026-11-14
+status: evergreen
+description: What an approximation ratio promises and how to prove one without knowing the optimum, worked through vertex cover (the matching 2-approximation, why 2 is tight, and how the alternatives behave) and set cover (greedy's logarithmic bound by charging, its bad cases, and why ln n is the limit), with ratios measured against exact optima on random graphs and small real networks.
+sources:
+  - title: Williamson and Shmoys (2011), The Design of Approximation Algorithms
+    url: https://www.designofapproxalgs.com/book.pdf
+    type: book
+  - title: Vazirani (2001), Approximation Algorithms
+    url: https://link.springer.com/book/10.1007/978-3-662-04565-7
+    type: book
+  - title: Garey and Johnson (1979), Computers and Intractability
+    url: https://en.wikipedia.org/wiki/Computers_and_Intractability
+    type: book
+  - title: Johnson (1974), Approximation Algorithms for Combinatorial Problems
+    url: https://doi.org/10.1016/S0022-0000(74)80044-9
+    type: paper
+  - title: Chvátal (1979), A Greedy Heuristic for the Set-Covering Problem
+    url: https://doi.org/10.1287/moor.4.3.233
+    type: paper
+  - title: Slavík (1997), A Tight Analysis of the Greedy Algorithm for Set Cover
+    url: https://doi.org/10.1006/jagm.1997.0887
+    type: paper
+  - title: Feige (1998), A Threshold of ln n for Approximating Set Cover
+    url: https://doi.org/10.1145/285055.285059
+    type: paper
+  - title: Dinur and Steurer (2014), Analytical Approach to Parallel Repetition
+    url: https://arxiv.org/abs/1305.1979
+    type: paper
+  - title: Dinur and Safra (2005), On the Hardness of Approximating Vertex Cover
+    url: https://annals.math.princeton.edu/2005/162-1/p08
+    type: paper
+  - title: Khot, Minzer and Safra (2023), Pseudorandom Sets in Grassmann Graph Have Near-Perfect Expansion
+    url: https://annals.math.princeton.edu/2023/198-1/p01
+    type: paper
+  - title: Khot and Regev (2008), Vertex Cover Might Be Hard to Approximate to Within 2 − ε
+    url: https://cs.nyu.edu/~khot/papers/vc_hard.pdf
+    type: paper
+  - title: Karakostas (2009), A Better Approximation Ratio for the Vertex Cover Problem
+    url: https://doi.org/10.1145/1597036.1597045
+    type: paper
+  - title: Nemhauser and Trotter (1975), Vertex Packings, Structural Properties and Algorithms
+    url: https://doi.org/10.1007/BF01580444
+    type: paper
+  - title: Karlin, Klein and Oveis Gharan (2021), A (Slightly) Improved Approximation Algorithm for Metric TSP
+    url: https://arxiv.org/abs/2007.01409
+    type: paper
+  - title: Håstad (2001), Some Optimal Inapproximability Results
+    url: https://doi.org/10.1145/502090.502098
+    type: paper
+  - title: Padgett and Ansell (1993), Robust Action and the Rise of the Medici, 1400–1434
+    url: https://doi.org/10.1086/230190
+    type: paper
+---
+
+## Purpose
+
+For an NP-hard optimization problem you don't expect a polynomial-time algorithm that always finds the optimum. An approximation algorithm settles for less and proves how much less. It runs in polynomial time, and its answer is within a known factor of the optimum on every input, including inputs built to make it look bad.
+
+The hard part is the proof. You want to compare the algorithm's answer to $OPT$, which is the one number you can't compute. Every proof in this note gets around that the same way: it finds a quantity the algorithm can see that provably sits on one side of $OPT$, and compares against that instead.
+
+Two problems show the pattern cleanly. For vertex cover the comparison quantity is a matching, and a simple algorithm is within a factor of 2. For set cover it is a set of prices charged to elements, and greedy is within a factor of about $\ln n$. Both factors are tight for their algorithm, and both are close to the best any polynomial-time algorithm can do if standard complexity assumptions hold. The last section measures how far from optimal these algorithms land on random and real instances, which is usually much closer than the worst case. The [[algorithms/linear-programming|linear programming note]] covers a third source of lower bounds, the LP relaxation.
+
+## The approximation ratio
+
+For a minimization problem, an algorithm is an **$\alpha$-approximation** if on every instance $I$
+
+$$
+OPT(I) \le ALG(I) \le \alpha \cdot OPT(I),
+$$
+
+with $\alpha \ge 1$ a constant or a function of the input size. For a maximization problem the guarantee is $ALG(I) \ge OPT(I) / \alpha$. Some authors write the maximization ratio as a number below 1 instead (a "$\tfrac{7}{8}$-approximation" for MAX-3SAT), so check the convention before comparing figures from different sources.
+
+Two consequences of the definition matter in practice.
+
+**It is a worst case.** The ratio is a promise about the hardest input, and says little about typical ones. The vertex cover 2-approximation below averages between 1.2 and 1.8 times the optimum on the graphs measured here, and a heuristic with no constant guarantee at all averages within 5% of it on the same graphs.
+
+**The proof usually hands you a certificate.** The proofs compare $ALG$ against a lower bound $L \le OPT$ that the algorithm computes along the way. On any particular run, $ALG / L$ is then an upper bound on how far that run is from optimal, and it is often well below $\alpha$. For vertex cover, $L$ is the size of the matching the algorithm builds.
+
+> [!note]- Where some well-known problems sit
+> | Problem | Best known guarantee | Hardness |
+> | --- | --- | --- |
+> | Vertex cover | $2$, or $2 - \Theta(1/\sqrt{\log n})$ ([Karakostas 2009](https://doi.org/10.1145/1597036.1597045)) | NP-hard below $\sqrt 2$; below $2$ if the Unique Games Conjecture holds |
+> | Set cover | $H_d \le \ln n + 1$ by greedy ([Johnson 1974](https://doi.org/10.1016/S0022-0000(74)80044-9), [Chvátal 1979](https://doi.org/10.1287/moor.4.3.233)) | NP-hard within $(1 - \varepsilon)\ln n$ ([Dinur and Steurer 2014](https://arxiv.org/abs/1305.1979)) |
+> | Metric TSP | $\tfrac{3}{2}$ (Christofides 1976); $\tfrac{3}{2} - \varepsilon$ for some $\varepsilon > 10^{-36}$, randomized ([Karlin, Klein and Oveis Gharan 2021](https://arxiv.org/abs/2007.01409)) | NP-hard within some constant above 1 |
+> | Knapsack | $1 + \varepsilon$ for any $\varepsilon > 0$, in time polynomial in $n$ and $1/\varepsilon$ (Ibarra and Kim 1975) | only the NP-hardness of the exact problem |
+> | MAX-3SAT | a random assignment satisfies $\tfrac{7}{8}$ of the clauses in expectation | NP-hard to guarantee $\tfrac{7}{8} + \varepsilon$ ([Håstad 2001](https://doi.org/10.1145/502090.502098)) |
+>
+> A **PTAS** gets within $1 + \varepsilon$ for every fixed $\varepsilon$, with a running time that may grow badly in $1/\varepsilon$. An **FPTAS**, like the knapsack one, keeps the running time polynomial in $1/\varepsilon$ as well. The hardness results assume P ≠ NP unless the table says otherwise.
+
+## Vertex cover: take both ends of an edge
+
+A **vertex cover** of a graph $G = (V, E)$ is a set $S \subseteq V$ that touches every edge: each edge has at least one endpoint in $S$. Finding a smallest one is NP-hard. Its decision version is one of Karp's original 21 NP-complete problems.
+
+**Algorithm.** Look at the edges in any order. Whenever an edge has neither endpoint in $S$ yet, add both of its endpoints. When every edge has been looked at, return $S$.
+
+[Garey and Johnson](https://en.wikipedia.org/wiki/Computers_and_Intractability) credit this algorithm to Gavril; Papadimitriou and Steiglitz credit Gavril and Yannakakis independently. It runs in $O(|V| + |E|)$ time.
+
+The figure runs it on the marriage network among fifteen Florentine families in the early 1400s, from [Padgett and Ansell (1993)](https://doi.org/10.1086/230190), where an edge is a marriage tie between two families. The optimum, 8 families, is computed in your browser by checking every subset of vertices. Step through the scan, or draw a new random edge order to see the answer change.
+
+<VertexCoverMatching preset="florentine" />
+
+The answer depends on the order. Over 1,000 random edge orders of this graph, the algorithm returned 8 vertices twice, 10 vertices 245 times, 12 vertices 598 times and 14 vertices 155 times. The proof below caps it at 16.
+
+### Why it is within a factor of 2
+
+Look at the edges that caused an addition, drawn thick in the figure. No two of them share an endpoint, because once an edge's endpoints are in $S$, every later edge touching them is already covered and gets skipped. So these edges form a **matching** $M$. The scan also leaves no edge uncovered, so no edge can be added to $M$: it is a maximal matching.
+
+Every vertex cover, including an optimal one, must contain an endpoint of each edge in $M$, and those endpoints are all different because the edges of $M$ share none. So $OPT \ge |M|$. The algorithm returns exactly two vertices per edge of $M$, so
+
+$$
+ALG = 2|M| \le 2 \cdot OPT.
+$$
+
+The proof never needs $OPT$. It needs $|M|$, which the algorithm built itself. That is the certificate mentioned earlier: on the default run in the figure $|M| = 6$, so the 12-vertex cover is provably within a factor of 2 of optimal before anyone computes the optimum. Against the real optimum of 8 it is within 1.5.
+
+### The factor of 2 is tight
+
+On the complete bipartite graph $K_{3,3}$, every maximal matching uses all six vertices: once two edges are matched, the remaining $a$ and $b$ vertices are joined by an edge that is still uncovered. So the algorithm returns all six. Either side alone, three vertices, covers every edge.
+
+<VertexCoverMatching preset="k33" />
+
+A graph made of disjoint edges does the same thing more bluntly, with $|M| = OPT$ and both endpoints taken every time. No better ratio can be proved for this algorithm, so beating 2 needs a different algorithm, which is the subject of the hardness results further down.
+
+> [!warning] Taking one endpoint loses the guarantee
+> A tempting shortcut adds just one endpoint of each uncovered edge. On a star with $n - 1$ leaves it can pick the leaf every time and return all $n - 1$ leaves, while the center alone is a cover. Taking both endpoints is what ties $|S|$ to a matching, and the matching is what bounds $OPT$.
+
+### The greedy heuristic: good in practice, unbounded in theory
+
+Another natural idea is to repeatedly take a vertex of highest remaining degree and delete it with its edges. In the measurements below it averaged within 5% of the optimum on every family of graphs, and was never more than 13% off. It is still not a constant-factor approximation.
+
+The bad case is a bipartite graph ([CLRS exercise 35.1-3](https://walkccc.me/CLRS/Chap35/35.1/); the analysis goes back to [Johnson 1974](https://doi.org/10.1016/S0022-0000(74)80044-9)). Take a left side $L$ of $k$ vertices. For each $i = 2, \ldots, k$, add $\lfloor k/i \rfloor$ right vertices of degree $i$, each joined to its own block of $i$ left vertices, so each left vertex gets at most one edge from each group and has degree at most $k - 1$. The right vertex of degree $k$ beats every left vertex, so greedy takes it first. That lowers some left degrees, and the pattern repeats one group down. With ties broken toward the right side, greedy takes every right vertex, about $k(H_k - 1)$ of them, where the $k$ left vertices were enough. On this construction the measured ratio was 1.70 for $k = 10$, 2.30 for $k = 20$, 2.95 for $k = 40$ and 3.60 for $k = 80$, growing like $\ln k$. Breaking ties at random gave the same counts.
+
+The heuristic is the set cover greedy below, applied to the sets "edges at vertex $v$", which bounds its ratio by $H_\Delta$ with $\Delta$ the maximum degree. The construction shows the logarithm is real.
+
+### Cheap improvements, and where LP rounding fits
+
+The matching cover often holds vertices it doesn't need. A vertex whose neighbours are all in the cover can be dropped, since every edge at it is covered from the other side. A pass that drops such vertices one at a time keeps a valid cover and never adds a vertex, so the factor-2 guarantee survives. On the Florentine graph it usually lands on the optimum: over the same 1,000 edge orders, the pruned cover had 8 vertices 976 times and 9 vertices 24 times.
+
+<VertexCoverMatching preset="florentine-prune" />
+
+The other standard 2-approximation, in the [[algorithms/linear-programming|linear programming note]], solves the LP relaxation and keeps every vertex with $x_v \ge \tfrac{1}{2}$. Its lower bound is the LP optimum, which is at least as large as any matching: by LP duality it equals the largest fractional matching. The rounding step can still be wasteful. The vertex cover LP always has an optimal solution whose values are all $0$, $\tfrac{1}{2}$ or $1$ ([Nemhauser and Trotter 1975](https://doi.org/10.1007/BF01580444)), and on a dense graph that solution is often $\tfrac{1}{2}$ everywhere, which rounds to every vertex. Every LP solution in the experiment was half-integral, and on random graphs of average degree 4 and above, rounding did worse than the plain matching cover.
+
+### How far below 2 anyone can go
+
+Nobody knows a polynomial-time algorithm with ratio $2 - \varepsilon$ for a fixed $\varepsilon > 0$. The best known is $2 - \Theta(1/\sqrt{\log n})$ ([Karakostas 2009](https://doi.org/10.1145/1597036.1597045)), from a semidefinite relaxation. On the hardness side:
+
+- [Dinur and Safra (2005)](https://annals.math.princeton.edu/2005/162-1/p08) showed it is NP-hard to approximate within any factor below $10\sqrt 5 - 21 \approx 1.3606$.
+- The 2-to-2 Games Theorem of Khot, Minzer and Safra ([final paper](https://annals.math.princeton.edu/2023/198-1/p01), with their STOC 2017 reduction) raised that to any factor below $\sqrt 2$, still assuming only P ≠ NP.
+- [Khot and Regev (2008)](https://cs.nyu.edu/~khot/papers/vc_hard.pdf) showed that if the Unique Games Conjecture holds, no polynomial-time algorithm achieves $2 - \varepsilon$. The matching algorithm would then be essentially the best possible.
+
+## Set cover: the greedy algorithm
+
+**Problem.** A universe $U$ of $n$ elements and sets $S_1, \ldots, S_m \subseteq U$ whose union is $U$. Choose as few sets as possible whose union is still $U$. Vertex cover is the special case where the elements are edges and each vertex contributes the set of edges touching it. Minimum dominating set is another, with each vertex contributing itself and its neighbours.
+
+**Algorithm.** While some element is uncovered, take the set that covers the most uncovered elements.
+
+Write $k = OPT$ for the size of a smallest cover and $d$ for the size of the largest set. Greedy uses at most $H_d \cdot k$ sets, where $H_d = 1 + \tfrac{1}{2} + \cdots + \tfrac{1}{d} \le \ln d + 1$. Since $d \le n$, this is at most $(\ln n + 1) k$. Two proofs follow: a quick one that gives a bound in terms of $n$, and a sharper one that gives $H_d$.
+
+### A quick bound: at most ⌈k ln n⌉ sets
+
+Suppose $r$ elements are still uncovered. The $k$ optimal sets cover all of them, so one of those sets covers at least $r/k$ of them, and greedy's choice covers at least as many. Each pick leaves at most a $(1 - \tfrac{1}{k})$ fraction of what was uncovered. After $t \ge 1$ picks the number of uncovered elements is at most
+
+$$
+n\left(1 - \frac{1}{k}\right)^t < n \cdot e^{-t/k},
+$$
+
+where the strict inequality uses $1 - x < e^{-x}$ for $x \ne 0$. At $t = \lceil k \ln n \rceil$ the right side is at most $n \cdot e^{-\ln n} = 1$, so fewer than one element, that is none, is left. Greedy uses at most $\lceil k \ln n \rceil$ sets.
+
+The details at the end matter. At $t = k \ln n$ exactly, the right side equals 1 instead of dropping below it, and $k \ln n$ is rarely a whole number of picks, so the strict inequality and the ceiling are what close the argument. Running the same argument only until at most $k$ elements remain, then paying at most one set per remaining element, gives the slightly sharper $k \ln(n/k) + k$.
+
+### A sharper bound by charging: H_d
+
+The charging proof bounds greedy against each optimal set separately.
+
+When greedy picks a set that covers $f$ new elements, charge each of those elements $\tfrac{1}{f}$. Each pick hands out exactly 1 in total, so the total charge equals the number of sets greedy used.
+
+Now fix one optimal set $S$ and look at the moment greedy covers one of its elements while $S$ still has $r$ uncovered elements. Greedy could have picked $S$ itself and covered $r$ new elements, so it picked a set covering at least $r$, and the element was charged at most $\tfrac{1}{r}$. As greedy works through $S$, $r$ counts down from $|S|$, so the charges on $S$'s elements add up to at most
+
+$$
+\frac{1}{|S|} + \frac{1}{|S| - 1} + \cdots + \frac{1}{1} = H_{|S|} \le H_d.
+$$
+
+Every element sits in some optimal set, so the total charge is at most $k \cdot H_d$, and that total is the number of sets greedy used. In the figure, the number in each square is the charge its element got. The two rows, of 7 elements each, are the optimal sets.
+
+<SetCoverGreedy preset="prices" />
+
+Greedy used 3 sets and the charges add up to 3. Each row's elements were charged 1.50 against an allowance of $H_7 \approx 2.59$, so on this instance the bound has room to spare.
+
+Neither bound always beats the other. $H_d \cdot k$ is better when every set is small: with sets of at most 3 elements it gives $\tfrac{11}{6} k$. $\lceil k \ln n \rceil$ can be smaller when some set is nearly all of $U$, since $H_n$ is about $\ln n + 0.58$.
+
+### How bad greedy gets
+
+Greedy does pay a logarithmic factor on some inputs. In the figure, the universe is two rows of $2^m - 1$ columns, and the two rows are an optimal cover. The other sets are column blocks of widths $1, 2, 4, \ldots, 2^{m-1}$, each covering its columns in both rows. The widest block covers $2^m$ elements and each row covers $2^m - 1$, so greedy takes the block. After that the next block beats what is left of each row by exactly one element, and so on down, until greedy holds all $m$ blocks.
+
+<SetCoverGreedy preset="two-rows" />
+
+With $n = 2(2^m - 1)$ elements, greedy uses $m \approx \log_2 n$ sets against an optimum of 2, a ratio of about $\tfrac{1}{2}\log_2 n \approx 0.72 \ln n$. This instance is exercise 5.33 in Dasgupta, Papadimitriou and Vazirani's *Algorithms*, and [Mount's lecture notes](https://cs.umd.edu/class/spring2025/cmsc451-0101/Lects/lect07-set-cover.pdf) work one through. The exact worst case is known: [Slavík (1997)](https://doi.org/10.1006/jagm.1997.0887) showed greedy's ratio is $\ln n - \ln \ln n + \Theta(1)$, with his upper and lower bounds less than 1.1 apart.
+
+### Weighted set cover
+
+When each set has a cost $c(S)$ and the goal is the cheapest cover, greedy takes the set with the lowest cost per newly covered element, and charges each new element that cost per element. The charging proof goes through with $c(S)$ in the numerators: the charges inside an optimal set $S$ add up to at most $c(S) \cdot H_{|S|}$, so greedy's cost is at most $H_d \cdot OPT$ ([Chvátal 1979](https://doi.org/10.1287/moor.4.3.233)).
+
+With weights the factor is exactly tight. In [Vazirani's example](https://homes.di.unimi.it/cordone/courses/2024-ae/Lez08-Materiali/Vazirani-SCP.pdf), element $i$ of $n$ has its own singleton set costing $\tfrac{1}{n - i + 1}$, and one set containing everything costs $1 + \varepsilon$. The cheapest singleton costs $\tfrac{1}{n}$ per element, just below the big set's $\tfrac{1 + \varepsilon}{n}$, and the same comparison repeats after each purchase. Greedy buys every singleton and pays $H_n$.
+
+<SetCoverGreedy preset="weighted" />
+
+### Nobody does much better
+
+[Feige (1998)](https://doi.org/10.1145/285055.285059) showed that no polynomial-time algorithm approximates set cover within $c \ln n$ for any $c < 1$ unless NP has algorithms running in time $n^{O(\log \log n)}$, and [Dinur and Steurer (2014)](https://arxiv.org/abs/1305.1979) showed that the same factor is NP-hard. If P ≠ NP, the greedy algorithm from the 1970s is optimal up to lower-order terms among polynomial-time algorithms.
+
+## Measured ratios
+
+The bad cases above are constructions. To see what happens on ordinary inputs, every algorithm in this note was run against the exact optimum, computed as an integer program with [HiGHS](https://highs.dev/), on random graphs and on four small real social networks that ship with [NetworkX](https://networkx.org/documentation/stable/reference/generators.html#module-networkx.generators.social). Each cell is the mean ratio $ALG / OPT$ over 30 runs, with the largest in parentheses. The real graphs are fixed, so their 30 runs differ only in the randomized algorithms' edge orders and tie-breaks, and the deterministic LP columns have a single value.
+
+**Vertex cover.**
+
+| Graphs | Mean OPT | Matching | Matching, pruned | LP rounding | Max-degree greedy | OPT / LP |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| $G(60, p)$, average degree 1 | 16.2 | 1.84 (2.00) | 1.04 (1.12) | 1.00 (1.05) | 1.02 (1.12) | 1.00 (1.02) |
+| $G(60, p)$, average degree 4 | 31.9 | 1.51 (1.68) | 1.09 (1.18) | 1.62 (1.81) | 1.05 (1.13) | 1.08 (1.17) |
+| $G(60, p)$, average degree 16 | 46.7 | 1.22 (1.26) | 1.06 (1.13) | 1.28 (1.33) | 1.04 (1.11) | 1.56 (1.60) |
+| $G(200, p)$, average degree 3 | 93.3 | 1.61 (1.72) | 1.09 (1.15) | 1.24 (1.61) | 1.05 (1.10) | 1.01 (1.03) |
+| Barabási-Albert, $n = 100$, $m = 3$ | 51.8 | 1.52 (1.67) | 1.05 (1.13) | 1.70 (1.96) | 1.03 (1.10) | 1.04 (1.16) |
+| Random geometric, $n = 100$, $r = 0.15$ | 70.5 | 1.25 (1.33) | 1.06 (1.13) | 1.39 (1.44) | 1.04 (1.07) | 1.41 (1.48) |
+| Florentine families (15 vertices, 20 edges) | 8 | 1.51 (1.75) | 1.00 (1.00) | 1.12 | 1.00 (1.00) | 1.07 |
+| Zachary karate club (34, 78) | 14 | 1.53 (1.71) | 1.02 (1.07) | 1.14 | 1.01 (1.07) | 1.04 |
+| Davis southern women (32, 89) | 14 | 1.80 (2.00) | 1.19 (1.29) | 1.00 | 1.00 (1.00) | 1.00 |
+| Les Misérables co-appearance (77, 254) | 42 | 1.30 (1.38) | 1.02 (1.07) | 1.14 | 1.00 (1.00) | 1.29 |
+
+The full run also covers average degrees 2 and 8 and Barabási-Albert graphs with $m = 1$; they fit the same pattern and are in the results file.
+
+- **The matching algorithm does worst on sparse graphs.** At average degree 1 most components are single edges and short paths, where taking both endpoints is close to the worst case, and some runs hit exactly 2. On denser graphs the optimum is itself most of the vertices, so even taking both endpoints can't overshoot by much.
+- **The heuristic with no guarantee was the most reliable.** Max-degree greedy stayed within 13% of optimal on every instance. Its logarithmic worst case needs a carefully built graph.
+- **Pruning removes most of the matching algorithm's waste.** The pruned matching cover averaged within 9% of optimal on every random family, for one extra pass.
+- **LP rounding is all or nothing.** On the sparsest graphs and on the bipartite Davis graph, where the LP is integral (bipartite vertex cover is a [[algorithms/network-flows|flow problem]]), rounding finds the optimum or nearly. From average degree 4 up, the LP optimum has many half-valued vertices, rounding keeps all of them, and it finishes behind the plain matching cover.
+
+**Set cover.** Greedy against the exact optimum, on random instances (each element joins each set independently with the given probability) and on minimum dominating set for some of the same graphs. The last column is the proved factor $H_d$.
+
+| Instances | Mean OPT | Greedy / OPT | Runs where greedy was optimal | Mean $d$ | $H_d$ |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 100 elements, 50 sets, density 0.03 | 35.4 | 1.01 (1.06) | 21 of 30 | 8 | 2.71 |
+| 100 elements, 50 sets, density 0.12 | 13.6 | 1.12 (1.27) | 2 of 30 | 19.8 | 3.58 |
+| 200 elements, 100 sets, density 0.08 | 20.7 | 1.15 (1.25) | 0 of 30 | 26 | 3.85 |
+| 50 elements, 200 sets, density 0.05 | 13.1 | 1.13 (1.23) | 2 of 30 | 7.6 | 2.66 |
+| Dominating set, Zachary karate club | 4 | 1.00 (1.00) | 30 of 30 | 18 | 3.50 |
+| Dominating set, Les Misérables | 10 | 1.04 (1.10) | 19 of 30 | 37 | 4.20 |
+| Dominating set, $G(100, p)$, average degree 4 | 24.9 | 1.13 (1.24) | 1 of 30 | 10.3 | 2.95 |
+| Dominating set, random geometric, $n = 100$ | 17.1 | 1.13 (1.31) | 0 of 30 | 13.4 | 3.20 |
+
+Greedy was never more than 31% above optimal, against proved factors between 2.7 and 4.2. No run broke the $H_d$, $\lceil k \ln n \rceil$ or $k \ln(n/k) + k$ bound. On the two-row instances greedy used exactly $m$ sets against 2 for every $m$ from 3 to 12, and on Vazirani's weighted instance it paid exactly $H_n$ for $n$ = 4, 10, 100 and 1000.
+
+> [!note]- How this was measured
+> The harness is [`approx.py`](approximation-experiments/approx.py) and its output is [`results.json`](approximation-experiments/results.json). To rerun:
+>
+> ```sh
+> python3 -m pip install scipy numpy networkx
+> cd notes/content/algorithms/approximation-experiments
+> python3 approx.py > results.json
+> ```
+>
+> - **Exact optima.** Integer programs, one 0/1 variable per vertex or set and one covering constraint per edge or element, solved with HiGHS through `scipy.optimize.milp`. The LP relaxations use HiGHS dual simplex, so each solution is a vertex of the polytope, and every one was checked for half-integrality.
+> - **Algorithms.** Matching: edges in a uniformly random order. Pruning: cover vertices in random order, each dropped if all its neighbours are still in the cover. LP rounding: keep $x_v \ge \tfrac{1}{2}$. Max-degree greedy: ties broken at random, or toward the right side for the bad construction. Set cover greedy: ties broken at random.
+> - **Instances.** $G(n, p)$ with $p$ chosen for the stated average degree, isolated vertices removed. Barabási-Albert and random geometric graphs from the NetworkX generators. Random set cover instances: each element joins each set independently, and an element left in no set is added to a random one. Seeds 0 to 29 for each family, offset per family; the exact seeds are in the script.
+> - **Real graphs.** NetworkX 3.7's bundled copies of the Florentine families marriage network ([Padgett and Ansell 1993](https://doi.org/10.1086/230190); this version has 15 families), Zachary's karate club, the Davis southern women graph (women and the events they attended) and the Les Misérables character co-appearance graph.
+> - **Environment.** Python 3.13.18, NumPy 2.5.3, SciPy 1.18.1, NetworkX 3.7, on a 4-core Intel Xeon at 2.30 GHz. The full run takes about 4 minutes, almost all of it in the integer programs for the denser graphs.
+> - **The figures** run the same algorithms in the browser with a seeded edge order, and compute their optima by brute force over subsets. Their tests check those optima against the integer program, and the set cover runs against this script's greedy order and costs.
+
+> [!note]- Potentially interesting ideas
+> - **How bad can the pruned matching cover be?** Pruning keeps the factor 2, and its worst ratio here was 1.29, on the Davis graph. I didn't find or construct an instance that pushes it toward 2, and the answer probably depends on the order in which vertices are checked. A pruned cover is a minimal vertex cover, so the question is how large a minimal cover inside a matching cover can be relative to $OPT$.
+> - **Rounding the half-valued vertices more carefully.** Nemhauser and Trotter's theorem also says some optimal cover agrees with the LP on every vertex the LP sets to 0 or 1, so the hard part of an instance is its half-valued vertices. Running max-degree greedy or the pruned matching on just those, instead of keeping all of them, might fix LP rounding's poor showing at moderate densities. This wasn't tested.
+
+## Related notes
+
+- [[algorithms/greedy-algorithms|Greedy algorithms]], where greedy is exactly optimal for interval scheduling and partitioning
+- [[algorithms/linear-programming|Linear programming]], with the LP relaxation and rounding for weighted vertex cover
+- [[algorithms/network-flows|Network flows]], where bipartite vertex cover becomes a min cut
+- [[reference/cheatsheets/algorithms/intervals|Interval scheduling and partitioning]]

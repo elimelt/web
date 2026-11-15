@@ -1,0 +1,177 @@
+// The greedy set cover figure (set-cover-greedy). Elements are squares; the
+// one greedy just covered are in the accent color, earlier ones in blue.
+// Brackets above the grid are sets that span both rows; row names on the left
+// are the optimal sets.
+figure.sg {
+  --sg-done: var(--fig-blue);
+  --sg-opt: var(--fig-green);
+  @include fig-frame;
+
+  .sg-svg {
+    @include fig-chart;
+    font-family: var(--bodyFont);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .sg-cell rect {
+    stroke-width: 1.5;
+  }
+
+  .sg-open rect {
+    fill: var(--light);
+    stroke: var(--lightgray);
+  }
+
+  .sg-done rect {
+    fill: color-mix(in srgb, var(--sg-done) 22%, var(--light));
+    stroke: var(--sg-done);
+  }
+
+  .sg-new rect {
+    fill: color-mix(in srgb, var(--secondary) 30%, var(--light));
+    stroke: var(--secondary);
+    stroke-width: 2.5;
+  }
+
+  .sg-cell text {
+    fill: var(--dark);
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .sg-cell text.sg-small {
+    font-size: 11px;
+  }
+
+  .sg-bracket path {
+    fill: none;
+    stroke: var(--gray);
+    stroke-width: 1.5;
+  }
+
+  .sg-bracket text {
+    fill: var(--darkgray);
+    font-size: 13px;
+  }
+
+  .sg-bracket.sg-picked path {
+    stroke: var(--sg-done);
+    stroke-width: 2.5;
+  }
+
+  .sg-bracket.sg-picked text {
+    fill: var(--sg-done);
+    font-weight: 600;
+  }
+
+  .sg-rowname {
+    fill: var(--darkgray);
+    font-size: 13px;
+  }
+
+  .sg-rowname.sg-opt {
+    fill: var(--sg-opt);
+    font-weight: 600;
+  }
+
+  .sg-cost {
+    fill: var(--gray);
+    font-size: 12px;
+  }
+
+  .sg-tally {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 1.2rem;
+    margin: 0.3rem 0 0;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .sg-steps {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+
+    button {
+      @include fig-button;
+      @include fig-button-hover;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    output {
+      min-width: 3.5rem;
+      font-variant-numeric: tabular-nums;
+      color: var(--gray);
+      font-size: 0.9rem;
+    }
+  }
+
+  .sg-narration {
+    margin: 0.5rem 0 0;
+    min-height: 3em;
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+
+  .sg-tcap {
+    @include fig-caption(0.8rem, 0.5rem);
+    margin-bottom: 0.2rem;
+  }
+
+  .sg-table {
+    @include fig-table;
+    width: auto;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+
+    th,
+    td {
+      padding: 0.1rem 0.9rem 0.1rem 0;
+      border: 0;
+      text-align: left;
+      background: none;
+    }
+
+    th {
+      color: var(--gray);
+      font-weight: 500;
+      border-bottom: 1px solid var(--lightgray);
+    }
+
+    tr.sg-chosen td {
+      color: var(--secondary);
+      font-weight: 600;
+    }
+
+    tr.sg-idle td {
+      color: var(--gray);
+    }
+  }
+
+  @include fig-phone {
+    .sg-cell text {
+      font-size: 20px;
+    }
+
+    .sg-cell text.sg-small {
+      font-size: 15px;
+    }
+
+    .sg-bracket text,
+    .sg-rowname {
+      font-size: 19px;
+    }
+
+    .sg-cost {
+      font-size: 17px;
+    }
+  }
+}

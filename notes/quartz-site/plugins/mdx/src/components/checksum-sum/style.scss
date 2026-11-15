@@ -1,0 +1,158 @@
+// Internet checksum figure (checksum-sum). Ten rows of 16 bit buttons with
+// the word and the running ones' complement sum beside them.
+
+figure.cs {
+  @include fig-frame;
+  font-size: 0.86rem;
+
+  .cs-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .cs-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto 2.8rem 2.8rem;
+    align-items: center;
+    column-gap: 0.5rem;
+  }
+
+  .cs-head {
+    color: var(--gray);
+    font-size: 0.74rem;
+  }
+
+  .cs-field {
+    color: var(--darkgray);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cs-bits {
+    display: flex;
+    justify-content: flex-start;
+  }
+
+  .cs-hex,
+  .cs-sum {
+    font-family: var(--codeFont);
+    text-align: right;
+  }
+
+  .cs-sum {
+    color: var(--gray);
+  }
+
+  .cs-row-changed .cs-hex {
+    color: var(--fig-orange);
+    font-weight: 600;
+  }
+
+  .cs-bit {
+    width: 1.15rem;
+    height: 1.35rem;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    background: transparent;
+    color: var(--darkgray);
+    font-family: var(--codeFont);
+    font-size: 0.82rem;
+    line-height: 1;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      border-color: var(--secondary);
+    }
+
+    &:disabled {
+      cursor: default;
+    }
+  }
+
+  .cs-gap {
+    margin-right: 0.45rem;
+  }
+
+  .cs-flipped {
+    background: var(--fig-orange);
+    color: var(--light);
+    font-weight: 700;
+  }
+
+  .cs-verdict {
+    margin: 0.6rem 0 0;
+    padding: 0.4rem 0.6rem;
+    border-left: 3px solid var(--lightgray);
+    background: var(--highlight);
+
+    &[data-tone="caught"] {
+      border-color: var(--fig-green);
+    }
+
+    &[data-tone="missed"] {
+      border-color: var(--fig-red);
+    }
+  }
+
+  .cs-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+
+    button {
+      @include fig-button(0.2rem 0.6rem, 0.82rem);
+      @include fig-button-hover;
+
+      &:disabled {
+        cursor: default;
+        opacity: 0.55;
+      }
+    }
+  }
+
+  .cs-hint {
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    padding: 0.8rem 0.6rem 0.7rem;
+
+    .cs-row {
+      grid-template-columns: auto minmax(0, 1fr);
+      column-gap: 0.4rem;
+    }
+
+    .cs-field {
+      grid-column: 1 / -1;
+      font-size: 0.7rem;
+      color: var(--gray);
+    }
+
+    .cs-head .cs-field,
+    .cs-hex {
+      display: none;
+    }
+
+    .cs-bit {
+      width: 0.85rem;
+      height: 1.25rem;
+      font-size: 0.74rem;
+    }
+
+    .cs-gap {
+      margin-right: 0.12rem;
+    }
+  }
+}

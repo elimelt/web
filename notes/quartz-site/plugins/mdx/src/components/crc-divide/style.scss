@@ -1,0 +1,149 @@
+// CRC long-division figure (crc-divide).
+
+figure.cd {
+  @include fig-frame;
+  font-size: 0.88rem;
+
+  .cd-head {
+    margin: 0 0 0.5rem;
+    color: var(--darkgray);
+  }
+
+  .cd-poly {
+    white-space: nowrap;
+  }
+
+  .cd-grid {
+    display: flex;
+    flex-direction: column;
+    font-family: var(--codeFont);
+  }
+
+  .cd-row {
+    display: grid;
+    grid-template-columns: 7.5rem auto;
+    align-items: center;
+    column-gap: 0.5rem;
+  }
+
+  .cd-label {
+    color: var(--gray);
+    font-family: var(--bodyFont);
+    font-size: 0.76rem;
+    text-align: right;
+  }
+
+  .cd-cells {
+    display: flex;
+  }
+
+  .cd-bit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.45rem;
+    height: 1.4rem;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    background: transparent;
+    color: var(--darkgray);
+    font: inherit;
+    line-height: 1;
+  }
+
+  button.cd-bit {
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      border-color: var(--secondary);
+    }
+
+    &:disabled {
+      cursor: default;
+    }
+  }
+
+  .cd-check {
+    background: var(--highlight);
+  }
+
+  .cd-flipped {
+    background: var(--fig-orange);
+    color: var(--light);
+    font-weight: 700;
+  }
+
+  .cd-gen {
+    color: var(--fig-blue);
+    font-weight: 600;
+  }
+
+  .cd-genrow .cd-cells {
+    border-bottom: 1px solid var(--lightgray);
+  }
+
+  .cd-dim {
+    color: var(--lightgray);
+  }
+
+  .cd-verdict {
+    margin: 0.6rem 0 0;
+    font-family: var(--bodyFont);
+    padding: 0.4rem 0.6rem;
+    border-left: 3px solid var(--lightgray);
+    background: var(--highlight);
+
+    &[data-tone="caught"] {
+      border-color: var(--fig-green);
+    }
+
+    &[data-tone="missed"] {
+      border-color: var(--fig-red);
+    }
+  }
+
+  .cd-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+
+    button {
+      @include fig-button(0.2rem 0.6rem, 0.82rem);
+      @include fig-button-hover;
+
+      &:disabled {
+        cursor: default;
+        opacity: 0.55;
+      }
+    }
+  }
+
+  .cd-hint {
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    padding: 0.8rem 0.7rem 0.7rem;
+
+    .cd-row {
+      grid-template-columns: 3.2rem auto;
+      column-gap: 0.3rem;
+    }
+
+    .cd-label {
+      font-size: 0.68rem;
+    }
+
+    .cd-bit {
+      width: 1.2rem;
+    }
+  }
+}

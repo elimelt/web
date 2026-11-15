@@ -1,0 +1,163 @@
+// Lock throughput charts (lock-scaling). Each lock keeps its color in every
+// copy of the chart on the page, so the reader learns them once.
+figure.ls {
+  @include fig-frame;
+  font-size: 0.9rem;
+
+  .ls-plot {
+    touch-action: pan-y;
+    cursor: crosshair;
+    border-radius: 4px;
+
+    &:focus-visible {
+      outline: 2px solid var(--secondary);
+      outline-offset: 2px;
+    }
+  }
+
+  .ls-chart {
+    @include fig-chart;
+    aspect-ratio: 640 / 260;
+  }
+
+  .ls-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .ls-tick {
+    fill: var(--gray);
+    font-size: 12px;
+  }
+
+  .ls-axis {
+    fill: var(--darkgray);
+    font-size: 12.5px;
+  }
+
+  .ls-note {
+    fill: var(--gray);
+    font-size: 11.5px;
+  }
+
+  .ls-over {
+    fill: var(--highlight);
+  }
+
+  .ls-cursor {
+    stroke: var(--secondary);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+  }
+
+  .ls-series {
+    polyline {
+      fill: none;
+      stroke: var(--ls-color);
+      stroke-width: 2.2;
+      stroke-linejoin: round;
+    }
+
+    circle {
+      fill: var(--ls-color);
+    }
+
+    .ls-whisker {
+      stroke: var(--ls-color);
+      stroke-width: 1.4;
+      opacity: 0.6;
+    }
+  }
+
+  .ls-tas {
+    --ls-color: var(--fig-red);
+  }
+
+  .ls-ttas {
+    --ls-color: var(--fig-orange);
+  }
+
+  .ls-ticket {
+    --ls-color: var(--fig-purple);
+  }
+
+  .ls-mcs {
+    --ls-color: var(--fig-green);
+  }
+
+  .ls-mutex {
+    --ls-color: var(--fig-blue);
+  }
+
+  .ls-atomic,
+  .ls-racy {
+    --ls-color: var(--darkgray);
+  }
+
+  .ls-readout {
+    margin-top: 0.4rem;
+  }
+
+  .ls-at {
+    color: var(--darkgray);
+    font-size: 0.82rem;
+    margin-bottom: 0.2rem;
+  }
+
+  ul.ls-rows {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(12.5rem, 1fr));
+    gap: 0.1rem 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin: 0;
+      padding: 0;
+      font-size: 0.85rem;
+
+      &::before {
+        content: none;
+      }
+    }
+
+    b {
+      margin-left: auto;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .ls-swatch {
+    flex: none;
+    width: 0.8rem;
+    height: 0.25rem;
+    border-radius: 2px;
+    background: var(--ls-color);
+  }
+
+  .ls-name {
+    color: var(--darkgray);
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    padding: 0.8rem 0.7rem 0.7rem;
+
+    .ls-tick,
+    .ls-note,
+    .ls-axis {
+      font-size: 20px;
+    }
+
+    ul.ls-rows {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}
