@@ -1,0 +1,4 @@
+RF_RESULT banks=1 ports=1 triples=512 read_cycles_1=8 read_cycles_2=168 read_cycles_3=336 count_mismatches=0 data_errors=0
+RF_RESULT banks=2 ports=1 triples=512 read_cycles_1=104 read_cycles_2=360 read_cycles_3=48 count_mismatches=0 data_errors=0
+RF_RESULT banks=2 ports=2 triples=512 read_cycles_1=464 read_cycles_2=48 read_cycles_3=0 count_mismatches=0 data_errors=0
+RF_RESULT banks=4 ports=1 triples=512 read_cycles_1=344 read_cycles_2=168 read_cycles_3=0 count_mismatches=0 data_errors=0

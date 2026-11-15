@@ -1,0 +1,145 @@
+// The occupancy and latency-hiding figure (occupancy-lab). Blue bars are the
+// warps each resource alone allows; the binding one is orange. The
+// bytes-in-flight bar is green when it reaches the dashed requirement and red
+// when it falls short.
+figure.occ {
+  @include fig-frame;
+  font-size: 0.9rem;
+
+  .occ-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem 1.2rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .occ-field {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: space-between;
+
+    select {
+      @include fig-button(0.15rem 0.4rem, 0.85rem);
+      @include fig-button-hover;
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+    }
+  }
+
+  .occ-slider {
+    @include fig-slider;
+  }
+
+  .occ-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .occ-flight {
+    margin-top: 0.55rem;
+    padding-top: 0.55rem;
+    border-top: 1px solid var(--lightgray);
+  }
+
+  .occ-row {
+    display: grid;
+    grid-template-columns: 10.5rem minmax(0, 1fr) 11rem;
+    gap: 0.5rem;
+    align-items: center;
+    --occ-c: var(--fig-blue);
+  }
+
+  .occ-bind {
+    --occ-c: var(--fig-orange);
+
+    .occ-name,
+    .occ-val {
+      color: var(--darkgray);
+      font-weight: 600;
+    }
+  }
+
+  .occ-ok {
+    --occ-c: var(--fig-green);
+  }
+
+  .occ-short {
+    --occ-c: var(--fig-red);
+  }
+
+  .occ-name {
+    color: var(--gray);
+    font-size: 0.82rem;
+  }
+
+  .occ-track {
+    position: relative;
+    height: 0.8rem;
+    background: var(--highlight);
+    border-radius: 2px;
+  }
+
+  .occ-bar {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: var(--occ-c);
+    border-radius: 2px;
+    opacity: 0.85;
+  }
+
+  .occ-row:not(.occ-bind):not(.occ-flight-row) .occ-bar {
+    opacity: 0.45;
+  }
+
+  .occ-need {
+    position: absolute;
+    top: -0.2rem;
+    bottom: -0.2rem;
+    border-left: 2px dashed var(--darkgray);
+  }
+
+  .occ-val {
+    color: var(--gray);
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .occ-readout {
+    min-height: 4.2em;
+    margin: 0.7rem 0 0;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .occ-controls {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .occ-row {
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.1rem 0.5rem;
+    }
+
+    .occ-name {
+      grid-column: 1;
+    }
+
+    .occ-val {
+      grid-column: 2;
+      grid-row: 1;
+      text-align: right;
+    }
+
+    .occ-track {
+      grid-column: 1 / span 2;
+    }
+  }
+}

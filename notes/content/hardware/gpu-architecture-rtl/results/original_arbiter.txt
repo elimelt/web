@@ -1,0 +1,17 @@
+ARB mask=0001 grants: w0=48 w1=0 w2=0 w3=0
+ARB mask=0010 grants: w0=0 w1=48 w2=0 w3=0
+ARB mask=0011 grants: w0=36 w1=12 w2=0 w3=0
+ARB mask=0100 grants: w0=0 w1=0 w2=48 w3=0
+ARB mask=0101 grants: w0=24 w1=0 w2=24 w3=0
+ARB mask=0110 grants: w0=0 w1=36 w2=12 w3=0
+ARB mask=0111 grants: w0=24 w1=12 w2=12 w3=0
+ARB mask=1000 grants: w0=0 w1=0 w2=0 w3=48
+ARB mask=1001 grants: w0=12 w1=0 w2=0 w3=36
+ARB mask=1010 grants: w0=0 w1=24 w2=0 w3=24
+ARB mask=1011 grants: w0=12 w1=12 w2=0 w3=24
+ARB mask=1100 grants: w0=0 w1=0 w2=36 w3=12
+ARB mask=1101 grants: w0=12 w1=0 w2=24 w3=12
+ARB mask=1110 grants: w0=0 w1=24 w2=12 w3=12
+ARB mask=1111 grants: w0=12 w1=12 w2=12 w3=12
+ARB_RESULT worst_share=36:12 random_mismatches=7001/20000 protocol_errors=0
+tb/tb_arbiter.sv:89: $finish called at 207230 (1s)
