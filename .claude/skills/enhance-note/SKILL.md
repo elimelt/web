@@ -17,8 +17,8 @@ Every pull request gets a preview: a bot comment links
 The goal is a note a newcomer can learn from and an expert can use as a
 reference: current, specific, and backed by sources or real measurements.
 
-Read `notes/AGENTS.md` and `notes/README.md` first; they hold the authoring
-rules this guide builds on. For figures, read
+Read `notes/AGENTS.md`, `notes/README.md` and `notes/.notes/style-guide.md`
+first; they hold the authoring rules this guide builds on. For figures, read
 `notes/quartz-site/plugins/mdx/README.md`.
 
 ## 1. Read and fact-check first
@@ -105,7 +105,10 @@ registering.
 
 ## 5. Rewrite the prose
 
-- Lead with intuition, then the precise definition and formulas.
+- Follow `notes/.notes/style-guide.md`: a dry, precise, technical register
+  with the field's vocabulary.
+- Open with the formal definition, then explain it plainly. No Purpose
+  section, and no sentences about the note itself.
 - Keep it concrete. Cut generic filler, repetition, and phrasing that sounds
   machine-written.
 - Use progressive disclosure: collapsed callouts (`> [!note]- Deep dive: ...`)

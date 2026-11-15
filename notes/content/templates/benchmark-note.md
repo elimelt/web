@@ -14,9 +14,9 @@ sources:
     type: docs
 ---
 
-## Purpose
-
-State the question the benchmark answers.
+Open with the question the benchmark answers, stated precisely, before any
+heading. Do not outline the note or refer to it as "this note"; see
+`notes/.notes/style-guide.md`.
 
 ## Setup
 

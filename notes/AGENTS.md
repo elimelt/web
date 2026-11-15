@@ -5,6 +5,7 @@ This directory is a Quartz-backed notes site. Most edits are content edits.
 ## First reads
 
 - `README.md`
+- `.notes/style-guide.md`
 - `.notes/prose.yml`
 - `.notes/content.yml`
 - `.notes/frontmatter.yml`
@@ -108,13 +109,14 @@ backlog.
 
 ## Editing notes
 
-- Start with note purpose.
+- Follow `.notes/style-guide.md`. Open with the formal definition, then explain
+  it plainly. Notes have no Purpose section.
 - Prefer dense sections over thin bullet piles.
 - Add inline links near nontrivial claims.
 - Add setup and reproduction details for benchmark notes.
 - Add assumptions and intermediate steps when a derivation skips too much.
-- Keep prose direct. Avoid formulaic contrasts, fake certainty, and generic
-  conclusions.
+- Keep prose dry and precise. Avoid theatrical framing, self-reference,
+  formulaic contrasts, unqualified generalities, and generic conclusions.
 
 ## Writing and linking style
 
