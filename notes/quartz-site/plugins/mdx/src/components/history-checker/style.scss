@@ -1,0 +1,211 @@
+// History checker (history-checker): a register's operations as bars on
+// process lines, writes in blue and reads in orange, with the three
+// verdicts beneath. Outlined bars are the sub-history the highlighted model
+// rejects; numbered ticks are linearization points.
+figure.hc {
+  @include fig-frame;
+  font-size: 0.9rem;
+
+  button,
+  select {
+    @include fig-button(0.25rem 0.6rem, 0.86rem);
+    @include fig-button-hover;
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.6;
+    }
+  }
+
+  .hc-top,
+  .hc-edit {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.6rem;
+  }
+
+  .hc-edit {
+    margin: 0.3rem 0 0.7rem;
+  }
+
+  .hc-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--darkgray);
+  }
+
+  .hc-plot {
+    margin-top: 0.5rem;
+  }
+
+  .hc-svg {
+    @include fig-chart;
+    user-select: none;
+  }
+
+  .hc-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+    opacity: 0.6;
+  }
+
+  .hc-lane {
+    stroke: var(--gray);
+    stroke-width: 1;
+  }
+
+  .hc-tick,
+  .hc-pname {
+    fill: var(--darkgray);
+    font-size: 11px;
+  }
+
+  .hc-pname {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .hc-op {
+    cursor: grab;
+    touch-action: none;
+    outline: none;
+
+    .hc-bar {
+      stroke-width: 1.5;
+      fill-opacity: 0.85;
+    }
+
+    &.hc-w .hc-bar {
+      fill: var(--fig-blue);
+      stroke: var(--fig-blue);
+    }
+
+    &.hc-r .hc-bar {
+      fill: var(--fig-orange);
+      stroke: var(--fig-orange);
+    }
+
+    &.hc-r {
+      cursor: pointer;
+    }
+
+    .hc-end {
+      fill: transparent;
+      cursor: ew-resize;
+    }
+
+    .hc-label {
+      fill: var(--dark);
+      font-family: var(--codeFont);
+      font-size: 13px;
+    }
+
+    &.hc-dim {
+      opacity: 0.35;
+    }
+
+    &.hc-core .hc-bar {
+      stroke: var(--fig-red);
+      stroke-width: 3;
+      stroke-dasharray: 5 3;
+    }
+
+    &.hc-sel .hc-bar,
+    &:focus-visible .hc-bar {
+      stroke: var(--secondary);
+      stroke-width: 3;
+      stroke-dasharray: none;
+    }
+  }
+
+  .hc-point {
+    stroke: var(--dark);
+    stroke-width: 2.5;
+  }
+
+  .hc-rank {
+    fill: var(--dark);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .hc-verdicts {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .hc-verdict {
+    display: grid;
+    grid-template-columns: 11.5rem 4.2rem minmax(0, 1fr);
+    align-items: baseline;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.35rem 0.6rem;
+    text-align: left;
+    line-height: 1.35;
+
+    &[aria-pressed="true"] {
+      border-color: var(--secondary);
+      background: var(--highlight);
+    }
+
+    &:disabled {
+      opacity: 1;
+    }
+  }
+
+  .hc-vname {
+    font-weight: 600;
+    color: var(--dark);
+  }
+
+  .hc-vmark {
+    font-weight: 600;
+  }
+
+  .hc-verdict[data-ok="true"] .hc-vmark {
+    color: var(--fig-green);
+  }
+
+  .hc-verdict[data-ok="false"] .hc-vmark {
+    color: var(--fig-red);
+  }
+
+  .hc-vdetail {
+    color: var(--darkgray);
+    font-size: 0.84rem;
+    overflow-wrap: anywhere;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .hc-verdict {
+      grid-template-columns: minmax(0, 1fr) auto;
+
+      .hc-vdetail {
+        grid-column: 1 / -1;
+      }
+    }
+
+    .hc-tick {
+      font-size: 17px;
+    }
+
+    .hc-pname {
+      font-size: 20px;
+    }
+
+    .hc-op .hc-label {
+      font-size: 19px;
+    }
+
+    .hc-rank {
+      font-size: 17px;
+    }
+  }
+}

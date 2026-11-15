@@ -1,0 +1,289 @@
+---
+title: Distributed Systems Consistency Models
+aliases:
+  - distributed-systems/consistency
+category: Distributed Systems
+tags:
+  - consistency-models
+  - linearizability
+  - sequential-consistency
+  - causal-consistency
+  - paxos
+date: 2024-05-06
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
+status: evergreen
+description: Definitions of linearizability, sequential consistency, causal memory, PRAM, session guarantees, serializability and Lamport's register semantics from their primary sources, single-register histories that separate them with a checker that decides each model, the availability and latency results that price them, and linearizable and serializable reads in etcd 3.7.3 classified by those checkers.
+sources:
+  - title: Herlihy and Wing (1990), Linearizability - A Correctness Condition for Concurrent Objects
+    url: https://cs.brown.edu/~mph/HerlihyW90/p463-herlihy.pdf
+    type: paper
+  - title: Lamport (1979), How to Make a Multiprocessor Computer That Correctly Executes Multiprocess Programs
+    url: https://lamport.azurewebsites.net/pubs/multi.pdf
+    type: paper
+  - title: Lamport (1986), On Interprocess Communication
+    url: https://lamport.azurewebsites.net/pubs/interprocess.pdf
+    type: paper
+  - title: Ahamad, Neiger, Burns, Kohli and Hutto (1995), Causal Memory - Definitions, Implementation, and Programming
+    url: https://doi.org/10.1007/BF01784241
+    type: paper
+  - title: Terry, Demers, Petersen, Spreitzer, Theimer and Welch (1994), Session Guarantees for Weakly Consistent Replicated Data
+    url: https://doi.org/10.1109/PDIS.1994.331722
+    type: paper
+  - title: Viotti and Vukolić (2016), Consistency in Non-Transactional Distributed Storage Systems
+    url: https://arxiv.org/abs/1512.00168
+    type: paper
+  - title: Attiya and Welch (1994), Sequential Consistency versus Linearizability
+    url: https://people.engr.tamu.edu/j-welch/papers/tocs94.pdf
+    type: paper
+  - title: Mahajan, Alvisi and Dahlin (2011), Consistency, Availability, and Convergence, UTCS TR-11-22
+    url: https://cs.utexas.edu/~dahlin/papers/cac-tr.pdf
+    type: paper
+  - title: Adve and Gharachorloo (1996), Shared Memory Consistency Models - A Tutorial
+    url: https://pages.cs.wisc.edu/~markhill/restricted/consistency_tutorial_tr.pdf
+    type: paper
+  - title: Lowe (2017), Testing for Linearizability
+    url: https://www.cs.ox.ac.uk/people/gavin.lowe/LinearizabiltyTesting/paper.pdf
+    type: paper
+  - title: Horn and Kroening (2015), Faster Linearizability Checking via P-Compositionality
+    url: https://arxiv.org/abs/1504.00204
+    type: paper
+  - title: etcd API guarantees (v3.7)
+    url: https://etcd.io/docs/v3.7/learning/api_guarantees
+    type: docs
+  - title: Jepsen, Consistency Models
+    url: https://jepsen.io/consistency
+    type: docs
+---
+
+A **consistency model** is a set of histories: the sequences of operation invocations and responses that a shared object or data store is permitted to exhibit. A system satisfies the model if every history it can produce belongs to the set. The model specifies the object's interface, independent of how replication or caching implements it, and serves as the contract between the programmer and the implementer. An **anomaly** is a history that a weaker model admits and a stronger one rejects.
+
+Stronger models admit fewer histories. Each operation in a history has an invocation time and a response time. Two operations whose intervals overlap are **concurrent**, and an operation that responds before another is invoked **precedes** it in real time. The models below differ in which orders an explanation of a history must respect: real-time precedence, the program order of each process, or only the causal order among operations. [Viotti and Vukolić (2016)](https://arxiv.org/abs/1512.00168) survey more than fifty non-transactional models in one formal framework, and the [Jepsen hierarchy](https://jepsen.io/consistency) maps the containment relations among the common ones, transactional models included. Database isolation levels reuse some of the same names for properties of multi-operation transactions; they are treated in [[systems/databases/transactions-serializability-isolation|Transactions, Serializability, and Isolation Levels]].
+
+## The models at a glance
+
+| Model | Order respected | One total order? | Scope | Available under partition |
+|---|---|---|---|---|
+| Linearizability | real time | yes | single objects; local | no ([Gilbert and Lynch 2002](https://doi.org/10.1145/564585.564601)) |
+| Sequential consistency | program order | yes | single operations; not local | no ([Jepsen](https://jepsen.io/consistency/models/sequential)) |
+| Causal memory | causal order | no, one per process | all objects | sticky ([Jepsen](https://jepsen.io/consistency/models/causal)) |
+| PRAM | each process's writes | no, one per process | all objects | sticky ([Jepsen](https://jepsen.io/consistency/models/pram)) |
+| Serializability | none | yes, of transactions | multi-object transactions | no ([Jepsen](https://jepsen.io/consistency/models/serializable)) |
+| Strict serializability | real time | yes, of transactions | multi-object transactions | no |
+| Eventual consistency | none | no | any | yes |
+
+A model is available under partition if every request to a non-failed replica can complete while the network drops all messages between replicas. "Sticky" means available provided each client keeps talking to the same replica, the sticky availability of Bailis et al. (2014). Two of the names mislead. Serializability imposes no real-time order and no per-process order ([Jepsen](https://jepsen.io/consistency/models/serializable)): a transaction that starts after another commits may serialize before it, and only strict serializability forbids that. Linearizability is defined per object, and [Herlihy and Wing (1990)](https://cs.brown.edu/~mph/HerlihyW90/p463-herlihy.pdf) prove it **local**: a history is linearizable if and only if its restriction to each object is. Locality says nothing about operations that span objects, so a store that is linearizable on every key can still exhibit non-serializable multi-key behavior, such as the write skew described in [[systems/databases/mvcc-snapshot-isolation|MVCC and Snapshot Isolation]]. Herlihy and Wing also show that sequential consistency is not local: two objects can each be sequentially consistent while the combined history is not.
+
+## Histories that separate the models
+
+All the histories below concern one read/write register, initially 0, with unique written values. `w(1)` writes 1, and `r→1` is a read that returned 1. The figure beside each history runs three checkers on it in the browser, for linearizability, sequential consistency and causal memory, each defined in the sections that follow. Dragging a bar or its ends, clicking a read to change the value it returned, or adding operations reruns the checkers.
+
+**Sequentially consistent, not linearizable.** A read invoked after a write responded returns the initial value:
+
+```plaintext
+P1:  |-- w(1) --|
+P2:                |-- r→0 --|
+```
+
+[Herlihy and Wing](https://cs.brown.edu/~mph/HerlihyW90/p463-herlihy.pdf) call a history linearizable if some total order of its operations is a legal sequential execution of the object and respects real-time precedence; equivalently, each operation appears to take effect at a single point between its invocation and its response. The write precedes the read in real time, so any such order puts the write first, and the read would return 1. The history is sequentially consistent, because the order `r→0, w(1)` respects each process's program order. A read served by a replica that has not yet applied the write produces this history.
+
+<HistoryChecker preset="stale" />
+
+**New value, then old.** Two reads overlap one long write. The first returns the new value, and the second, invoked after the first responded, returns the old one. Each read alone is permitted, since a read concurrent with a write may return either value, but no single order of the three operations explains both. The history is sequentially consistent and not linearizable. [Lamport (1986)](https://lamport.azurewebsites.net/pubs/interprocess.pdf) calls a register that permits this inversion *regular* and one that forbids it *atomic* (see [register semantics](#lamports-register-semantics)). The figure's "New, then old" history is this one. The [etcd experiment](#measured-linearizable-and-serializable-reads-in-etcd) recorded the same pattern across replicas.
+
+**Causal, not sequentially consistent.** Two processes each write and later read:
+
+```plaintext
+P1:  |-- w(1) --|          |-- r→2 --|
+P2:    |-- w(2) --|          |-- r→1 --|
+```
+
+[Lamport (1979)](https://lamport.azurewebsites.net/pubs/multi.pdf) defines sequential consistency: "the result of any execution is the same as if the operations of all the processors were executed in some sequential order, and the operations of each individual processor appear in this sequence in the order specified by its program." P1 read 2 after writing 1, so in any sequential order w(1) comes before w(2); by the same argument P2 forces w(2) before w(1). No sequential order exists. Each process can explain what it saw by its own order of the two concurrent writes, which causal memory permits. With two registers the same anomaly is the independent-reads-of-independent-writes pattern (IRIW): P1 writes x, P2 writes y, and two readers observe the writes in opposite orders.
+
+<HistoryChecker preset="orders" />
+
+**Eventual, not causal.** P2 reads 1 and then writes 2, so w(1) causally precedes w(2). P3 then reads 2 followed by 1:
+
+```plaintext
+P1:  |-- w(1) --|
+P2:               |-- r→1 --| |-- w(2) --|
+P3:                                        |-- r→2 --| |-- r→1 --|
+```
+
+Causal memory requires every process to observe causally ordered writes in that order, and P3 observes them in reverse. Eventual consistency permits the history, promising only that P3's reads eventually return the last value. With two keys this is the reply-before-post anomaly: P2 reads a post and writes a reply, and P3 sees the reply but not the post.
+
+<HistoryChecker preset="causal" />
+
+**Serializable, not strictly serializable.** T2 writes x and commits at 10:00. T1 starts at 10:05, reads the value of x from before T2, and writes y. The serial order "T1 then T2" explains the reads, so the execution is serializable even though T1 started after T2 committed. Strict serializability adds the real-time constraint and forbids it. Reads from a lagging snapshot produce this pattern.
+
+> [!note]- Deep dive: how the figure decides each model
+> Deciding whether a history is linearizable is NP-complete in general, and so is deciding sequential consistency, even when every read's writer is known ([Gibbons and Korach 1997](https://doi.org/10.1137/S0097539794279614)). Practical checkers search.
+>
+> - **Linearizability.** Wing and Gong's algorithm repeatedly picks an operation that is minimal in real-time order (no pending operation responded before it was invoked), applies it to a sequential model of the object, and backtracks when a read's result disagrees. [Lowe (2017)](https://www.cs.ox.ac.uk/people/gavin.lowe/LinearizabiltyTesting/paper.pdf) turns the tree search into a graph search by caching each configuration, "the state of the sequential object and the set of operations linearized so far," so equivalent configurations are explored once. [Horn and Kroening (2015)](https://arxiv.org/abs/1504.00204) first split a history into parts that can be checked independently (P-compositionality; one part per key is the case that locality justifies). [Porcupine](https://github.com/anishathalye/porcupine) implements both. The figure and the Python harness implement the cached search.
+> - **Sequential consistency of one register.** The relevant state is how far each process has advanced in its program and the register's value, so a memoized search over at most $\prod_p (n_p + 1) \cdot (W + 1)$ configurations decides it, where $n_p$ is the number of operations of process $p$ and $W$ the number of writes. This bound is polynomial for a fixed number of processes; the NP-completeness result above concerns many locations.
+> - **Causal memory.** [Ahamad et al. (1995)](https://doi.org/10.1007/BF01784241) define causal order as the transitive closure of program order and the writes-into relation (a write precedes each read that returns its value). A history is causal if, for every process $p$, the operations of $p$ together with all writes have a legal serialization that respects causal order. The checker computes the closure and searches for each process's serialization. [Bouajjani, Enea, Guerraoui and Hamza (2017)](https://arxiv.org/abs/1611.00580) distinguish several variants of causal consistency in the literature, of which this causal memory is one, and study the complexity of checking them.
+> - **Explanations.** When a model rejects a history, the figure outlines a minimal sub-history that the model still rejects, found by deleting an operation (a write together with the reads of its value) for as long as the rest is still rejected. Such a sub-history is closed under writes-into. Restricting a witness order for the whole history to a closed sub-history yields a witness for the sub-history, so a rejected sub-history shows why the whole history is rejected.
+>
+> The Python checkers agree with brute-force enumeration of every order on 4,000 random histories of up to eight operations, and with Porcupine on those and on 421 larger histories of 12 to 24 operations. The figure's TypeScript checkers agree with the Python ones on 900 of them; [How this was measured](#measured-linearizable-and-serializable-reads-in-etcd) gives the commands.
+
+## Why the model matters
+
+A producer stores a result and then sets a flag; a consumer waits for the flag and then reads the result:
+
+```python
+def produce(key, flag, command):
+    storage.put(key, application.execute(command))
+    storage.put(flag, True)
+
+def consume(key, flag):
+    while storage.get(flag) is not True:
+        pass
+    return storage.get(key)
+```
+
+Under linearizability the consumer reads the result: the put to `key` precedes the put to `flag` in real time, the get of `flag` that returns `True` follows the second put in the linearization, and the final get follows it in real time. Sequential consistency also suffices, by program order alone. Causal memory suffices too: `put(key)` precedes `put(flag)` in program order, `put(flag)` writes into the consumer's read of `flag`, and that read precedes `get(key)`, so `put(key)` causally precedes `get(key)` and appears before it in the consumer's serialization. None of the three needs a multi-key transaction for this protocol. Under eventual consistency the consumer can observe the flag before the result and read a missing or stale value.
+
+## Lamport's register semantics
+
+[Lamport (1986)](https://lamport.azurewebsites.net/pubs/interprocess.pdf) classifies single-writer registers by what a read may return when it overlaps a write:
+
+- **Safe**: a read not concurrent with any write obtains the most recently written value. A read that overlaps a write may obtain any value the register can hold.
+- **Regular**: safe, and a read that overlaps a write obtains either the old value or the value being written.
+- **Atomic**: safe, and "reads and writes behave as if they occur in some definite order." For a register, atomicity in this sense is linearizability of the register's histories.
+
+In the timeline below, $w(v_1)$ completes before $r_1$ starts, and $w(v_2)$ overlaps $r_2$ and $r_3$, with $r_2$ responding before $r_3$ is invoked.
+
+```plaintext
+            r1           r2     r3
+          |----|       |----| |----|
+   w(v1)                w(v2)
+|------|             |---------|
+```
+
+| Semantics | Constraints on the reads |
+|-----------|----------------------|
+| safe      | $r_1 \to v_1$; $r_2$ and $r_3$ may return any value |
+| regular   | $r_1 \to v_1 \land (r_2 \to v_1 \lor r_2 \to v_2) \land (r_3 \to v_1 \lor r_3 \to v_2)$ |
+| atomic    | regular, and $r_2 \to v_2 \implies r_3 \to v_2$ |
+
+The last clause of the atomic row excludes the new-then-old inversion.
+
+## Linearizability
+
+A linearizable object behaves as if a single copy executed each operation at one instant within its interval. A linearizable read therefore cannot be answered from a replica's local state alone. The replica must first establish that no write it has not applied has completed elsewhere.
+
+A Raft leader must "check whether it has been deposed before processing a read-only request," because a newer leader may have committed writes with a majority that excludes it. Raft does so by having "the leader exchange heartbeat messages with a majority of the cluster" before it answers ([Ongaro and Ousterhout 2014](https://raft.github.io/raft.pdf), §8). A new leader also commits a no-op entry at the start of its term, so that it knows which entries are committed. The heartbeat round can be replaced by a lease, which "would rely on timing for safety (it assumes bounded clock skew)" ([[systems/distributed-systems/failure-detectors-leases-leader-election|leases and fencing]]). The same reasoning applies to a Paxos leader. etcd serves linearizable reads through the Raft library's `ReadIndex` call (`server/etcdserver/read/read.go`), which records the commit index, confirms leadership, and waits until the member has applied that index. Its serializable reads skip this step and are answered from the contacted member's applied state, which "may access stale data with respect to quorum" ([etcd API guarantees](https://etcd.io/docs/v3.7/learning/api_guarantees)).
+
+Locality simplifies sharding. If each shard's replica group provides linearizable single-key operations, the whole store does, with no coordination between shards. Locality does not extend to operations that touch several shards, which need a commit protocol such as [[systems/distributed-systems/two-phase-commit|two-phase commit]] for atomicity and a serializable concurrency control for isolation. A client that pipelines requests, issuing one before the previous one responds, makes them concurrent, and linearizability then permits any order among them. A client that needs its requests applied in issue order must wait for each response or use a session mechanism that orders them.
+
+## Weaker models
+
+### Sequential consistency
+
+Sequential consistency keeps a single total order of all operations but requires only that it respect each process's program order, not real time. A reader may therefore lag behind other processes indefinitely, provided what it reads is consistent with one order in which its own operations keep their order. [Attiya and Welch (1994)](https://people.engr.tamu.edu/j-welch/papers/tocs94.pdf) quantify the difference for registers in a model where message delays lie in $[d - u, d]$. With perfectly synchronized clocks, a sequentially consistent register needs the worst-case read time plus the worst-case write time to be at least $d$, although either one alone can be zero. A linearizable register needs reads of at least $u/4$ and writes of at least $u/2$ when clocks are not synchronized. Their sequentially consistent implementations deliver every write by atomic broadcast and apply it at every replica in delivery order, answering either reads or writes locally.
+
+Sequential consistency concerns single operations and preserves program order. Serializability concerns multi-operation transactions over many objects and imposes neither real-time nor per-process order. Serializability with the real-time constraint added is strict serializability, which Spanner calls external consistency and describes as equivalent to linearizability of transactions ([Corbett et al. 2012](https://www.usenix.org/system/files/conference/osdi12/osdi12-final-16.pdf)).
+
+### Snapshot reads
+
+"A snapshot read is a read in the past that executes without locking," and in Spanner a client either specifies its timestamp or bounds its staleness ([Corbett et al. 2012](https://www.usenix.org/system/files/conference/osdi12/osdi12-final-16.pdf), §4.1). A read-only transaction whose reads all come from one snapshot serializes at the snapshot's point in the commit order, so it is serializable but not strictly serializable. In a replicated log, a replica that has applied a prefix of the log holds such a snapshot, which is why a read executed entirely at one lagging replica is consistent but stale. Snapshot isolation is a different property: it gives each read-write transaction a snapshot, aborts one of two concurrent transactions that write the same item, and permits write skew ([Berenson et al. 1995](https://arxiv.org/abs/cs/0701157)).
+
+### Causal memory
+
+Causal order is the transitive closure of program order and writes-into ([Ahamad et al. 1995](https://doi.org/10.1007/BF01784241)). In a causal memory each process sees all writes in an order that respects causal order, and different processes may see concurrent writes in different orders, as in the "Two orders of concurrent writes" history. Linearizability implies sequential consistency, which implies causal memory: restricting a sequential order to one process's operations and all writes gives a serialization that respects causal order. Implementations attach dependency metadata, such as vector clocks, to writes and delay applying a write at a replica until its causal predecessors have been applied. That metadata grows with the number of replicas or tracked dependencies.
+
+### PRAM and processor consistency
+
+**PRAM** (pipelined RAM, Lipton and Sandberg 1988) requires only that every process observe the writes of each other process in the order that process issued them. Writes of different processes may appear in different orders to different readers. **Processor consistency**, defined by Goodman (1989), adds a condition on writes to the same location; in the formulation [Viotti and Vukolić](https://arxiv.org/abs/1512.00168) give, "(a) writes issued by a process must be observed in the order in which they were issued, and (b) if there are two write operations to the same object, all processes observe these operations in the same order." The two-register IRIW history is processor consistent. Its one-register version above is not, because both writes go to the same register.
+
+### Memory fences
+
+A **fence** (memory barrier) is an instruction that orders a processor's memory operations before it ahead of those after it; between fences the hardware may still reorder. On a relaxed multiprocessor a program regains sequentially consistent results when fences restore the program order its correctness depends on. [Adve and Gharachorloo (1996)](https://pages.cs.wisc.edu/~markhill/restricted/consistency_tutorial_tr.pdf) give the per-architecture details. In their example, a serialization instruction after each write gives sequentially consistent results on IBM 370, and an STBAR between two writes does so on SPARC PSO. On models that do not make writes atomic, such as PowerPC, "read-modify-write operations may need to be used to make a write appear atomic." The hardware models in the tutorial are specified without any real-time order, so fencing every operation yields sequential consistency; the tutorial does not discuss linearizability.
+
+File systems state a real-time guarantee instead. POSIX requires that after a `write()` to a regular file returns, any successful `read()` of the modified bytes return the written data until they are modified again, and its rationale adds: "If a read() of file data can be proven (by any means) to occur after a write() of the data, it must reflect that write(), even if the calls are made by different threads" ([POSIX `write()`](https://pubs.opengroup.org/onlinepubs/9799919799/functions/write.html)). Network file systems such as NFS relax this with client caching ([[systems/distributed-systems/distributed-cache-coherence|distributed cache coherence]]).
+
+### Session guarantees
+
+[Terry et al. (1994)](https://doi.org/10.1109/PDIS.1994.331722), from the Bayou project, define four guarantees that constrain only what one session observes:
+
+- **Read your writes**: a read reflects every earlier write of the same session. A typical violation occurs when a user saves a profile edit, refreshes, and sees the old profile, because the write went to the primary and the read went to a stale replica.
+- **Monotonic reads**: a read reflects every write that an earlier read of the session reflected.
+- **Monotonic writes**: a session's writes are applied at every replica in the order the session issued them.
+- **Writes follow reads**: a write is ordered, at every replica, after every write that an earlier read of the session reflected. This is the per-session part of the reply-before-post guarantee.
+
+Read your writes, monotonic reads and monotonic writes together are equivalent to PRAM (Brzeziński, Sobaniec and Wawrzyniak 2003, as cited by [Viotti and Vukolić](https://arxiv.org/abs/1512.00168)), and causal consistency entails all four ([Brzeziński, Sobaniec and Wawrzyniak 2004](https://dblp.org/rec/conf/pdp/BrzezinskiSW04.html)). Read your writes is sticky available ([Jepsen](https://jepsen.io/consistency/models/read-your-writes)). The guarantees can be implemented by routing a session to one replica, or by having the client carry the version of the latest write it has read or written and skip replicas that have not reached it. Azure Cosmos DB's session consistency level works the second way, with a session token per client.
+
+## Measured: linearizable and serializable reads in etcd
+
+etcd 3.7.3 replicates a key-value store with Raft. I ran three-member clusters on one machine, with three clients that each issued 8 operations on one key per history, choosing with equal probability between a write of a unique value and a read, and classified every recorded history with the checkers above. Writes always go through Raft. The three client configurations were:
+
+- **linearizable, sticky**: each client talks only to its own member, with etcd's default linearizable reads;
+- **serializable, sticky**: the same, with serializable reads, answered from that member's applied state;
+- **serializable, spread**: every client is given all three endpoints, so the etcd client spreads its requests across the members, with serializable reads.
+
+Each configuration ran with no added delay between members and with 2 ms and 10 ms of one-way delay on all member-to-member traffic, on five fresh clusters each, 100 histories per cluster. Counts are histories out of 100, as the mean over the five clusters with the range in brackets. A read is counted as stale if some write that responded before the read was invoked has a higher etcd revision than the read.
+
+| Reads, clients | Delay | Linearizable | Sequential only | Causal only | Not causal | Stale reads |
+|---|---|---|---|---|---|---|
+| linearizable, sticky | 0 ms | 100 [100 to 100] | 0 | 0 | 0 | 0% |
+| linearizable, sticky | 2 ms | 100 [100 to 100] | 0 | 0 | 0 | 0% |
+| linearizable, sticky | 10 ms | 100 [100 to 100] | 0 | 0 | 0 | 0% |
+| serializable, sticky | 0 ms | 76.2 [69 to 82] | 23.8 [18 to 31] | 0 | 0 | 2.7% |
+| serializable, sticky | 2 ms | 53.2 [49 to 57] | 46.8 [43 to 51] | 0 | 0 | 8.8% |
+| serializable, sticky | 10 ms | 73.0 [65 to 81] | 27.0 [19 to 35] | 0 | 0 | 10.7% |
+| serializable, spread | 0 ms | 75.4 [66 to 85] | 11.6 [8 to 16] | 1.8 [0 to 3] | 11.2 [6 to 16] | 3.4% |
+| serializable, spread | 2 ms | 19.0 [18 to 21] | 5.8 [2 to 7] | 6.2 [4 to 10] | 69.0 [64 to 76] | 19.4% |
+| serializable, spread | 10 ms | 14.4 [10 to 19] | 4.8 [3 to 8] | 2.4 [0 to 5] | 78.4 [73 to 87] | 27.0% |
+
+"Sequential only" counts histories that are sequentially consistent and not linearizable, and "Causal only" those that are causal and not sequentially consistent. Each configuration issued 5,955 reads and 6,045 writes. The median read took 0.35 to 0.41 ms with serializable reads at every delay, against 1.11, 11.63 and 44.09 ms with linearizable reads at 0, 2 and 10 ms; the median write took 1.7 to 1.8, 12.0 to 12.3 and 44.5 to 44.8 ms.
+
+No history with linearizable reads was rejected, which agrees with etcd's documented guarantee and checks the checkers on a store whose reads are linearizable. With sticky serializable reads, 24 to 47 of every 100 histories were not linearizable, depending on the delay, and the share is not monotone in it: it is highest at 2 ms. I did not investigate why. Every one of these histories was sequentially consistent, and that follows from how etcd serves them. A member's applied state is a prefix of the committed log, a member responds to a write only after applying it (the proposing request waits for the apply loop to trigger it), and members apply entries in log order. The reads of a client that stays on one member therefore observe non-decreasing prefixes that include its own writes. Ordering all operations by log position, with each read placed after the last entry its member had applied, gives a sequential order that respects every client's program order. Of the 488 rejected histories, the minimal rejected sub-histories have two to five operations: 18 are a write followed by a read of the initial value, 97 a read of a value that a completed write had overwritten, and the other 373 contain two or three reads that together fix the order of two concurrent writes, which one of the reads then contradicts. One of the five-operation kind, from history 8 of cluster `ser-sticky-d10-s1` (10 ms between members):
+
+```plaintext
+P1  w(101)   [ 0.342, 43.976] ms   member m1, revision 104
+P2  w(202)   [ 3.527, 48.272] ms   member m2, revision 105
+P3  r→202    [36.889, 37.124] ms   member m3, revision 105
+P1  r→101    [45.765, 45.947] ms   member m1, revision 104
+P2  r→202    [53.351, 53.579] ms   member m2, revision 105
+```
+
+Without P2's last read the history would be linearizable, with w(202) taking effect before w(101). That read orders w(101) first, as the log does, and then P1's read, invoked after P3's read had returned 202, is stale: member m1 had not yet applied revision 105. Member m3 had applied it about 9 ms earlier. The history is the new-then-old inversion across members.
+
+<HistoryChecker preset="etcd" />
+
+Spreading the same serializable reads across members removes the per-client prefix property. At 2 and 10 ms of delay, 69.0 and 78.4 of every 100 histories were not even causal, and 19.4% and 27.0% of reads were stale (3.4% with no added delay). The smallest rejections of causal memory are a single client that reads a value older than its own last write, a violation of read your writes: for example, a client wrote 102 at member m1 (revision 22) and its next read, sent to m2, returned the initial value at revision 20. Read your writes is one of the session guarantees that causal memory entails.
+
+> [!note]- How this was measured
+> The code is in [consistency-experiments](https://github.com/elimelt/web/tree/main/notes/content/systems/distributed-systems/consistency-experiments).
+>
+> - **Machine:** a 4-vCPU Intel Xeon cloud VM on Linux 6.18, shared with three other agents running experiments at the same time. Every etcd member, the delay proxy and the recorder were pinned to two of the four CPUs with `taskset`. The recorder is Go 1.26 with `go.etcd.io/etcd/client/v3` v3.7.3 and Porcupine v1.3.1; the checkers run on Python 3.13.
+> - **Store:** the etcd v3.7.3 release binary (`etcd-v3.7.3-linux-amd64.tar.gz`, whose SHA-256 matched the release's `SHA256SUMS`), three members on loopback ports, default heartbeat interval (100 ms) and election timeout (1,000 ms), and a fresh data directory on local disk per cluster.
+> - **Delay:** `delayproxy.py` sits in front of each member's peer port and delays every byte by the stated time in each direction, so all Raft traffic sees that one-way delay while clients reach their members directly. With 0 ms the proxy is not used.
+> - **Workload** (`./experiment.sh`, which runs `run.sh` once per cluster): for each history the key is reset to 0 and every member is polled until it has applied the reset. Then three clients each run 8 operations, with a pause drawn uniformly from 0 to 2 ms before each and an equal chance of write or read. Invocation and response times come from Go's monotonic clock around each call, so each recorded interval contains the operation's true interval, which can only make a history easier to linearize. A write that failed or timed out (5 s) would be recorded with an unknown response; none did. Each response's member is read from the etcd response header.
+> - **Classification** (`python3 classify.py --porcupine recorder/recorder data/*.jsonl.gz > results.txt`, then `python3 latency.py data/*.jsonl.gz >> results.txt`): the three checkers in `checkers.py`. Porcupine's linearizability verdict agreed on all 4,500 recorded histories (108,000 operations). The script also tallies the shapes of the minimal non-linearizable sub-histories and prints one minimal witness per class; `latency.py` gives the latencies quoted above. Raw histories are in `data/` (gzipped JSON lines), the output in `results.txt`. The whole run took 19 minutes.
+> - **Checker validation** (`python3 validate.py --porcupine recorder/recorder`): 4,000 random histories of up to eight operations against brute-force enumeration in `bruteforce.py`, and those plus 421 larger ones against Porcupine. It also writes `fixtures.json`, which the figure's test (`notes/quartz-site/plugins/mdx/test/history-checker.test.mjs`) uses to check the TypeScript checkers.
+
+## Why stronger models cost coordination
+
+- **Linearizability is unavailable under partition.** [Gilbert and Lynch (2002)](https://doi.org/10.1145/564585.564601) prove that no implementation of an atomic read/write object in an asynchronous network guarantees a response from every non-failed node when messages can be lost. Without partitions the cost is latency: Attiya and Welch's lower bounds grow with the delay uncertainty $u$, and in practice a linearizable read takes a round of messages to a majority (Raft's heartbeat check, quorum reads) or relies on a lease and bounded clock drift. In the etcd experiment, the linearizable read contacts the leader before answering, and the serializable read does not.
+- **Sequential consistency is also unavailable under partition** ([Jepsen](https://jepsen.io/consistency/models/sequential)), and Attiya and Welch's implementations order writes by atomic broadcast, which is equivalent to consensus. It saves latency by letting either reads or writes complete locally.
+- **Causal consistency is close to the strongest model that remains available.** [Mahajan, Alvisi and Dahlin (2011)](https://cs.utexas.edu/~dahlin/papers/cac-tr.pdf) prove that "no consistency semantics stronger than real time causal consistency can be implemented" by a storage system that is always available (reads and writes complete "regardless of which messages are lost") and one-way convergent (if node p can receive from node q, p's state eventually reflects q's updates), in an asynchronous network where messages may be delayed, reordered or dropped. They also show that real-time causal consistency is achievable under those conditions. Real-time causal consistency adds to causal consistency that an operation which ends before another begins is not ordered after it. [Attiya, Ellen and Morrison (2015)](https://doi.org/10.1145/2767386.2767419) prove a related bound for highly available, eventually consistent stores that implement multi-value registers: none satisfies a model strictly stronger than observable causal consistency.
+- **Eventual consistency requires no coordination** and leaves the handling of anomalies to the application. [[systems/distributed-systems/crdts|CRDTs]] keep the absence of coordination and make convergence a property of the data type.
+
+Mixed-consistency systems follow from these costs. They provide linearizable operations for the few paths that require them (uniqueness, counters that gate real resources, leader election through [[systems/distributed-systems/failure-detectors-leases-leader-election|leases and fencing]]), session or causal guarantees for user-facing reads, and eventual consistency for bulk data. They choose the model per operation, as etcd's per-request serializable option does.
+
+> [!note]- Potentially interesting ideas
+> - A client-side session token for etcd. Every recorded response carries the member's header revision, so a client could discard and retry a serializable read whose revision is below the highest revision it has already seen, or send that revision in the Range request, which a member that has not reached it refuses with `mvcc: required revision is a future revision` (`server/storage/mvcc/kvstore.go`). That should restore read your writes and monotonic reads in the spread configuration without a ReadIndex round, the way Cosmos DB's session token does; how often it retries and what it costs was not measured.
+> - Real-time causal consistency is the bound in Mahajan et al.'s theorem, and the checkers here stop at causal memory. Adding their extra condition to the causal checker would show which of the recorded serializable histories are real-time causal.
+
+## Related notes
+
+- [[systems/distributed-systems/clocks|clocks]]
+- [[systems/distributed-systems/ordering-events-in-distributed-systems|ordering events in distributed systems]]
+- [[systems/distributed-systems/distributed-cache-coherence|distributed cache coherence]]
+- [[systems/distributed-systems/managing-critical-state|managing critical state]]
+- [[systems/distributed-systems/crdts|CRDTs and conflict-free replication]]
+- [[systems/databases/transactions-serializability-isolation|transactions, serializability, and isolation levels]]
+- [[ml/serving-systems/distributed-ml-runtimes|distributed ML runtime architecture]] (staleness in asynchronous parameter servers)

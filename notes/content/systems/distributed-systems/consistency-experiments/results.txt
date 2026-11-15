@@ -1,0 +1,90 @@
+4500 histories, 108000 operations, 0 with unknown outcome
+Porcupine disagrees with checkers.linearizable on 0 histories
+
+reads=lin clients=sticky delay=0ms runs=5 histories/run=[100, 100, 100, 100, 100]
+  linearizable                   mean  100.0  min 100  max 100  per run [100, 100, 100, 100, 100]
+  sequential, not linearizable   mean    0.0  min   0  max   0  per run [0, 0, 0, 0, 0]
+  causal, not sequential         mean    0.0  min   0  max   0  per run [0, 0, 0, 0, 0]
+  not causal                     mean    0.0  min   0  max   0  per run [0, 0, 0, 0, 0]
+  stale reads: 0/5955 = 0.00%
+reads=lin clients=sticky delay=2ms runs=5 histories/run=[100, 100, 100, 100, 100]
+  linearizable                   mean  100.0  min 100  max 100  per run [100, 100, 100, 100, 100]
+  sequential, not linearizable   mean    0.0  min   0  max   0  per run [0, 0, 0, 0, 0]
+  causal, not sequential         mean    0.0  min   0  max   0  per run [0, 0, 0, 0, 0]
+  not causal                     mean    0.0  min   0  max   0  per run [0, 0, 0, 0, 0]
+  stale reads: 0/5955 = 0.00%
+reads=lin clients=sticky delay=10ms runs=5 histories/run=[100, 100, 100, 100, 100]
+  linearizable                   mean  100.0  min 100  max 100  per run [100, 100, 100, 100, 100]
+  sequential, not linearizable   mean    0.0  min   0  max   0  per run [0, 0, 0, 0, 0]
+  causal, not sequential         mean    0.0  min   0  max   0  per run [0, 0, 0, 0, 0]
+  not causal                     mean    0.0  min   0  max   0  per run [0, 0, 0, 0, 0]
+  stale reads: 0/5955 = 0.00%
+reads=ser clients=spread delay=0ms runs=5 histories/run=[100, 100, 100, 100, 100]
+  linearizable                   mean   75.4  min  66  max  85  per run [67, 77, 82, 85, 66]
+  sequential, not linearizable   mean   11.6  min   8  max  16  per run [15, 8, 11, 8, 16]
+  causal, not sequential         mean    1.8  min   0  max   3  per run [3, 3, 1, 0, 2]
+  not causal                     mean   11.2  min   6  max  16  per run [15, 12, 6, 7, 16]
+  stale reads: 202/5955 = 3.39%
+reads=ser clients=spread delay=2ms runs=5 histories/run=[100, 100, 100, 100, 100]
+  linearizable                   mean   19.0  min  18  max  21  per run [21, 18, 18, 19, 19]
+  sequential, not linearizable   mean    5.8  min   2  max   7  per run [7, 2, 6, 7, 7]
+  causal, not sequential         mean    6.2  min   4  max  10  per run [6, 4, 4, 10, 7]
+  not causal                     mean   69.0  min  64  max  76  per run [66, 76, 72, 64, 67]
+  stale reads: 1154/5955 = 19.38%
+reads=ser clients=spread delay=10ms runs=5 histories/run=[100, 100, 100, 100, 100]
+  linearizable                   mean   14.4  min  10  max  19  per run [15, 16, 12, 10, 19]
+  sequential, not linearizable   mean    4.8  min   3  max   8  per run [8, 4, 6, 3, 3]
+  causal, not sequential         mean    2.4  min   0  max   5  per run [4, 5, 3, 0, 0]
+  not causal                     mean   78.4  min  73  max  87  per run [73, 75, 79, 87, 78]
+  stale reads: 1606/5955 = 26.97%
+reads=ser clients=sticky delay=0ms runs=5 histories/run=[100, 100, 100, 100, 100]
+  linearizable                   mean   76.2  min  69  max  82  per run [79, 75, 82, 69, 76]
+  sequential, not linearizable   mean   23.8  min  18  max  31  per run [21, 25, 18, 31, 24]
+  causal, not sequential         mean    0.0  min   0  max   0  per run [0, 0, 0, 0, 0]
+  not causal                     mean    0.0  min   0  max   0  per run [0, 0, 0, 0, 0]
+  stale reads: 163/5955 = 2.74%
+reads=ser clients=sticky delay=2ms runs=5 histories/run=[100, 100, 100, 100, 100]
+  linearizable                   mean   53.2  min  49  max  57  per run [49, 55, 57, 53, 52]
+  sequential, not linearizable   mean   46.8  min  43  max  51  per run [51, 45, 43, 47, 48]
+  causal, not sequential         mean    0.0  min   0  max   0  per run [0, 0, 0, 0, 0]
+  not causal                     mean    0.0  min   0  max   0  per run [0, 0, 0, 0, 0]
+  stale reads: 525/5955 = 8.82%
+reads=ser clients=sticky delay=10ms runs=5 histories/run=[100, 100, 100, 100, 100]
+  linearizable                   mean   73.0  min  65  max  81  per run [81, 73, 65, 78, 68]
+  sequential, not linearizable   mean   27.0  min  19  max  35  per run [19, 27, 35, 22, 32]
+  causal, not sequential         mean    0.0  min   0  max   0  per run [0, 0, 0, 0, 0]
+  not causal                     mean    0.0  min   0  max   0  per run [0, 0, 0, 0, 0]
+  stale reads: 637/5955 = 10.70%
+
+operation kinds of the minimal non-linearizable sub-history, in invocation order, summed over delays
+  reads=ser clients=spread: wwr 390, wwrr 387, wr 170, wrr 3, wwrrr 3, wrwr 3
+  reads=ser clients=sticky: wwrr 362, wwr 97, wr 18, wwrrr 8, wrwr 3
+
+minimal witness, causal, not sequential: ser-spread-d0-s1 history 70
+    P3 w(304)  [  15.571,   19.812] ms  rev 883  member m2
+    P1 w(106)  [  21.395,   22.848] ms  rev 884  member m2
+    P2 r(304)  [  21.463,   22.928] ms  rev 883  member m3
+    P1 r(304)  [  22.870,   23.610] ms  rev 883  member m3
+    P2 r(106)  [  24.824,   25.279] ms  rev 884  member m1
+minimal witness, not causal: ser-spread-d0-s1 history 1
+    P1 w(102)  [   3.017,    4.111] ms  rev 22  member m1
+    P1 r(0)  [   5.280,    5.580] ms  rev 20  member m2
+minimal witness, sequential, not linearizable: ser-spread-d0-s1 history 2
+    P1 w(101)  [   1.151,    2.772] ms  rev 31  member m3
+    P1 w(102)  [   4.342,    5.860] ms  rev 32  member m1
+    P3 r(101)  [   5.866,   11.169] ms  rev 31  member m3
+minimal witness, sequential, not linearizable: ser-sticky-d0-s1 history 4
+    P3 w(306)  [  11.703,   15.229] ms  rev 58  member m3
+    P1 w(105)  [  16.685,   19.212] ms  rev 60  member m1
+    P2 r(306)  [  19.246,   19.431] ms  rev 58  member m2
+
+latency, ms: median [10th to 90th percentile]
+  reads=lin clients=sticky delay=0ms  write 1.79 [1.11 to 3.88] (n=6045)  read 1.11 [0.51 to 2.77] (n=5955)
+  reads=lin clients=sticky delay=2ms  write 12.31 [6.72 to 14.90] (n=6045)  read 11.63 [6.16 to 14.11] (n=5955)
+  reads=lin clients=sticky delay=10ms  write 44.78 [22.77 to 47.47] (n=6045)  read 44.09 [22.16 to 46.75] (n=5955)
+  reads=ser clients=spread delay=0ms  write 1.72 [1.10 to 3.77] (n=6045)  read 0.38 [0.22 to 0.97] (n=5955)
+  reads=ser clients=spread delay=2ms  write 12.33 [6.66 to 15.54] (n=6045)  read 0.35 [0.24 to 0.84] (n=5955)
+  reads=ser clients=spread delay=10ms  write 44.49 [22.85 to 46.76] (n=6045)  read 0.41 [0.26 to 0.76] (n=5955)
+  reads=ser clients=sticky delay=0ms  write 1.71 [1.10 to 3.52] (n=6045)  read 0.38 [0.21 to 1.01] (n=5955)
+  reads=ser clients=sticky delay=2ms  write 11.99 [6.69 to 14.65] (n=6045)  read 0.35 [0.23 to 0.76] (n=5955)
+  reads=ser clients=sticky delay=10ms  write 44.47 [22.71 to 46.97] (n=6045)  read 0.36 [0.23 to 0.76] (n=5955)
