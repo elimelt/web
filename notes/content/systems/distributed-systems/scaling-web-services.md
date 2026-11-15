@@ -11,14 +11,15 @@ tags:
   - edge-computing
   - microservices
 date: 2024-04-26
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: The standard progression for scaling a web service, from stateless two-tier designs through look-aside caching to edge data centers and service oriented architectures.
+description: The sequence of designs for scaling a web service, from stateless two-tier designs through look-aside caching to edge data centers and service oriented architectures.
 ---
 
-## Purpose
-
-This note walks the standard progression for scaling a web service: split stateless frontends from stateful storage, put load balancers between the tiers, add a caching layer, and then push work toward the edge or split the application into services.
+A web service scales horizontally when its capacity can be increased by adding servers to a tier. Horizontal scaling rests on the separation of stateless frontend servers, which can be added or replaced freely, from stateful storage servers, which hold all state that must survive a crash. Load balancers distribute requests between the tiers, and later designs add a caching tier, move work toward the edge of the network, or divide the application into services.
 
 ## Two tier architecture
 
@@ -26,15 +27,15 @@ The two tier design separates a scalable pool of frontend servers from a scaled-
 
 ### Two-tier RESTful web architecture
 
-Keep a scalable number of stateless servers hosting the client-facing application code. A crashed frontend costs nothing, since the user can connect to any other one. Behind them, run a scalable number of backend storage servers in a carefully designed distributed system, often using [[systems/distributed-systems/primary-backup|primary/backup]] or Paxos for availability and fault tolerance. Anything that must survive crashes belongs in the backend.
+A scalable number of stateless servers hosts the client-facing application code. The crash of a frontend loses no state, since the user can connect to any other frontend. Behind them, a scalable number of backend storage servers runs as a carefully designed distributed system, often using [[systems/distributed-systems/primary-backup|primary/backup]] or Paxos for availability and fault tolerance. Any state that must survive crashes belongs in the backend.
 
 ### Load balancing
 
-Load balancers sit between the tiers. They need to map any given client to a frontend server, consistently per connection, which `hash(clientIP, port) -> frontendServerIP` handles. They also map each frontend server to a storage server via `hash(key) -> storageServerIP`, where the key identifies the data a query touches. The system should adapt automatically when servers of any type are added.
+Load balancers sit between the tiers. A load balancer maps each client to a frontend server, consistently for the duration of a connection, for example with `hash(clientIP, port) -> frontendServerIP`. They also map each frontend server to a storage server via `hash(key) -> storageServerIP`, where the key identifies the data a query touches. The system should adapt automatically when servers of any type are added.
 
 ### Three-tier web architecture: look-aside caching
 
-Add a set of cache servers to absorb queries before they reach storage. Frontend servers send each query to the cache first, fall back to the storage servers on a miss, and then write the retrieved data into the cache. This pattern is look-aside caching.
+A three-tier architecture adds a set of cache servers that answer queries before they reach storage. Frontend servers send each query to the cache first, fall back to the storage servers on a miss, and then write the retrieved data into the cache. This pattern is look-aside caching.
 
 ```mermaid
 flowchart TD
@@ -46,7 +47,7 @@ flowchart TD
 ```
 
 > [!warning] Coupling the cache to storage
-> Caching can be arranged other ways. The cache could fetch values from storage itself, transparently to the frontend, so misses never need handling in application code. That tightly couples the cache and the storage server, usually forcing all queries through the caching layer and making the two services harder to design independently.
+> Caching can be arranged in other ways. The cache could fetch values from storage itself, transparently to the frontend, so that application code never handles misses. That design couples the cache tightly to the storage server, so that all queries pass through the caching layer and the two services are harder to design independently.
 
 The cache tier has to scale too. Cache servers need not be 1:1 with frontend or storage servers, but they should handle the load of the frontends they serve, and they should answer with lower latency than the storage layer they shield.
 
@@ -54,17 +55,17 @@ The cache tier has to scale too. Cache servers need not be 1:1 with frontend or 
 
 ### Edge computing
 
-Move data processing closer to the client. Users are globally distributed, and distance shows up as latency.
+Edge computing moves data processing closer to the client. Users are distributed globally, and network distance adds latency.
 
 Large applications place **edge data centers** near users, often hosting only the web and cache (RESTful) layers. Content can be pushed to the edge before anyone requests it. **Core data centers** host web, cache, and storage layers, replicated across sites for disaster tolerance.
 
 ### Service oriented architecture
 
-Each team exposes its data and functionality through an external interface, and all communication happens through network calls. Each service runs as a standalone product with its own service level agreement to its clients. Designing for this means assuming the callers and the network are hostile.
+Each team exposes its data and functionality through an external interface, and all communication happens through network calls. Each service runs as a standalone product with its own service level agreement to its clients. A service designed this way treats its callers and the network as untrusted.
 
 ### Microservices
 
-Organize a complex application as a large number of independent services communicating through [[systems/distributed-systems/RPC|RPC]], each using primary/backup or Paxos for availability and fault tolerance. Components can then be developed and scaled independently.
+A microservice architecture organizes a complex application as a large number of independent services communicating through [[systems/distributed-systems/RPC|RPC]], each using primary/backup or Paxos for availability and fault tolerance. Components can then be developed and scaled independently.
 
 ## Related notes
 

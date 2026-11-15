@@ -12,21 +12,22 @@ tags:
   - direct current
   - coulomb
 date: 2024-01-05
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Lecture 2 notes defining current, charge, energy, and power, with unit prefixes, the AC/DC distinction, and worked problems on battery energy and average power.
+description: Lecture 2 of the signal conditioning course, on current, charge, energy and power, unit prefixes, the distinction between direct and alternating current, and worked problems on battery energy and average power.
 sources:
   - title: Signal conditioning course, lecture 2
     type: lecture
 ---
 
-## Purpose
-
-The basic electrical quantities from lecture 2, plus worked problems that turn battery specs into energy and average power.
+Lecture 2 of the signal conditioning course defines current, charge, energy and power, and applies the definitions to compute the energy stored in a battery from its rated voltage and capacity and the average power drawn over a stated battery life.
 
 ## The water analogy
 
-A battery driving a light bulb behaves like a pump pushing water through a pipe:
+In the hydraulic analogy, a battery driving a light bulb corresponds to a pump driving water through a pipe.
 
 ```txt
 +-------------+------+----------+
@@ -35,7 +36,7 @@ A battery driving a light bulb behaves like a pump pushing water through a pipe:
         current: I ->
 ```
 
-Current is the amount of water flowing through the pipe, and voltage is the water pressure. If the "pressure" were 0, the "flow" would be 0, and the same holds for electrons. The battery uses its chemical potential energy to push electrons through the circuit, creating a current.
+Current corresponds to the rate at which water flows through the pipe, and voltage to the water pressure. With zero pressure there is no flow, and with zero voltage there is likewise no current. The battery converts chemical potential energy into the electrical energy that drives electrons through the circuit as a current.
 
 ## Definitions
 
@@ -71,22 +72,22 @@ $$P = VI = I^2R = V^2/R$$
 
 $$v(t) = A\cos(\omega t), \qquad \omega = 2\pi f$$
 
-The lecture wrote US wall power as $V(t) = 120\cos(2\pi \cdot 60\,\text{Hz} \cdot t)$. Note that 120 V is the nominal RMS figure; the true peak of a 120 V RMS line is $120\sqrt{2} \approx 170$ V.
+The lecture wrote US wall power as $V(t) = 120\cos(2\pi \cdot 60\,\text{Hz} \cdot t)$. The 120 V figure is the nominal RMS voltage; the peak of a 120 V RMS line is $120\sqrt{2} \approx 170$ V.
 
-Nodal analysis lets you break circuits down and black-box them. You represent each node mathematically, then use that abstraction to model complicated circuits.
+Nodal analysis decomposes a circuit by representing each node mathematically. The resulting abstraction allows subcircuits to be treated as black boxes when modeling complicated circuits.
 
 ## Worked problems
 
 > [!warning] mAh is charge, not energy
-> Battery capacity in mAh measures charge. Multiplying by the battery voltage gives energy, which is why the iPhone calculation below starts with 2900 mAh times 3.8 V. Two batteries with the same mAh rating but different voltages store different amounts of energy.
+> Battery capacity in mAh measures charge, and multiplying it by the battery voltage gives energy. The iPhone energy calculation therefore begins with the product of 2900 mAh and 3.8 V. Two batteries with the same mAh rating but different voltages store different amounts of energy.
 
-**iPhone battery energy.** An iPhone contains a lithium battery with a voltage of 3.8 V and a capacity of 2900 mAh. Energy stored, in Watt-hours and Joules:
+**iPhone battery energy.** An iPhone contains a lithium battery with a voltage of 3.8 V and a capacity of 2900 mAh. The energy it stores, in Watt-hours and Joules, is
 
 $$2900\,\text{mAh} \times 3.8\,\text{V} = 11{,}020\,\text{mWh} = 11.02\,\text{Wh}$$
 
 $$11.02\,\text{Wh} \times 3600\,\text{s/h} = 39.67\,\text{kJ}$$
 
-**Standby power.** Apple claims an iPhone lasts 16 days on standby. Average power consumed in standby:
+**Standby power.** Apple rates the iPhone for 16 days on standby. The average current follows from the capacity and the standby duration, and the average power from that current and the battery voltage.
 
 $$2900\,\text{mAh} \times 3600\,\text{s/h} = 10.4 \times 10^6\,\text{mA·s}$$
 
@@ -96,11 +97,11 @@ $$I = \frac{10.4 \times 10^6\,\text{mA·s}}{1.4 \times 10^6\,\text{s}} = 7.55\,\
 
 $$P = 3.8\,\text{V} \times 7.55\,\text{mA} = 28.7\,\text{mW}$$
 
-**Tesla battery.** A Tesla Model S has a battery capacity of 100 kWh. In Joules:
+**Tesla battery.** A Tesla Model S has a battery capacity of 100 kWh, which in Joules is
 
 $$100\,\text{kWh} \times 3600\,\text{s/h} = 360 \times 10^6\,\text{J} = 360\,\text{MJ}$$
 
-**Solar recharge time.** Bright sunlight has a power density of roughly 1 kW/m^2, and a solar panel converts sunlight to electricity at 20% efficiency. Covering the car in 10 m^2 of panels:
+**Solar recharge time.** Bright sunlight has a power density of roughly 1 kW/m^2, and a solar panel converts sunlight to electricity at 20% efficiency. With 10 m^2 of panels covering the car, the charging power and the recharge time are
 
 $$1\,\text{kW/m}^2 \times 10\,\text{m}^2 \times 0.2 = 2\,\text{kW} = 2000\,\text{J/s}$$
 

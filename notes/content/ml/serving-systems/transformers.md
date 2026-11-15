@@ -17,9 +17,12 @@ tags:
   - normalization
   - machine-learning
 date: 2025-05-25
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: The decoder-only transformer (Llama-style) from a serving perspective, covering prefill vs decode, attention with GQA, the FFN, normalization, and which operations bind on compute, memory, or network.
+description: The Llama-style decoder-only transformer from a serving perspective, with prefill and decode, attention with GQA, the FFN, normalization, and the operations bound by compute, memory or network.
 sources:
   - title: CSE 599K, LLM Serving Systems, University of Washington, Spring 2025 (lecture notes)
     type: lecture
@@ -37,31 +40,31 @@ sources:
     type: paper
 ---
 
-## Purpose
+A decoder-only transformer maps a token sequence to a next-token distribution at every position through a stack of layers, each consisting of causal self-attention and a feed-forward network joined by residual connections and normalization. Llama-style models use RMSNorm, a gated SwiGLU feed-forward network, rotary position encoding and grouped-query attention.
 
-This note walks the components of a Llama-style decoder-only transformer with an eye toward serving: what each piece computes, and whether it binds on compute, memory, or network. It supplies the attention and KV-cache context used by [[ml/serving-systems/memory-management|Memory Management]], [[ml/serving-systems/quantization|Quantization]], and [[ml/serving-systems/speculative-decoding|Speculative Decoding]].
+For serving, the relevant properties of each component are what it computes and whether its execution is bound by compute, memory or network. The attention and KV-cache material supports [[ml/serving-systems/memory-management|Memory Management]], [[ml/serving-systems/quantization|Quantization]], and [[ml/serving-systems/speculative-decoding|Speculative Decoding]].
 
-These are notes for CSE 599K "LLM Serving Systems" at the University of Washington, Spring 2025, taught by Prof. Baris Kasikci with TA Kan Zhu.
+The material began as notes for CSE 599K "LLM Serving Systems" at the University of Washington, Spring 2025, taught by Prof. Baris Kasikci with TA Kan Zhu.
 
 ## Prefill and decode
 
-Inference has two phases with opposite performance characters. Prefill processes the whole input prompt at once, all tokens in parallel, which makes it compute bound. Decode generates one token at a time, each step reading the accumulated KV cache, which makes it memory bound. Almost every serving technique in this note series exists to manage one of these two regimes.
+Inference has two phases with opposite performance characteristics. Prefill processes the whole input prompt at once, all tokens in parallel, which makes it compute bound. Decode generates one token at a time, each step reading the accumulated KV cache, which makes it memory bound. Most serving techniques are designed for one of these two regimes.
 
-Terminology: an inference iteration is one full forward pass through all layers producing one output token (or, during prefill, processing the prompt). Activations are the intermediate tensors flowing between layers.
+An inference iteration is one full forward pass through all layers that produces one output token (or, during prefill, processes the prompt). Activations are the intermediate tensors passed between layers.
 
 ## Components
 
 ### Embedding layer
 
-Maps each token ID to a dense learned vector, 4096 dimensions in Llama-scale models. It is a table lookup, one row per vocabulary entry.
+The embedding layer maps each token ID to a dense learned vector, 4096 dimensions in Llama-scale models. It is a table lookup with one row per vocabulary entry.
 
 ### Self-attention
 
 $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$$
 
-from [Attention Is All You Need](https://arxiv.org/abs/1706.03762). Q is what each position is looking for, K is what each position offers for matching, V is the content that actually gets mixed, and $\sqrt{d_k}$ keeps dot products from growing with head dimension and saturating the softmax.
+from [Attention Is All You Need](https://arxiv.org/abs/1706.03762). Each query in $Q$ is compared with the keys $K$ of all positions, the resulting weights mix the values $V$, and the factor $\sqrt{d_k}$ keeps dot products from growing with head dimension and saturating the softmax.
 
-Decoder-only models use causal attention: positions must not see the future. The mask sets future positions to $-\infty$ before the softmax, and since $\text{softmax}(x_i) \to 0$ as $x_i \to -\infty$, masked positions contribute nothing.
+Decoder-only models use causal attention, in which each position attends only to itself and earlier positions. The mask sets future positions to $-\infty$ before the softmax, and since $\text{softmax}(x_i) \to 0$ as $x_i \to -\infty$, masked positions contribute nothing.
 
 Multi-head attention splits the hidden dimension into independent heads that attend separately:
 
@@ -79,7 +82,7 @@ sub_q = [[[1, 2, 3],    # Head 1 for Token 1
 #Shape: (seq_len, num_heads, head_dim) = (2, 2, 3)
 ```
 
-[Grouped Query Attention](https://arxiv.org/abs/2305.13245) has multiple query heads share one key/value head (group size 4 means 4 query heads per KV head). Quality holds up, and the KV cache shrinks by the group factor, which buys batch size; [[ml/serving-systems/performance-modeling|Performance Modeling]] quantifies why that matters.
+[Grouped Query Attention](https://arxiv.org/abs/2305.13245) has multiple query heads share one key/value head (group size 4 means 4 query heads per KV head). Quality is largely preserved, and the KV cache shrinks by the group factor, which permits a larger batch size. [[ml/serving-systems/performance-modeling|Performance Modeling]] quantifies the effect of batch size.
 
 ### Feed-forward network
 
@@ -89,7 +92,7 @@ $$\text{FFN}(x) = W_{down}\left(\text{SiLU}(W_{gate}\,x) \odot W_{up}\,x\right)$
 
 ### Normalization
 
-RMSNorm replaces LayerNorm, dropping the mean subtraction:
+Llama replaces LayerNorm with RMSNorm, which omits the mean subtraction:
 
 $$\text{RMSNorm}(x) = \frac{x}{\sqrt{\frac{1}{n}\sum_{i=1}^n x_i^2 + \epsilon}} \odot g$$
 
@@ -97,7 +100,7 @@ with $\epsilon$ a small stability constant and $g$ a learned per-dimension scale
 
 ### Residual connections
 
-Each major component's output is added to its input, $\text{output} = \text{input} + \text{component}(\text{input})$, which keeps gradients flowing through deep stacks.
+Each major component's output is added to its input, $\text{output} = \text{input} + \text{component}(\text{input})$, which preserves gradient flow through deep stacks.
 
 ### Rotary positional encoding
 
@@ -107,15 +110,15 @@ RoPE ([RoFormer](https://arxiv.org/abs/2104.09864)) applies position-dependent r
 
 $$\text{softmax}(x_i) = \frac{e^{x_i}}{\sum_j e^{x_j}}$$
 
-Implementations subtract the row maximum before exponentiating to avoid overflow, which leaves the output unchanged; the online version of this trick is the heart of FlashAttention (see [[ml/serving-systems/memory-management|Memory Management]]).
+Implementations subtract the row maximum before exponentiating to avoid overflow, which leaves the output unchanged; the online version of this computation is the core of FlashAttention (see [[ml/serving-systems/memory-management|Memory Management]]).
 
 ## KV cache
 
-During decode, each new token needs attention against every previous position's keys and values. Recomputing them every step would make step $t$ cost $O(t)$ full projections, so the K and V vectors are cached as they are produced. The cache is per request and per layer (every layer keeps its own K and V), and it grows linearly with generated length, which is why it dominates serving memory. Sizing math and allocation strategies live in [[ml/serving-systems/memory-management|Memory Management]].
+During decode, each new token needs attention against every previous position's keys and values. Recomputing them every step would make step $t$ cost $O(t)$ full projections, so the K and V vectors are cached as they are produced. The cache is per request and per layer (every layer keeps its own K and V), and it grows linearly with generated length, so at long sequence lengths and large batches it accounts for most of serving memory. Cache sizing and allocation strategies are treated in [[ml/serving-systems/memory-management|Memory Management]].
 
 ## Multi-GPU execution
 
-Tensor parallelism splits the weight matrices across GPUs: Q, K, V projections are partitioned by head, FFN projections by rows or columns, and each GPU computes its shard (details in [[ml/serving-systems/parallelism|Parallelism]]). Two collectives stitch results back together: AllGather collects partial outputs after attention, and AllReduce (ReduceScatter plus AllGather) sums partial results after the FFN down projection. Both are network bound.
+Tensor parallelism splits the weight matrices across GPUs: Q, K, V projections are partitioned by head, FFN projections by rows or columns, and each GPU computes its shard (details in [[ml/serving-systems/parallelism|Parallelism]]). Two collectives combine the results: AllGather collects partial outputs after attention, and AllReduce (ReduceScatter plus AllGather) sums partial results after the FFN down projection. Both are network bound.
 
 ## Where each operation binds
 
@@ -125,7 +128,7 @@ Memory bound: decode attention, which streams the KV cache to score one new toke
 
 Network bound: the AllGather and AllReduce collectives in tensor-parallel deployments.
 
-This split is the reason prefill and decode want different batching treatments ([[ml/serving-systems/batching|Batching]]) and different hardware ratios.
+This division is the reason prefill and decode require different batching treatments ([[ml/serving-systems/batching|Batching]]) and different hardware ratios.
 
 ## Original transformer vs Llama
 

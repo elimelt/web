@@ -6,14 +6,15 @@ tags:
   - java
   - teaching
 date: 2026-07-31
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Small software engineering section for practical language and library notes.
+description: Software engineering notes on programming languages and their standard libraries.
 ---
 
-## Purpose
-
-This branch is intentionally narrow for now. It holds practical language-level notes that do not fit the systems or algorithms buckets.
+The software engineering section covers the practical use of programming languages and their standard libraries, for material that falls outside the systems and algorithms sections. It currently contains notes on Java.
 
 ## Notes
 

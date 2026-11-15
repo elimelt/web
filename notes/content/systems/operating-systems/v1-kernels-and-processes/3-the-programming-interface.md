@@ -9,18 +9,19 @@ tags:
   - process management
   - i/o operations
 date: 2024-01-10
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Chapter notes on OSPP chapter 3. The UNIX process management and I/O syscall interface, how fork/exec/wait compare to Windows CreateProcess, pipes and dup2 for inter-process communication, and where OS functionality should live (monolithic vs. microkernel).
+description: Chapter 3 of OSPP on the UNIX system call interface for process management and I/O, a comparison of fork, exec and wait with Windows CreateProcess, pipes and dup2 for inter-process communication, and the placement of operating system functionality in monolithic kernels and microkernels.
 sources:
   - title: "Operating Systems: Principles and Practice (2nd ed.), Anderson and Dahlin, chapter 3"
     url: https://ospp.cs.washington.edu/
     type: textbook
 ---
 
-## Purpose
-
-Notes on chapter 3 of [Operating Systems: Principles and Practice](https://ospp.cs.washington.edu/). The chapter covers the interface the OS exposes to applications, with a focus on process management and I/O in UNIX. The syscall tables up front are the reference I come back to; the rest explains why the interface is shaped the way it is.
+Chapter 3 of [Operating Systems: Principles and Practice](https://ospp.cs.washington.edu/) treats the interface that an operating system exposes to applications through system calls, with emphasis on process management and I/O in UNIX, and the reasons the interface has the form it does.
 
 ## Syscall API Reference
 
@@ -48,7 +49,7 @@ Notes on chapter 3 of [Operating Systems: Principles and Practice](https://ospp.
 
 ## Overview
 
-What does an OS need to provide for applications?
+An operating system provides applications with the following services.
 
 | Function                           | Description                                                                                                                                                                                               |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -61,11 +62,11 @@ What does an OS need to provide for applications?
 | Graphics/Window Management         | Processes control pixels on their portion of the screen. Should utilize hardware acceleration to draw graphics quickly.                                                                                   |
 | Authentication and Security        | Permissions system to control access to resources. Processes should be able to authenticate themselves to other processes and to the OS.                                                                  |
 
-This chapter focuses on the first two.
+Chapter 3 treats the first two.
 
 ### Design Choices
 
-Any given piece of functionality could live in several places:
+A given piece of functionality can be placed in any of several components:
 
 | Component                                   | Description                                                              |
 | ------------------------------------------- | ------------------------------------------------------------------------ |
@@ -76,17 +77,17 @@ Any given piece of functionality could live in several places:
 
 The UNIX philosophy is to implement as much as possible in user-level programs, keeping a "thin waist" in the system architecture. The network stack follows the same design principle. The key interface between the highest and lowest levels of the system stays simple, and any program that complies with the syscall interface runs on most UNIX systems.
 
-Some things do need to go in particular places, though:
+Three considerations constrain where particular functionality can be placed.
 
 - **Safety**: resource management and protection belong to the OS. They cannot live in user-level programs or libraries because they could be bypassed there.
-- **Reliability**: kernel programs are not protected from each other, so a small and simple kernel means fewer bugs. If it can be done at user level, it should be done at user level. The extreme version of this is the **micro-kernel architecture**, where the kernel is a small set of primitives for inter-process communication, and everything else runs in user-level server processes.
+- **Reliability**: kernel programs are not protected from each other, so a small and simple kernel contains fewer bugs, and functionality that can be implemented at user level is placed there. The limiting case is the **micro-kernel architecture**, where the kernel is a small set of primitives for inter-process communication, and everything else runs in user-level server processes.
 - **Performance**: transferring control between user level and the kernel is expensive, so the design should minimize syscall crossings. Windows NT started out as a microkernel and moved many responsibilities back into the kernel for performance.
 
 ## Process Management
 
 ### Windows Process Management
 
-Windows has a syscall to create a process, plus others for various process management operations. The idea sounds simple. In an ideal world it would be:
+Windows provides a system call that creates a process, together with separate calls for other process management operations. In its simplest form the call would be
 
 ```c
 boolean CreateProcess(char* prog, char* args);
@@ -100,7 +101,7 @@ which would:
 - Copy arguments `args` into memory in the address space
 - Inform the scheduler the new process is ready to run
 
-In practice the parent often wants to control aspects of the child's runtime, so the real signature carries ten parameters:
+Because a parent process frequently controls aspects of the child's execution environment, the actual call takes ten parameters:
 
 ```c
  if (!CreateProcess(NULL, // No module name (use command line)
@@ -125,7 +126,7 @@ pid_t fork(void);
 int exec(char* prog, char* args);
 ```
 
-`fork` creates a copy of the calling process, the child. The child is almost identical to the parent, except for its pid and the return value of `fork`: the child sees 0, the parent sees the child's pid. The child inherits the parent's context, adjusts whatever it needs (open files, redirections), and then calls `exec` to replace itself with a new program. This split is what makes the shell's redirection and piping tricks possible, since the child gets a window to rewire its own file descriptors before the new program starts.
+`fork` creates a copy of the calling process, the child. The child is almost identical to the parent, except for its pid and the return value of `fork`: the child sees 0, the parent sees the child's pid. The child inherits the parent's context, adjusts whatever it needs (open files, redirections), and then calls `exec` to replace itself with a new program. The separation of the two calls enables the shell's redirection and pipelines, because the child can rearrange its own file descriptors after `fork` returns and before the new program starts.
 
 #### fork
 
@@ -137,7 +138,7 @@ int exec(char* prog, char* args);
 
 ##### Browsers and fork
 
-Chrome creates a new process per tab, which isolates tabs from each other: a crashing or malicious page takes down only its own tab. Chrome on Windows does not even use `CreateProcess` for new tabs directly, it draws from a pool of pre-created processes.
+Chrome creates a process per tab, which isolates tabs from one another, so a page that crashes or is malicious terminates only its own tab. On Windows, Chrome does not call `CreateProcess` for each new tab; it takes a process from a pool of pre-created processes.
 
 #### exec
 
@@ -145,17 +146,17 @@ Chrome creates a new process per tab, which isolates tabs from each other: a cra
 - Copy arguments `args` into memory in the address space
 - Init the hardware context to start execution
 
-Note that `exec` does not create a new process!
+`exec` does not create a new process.
 
 #### wait
 
-The parent can wait for a child to complete with `wait(pid)`. The call blocks until the child exits and returns its exit status, or returns immediately if the child already exited. `wait` is optional in UNIX, and the naming is a little ambiguous. Windows arguably did this better with `WaitForSingleObject`.
+The parent can wait for a child to complete with `wait(pid)`. The call blocks until the child exits and returns its exit status, or returns immediately if the child already exited. Calling `wait` is optional in UNIX. The name does not indicate what is awaited, and the corresponding Windows call, `WaitForSingleObject`, is more explicit.
 
 ### Kernel Handles and Garbage Collection
 
-A UNIX process terminates itself by calling `exit`, which releases its user stack, heap, and code segments. The PCB needs more care. Even after the child exits, the parent may still call `wait` on it, so the PCB cannot be reclaimed until both parent and child have exited.
+A UNIX process terminates itself by calling `exit`, which releases its user stack, heap, and code segments. The PCB is retained, because the parent may call `wait` on the child after the child has exited; it is reclaimed only once both parent and child have exited.
 
-More generally, syscalls in both Windows and UNIX return handles to kernel objects (a pid, a file descriptor, and so on). Handles are process-local identifiers rather than pointers, and the kernel validates them on every use. The kernel keeps a reference count per object and garbage collects the object when the count hits zero.
+More generally, syscalls in both Windows and UNIX return handles to kernel objects (a pid, a file descriptor, and so on). Handles are process-local identifiers rather than pointers, and the kernel validates them on every use. The kernel keeps a reference count per object and garbage collects the object when the count reaches zero.
 
 #### Signals
 
@@ -166,7 +167,7 @@ typedef void (*sig_t) (int);
 sig_t signal(int sig, sig_t func);
 ```
 
-You register a handler function for a signal type, and the handler runs when that signal arrives. This is how `ctrl-c` stops a program in a shell. `signal` returns the previous handler, so handlers can be chained. `sigaction` is the more modern and flexible replacement:
+A process registers a handler function for a signal type, and the handler runs when that signal is delivered. Typing `ctrl-c` in a shell stops a program through this mechanism. `signal` returns the previous handler, so handlers can be chained. `sigaction` is the more modern and flexible replacement:
 
 ```c
 int sigaction(int sig,
@@ -176,13 +177,13 @@ int sigaction(int sig,
 
 ## Input/Output
 
-The key ideas behind UNIX I/O:
+The UNIX I/O interface rests on six design decisions.
 
 - **Uniformity**: all I/O devices use the same set of system calls: `open`, `close`, `read`, `write` (and `seek`, `ioctl`). Adding support for a new device requires no change to the OS interface.
-- **Open before use**: you must open a device before reading or writing it, and you access it through the returned **file descriptor**. This lets the OS check permissions and track which processes use which devices. For convenience, UNIX starts shell applications with three open file descriptors: stdin, stdout, and stderr.
+- **Open before use**: a process must open a device before reading or writing it, and accesses it through the returned **file descriptor**. This lets the OS check permissions and track which processes use which devices. For convenience, UNIX starts shell applications with three open file descriptors: stdin, stdout, and stderr.
 - **Byte-oriented**: every device is treated as a stream of bytes. This makes pipes easy to implement and gives a uniform interface even to devices that are not naturally byte-oriented.
 - **Kernel-buffered reads**: the kernel buffers reads so streamed sources and block devices look the same. Buffering also enables read-ahead, where the kernel fetches more than was asked for and serves future reads from memory.
-- **Kernel-buffered writes**: writes are buffered too. `write` returns as soon as the data is copied into the kernel buffer and the transfer happens asynchronously. If the buffer is full, `write` blocks until space opens up.
+- **Kernel-buffered writes**: writes are buffered too. `write` returns as soon as the data is copied into the kernel buffer and the transfer happens asynchronously. If the buffer is full, `write` blocks until space becomes available.
 - **Explicit close**: `close` releases the resources tied to a file descriptor, flushes any buffered writes, and decrements the descriptor's reference count.
 
 ## Inter-Process Communication
@@ -197,14 +198,14 @@ A **UNIX pipe** is a kernel buffer with two file descriptors, one for reading an
 
 ### Wait for multiple reads
 
-A server with pipes open to multiple clients wants to read from whichever client has data ready. `select` blocks until data is available on one of a set of descriptors, then returns which one:
+A server with pipes open to several clients must read from whichever client has data ready. `select` blocks until data is available on one of a set of descriptors, then returns which one:
 
 ```c
 int select(int nfds, fd_set *readfds, fd_set *writefds,
            fd_set *exceptfds, struct timeval *timeout);
 ```
 
-`select` is a pain to use, so `poll` came later as a more convenient interface for synchronous I/O multiplexing:
+`poll`, introduced later, is a more convenient interface for synchronous I/O multiplexing than `select`:
 
 ```c
 int poll(struct pollfd *fds, nfds_t nfds, int timeout);
@@ -238,7 +239,7 @@ main() {
 }
 ```
 
-The same loop as a message flow, including the window where the child rewires its descriptors:
+The messages exchanged in one iteration of the loop, including the interval in which the child can rewire its descriptors, are as follows.
 
 ```mermaid
 sequenceDiagram
@@ -257,7 +258,7 @@ sequenceDiagram
     Kernel-->>Shell: wait returns exit status
 ```
 
-Since commands read and write file descriptors, programs are decoupled from their input and output. That buys:
+Because commands read and write file descriptors, programs are decoupled from their input and output, which gives the shell three capabilities.
 
 - **A file of commands is a program**: the shell can read commands from a file and execute them as if typed. A script names its _interpreter_ on the first line with a shebang, e.g. `#!/bin/sh`.
 - **Input/output to files**: `<` and `>` redirect stdin and stdout. The shell implements them with `dup2` in the child before `exec`.
@@ -351,9 +352,9 @@ Server:
 
 #### Streamlining Client/Server Communication
 
-Both sides issue a write followed by a read, so the two could be combined into a single system call, eliminating a context switch at the cost of widening the syscall interface. The client always waits on the server, so a further optimization, done in microkernel Windows in the early 1990s, is to donate the client's processor to run server code, reducing latency. This only pays off when the code and data of both client and server fit in cache simultaneously. On a multicore system where client and server have their own processors, the kernel can instead set up a shared memory region and let them communicate without involving the kernel at all.
+Both sides issue a write followed by a read, so the two could be combined into a single system call, eliminating a context switch at the cost of widening the syscall interface. The client always waits on the server, so a further optimization, done in microkernel Windows in the early 1990s, is to donate the client's processor to run server code, reducing latency. The donation reduces latency only when the code and data of both client and server fit in the cache simultaneously. On a multicore system where client and server have their own processors, the kernel can instead set up a shared memory region and let them communicate without involving the kernel at all.
 
-A server often needs to accept a request from any of many clients (a print queue, for example), which is what `select` is for:
+A server often accepts requests from any of many clients (a print queue, for example), and uses `select` to do so:
 
 ```c
 Server:
@@ -373,48 +374,48 @@ Server:
 
 ## Operating System Structures
 
-Kernel subsystems lean on each other heavily:
+Kernel subsystems depend on one another extensively.
 
 - Much of the OS depends on synchronization primitives for coordinating access to shared kernel data structures.
 - The virtual memory system depends on processor-specific hardware support for address translation.
 - The file system and virtual memory system share a pool of physical memory blocks, and both depend on the disk device driver.
 - The file system can depend on the network stack when the disk lives on another machine.
 
-There is a real tradeoff between maintainability and performance in kernel design. Tightly coupling functionality inside the kernel is fast and messy.
+Kernel design trades maintainability against performance. Functionality that is tightly coupled inside the kernel performs well and is difficult to maintain.
 
 ### Monolithic Kernels
 
-Monolithic kernels keep most functionality inside the kernel, with modules that depend on each other freely. Designers structure the code however they want, so systems vary a lot, but two patterns show up consistently.
+Monolithic kernels keep most functionality inside the kernel, with modules that depend on each other freely. Internal structure is left to the designers and varies widely between systems, but two patterns recur.
 
 #### Hardware Abstraction Layer (HAL)
 
-A portable interface to machine configuration and processor-specific operations. For an OS to move between processor families (ARM to Intel, 32 to 64 bit), the processor-specific pieces (context switches, interrupts, exceptions, traps) sit behind platform-independent "virtual" procedures. Porting the OS then means implementing the HAL for the new architecture.
+A hardware abstraction layer is a portable interface to machine configuration and processor-specific operations. For an OS to move between processor families (ARM to Intel, 32 to 64 bit), the processor-specific pieces (context switches, interrupts, exceptions, traps) sit behind platform-independent "virtual" procedures. Porting the OS then means implementing the HAL for the new architecture.
 
 ##### Windows HAL
 
-Windows uses a two-pronged strategy. The kernel is dynamically linked at boot time with library routines specific to the hardware configuration, and Microsoft ships a different kernel binary per processor architecture, each with conditional execution for closely related processor designs.
+Windows combines two mechanisms. The kernel is dynamically linked at boot time with library routines specific to the hardware configuration, and Microsoft ships a different kernel binary per processor architecture, each with conditional execution for closely related processor designs.
 
 #### Dynamically Installed Device Drivers
 
-The same consideration applies to the huge variety of I/O devices. **Dynamically loadable device drivers** get added to a running kernel. Device manufacturers write drivers against a standard OS interface, and the kernel calls those routines when the device is used.
+The same consideration applies to the wide variety of I/O devices. **Dynamically loadable device drivers** are added to a running kernel. Device manufacturers write drivers against a standard OS interface, and the kernel calls those routines when the device is used.
 
 At boot, a small set of drivers is already present (the disk driver, at minimum). Drivers for physically attached devices are bundled in a file stored with the bootloader; the OS queries the I/O bus at startup to find attached devices and loads the matching drivers from disk. Drivers for network-attached devices load over the network.
 
-Drivers are a huge reliability and security liability. Anderson and Dahlin report drivers cause roughly 90% of OS crashes. Mitigations:
+Device drivers are a major source of reliability and security failures; Anderson and Dahlin report that drivers cause roughly 90% of OS crashes. Five mitigations are in use.
 
 - **Code inspection**: OS vendors require drivers to be submitted for inspection and testing before they are allowed in the kernel.
 - **Bug tracking**: after every crash, the OS collects the system configuration and kernel stack and ships it to a central database for analysis.
 - **User-level device drivers**: Apple and Microsoft push new drivers to run at user level, which keeps them away from kernel data structures at some performance cost.
 - **VM device drivers**: old drivers that must run in kernel mode can run inside a guest OS, so their bugs only corrupt the guest.
-- **Driver sandboxing**: run drivers in a restricted execution environment inside the kernel, cheaper than full virtualization.
+- **Driver sandboxing**: run drivers in a restricted execution environment inside the kernel, with lower overhead than full virtualization.
 
 ### Microkernels
 
-Run as much of the OS as possible in user mode; the window manager on most modern systems is the familiar example. The difference between micro and monolithic kernels is mostly transparent to applications, since user-level libraries either call a server process directly or make syscalls that the kernel redirects. In practice, the context switching cost between user and kernel mode is high enough that most modern systems settle on a hybrid.
+A microkernel runs as much of the OS as possible in user mode; the window manager on most modern systems is a familiar example of a component placed there. The difference between micro and monolithic kernels is mostly transparent to applications, since user-level libraries either call a server process directly or make syscalls that the kernel redirects. In practice, the context switching cost between user and kernel mode is high enough that most modern systems adopt a hybrid design.
 
 ## Exercises
 
-Unanswered chapter exercises, kept here for practice.
+The exercises are reproduced from the chapter without answers.
 
 1. Can UNIX fork return an error? Why or why not?
 

@@ -10,9 +10,12 @@ tags:
   - power iteration
   - numerical linear algebra
 date: 2026-08-01
-updated: 2026-11-13
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Eigenpairs as invariant directions, diagonalization as a change of basis, and matrix powers; then power iteration, with measurements of how its speed follows the eigenvalue ratio on controlled matrices, real datasets and PageRank on this site's own link graph, where it fails, and what to use instead.
+description: Eigenpairs as invariant directions, diagonalization as a change of basis, and matrix powers, followed by power iteration, its convergence rate as a function of the eigenvalue ratio measured on controlled matrices, real datasets and PageRank on this site's link graph, the spectra on which it fails to converge, and the alternative methods for small gaps.
 sources:
   - title: MIT 18.06 Linear Algebra, Spring 2010 (Strang), lectures 21, 22, 24 and 25
     url: https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/
@@ -48,19 +51,19 @@ sources:
     type: docs
 ---
 
-## Purpose
+An eigenvector of a square matrix $A$ is a nonzero vector $v$ that $A$ maps to a scalar multiple of itself, $Av = \lambda v$, and the scalar $\lambda$ is the corresponding eigenvalue. A matrix is diagonalizable when its eigenvectors form a basis of the space, and in that basis it acts as a diagonal matrix.
 
-Most vectors get knocked in a new direction when you multiply them by a matrix. A few don't, and those few explain everything the matrix does when you apply it again and again. This note builds eigenvalues and diagonalization from that idea, uses them to work out matrix powers, and then measures the simplest algorithm built on them, power iteration. The measurements answer one question: how much does a small gap between the two largest eigenvalues cost you? Broader matrix background lives in [[math/linear-algebra/cheatsheet|Matrix Theory]], and the [[math/linear-algebra/svd-and-pseudoinverse|SVD note]] picks up where the symmetric case leaves off.
+Multiplication by a matrix changes the direction of most vectors, and an eigenvector is a vector whose direction is preserved. When the eigenvectors span the space, they determine the behavior of the matrix under repeated application, including the powers $A^k$ and the recurrence $x_{k+1} = Ax_k$. Power iteration, the simplest algorithm based on this behavior, converges at a rate set by the ratio of the two largest eigenvalue magnitudes. Measured step counts on controlled matrices, on the principal components of real datasets and on PageRank for this site's link graph follow the predicted dependence on that ratio. Broader matrix background is in [[math/linear-algebra/cheatsheet|Matrix Theory]], and the [[math/linear-algebra/svd-and-pseudoinverse|SVD note]] continues from the symmetric case.
 
 ## Eigenpairs are invariant directions
 
-A square matrix $A \in \mathbb{R}^{n \times n}$ moves most vectors to somewhere unrelated. An eigenvector is a direction the map preserves: a nonzero $v$ with
+A square matrix $A \in \mathbb{R}^{n \times n}$ changes the direction of most vectors. An eigenvector is a direction that the map preserves, a nonzero $v$ with
 
 $$
 Av = \lambda v
 $$
 
-for some scalar $\lambda$, the eigenvalue ([ILA §5.1](https://textbooks.math.gatech.edu/ila/eigenvectors.html)). Along the line spanned by $v$, the whole action of $A$ collapses to multiplication by $\lambda$. If you can find a basis of such directions, the matrix has no geometry left to hide.
+for some scalar $\lambda$, the eigenvalue ([ILA §5.1](https://textbooks.math.gatech.edu/ila/eigenvectors.html)). On the line spanned by $v$, the action of $A$ reduces to multiplication by $\lambda$. If such directions form a basis, $A$ is determined entirely by its eigenvalues and eigenvectors.
 
 Rearranging $Av = \lambda v$ gives $(A - \lambda I)v = 0$, so $\lambda$ is an eigenvalue exactly when $A - \lambda I$ is singular, which happens exactly when
 
@@ -68,9 +71,9 @@ $$
 \det(A - \lambda I) = 0.
 $$
 
-The left side is the characteristic polynomial, of degree $n$ in $\lambda$, so $A$ has $n$ eigenvalues counted with multiplicity, possibly complex ([ILA §5.2](https://textbooks.math.gatech.edu/ila/characteristic-polynomial.html)). Two multiplicities matter. The algebraic multiplicity of $\lambda$ is its multiplicity as a root. The geometric multiplicity is $\dim \ker(A - \lambda I)$, the number of independent eigenvectors it contributes. Geometric never exceeds algebraic.
+The left side is the characteristic polynomial, of degree $n$ in $\lambda$, so $A$ has $n$ eigenvalues counted with multiplicity, possibly complex ([ILA §5.2](https://textbooks.math.gatech.edu/ila/characteristic-polynomial.html)). Each eigenvalue has two multiplicities. The algebraic multiplicity of $\lambda$ is its multiplicity as a root. The geometric multiplicity is $\dim \ker(A - \lambda I)$, the number of independent eigenvectors it contributes. The geometric multiplicity never exceeds the algebraic multiplicity.
 
-The characteristic polynomial is how you find eigenvalues by hand, and it is never how software finds them. Finding the roots of a polynomial from its coefficients is badly conditioned even when the eigenvalues themselves are not, and the [Abel-Ruffini theorem](https://en.wikipedia.org/wiki/Abel%E2%80%93Ruffini_theorem) rules out a formula for degree 5 and up, so every eigenvalue algorithm for general matrices is iterative ([Trefethen and Bau, lecture 25](https://doi.org/10.1137/1.9780898719574)). Power iteration, below, is the simplest of them.
+Eigenvalues of small matrices are computed by hand from the characteristic polynomial, but numerical software does not compute them this way. Finding the roots of a polynomial from its coefficients is badly conditioned even when the eigenvalues themselves are not, and the [Abel-Ruffini theorem](https://en.wikipedia.org/wiki/Abel%E2%80%93Ruffini_theorem) rules out a formula for degree 5 and up, so every eigenvalue algorithm for general matrices is iterative ([Trefethen and Bau, lecture 25](https://doi.org/10.1137/1.9780898719574)). Power iteration is the simplest of them.
 
 ## Diagonalization is a change of basis
 
@@ -80,17 +83,17 @@ $$
 A = P D P^{-1}.
 $$
 
-Read right to left: $P^{-1}$ rewrites a vector in eigenvector coordinates, $D$ scales each coordinate on its own, and $P$ translates back. In the right basis, $A$ is $n$ separate scalar multiplications.
+Read from right to left, $P^{-1}$ rewrites a vector in eigenvector coordinates, $D$ scales each coordinate independently, and $P$ maps the result back to the original coordinates. In the eigenvector basis, $A$ acts as $n$ independent scalar multiplications.
 
 > [!tip] Diagonalization is a change of basis
-> $A = PDP^{-1}$ says $A$ and $D$ are the same linear map written in different coordinates. Anything similarity preserves, such as the eigenvalues, determinant, trace and rank, can be read off $D$ for free. Whenever a computation applies $A$ repeatedly (powers, exponentials, recurrences), switch to the eigenbasis, do scalar arithmetic, and switch back.
+> $A = PDP^{-1}$ says $A$ and $D$ are the same linear map written in different coordinates. Any quantity that similarity preserves, such as the eigenvalues, determinant, trace and rank, can be read directly from $D$. A computation that applies $A$ repeatedly (powers, exponentials, recurrences) can be carried out as scalar arithmetic in the eigenbasis and transformed back.
 
-$A$ is diagonalizable if and only if it has $n$ linearly independent eigenvectors, which is the same as every eigenvalue's geometric multiplicity matching its algebraic multiplicity ([ILA §5.4](https://textbooks.math.gatech.edu/ila/diagonalization.html)). Eigenvectors for distinct eigenvalues are always independent, so a matrix with $n$ distinct eigenvalues is automatically diagonalizable. The failure mode is a repeated root that comes up short on eigenvectors: $\begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}$ has $\lambda = 1$ with algebraic multiplicity 2 but only one eigenvector direction, so it is defective.
+$A$ is diagonalizable if and only if it has $n$ linearly independent eigenvectors, which is the same as every eigenvalue's geometric multiplicity matching its algebraic multiplicity ([ILA §5.4](https://textbooks.math.gatech.edu/ila/diagonalization.html)). Eigenvectors for distinct eigenvalues are always independent, so a matrix with $n$ distinct eigenvalues is automatically diagonalizable. Diagonalizability fails when a repeated eigenvalue has fewer independent eigenvectors than its algebraic multiplicity. For example, $\begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}$ has $\lambda = 1$ with algebraic multiplicity 2 but only one eigenvector direction, so it is defective.
 
 > [!warning] Not every square matrix is diagonalizable
-> Having $n$ eigenvalues with multiplicity does not mean having $n$ independent eigenvectors. A defective matrix like $\begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}$ has no eigenbasis, so $A = PDP^{-1}$ does not exist for it, and any argument that starts "diagonalize $A$" fails silently. The repair is the Jordan form in theory and the Schur decomposition in practice. Nearly defective matrices cause the same trouble in floating point: $P$ exists but is close to singular, so $P^{-1}$ amplifies error, a point the [NumPy caveats](#numpy-and-numerical-caveats) return to.
+> Having $n$ eigenvalues with multiplicity does not mean having $n$ independent eigenvectors. A defective matrix like $\begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}$ has no eigenbasis, so $A = PDP^{-1}$ does not exist for it, and an argument that begins by diagonalizing $A$ does not apply to it. The Jordan form takes the place of diagonalization in theory, and the Schur decomposition in numerical practice. Nearly defective matrices cause a related problem in floating point. $P$ exists but is close to singular, so $P^{-1}$ amplifies error, as discussed under [NumPy caveats](#numpy-and-numerical-caveats).
 
-Symmetric matrices are the best case. If $A = A^T$, every eigenvalue is real, eigenvectors for distinct eigenvalues are orthogonal, and there is always an orthonormal eigenbasis. That is the spectral theorem, $A = Q D Q^T$ with $Q$ orthogonal ([Strang, 18.06 lecture 25](https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/resources/lecture-25-symmetric-matrices-and-positive-definiteness/)). Covariance matrices, graph Laplacians and Hessians are all symmetric, which is why so much of applied linear algebra lives in this case.
+If $A = A^T$, every eigenvalue is real, eigenvectors for distinct eigenvalues are orthogonal, and an orthonormal eigenbasis exists. This is the spectral theorem, $A = Q D Q^T$ with $Q$ orthogonal ([Strang, 18.06 lecture 25](https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/resources/lecture-25-symmetric-matrices-and-positive-definiteness/)). Covariance matrices, graph Laplacians and Hessians are symmetric, so a large part of applied linear algebra concerns this case.
 
 ## Worked 2x2 example
 
@@ -100,41 +103,41 @@ $$
 A = \begin{pmatrix} 3 & 1 \\ 1 & 3 \end{pmatrix}.
 $$
 
-Characteristic polynomial: $\det(A - \lambda I) = (3-\lambda)^2 - 1 = \lambda^2 - 6\lambda + 8 = (\lambda - 2)(\lambda - 4)$, so the eigenvalues are 4 and 2.
+The characteristic polynomial is $\det(A - \lambda I) = (3-\lambda)^2 - 1 = \lambda^2 - 6\lambda + 8 = (\lambda - 2)(\lambda - 4)$, so the eigenvalues are 4 and 2.
 
-For $\lambda = 4$: $A - 4I = \begin{pmatrix} -1 & 1 \\ 1 & -1 \end{pmatrix}$, whose kernel is spanned by $(1, 1)^T$.
+For $\lambda = 4$, the matrix $A - 4I = \begin{pmatrix} -1 & 1 \\ 1 & -1 \end{pmatrix}$ has kernel spanned by $(1, 1)^T$.
 
-For $\lambda = 2$: $A - 2I = \begin{pmatrix} 1 & 1 \\ 1 & 1 \end{pmatrix}$, kernel spanned by $(1, -1)^T$.
+For $\lambda = 2$, the matrix $A - 2I = \begin{pmatrix} 1 & 1 \\ 1 & 1 \end{pmatrix}$ has kernel spanned by $(1, -1)^T$.
 
-The eigenvectors are orthogonal, as the spectral theorem promises. Normalizing gives $Q = \frac{1}{\sqrt{2}}\begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix}$ and $A = Q\,\mathrm{diag}(4, 2)\,Q^T$. Geometrically, $A$ stretches by 4 along the diagonal $(1,1)$ and by 2 along the anti-diagonal $(1,-1)$. Apply it ten times and the diagonal direction has grown $4^{10} / 2^{10} = 1024$ times more than the other one, so almost any starting vector ends up pointing along $(1,1)$. That observation is the whole of power iteration.
+The eigenvectors are orthogonal, as the spectral theorem guarantees. Normalizing gives $Q = \frac{1}{\sqrt{2}}\begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix}$ and $A = Q\,\mathrm{diag}(4, 2)\,Q^T$. Geometrically, $A$ stretches by 4 along the diagonal $(1,1)$ and by 2 along the anti-diagonal $(1,-1)$. After ten applications the component along the diagonal has grown by a factor of $4^{10} / 2^{10} = 1024$ relative to the other component, so the iterate from almost any starting vector points nearly along $(1,1)$. Power iteration is based on this observation.
 
 ## Matrix powers and stability
 
-Diagonalization turns repeated application into repeated scalar multiplication:
+Diagonalization reduces repeated application of $A$ to repeated scalar multiplication:
 
 $$
 A^k = (P D P^{-1})^k = P D^k P^{-1}, \qquad D^k = \mathrm{diag}(\lambda_1^k, \dots, \lambda_n^k),
 $$
 
-because the inner $P^{-1}P$ pairs cancel. Write a starting vector in eigencoordinates, $x_0 = \sum_i c_i v_i$, and the dynamics $x_k = A^k x_0$ become
+because the inner $P^{-1}P$ pairs cancel. With a starting vector written in eigencoordinates as $x_0 = \sum_i c_i v_i$, the iterates $x_k = A^k x_0$ are
 
 $$
 x_k = \sum_i c_i \lambda_i^k v_i.
 $$
 
-Each mode evolves on its own. A mode with $|\lambda_i| < 1$ decays and a mode with $|\lambda_i| > 1$ grows, provided $x_0$ has some of it ($c_i \neq 0$). So the recurrence $x_{k+1} = Ax_k$ for a diagonalizable $A$ dies out from every start exactly when the spectral radius $\rho(A) = \max_i |\lambda_i|$ is below 1. This is Strang's treatment of difference equations in [18.06 lecture 22](https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/resources/lecture-22-diagonalization-and-powers-of-a/), and [lecture 24](https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/resources/lecture-24-markov-matrices-fourier-series/) applies it to Markov matrices, whose largest eigenvalue is exactly 1. The same idea sets the convergence rate of [[math/numerical-optimization#gradient-descent-and-conditioning|gradient descent]]: on a quadratic, each step multiplies the error by $I - \alpha H$, and the rate $(\kappa - 1)/(\kappa + 1)$ is that matrix's spectral radius at the best step size.
+Each mode evolves independently. A mode with $|\lambda_i| < 1$ decays and a mode with $|\lambda_i| > 1$ grows, provided $x_0$ has some of it ($c_i \neq 0$). The recurrence $x_{k+1} = Ax_k$ for a diagonalizable $A$ therefore converges to zero from every start exactly when the spectral radius $\rho(A) = \max_i |\lambda_i|$ is below 1. This is Strang's treatment of difference equations in [18.06 lecture 22](https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/resources/lecture-22-diagonalization-and-powers-of-a/), and [lecture 24](https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/resources/lecture-24-markov-matrices-fourier-series/) applies it to Markov matrices, whose largest eigenvalue is exactly 1. The same argument gives the convergence rate of [[math/numerical-optimization#gradient-descent-and-conditioning|gradient descent]]. On a quadratic, each step multiplies the error by $I - \alpha H$, and the rate $(\kappa - 1)/(\kappa + 1)$ is the spectral radius of that matrix at the optimal step size.
 
-Two caveats keep the eigenvalue picture honest. A defective matrix has Jordan blocks, and a block contributes terms like $k \lambda^{k-1}$, so $\begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}^k = \begin{pmatrix} 1 & k \\ 0 & 1 \end{pmatrix}$ grows linearly though both eigenvalues are 1. And a non-symmetric matrix with $\rho(A) < 1$ can still make $\lVert A^k \rVert$ grow by orders of magnitude before it decays, because a badly conditioned $P$ lets the modes cancel and then stop cancelling. Eigenvalues decide where $A^k$ ends up, and they say little about the route (Trefethen and Embree, *Spectra and Pseudospectra*, 2005).
+The eigenvalue analysis has two limitations. A defective matrix has Jordan blocks, and a block contributes terms like $k \lambda^{k-1}$, so $\begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}^k = \begin{pmatrix} 1 & k \\ 0 & 1 \end{pmatrix}$ grows linearly although both eigenvalues are 1. Second, for a non-symmetric matrix with $\rho(A) < 1$, $\lVert A^k \rVert$ can grow by orders of magnitude before it decays, because with a badly conditioned $P$ the modes can cancel initially and cease to cancel later. The eigenvalues determine the limit of $A^k$ and give little information about its transient behavior (Trefethen and Embree, *Spectra and Pseudospectra*, 2005).
 
-## Power iteration: the gap sets the speed
+## Power iteration and the eigenvalue gap
 
-Suppose the largest eigenvalue is strictly bigger in magnitude than the rest, $|\lambda_1| > |\lambda_2| \ge \dots \ge |\lambda_n|$. Divide the expansion above by $\lambda_1^k$:
+Suppose the largest eigenvalue is strictly larger in magnitude than the rest, $|\lambda_1| > |\lambda_2| \ge \dots \ge |\lambda_n|$. Dividing the expansion of $x_k$ by $\lambda_1^k$ gives
 
 $$
 \frac{x_k}{\lambda_1^k} = c_1 v_1 + \sum_{i \ge 2} c_i \left(\frac{\lambda_i}{\lambda_1}\right)^k v_i .
 $$
 
-Every term but the first shrinks, and the slowest one shrinks by $r = |\lambda_2 / \lambda_1|$ per step. So repeatedly multiplying by $A$ and rescaling finds the top eigenvector, as long as the start has some of it ($c_1 \ne 0$, which a random start has with probability 1). Richard von Mises described the method in 1929 ([von Mises and Pollaczek-Geiringer](https://doi.org/10.1002/zamm.19290090105)). It is still the inner loop of PageRank, of spectral normalization in GANs, which runs one step per training step and reuses the vector ([Miyato et al., 2018](https://arxiv.org/abs/1802.05957)), and of the power steps in [[math/linear-algebra/svd-and-pseudoinverse#randomized-svd|randomized SVD]].
+Every term except the first decays, and the slowest decays by a factor of $r = |\lambda_2 / \lambda_1|$ per step. Repeated multiplication by $A$ with rescaling therefore converges to the direction of the top eigenvector, provided the start has a nonzero component along it ($c_1 \ne 0$, which holds with probability 1 for a random start). Richard von Mises described the method in 1929 ([von Mises and Pollaczek-Geiringer](https://doi.org/10.1002/zamm.19290090105)). It is still the inner loop of PageRank, of spectral normalization in GANs, which runs one step per training step and reuses the vector ([Miyato et al., 2018](https://arxiv.org/abs/1802.05957)), and of the power steps in [[math/linear-algebra/svd-and-pseudoinverse#randomized-svd|randomized SVD]].
 
 ```python
 import numpy as np
@@ -153,11 +156,11 @@ $$
 \tan \theta_k \le \tan \theta_0 \, r^k, \qquad r = \left|\frac{\lambda_2}{\lambda_1}\right|.
 $$
 
-Trefethen and Bau state the rate as Theorem 27.1 ([lecture 27](https://doi.org/10.1137/1.9780898719574)), and Golub and Van Loan give a bound of this form in §8.2, with the non-symmetric power method in §7.3. On a log scale the error falls along a straight line whose slope is $\log r$. The figure runs the iteration on a $40 \times 40$ matrix where you choose $r$. The solid line is the measured error and the dashed line is the bound.
+Trefethen and Bau state the rate as Theorem 27.1 ([lecture 27](https://doi.org/10.1137/1.9780898719574)), and Golub and Van Loan give a bound of this form in §8.2, with the non-symmetric power method in §7.3. On a log scale the error falls along a straight line whose slope is $\log r$. The figure runs the iteration on a $40 \times 40$ matrix with an adjustable $r$. The solid line is the measured error and the dashed line is the bound.
 
 <PowerIteration preset="gap" />
 
-### How many steps a small gap costs
+### Step count as the gap closes
 
 Solving the bound for a tolerance $\varepsilon$ gives the step count
 
@@ -165,7 +168,7 @@ $$
 k \approx \frac{\ln(\tan\theta_0 / \varepsilon)}{\ln(1/r)} \approx \frac{\ln(\tan\theta_0 / \varepsilon)}{1 - r} \quad \text{as } r \to 1.
 $$
 
-The work grows like $1/(1-r)$: halve the gap and you double the steps. I measured it on symmetric $200 \times 200$ matrices with $\lambda_1 = 1$, $\lambda_2 = r$ and the other 198 eigenvalues uniform in $[-r, r]$, ten random matrices and starts per row, counting steps until $\sin \theta_k \le 10^{-8}$:
+The work grows like $1/(1-r)$, so halving the gap doubles the number of steps. I measured it on symmetric $200 \times 200$ matrices with $\lambda_1 = 1$, $\lambda_2 = r$ and the other 198 eigenvalues uniform in $[-r, r]$, ten random matrices and starts per row, counting steps until $\sin \theta_k \le 10^{-8}$:
 
 | $r$ | Steps, median (range) | Bound | Steps × $(1 - r)$ |
 | ---: | ---: | ---: | ---: |
@@ -177,27 +180,27 @@ The work grows like $1/(1-r)$: halve the gap and you double the steps. I measure
 | 0.99 | 1825 (1562 to 1943) | 2246 | 18.3 |
 | 0.995 | 3659 (3132 to 3887) | 4502.5 | 18.3 |
 
-The median measured contraction per step, taken once the faster modes have died out, came within 0.012 of $r$ in every row (0.488 at $r = 0.5$, 0.990 at $r = 0.99$). The last column settles near 18.3 for $r$ near 1, about $\ln(10^8) = 18.4$ adjusted by the log of the start's ratio $|c_2/c_1|$, which is the $1/(1-r)$ law in numbers. The bound runs 10 to 23% high because it charges every mode at rate $r$. In the figure below, move the slider toward 1 to watch the line flatten, and set it to 1 to watch it stop.
+The median measured contraction per step, taken after the faster modes have decayed, came within 0.012 of $r$ in every row (0.488 at $r = 0.5$, 0.990 at $r = 0.99$). The last column settles near 18.3 for $r$ near 1, about $\ln(10^8) = 18.4$ adjusted by the logarithm of the start's ratio $|c_2/c_1|$, as the $1/(1-r)$ law predicts. The bound exceeds the measured counts by 10 to 23% because it assumes that every mode decays at rate $r$. In the figure below, the line flattens as the slider approaches 1 and becomes horizontal at 1.
 
 <PowerIteration preset="narrow" />
 
-At $r = 1$ the iteration has no reason to prefer $v_1$ over $v_2$, and it converges to some vector in their plane that depends on the start. Other ways to lose the gap fail differently. I ran each for 2000 steps on a $200 \times 200$ symmetric or orthogonally similar matrix:
+At $r = 1$ the iteration does not distinguish $v_1$ from $v_2$, and it converges to a vector in their plane that depends on the start. Other spectra without a gap produce different failures. I ran each for 2000 steps on a $200 \times 200$ symmetric or orthogonally similar matrix:
 
 - **$\lambda_2 = -\lambda_1$.** The two modes keep equal weight and the second flips sign every step, so $x_k$ alternates between two directions. The error to $v_1$ settled at $\sin\theta = 0.190$ by step 10 and stayed there.
-- **A complex pair on top.** A real matrix whose largest eigenvalues are $e^{\pm 0.3i}$ rotates its iterate inside a plane forever. The distance from that plane fell to $10^{-15}$ by step 100, so the plane is found, and no single vector ever is.
-- **A defective top eigenvalue.** With a $2 \times 2$ Jordan block for $\lambda_1 = 1$, the $k\lambda^{k-1}$ term wins only by a factor of $k$, so the error falls like $1/k$ instead of geometrically. Measured $k \sin\theta_k$ was 1.054, 1.005 and 1.0005 at $k = 100$, 1000 and 10000.
+- **A complex pair on top.** A real matrix whose largest eigenvalues are $e^{\pm 0.3i}$ rotates its iterate within a plane at every step. The distance from that plane fell to $10^{-15}$ by step 100, so the iteration converges to the plane but to no single vector in it.
+- **A defective top eigenvalue.** With a $2 \times 2$ Jordan block for $\lambda_1 = 1$, the $k\lambda^{k-1}$ term dominates only by a factor of $k$, so the error falls like $1/k$ instead of geometrically. Measured $k \sin\theta_k$ was 1.054, 1.005 and 1.0005 at $k = 100$, 1000 and 10000.
 
 ### The eigenvalue converges twice as fast, for symmetric matrices
 
-The usual eigenvalue estimate is the Rayleigh quotient $\rho_k = x_k^T A x_k$ for unit $x_k$. For a symmetric matrix it is stationary at eigenvectors: an error of order $\theta$ in the vector gives an error of order $\theta^2$ in $\rho$, so the eigenvalue error falls like $r^{2k}$ (the same Theorem 27.1). In the controlled runs above the eigenvalue reached $10^{-8}$ in roughly half the steps the vector needed, 49 against 87.5 at $r = 0.8$. The orange line here is that error.
+Power iteration estimates the eigenvalue by the Rayleigh quotient $\rho_k = x_k^T A x_k$ for unit $x_k$. For a symmetric matrix the Rayleigh quotient is stationary at eigenvectors, so an error of order $\theta$ in the vector gives an error of order $\theta^2$ in $\rho$, so the eigenvalue error falls like $r^{2k}$ (the same Theorem 27.1). In the controlled runs above the eigenvalue reached $10^{-8}$ in roughly half the steps the vector needed, 49 against 87.5 at $r = 0.8$. In the figure below, the orange line shows that error.
 
 <PowerIteration preset="rayleigh" />
 
-The squaring needs symmetry. I built non-symmetric matrices $A = V D V^{-1}$ with the same kind of spectrum at $r = 0.8$, tilting $v_2$ toward $v_1$ so the angle between them was 90°, 10°, 1° or 0.1° (eigenvector condition numbers from 1 to about 1150). The Rayleigh quotient's per-step factor went from 0.62 at 90°, close to $r^2 = 0.64$, to 0.80 at every tilted angle, and its median step count went from 43.5 to 76. The direction kept converging at $r$, with factors of 0.79 throughout. Tilting also made the direction error smaller: what remains of $v_2$ in $x_k$ points almost along $v_1$, so it barely moves $x_k$ off that line, and median steps fell from 84.5 to 58.
+The squaring of the error requires symmetry. I built non-symmetric matrices $A = V D V^{-1}$ with the same kind of spectrum at $r = 0.8$, tilting $v_2$ toward $v_1$ so the angle between them was 90°, 10°, 1° or 0.1° (eigenvector condition numbers from 1 to about 1150). The Rayleigh quotient's per-step factor went from 0.62 at 90°, close to $r^2 = 0.64$, to 0.80 at every tilted angle, and its median step count went from 43.5 to 76. The direction kept converging at $r$, with factors of 0.79 throughout. Tilting also reduced the direction error, because the remaining component along $v_2$ points almost along $v_1$ and displaces $x_k$ only slightly from that line; median steps fell from 84.5 to 58.
 
 ### Real data: principal components
 
-The top eigenvector of a covariance matrix is the first principal component, and the gap there is whatever the data gives you. Ten random starts each, stopping at $\sin \theta \le 10^{-8}$:
+The top eigenvector of a covariance matrix is the first principal component, and the gap is determined by the data. Each dataset was run from ten random starts, stopping at $\sin \theta \le 10^{-8}$.
 
 | Dataset | Shape | $\lambda_2/\lambda_1$ | Steps, median (range) |
 | --- | --- | ---: | ---: |
@@ -208,13 +211,13 @@ The top eigenvector of a covariance matrix is the first principal component, and
 | Breast cancer, raw | 569 × 30 | 0.0165 | 5 (4 to 6) |
 | Breast cancer, standardized | 569 × 30 | 0.429 | 23 (17 to 24) |
 
-The per-step factor matched $\lambda_2/\lambda_1$ to four digits on every row. The raw wine and breast cancer rows converge in a handful of steps because features with large units own almost all of the variance: proline makes up 0.9998 of wine's first component, and the two cell-nucleus area columns dominate breast cancer's. The first principal component is then little more than those columns. Standardizing the columns gives a more informative component and a much smaller gap. Fast convergence can mean the question was trivial.
+The per-step factor matched $\lambda_2/\lambda_1$ to four digits on every row. The raw wine and breast cancer rows converge in a handful of steps because features with large units account for almost all of the variance. Proline makes up 0.9998 of wine's first component, and the two cell-nucleus area columns dominate that of breast cancer. The first principal component then consists almost entirely of those columns. Standardizing the columns gives a more informative component and a smaller gap, with ratios of 0.531 and 0.429 in place of 0.0017 and 0.0165.
 
 ### Real data: PageRank on this site
 
-PageRank is the stationary distribution of a random surfer who follows a link with probability $\alpha$ and jumps to a uniformly random page otherwise ([Page et al., 1999](http://ilpubs.stanford.edu:8090/422/)). It is the top eigenvector, with eigenvalue 1, of the Google matrix $G = \alpha S + (1 - \alpha)\frac{1}{n}\mathbf{1}\mathbf{1}^T$, where $S$ is the row-stochastic link matrix with dangling pages pointed at every page. [Haveliwala and Kamvar](http://ilpubs.stanford.edu:8090/582/) proved $|\lambda_2(G)| \le \alpha$, with equality whenever the link graph has at least two closed sets of pages that no link leaves. So the designer picks the gap: power iteration converges at rate $\alpha$ whatever the web looks like, which is a large part of why it stayed the method for PageRank ([Langville and Meyer, 2004, §5.1](https://doi.org/10.1080/15427951.2004.10129091)).
+PageRank is the stationary distribution of a random surfer who follows a link with probability $\alpha$ and jumps to a uniformly random page otherwise ([Page et al., 1999](http://ilpubs.stanford.edu:8090/422/)). It is the top eigenvector, with eigenvalue 1, of the Google matrix $G = \alpha S + (1 - \alpha)\frac{1}{n}\mathbf{1}\mathbf{1}^T$, where $S$ is the row-stochastic link matrix with dangling pages pointed at every page. [Haveliwala and Kamvar](http://ilpubs.stanford.edu:8090/582/) proved $|\lambda_2(G)| \le \alpha$, with equality whenever the link graph has at least two closed sets of pages that no link leaves. The choice of $\alpha$ therefore determines the gap. Power iteration converges at rate $\alpha$ regardless of the link structure, which is a principal reason that it remained the method used for PageRank ([Langville and Meyer, 2004, §5.1](https://doi.org/10.1080/15427951.2004.10129091)).
 
-I built the link graph of this site's notes from their links: 265 notes, 1223 links, 4 dangling notes and 4 closed sets. A dense eigensolver put $|\lambda_2|$ at $\alpha$ to 14 digits for every $\alpha$ I tried. Iterating from the uniform vector until a step changed $x$ by less than $10^{-10}$ in the 1-norm:
+I built the link graph of this site's notes from their links: 265 notes, 1223 links, 4 dangling notes and 4 closed sets. A dense eigensolver put $|\lambda_2|$ at $\alpha$ to 14 digits for every $\alpha$ I tried. The iteration started from the uniform vector and stopped when a step changed $x$ by less than $10^{-10}$ in the 1-norm.
 
 | $\alpha$ | Iterations | Measured per-step factor |
 | ---: | ---: | ---: |
@@ -225,17 +228,17 @@ I built the link graph of this site's notes from their links: 265 notes, 1223 li
 | 0.95 | 325 | 0.947 |
 | 0.99 | 1314 | 0.987 |
 
-At the $\alpha = 0.85$ that [Brin and Page reported using](https://doi.org/10.1016/S0169-7552(98)00110-X), it takes about a hundred sparse matrix-vector products to reach $10^{-10}$, close to the 142 that Langville and Meyer's estimate $\log_{10}\tau / \log_{10}\alpha$ predicts. Moving to 0.99, so the ranking follows links more faithfully, costs twelve times as many. The measured factors sit at or a little under $\alpha$; my guess is that the slowest eigenvectors live on the four small closed sets, which the uniform start barely weights.
+At the $\alpha = 0.85$ that [Brin and Page reported using](https://doi.org/10.1016/S0169-7552(98)00110-X), the iteration requires about a hundred sparse matrix-vector products to reach $10^{-10}$, close to the 142 that Langville and Meyer's estimate $\log_{10}\tau / \log_{10}\alpha$ predicts. At 0.99, where the ranking follows links more closely, it requires twelve times as many. The measured factors are at or slightly below $\alpha$. A plausible explanation, not tested here, is that the slowest eigenvectors are supported on the four small closed sets, to which the uniform start gives little weight.
 
-### When the gap is small, change the algorithm
+### Methods for small gaps
 
-Power iteration only ever looks at the newest vector. Methods that keep more information escape the $1/(1-r)$ law:
+Power iteration uses only the most recent vector. Methods that retain more information, or that transform the matrix, are not bound by the $1/(1-r)$ law.
 
-- **Shifts.** Iterating with $A - \sigma I$ changes the ratio to $|\lambda_2 - \sigma| / |\lambda_1 - \sigma|$. A good shift helps a little, and only when you know roughly where the spectrum sits.
-- **Inverse iteration and Rayleigh quotient iteration.** Iterating with $(A - \sigma I)^{-1}$ converges to the eigenvalue nearest $\sigma$, at a rate equal to the ratio of its distance from $\sigma$ to the next nearest eigenvalue's distance, so a shift close to an eigenvalue converges in a few steps. Updating the shift to the current Rayleigh quotient every step converges cubically for symmetric matrices, tripling the correct digits per step ([Trefethen and Bau, Theorem 27.3](https://doi.org/10.1137/1.9780898719574)). Each step costs a linear solve.
-- **Lanczos.** Keep every iterate and take the best vector in the Krylov space $\mathrm{span}\{x_0, Ax_0, \dots, A^{k-1}x_0\}$. The Kaniel-Paige-Saad bound puts the eigenvalue error under a factor $1/T_{k-1}(1 + 2\gamma)^2$, where $T$ is a Chebyshev polynomial and $\gamma = (\lambda_1 - \lambda_2)/(\lambda_2 - \lambda_n)$ ([Saad, 1980](https://doi.org/10.1137/0717059)). For a small gap that is roughly $(1 + 2\sqrt{\gamma})^{-2k}$, so the step count grows like $1/\sqrt{\text{gap}}$ instead of $1/\text{gap}$.
+- **Shifts.** Iterating with $A - \sigma I$ changes the ratio to $|\lambda_2 - \sigma| / |\lambda_1 - \sigma|$. A well-chosen shift improves the ratio modestly, and only when the approximate location of the spectrum is known.
+- **Inverse iteration and Rayleigh quotient iteration.** Iterating with $(A - \sigma I)^{-1}$ converges to the eigenvalue nearest $\sigma$, at a rate equal to the ratio of its distance from $\sigma$ to the next nearest eigenvalue's distance, so a shift close to an eigenvalue converges in a few steps. Updating the shift to the current Rayleigh quotient every step converges cubically for symmetric matrices, tripling the correct digits per step ([Trefethen and Bau, Theorem 27.3](https://doi.org/10.1137/1.9780898719574)). Each step requires a linear solve.
+- **Lanczos.** Lanczos retains every iterate and takes the best approximation in the Krylov space $\mathrm{span}\{x_0, Ax_0, \dots, A^{k-1}x_0\}$. The Kaniel-Paige-Saad bound limits the eigenvalue error to a factor $1/T_{k-1}(1 + 2\gamma)^2$, where $T$ is a Chebyshev polynomial and $\gamma = (\lambda_1 - \lambda_2)/(\lambda_2 - \lambda_n)$ ([Saad, 1980](https://doi.org/10.1137/0717059)). For a small gap that is roughly $(1 + 2\sqrt{\gamma})^{-2k}$, so the step count grows like $1/\sqrt{\text{gap}}$ instead of $1/\text{gap}$.
 
-On $400 \times 400$ symmetric matrices built like the table above (ten seeds each), counting matrix-vector products until the top eigenvector was within $10^{-8}$ (medians). The Lanczos column is plain Lanczos with full reorthogonalization, and the last is SciPy's `eigsh`:
+The following table counts matrix-vector products until the top eigenvector was within $10^{-8}$, as medians over ten seeds, on $400 \times 400$ symmetric matrices constructed as for the earlier table. The Lanczos column is plain Lanczos with full reorthogonalization, and the last is SciPy's `eigsh`:
 
 | $r$ | Power iteration | Lanczos | `eigsh` |
 | ---: | ---: | ---: | ---: |
@@ -243,10 +246,10 @@ On $400 \times 400$ symmetric matrices built like the table above (ten seeds eac
 | 0.99 | 1811.5 | 97.5 | 131 |
 | 0.999 | 17692.5 | 117.5 | 156 |
 
-At $r = 0.999$ power iteration needs 150 times as many products as Lanczos. [`eigsh`](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.eigsh.html) wraps ARPACK's implicitly restarted Lanczos method and ran to a tighter tolerance here, which accounts for its extra products. Power iteration still wins when you can only afford to store one vector, when the gap is guaranteed (PageRank), or when one step per outer iteration is enough because the vector is reused, as in spectral normalization.
+At $r = 0.999$ power iteration needs 150 times as many products as Lanczos. [`eigsh`](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.eigsh.html) wraps ARPACK's implicitly restarted Lanczos method and ran to a tighter tolerance here, which accounts for its extra products. Power iteration remains preferable when memory permits storing only one vector, when the gap is guaranteed (PageRank), or when one step per outer iteration suffices because the vector is reused, as in spectral normalization.
 
 > [!note]- Deep dive: how a random start enters
-> The bound starts from $\tan\theta_0$. For a Gaussian random start in $n$ dimensions, $\tan\theta_0$ is about $\sqrt{n}$, so the start costs about $\tfrac{1}{2}\ln n / \ln(1/r)$ extra steps, a mild dependence on dimension. [Kuczyński and Woźniakowski (1992)](https://doi.org/10.1137/0613066) bound the eigenvalue error for a positive definite matrix and a random start with no gap assumption at all. [Martinsson and Tropp's survey (§6)](https://arxiv.org/abs/2002.01387) restates the result as an expected relative error of about $\ln n / k$ for power iteration and $(\ln n / k)^2$ for Lanczos after $k$ steps. A small gap only slows the vector. A good eigenvalue estimate arrives regardless, since a vector that mixes $v_1$ and $v_2$ with $\lambda_2 \approx \lambda_1$ has a Rayleigh quotient close to $\lambda_1$ anyway.
+> The bound starts from $\tan\theta_0$. For a Gaussian random start in $n$ dimensions, $\tan\theta_0$ is about $\sqrt{n}$, so the start adds about $\tfrac{1}{2}\ln n / \ln(1/r)$ steps, a mild dependence on dimension. [Kuczyński and Woźniakowski (1992)](https://doi.org/10.1137/0613066) bound the eigenvalue error for a positive definite matrix and a random start with no gap assumption at all. [Martinsson and Tropp's survey (§6)](https://arxiv.org/abs/2002.01387) restates the result as an expected relative error of about $\ln n / k$ for power iteration and $(\ln n / k)^2$ for Lanczos after $k$ steps. A small gap slows the convergence of the vector only. The eigenvalue estimate becomes accurate regardless, since a vector that mixes $v_1$ and $v_2$ with $\lambda_2 \approx \lambda_1$ has a Rayleigh quotient close to $\lambda_1$ anyway.
 
 ## NumPy and numerical caveats
 
@@ -266,13 +269,13 @@ w, Q = np.linalg.eigh(A)
 print(w)                                  # [2. 4.]
 ```
 
-Caveats that bite in practice, per the [`numpy.linalg.eig`](https://numpy.org/doc/stable/reference/generated/numpy.linalg.eig.html) and [`eigh`](https://numpy.org/doc/stable/reference/generated/numpy.linalg.eigh.html) docs and NumPy's source:
+The following caveats are taken from the [`numpy.linalg.eig`](https://numpy.org/doc/stable/reference/generated/numpy.linalg.eig.html) and [`eigh`](https://numpy.org/doc/stable/reference/generated/numpy.linalg.eigh.html) documentation and NumPy's source.
 
-- `eig` does not sort eigenvalues. Here it returns 4 before 2; never rely on an order.
+- `eig` does not sort eigenvalues. Here it returns 4 before 2, and no order is guaranteed.
 - The result's type depends on the NumPy version, not the BLAS. Through NumPy 2.4, `eig` cast its output to real when every imaginary part was exactly zero. NumPy 2.5 always returns complex arrays, though the docstring still describes the cast. Call `.real` after checking the imaginary parts, or use `eigh` when the matrix is symmetric. A real matrix with complex eigenvalues, such as a rotation, gives conjugate pairs in every version.
 - For symmetric or Hermitian matrices, use `eigh`. It returns real eigenvalues in ascending order and orthonormal eigenvectors, and it is faster and more accurate because it exploits symmetry.
 - For the top few eigenpairs of a large or sparse matrix, use `scipy.sparse.linalg.eigsh` (symmetric) or `eigs`, which only need matrix-vector products.
-- Nearly defective matrices are numerically hostile. When the eigenvector matrix is close to singular, $P^{-1}$ amplifies error, and the eigenvectors of a non-symmetric matrix can be ill-conditioned even when its eigenvalues are fine. For a non-symmetric matrix, $P D^k P^{-1}$ is not a reliable route to $A^k$, the same reason [Moler and Van Loan](https://doi.org/10.1137/S00361445024180) rate eigenvector methods poorly for the matrix exponential. For a symmetric one the orthogonal $Q$ keeps the reconstruction well behaved.
+- Nearly defective matrices are ill-conditioned for eigendecomposition. When the eigenvector matrix is close to singular, $P^{-1}$ amplifies error, and the eigenvectors of a non-symmetric matrix can be ill-conditioned even when its eigenvalues are well conditioned. For a non-symmetric matrix, $P D^k P^{-1}$ is not a reliable route to $A^k$, the same reason [Moler and Van Loan](https://doi.org/10.1137/S00361445024180) rate eigenvector methods poorly for the matrix exponential. For a symmetric matrix, the orthogonal $Q$ keeps the reconstruction numerically stable.
 
 > [!note]- How this was measured
 > - **Code**: [`power_iteration_experiments.py`](power-iteration/power_iteration_experiments.py), run from `notes/` as `python3 content/math/linear-algebra/power-iteration/power_iteration_experiments.py --mnist work/notebook-data/mnist/mnist.npz`. It takes about a minute and writes [`results.json`](power-iteration/results.json). Without `--mnist` it skips the MNIST row.
@@ -282,7 +285,7 @@ Caveats that bite in practice, per the [`numpy.linalg.eig`](https://numpy.org/do
 > - **Edge cases**: one $200 \times 200$ matrix each, $Q B Q^T$ with $B$ holding the competing eigenvalues (or the rotation block or Jordan block) and the rest uniform in $[-0.5, 0.5]$.
 > - **Lanczos**: the textbook three-term recurrence with full reorthogonalization (two Gram-Schmidt passes), checking the top Ritz vector after every step. `eigsh(k=1, which="LA", tol=1e-12)` counted its products through a `LinearOperator`; its final errors were below $10^{-11}$.
 > - **PCA**: covariance of the mean-centered data, eigenvalues from `numpy.linalg.eigh`. Standardized means scikit-learn's `StandardScaler`. MNIST is Keras's copy (SHA-256 `731c5ac6…b673d1`) scaled to $[0, 1]$.
-> - **PageRank**: every `.md` and `.mdx` file under `notes/content` except templates and archived notes is a page. Edges are its wiki links and Markdown links that resolve to another page, without duplicates or self-links. Dangling pages link to every page, and closed sets are strongly connected components with no edge leaving them. The site had 265 notes on the run date, so the counts will drift as notes are added.
+> - **PageRank**: every `.md` and `.mdx` file under `notes/content` except templates and archived notes is a page. Edges are its wiki links and Markdown links that resolve to another page, without duplicates or self-links. Dangling pages link to every page, and closed sets are strongly connected components with no edge leaving them. The site had 265 notes on the run date, so the counts change as notes are added.
 > - **Environment**: Intel Xeon at 2.10 GHz, 4 cores, Python 3.13.18, NumPy 2.5.3 with OpenBLAS 0.3.34, SciPy 1.18.1. Everything is deterministic given the seeds, and only step counts are reported, no timings.
 > - **The figure** runs the same iteration in JavaScript on a $40 \times 40$ matrix with eigenvalues 1, $r$, and 38 more evenly spaced over $[-0.8r, 0.8r]$. Its tests check every step against the closed form $\tan\theta_k = \sqrt{\textstyle\sum_{i \ge 2} (c_i \lambda_i^k)^2} / |c_1|$ and the Rayleigh quotient against $\sum c_i^2 \lambda_i^{2k+1} / \sum c_i^2 \lambda_i^{2k}$.
 

@@ -10,7 +10,10 @@ tags:
   - matrices
   - vectors
 date: 2024-12-08
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
 description: NumPy and Matplotlib snippets for basic vector and matrix operations.
 sources:
@@ -18,9 +21,9 @@ sources:
   - https://matplotlib.org/stable/users/explain/quick_start.html
 ---
 
-## Purpose
+NumPy represents vectors and matrices as arrays, and its `numpy.linalg` module computes norms, determinants, inverses, ranks, eigendecompositions, singular value decompositions and solutions of linear systems. Matplotlib draws the vectors in two and three dimensions.
 
-For the mathematical definitions behind these NumPy operations, see [[math/linear-algebra/elementry-linear-algebra|Elementary Linear Algebra]] and the more comprehensive [[math/linear-algebra/cheatsheet|Matrix Theory reference]].
+The mathematical definitions behind these operations are in [[math/linear-algebra/elementry-linear-algebra|Elementary Linear Algebra]] and the more comprehensive [[math/linear-algebra/cheatsheet|Matrix Theory reference]].
 
 ## Working with Vectors in NumPy
 

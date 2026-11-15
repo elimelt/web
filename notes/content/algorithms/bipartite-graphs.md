@@ -8,16 +8,19 @@ tags:
   - odd cycles
   - breadth-first search
 date: 2024-04-14
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
 description: Definition of bipartite graphs, the equivalence between bipartiteness and having no odd cycle, and the BFS layer algorithm for testing bipartiteness in O(|V| + |E|).
 sources:
   - https://www.cs.princeton.edu/~wayne/kleinberg-tardos/
 ---
 
-## Purpose
+An undirected graph is **bipartite** if its vertices can be partitioned into two sets such that every edge has one endpoint in each set.
 
-This note defines bipartite graphs, proves the characterization in terms of odd cycles, and turns that proof into a linear time detection algorithm based on [[algorithms/BFS|BFS]] layers.
+A graph is bipartite if and only if it contains no cycle of odd length. The proof of this characterization yields a linear-time test that computes [[algorithms/BFS|BFS]] layers and checks whether any edge joins two vertices of the same layer.
 
 ## Definition
 
@@ -48,7 +51,7 @@ flowchart LR
     style z fill:#fde8c8,stroke:#c80
 ```
 
-Bipartite structure shows up whenever the vertices naturally split into two kinds, for example machines and jobs in scheduling, or companies and applicants in [[algorithms/stable-matching|stable matching]]. Many problems that are hard on general graphs get easier on bipartite graphs, maximum matching being the standard example (see [[algorithms/network-flows|network flows]]).
+Bipartite graphs arise when the vertices are of two kinds and edges join only vertices of different kinds, for example machines and jobs in scheduling, or companies and applicants in [[algorithms/stable-matching|stable matching]]. Some problems admit simpler algorithms on bipartite graphs than on general graphs. Maximum matching in a bipartite graph, for example, reduces to maximum flow (see [[algorithms/network-flows|network flows]]).
 
 ## Odd-Length Cycles
 
@@ -63,9 +66,9 @@ Bipartite structure shows up whenever the vertices naturally split into two kind
 
 **Proof**: In case 1, every edge joins vertices in adjacent layers (BFS layers differ by at most one across an edge), so coloring even layers one color and odd layers the other gives a proper 2-coloring.
 
-In case 2, let $(x, y)$ be an edge with $L(x) = L(y)$, and let $z$ be the lowest common ancestor of $x$ and $y$ in the BFS tree. The tree paths from $z$ to $x$ and from $z$ to $y$ have the same length, say $k$, because $x$ and $y$ sit in the same layer. Those two paths plus the edge $(x, y)$ form a cycle of length $2k + 1$, which is odd. $\blacksquare$
+In case 2, let $(x, y)$ be an edge with $L(x) = L(y)$, and let $z$ be the lowest common ancestor of $x$ and $y$ in the BFS tree. The tree paths from $z$ to $x$ and from $z$ to $y$ have the same length, say $k$, because $x$ and $y$ lie in the same layer. Those two paths plus the edge $(x, y)$ form a cycle of length $2k + 1$, which is odd. $\blacksquare$
 
-Case 2 with $k = 2$: the tree paths $z, p, x$ and $z, q, y$ plus the same-layer edge $(x, y)$ form a cycle of length 5.
+In the following instance of case 2 with $k = 2$, the tree paths $z, p, x$ and $z, q, y$ and the same-layer edge $(x, y)$ form a cycle of length 5.
 
 ```mermaid
 flowchart TD
@@ -86,7 +89,7 @@ flowchart TD
 
 **Problem**: Given a graph $G$, output `true` if it is bipartite, `false` otherwise.
 
-Run BFS from any vertex (repeating per connected component) and record each vertex's layer. Then scan every edge. If some edge joins two vertices in the same layer, output `false`. Otherwise output `true`, and the even/odd layers give the two sides of the partition. Correctness is exactly the lemma above, and the runtime is the BFS runtime plus an edge scan, $O(|V| + |E|)$.
+Run BFS from any vertex (repeating per connected component) and record each vertex's layer. Then scan every edge. If some edge joins two vertices in the same layer, output `false`. Otherwise output `true`, and the even/odd layers give the two sides of the partition. Correctness follows from the second lemma of [[#Odd-Length Cycles]], and the runtime is the BFS runtime plus an edge scan, $O(|V| + |E|)$.
 
 ```python
 from collections import deque

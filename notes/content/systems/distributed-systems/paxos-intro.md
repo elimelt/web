@@ -9,9 +9,12 @@ tags:
   - distributed-systems
   - state-machine-replication
 date: 2024-04-24
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: draft
-description: A first pass at Paxos. Covers why FLP forces a tradeoff between safety and progress, how state machine replication frames the problem, and the two phases of the core protocol.
+description: An introduction to Paxos covering the tradeoff between safety and progress that the FLP result imposes, state machine replication as the setting for consensus, and the two phases of the core protocol.
 sources:
   - title: Impossibility of Distributed Consensus with One Faulty Process (Fischer, Lynch, Paterson, 1985)
     url: https://groups.csail.mit.edu/tds/papers/Lynch/jacm85.pdf
@@ -21,25 +24,25 @@ sources:
     type: paper
 ---
 
-## Purpose
+Paxos is a consensus protocol for processes that communicate over an asynchronous network and may crash. It guarantees that at most one value is chosen, and it chooses a value whenever a majority of its acceptors can communicate for long enough.
 
-This note is a first pass at Paxos. It states the impossibility result that shapes the design, then walks the two phases of the core protocol in the setting where Paxos actually gets used, state machine replication. [[systems/distributed-systems/paxos-made-simple|Paxos Made Simple]] has the full derivation.
+The protocol is used chiefly for state machine replication, in which a separate instance of Paxos chooses the command in each slot of a replicated log. The full derivation is given in [[systems/distributed-systems/paxos-made-simple|Paxos Made Simple]].
 
 ## FLP impossibility result
 
-The [FLP result](https://groups.csail.mit.edu/tds/papers/Lynch/jacm85.pdf) shows that in an asynchronous system where even one process may fail, no deterministic protocol can guarantee consensus terminates. You cannot have guaranteed safety and guaranteed progress at once, so a protocol has to pick which one it will never give up.
+The [FLP result](https://groups.csail.mit.edu/tds/papers/Lynch/jacm85.pdf) shows that in an asynchronous system where even one process may fail, no deterministic protocol can guarantee consensus terminates. A consensus protocol therefore cannot guarantee both safety and progress, and its design must choose which of the two it preserves under all conditions.
 
-Paxos always picks safety. It still makes progress in practice as long as a majority of nodes are up and failures stop long enough for a round to complete, which is the best FLP allows.
+Paxos preserves safety under all conditions. It makes progress in practice as long as a majority of nodes are available and failures cease for long enough for a round to complete.
 
 > [!abstract] FLP in one sentence
-> You cannot guarantee both safety and liveness in an asynchronous system with even one faulty process, so every consensus protocol must choose which property it will sacrifice under adversarial conditions.
+> No deterministic protocol can guarantee both safety and liveness in an asynchronous system with even one faulty process, so every such consensus protocol must choose which property it sacrifices under adversarial conditions.
 
 ## State machine replication
 
-Order client operations into an append-only log and have every replica apply the log in order. Consensus is easy if only one request is in flight at a time, so the standard structure is to elect a leader, send all client requests to it, and let the leader define the ordering. If the leader fails or gets slow, elect a new one, as many times as needed. Each log slot then needs all nodes to agree on one value, and that per-slot agreement is exactly what Paxos provides. It also makes leader election safe, since competing would-be leaders cannot commit conflicting values.
+State machine replication orders client operations into an append-only log, and every replica applies the log in order. Consensus is simpler when only one request is in flight at a time, so a common structure elects a leader, sends all client requests to it, and lets the leader define the ordering. If the leader fails or becomes slow, a new leader is elected, as many times as necessary. Each log slot then requires all nodes to agree on one value, and Paxos provides that per-slot agreement. Paxos also makes leader election safe, since competing would-be leaders cannot commit conflicting values.
 
 > [!info] State machine replication
-> One Paxos instance per log slot. The value chosen for slot i is the ith command everyone executes.
+> Each log slot is decided by its own Paxos instance. The value chosen for slot i is the ith command that every replica executes.
 
 ## Paxos, the algorithm
 
@@ -87,7 +90,7 @@ Acceptor:
 
 ### Phase 2: Accept
 
-- Once the proposer has a majority of promises, it sends `Accept(n, v)` to the acceptors, where $v$ is the value of the highest-numbered proposal reported in the promises, or the proposer's own value if no promise reported one. Adopting the highest reported value is what keeps an already-chosen value from being overwritten.
+- Once the proposer has a majority of promises, it sends `Accept(n, v)` to the acceptors, where $v$ is the value of the highest-numbered proposal reported in the promises, or the proposer's own value if no promise reported one. Adopting the highest-numbered reported value prevents an already-chosen value from being overwritten.
 - Each acceptor that has not promised a higher number accepts and responds with `Accepted(n, v)`.
 - Once a majority of acceptors accept, the value is chosen.
 

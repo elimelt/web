@@ -13,9 +13,12 @@ tags:
   - dns
   - name-resolution
 date: 2024-03-07
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: The three layers of moving web content closer to clients, browser caches, proxy caches, and CDN edge locations reached through DNS resolution.
+description: Three layers of caching that place web content closer to clients, namely browser caches, proxy caches, and CDN edge locations reached through DNS resolution.
 sources:
   - title: "CSE 461: Computer Networks, University of Washington"
     url: https://courses.cs.washington.edu/courses/cse461/
@@ -25,9 +28,7 @@ sources:
     type: textbook
 ---
 
-## Purpose
-
-Answer one question, how do you place content near clients, and walk through the three mechanisms that do it at increasing distance from the user.
+A content delivery network (CDN) is a system of geographically distributed servers that caches content from an origin server and delivers it to each client from a nearby location. It is the outermost of three layers of caching that place web content close to clients, after the browser cache and proxy caches, each layer farther from the user than the one before.
 
 ```mermaid
 flowchart TD
@@ -41,11 +42,11 @@ flowchart TD
     style O fill:#f9d0d0
 ```
 
-Each layer answers what it can, and only misses travel further from the user.
+Each layer serves the requests it can satisfy from its cache and forwards only misses to the next layer.
 
 ## Browser cache
 
-The cache closest to the user lives in the browser itself. Browsers cache static content like stylesheets, scripts, images, and some AJAX responses, which speeds up repeat visits.
+The cache closest to the user is in the browser itself. Browsers cache static content such as stylesheets, scripts, images, and some AJAX responses, which reduces load time on repeat visits.
 
 The server controls this with the `Cache-Control` header on its responses, which states how long the file may be cached. Until that time expires, the browser serves the file locally without contacting the server at all.
 
@@ -55,9 +56,9 @@ A proxy server sits between a client application and the real server. It interce
 
 ## CDNs
 
-A CDN pushes the same idea out to global scale. It is a system of distributed servers that delivers content based on where the user is. Each region has edge locations, data centers that cache content from the origin server.
+A CDN applies the same caching at global scale and selects the serving location according to where the user is. Each region has edge locations, data centers that cache content from the origin server.
 
-The redirect to a nearby copy happens during name resolution. Resolving a CDN URL directs the user to the nearest edge location, which serves the cached content. The origin server sees less load and the user gets content from a server that is physically close, so round trips are short. How DNS supports this kind of location-dependent answer is covered in [[systems/networks/5-application/DNS|DNS]].
+The redirect to a nearby copy happens during name resolution. Resolving a CDN URL directs the user to the nearest edge location, which serves the cached content. Load on the origin server falls, and the user receives content from a server that is physically close, so round trips are short. How DNS supports this kind of location-dependent answer is covered in [[systems/networks/5-application/DNS|DNS]].
 
 ## Related notes
 

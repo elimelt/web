@@ -10,50 +10,51 @@ tags:
   - data-systems
   - performance
 date: 2023-12-19
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Reading notes on chapter 1 of Designing Data-Intensive Applications. Covers faults versus failures, how to describe load and response time, and the three ingredients of maintainability.
+description: Chapter 1 of Designing Data-Intensive Applications on reliability, scalability and maintainability, covering the distinction between faults and failures, load parameters and response-time percentiles, and the three components of maintainability.
 sources:
   - title: Designing Data-Intensive Applications, Martin Kleppmann
     url: https://dataintensive.net/
     type: book
 ---
 
-## Purpose
+Chapter 1 of [Designing Data-Intensive Applications](https://dataintensive.net/) by Martin Kleppmann defines reliability, scalability, and maintainability, the three properties of a data system on which the rest of the book relies, and describes how each is reasoned about.
 
-Reading notes on chapter 1 of [Designing Data-Intensive Applications](https://dataintensive.net/) by Martin Kleppmann. The chapter defines the vocabulary the rest of the book leans on: reliability, scalability, and maintainability, and how to reason about each.
-
-> [!abstract] The three pillars
+> [!abstract] Reliability, scalability, maintainability
 > **Reliability**: the system continues working correctly even when faults occur. **Scalability**: as load grows, there are reasonable ways of coping with it. **Maintainability**: engineers and operators can work on the system productively over time.
 
 ## Data intensive vs. compute intensive
 
-An application is data-intensive when the hard part is the volume, complexity, or rate of change of its data rather than raw CPU work. Kleppmann's point is that these applications get built from a small set of standard building blocks:
+An application is data-intensive when its principal difficulty lies in the volume, complexity, or rate of change of its data rather than in CPU work. Kleppmann observes that such applications are assembled from a small set of common components:
 
 - Databases, which store data so it can be found again later
-- Caches, which remember the result of an expensive operation to speed up reads
+- Caches, which store the result of an expensive operation to speed up reads
 - Search indexes, which let users search or filter data by keyword
 - Stream processing, which sends messages to other processes for asynchronous handling
-- Batch processing, which periodically crunches a large amount of accumulated data
+- Batch processing, which periodically processes a large amount of accumulated data
 
 ## Reliability
 
 A fault is one component of the system deviating from its spec. A failure is the system as a whole no longer providing the service the user needs. The design goal is to keep faults from turning into failures.
 
-> [!tip] Faults are inevitable, failures are not
-> Fault-tolerant design accepts that components **will** deviate from spec and contains the damage. It can even pay to induce faults deliberately, as Netflix's Chaos Monkey does, to verify that the fault-handling machinery actually works.
+> [!tip] Containing faults
+> Fault-tolerant design assumes that components **will** deviate from spec and limits the consequences. Faults can also be induced deliberately, as Netflix's Chaos Monkey does, to verify that the fault-handling mechanisms work.
 
 ### Hardware faults
 
-Hard disks crash, RAM corrupts, power supplies die. The traditional response is hardware redundancy, for example RAID for disks and dual power supplies. As systems grow to many machines, hardware faults stop being rare events, so the book argues for tolerating whole-machine loss in software on top of hardware redundancy.
+Hardware faults include disk crashes, corrupted RAM, and failed power supplies. The traditional response is hardware redundancy, for example RAID for disks and dual power supplies. In systems of many machines, hardware faults occur regularly, so the book argues for tolerating the loss of whole machines in software in addition to hardware redundancy.
 
 ### Software faults
 
-Crashes, runaway processes, slowdowns, and cascading failures tend to be correlated across machines, which makes them harder than hardware faults. Lots of small things help: thinking carefully about assumptions and interactions in the system, thorough testing, process isolation, letting processes crash and restart, and measuring system behavior in production. If a system is expected to provide some guarantee, for example that a message queue emits as many messages as it ingests, it can check that invariant while running and alert on any discrepancy.
+Crashes, runaway processes, slowdowns, and cascading failures tend to be correlated across machines, which makes them more difficult to tolerate than hardware faults. The mitigations are a collection of small measures: thinking carefully about assumptions and interactions in the system, thorough testing, process isolation, letting processes crash and restart, and measuring system behavior in production. If a system is expected to provide some guarantee, for example that a message queue emits as many messages as it ingests, it can check that invariant while running and alert on any discrepancy.
 
 ### Human errors
 
-Operators and engineers misconfigure things. The mitigations are structural:
+Operators and engineers make configuration errors, and the mitigations Kleppmann lists are structural:
 
 - Design systems in a way that minimizes opportunities for error
 - Decouple the places where people make the most mistakes from the places where mistakes cause failures
@@ -70,7 +71,7 @@ Scalability describes a system's ability to cope with increased load. Load is de
 - Cache hit rate
 - Concurrent users
 
-Two questions frame any scalability discussion. When you increase a load parameter and keep resources (CPU, memory, network bandwidth) unchanged, how does performance degrade? And when you increase a load parameter, how much do you need to increase resources to keep performance unchanged?
+Kleppmann frames scalability with two questions. When a load parameter increases and resources (CPU, memory, network bandwidth) are held fixed, how does performance degrade? When a load parameter increases, by how much must resources increase to keep performance unchanged?
 
 ### Latency and response time
 
@@ -78,22 +79,22 @@ Latency is the duration a request waits to be handled, during which it is latent
 
 ### Measuring response time
 
-Use percentiles rather than averages. Look at the median (p50) alongside the tail, p95 and p99. When a single user request fans out into multiple backend calls, measure the p99 of the overall request, since the slowest backend call dominates the user's experience. Kleppmann calls this tail latency amplification: the more backend calls a request makes, the higher the chance it hits at least one slow one.
+Response time is described by percentiles rather than by the mean, with the median (p50) reported alongside the tail percentiles p95 and p99. When a single user request fans out into multiple backend calls, the relevant measure is the p99 of the overall request, since the slowest backend call determines its response time. Kleppmann calls this tail latency amplification: the more backend calls a request makes, the higher the probability that at least one of them is slow.
 
 > [!warning] Averages hide the tail
-> A mean response time says nothing about how many users are suffering. The customers with the slowest requests are often the ones with the most data, which makes the tail the part of the distribution that matters most.
+> A mean response time gives no indication of how many users experience slow responses. The customers with the slowest requests are often those with the most data, so the tail of the distribution often describes the experience of the customers with the most data.
 
 ### Coping with load
 
-Scaling up (vertical scaling) means moving to a more powerful machine. Scaling out (horizontal scaling) means distributing the load across multiple smaller machines. Elastic systems add computing resources automatically when they detect a load increase and remove them when load drops. There is no generic solution. Scale based on access patterns rather than data size.
+Scaling up (vertical scaling) means moving to a more powerful machine. Scaling out (horizontal scaling) means distributing the load across multiple smaller machines. Elastic systems add computing resources automatically when they detect a load increase and remove them when load drops. Kleppmann argues that no architecture scales for every application, and that a scalable design follows from the application's access patterns rather than from its data size.
 
 ## Maintainability
 
-Operability means making it easy for operations teams to keep the system running smoothly. Make common tasks easy, and preferably automatic. Good monitoring is crucial here.
+Operability means making it easy for operations teams to keep the system running smoothly, by making common tasks easy and preferably automatic, and by providing thorough monitoring.
 
-Simplicity means making it easy for new engineers to understand the system by removing as much accidental complexity as possible. Abstraction is the main tool for managing complexity.
+Simplicity means making it easy for new engineers to understand the system by removing as much accidental complexity as possible. Kleppmann identifies abstraction as the principal tool for managing complexity.
 
-Evolvability means making it easy for engineers to change the system in the future as requirements change. Good abstractions and modularity allow components to be replaced and the overall architecture to be modified without a complete reimplementation.
+Evolvability means making it easy for engineers to change the system in the future as requirements change. Well-chosen abstractions and modularity allow components to be replaced and the overall architecture to be modified without a complete reimplementation.
 
 ## Sources
 

@@ -9,15 +9,18 @@ tags:
   - cpu-state
   - pid-namespace
 date: 2024-01-13
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: What a process is, the pieces that make one up (address space, CPU state, OS resources), the idealized address space layout, and the PID namespace.
+description: The definition of a process, its components (address space, CPU state, OS resources), the idealized address space layout, and the PID namespace.
 sources:
   - title: Operating systems course lecture notes
     type: lecture
 ---
 
-A process is the OS's abstraction of a running program: a program in execution. The simplest case is one address space with a single thread of execution.
+A process is the operating system's abstraction of a program in execution. In the simplest case it consists of one address space and a single thread of execution.
 
 ## What's in a process
 

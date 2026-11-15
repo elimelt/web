@@ -6,20 +6,23 @@ tags:
   - linear programs
   - optimization
 date: 2024-08-04
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
 description: Linear systems, the geometry of linear programs, conversion to standard form, and LP formulations of max-flow, min-cost flow, and weighted vertex cover including the rounding 2-approximation.
 ---
 
-## Purpose
+A **linear program** (LP) is the problem of maximizing or minimizing a linear function of real variables subject to a finite set of linear equality and inequality constraints.
 
-Linear programming optimizes a linear objective subject to linear constraints. A huge number of combinatorial problems reduce to it, and LPs are solvable in polynomial time. This note covers the geometry, the standard form transformations, and three worked formulations: max-flow, min-cost flow, and the LP relaxation of weighted vertex cover.
+The constraints define the feasible region, an intersection of half-spaces, and the objective selects a point of that region. Many combinatorial problems reduce to linear programming, and linear programs are solvable in polynomial time.
 
 ## Linear Systems
 
-Systems of linear equations (key word being equality) can be solved via Gaussian elimination. The solution space of such a system is a point, a line, a plane, or a hyperplane in higher dimensions.
+A system of linear equations, in which every constraint is an equality, can be solved by Gaussian elimination. The solution set of such a system is either empty or an affine subspace (a point, a line, a plane, or a higher-dimensional analogue).
 
-Let $a$ be a column vector in $\mathbb{R}^d$, and $x$ a column vector of $d$ variables. We can represent a linear expression using the *inner product* of these two vectors:
+Let $a$ be a column vector in $\mathbb{R}^d$, and $x$ a column vector of $d$ variables. A linear expression can be written as the *inner product* of these two vectors:
 
 $$
 \langle a, x \rangle = a^Tx = a_1x_1 + a_2x_2 + \ldots + a_dx_d = \sum_{i=1}^d a_ix_i
@@ -27,7 +30,7 @@ $$
 
 A **hyperplane** is the set of points $x$ such that $\langle a, x \rangle = b$ for some $b$. A **half-space** is the set of points on one side of a hyperplane, $\{x : \langle a, x \rangle \geq b\}$ or $\{x : \langle a, x \rangle \leq b\}$.
 
-The intersection of a set of half-spaces is a **polytope**, which is a convex set. A **convex set** is a set where the line segment between any two points in the set stays inside the set.
+The intersection of a set of half-spaces is a **polytope**, which is a convex set. A **convex set** is a set that contains the line segment between any two of its points.
 
 ## Linear Programs
 
@@ -71,7 +74,7 @@ $$
 
 ## Standard Form
 
-Any linear program can be written in the *standard form* below.
+Every linear program can be written in the following *standard form*.
 
 $$
 \begin{array}{cc}
@@ -81,7 +84,7 @@ s.t., & Ax \le b\\
 \end{array}
 $$
 
-The transformations: negate the objective to turn a min into a max, negate a constraint to flip a $\ge$ into a $\le$, and split an equality into two inequalities. For example:
+The transformations negate the objective to turn a min into a max, negate a constraint to flip a $\ge$ into a $\le$, and split an equality into two inequalities. For example,
 
 $$
 \begin{array}{cc}
@@ -104,7 +107,7 @@ s.t., & y_1 + 2y_2 \le 3\\
 \end{array}
 $$
 
-When a variable lacks a non-negativity constraint, replace it with the difference of two non-negative variables. For example, in
+A variable without a non-negativity constraint is replaced by the difference of two non-negative variables. For example, in
 
 $$
 \begin{array}{cc}
@@ -114,7 +117,7 @@ s.t., & y_1 + y_2 \le 3\\
 \end{array}
 $$
 
-replace $y_1$ with $z_1 - z_1'$, where $z_1, z_1' \ge 0$:
+$y_1$ is replaced by $z_1 - z_1'$, where $z_1, z_1' \ge 0$:
 
 $$
 \begin{array}{cc}
@@ -129,20 +132,20 @@ $$
 
 ## Components of a Linear Program
 
-When formulating a problem as an LP, decide each of these:
+An LP formulation of a problem specifies the following components:
 
 - The set of variables.
 - Bounds on the variables, e.g. non-negativity.
 - The objective function, and whether it is a minimization or maximization.
 - The constraints, which must be linear, each either an equality or an inequality.
 
-LPs capture problems like 2-person zero-sum games, shortest path, max-flow, matching, and multi-commodity flow, and the polynomial solvability of LPs makes them a workhorse for [[algorithms/approximation-algorithms|approximation algorithms]].
+Problems with LP formulations include two-person zero-sum games, shortest path, max-flow, matching and multi-commodity flow. Because LPs are solvable in polynomial time, LP relaxations of integer programs provide computable lower bounds in the analysis of [[algorithms/approximation-algorithms|approximation algorithms]].
 
 ## Max-Flow
 
-Given a graph $G = (V, E)$ with source $s$ and sink $t$, introduce a variable $x_e$ for the flow on each edge $e$ (see [[algorithms/network-flows|network flows]]).
+Given a graph $G = (V, E)$ with source $s$ and sink $t$, the LP has a variable $x_e$ for the flow on each edge $e$ (see [[algorithms/network-flows|network flows]]).
 
-The constraints:
+The constraints are the following:
 
 - $x_e \ge 0$ for all $e$, since flow is non-negative
 - $x_e \le c(e)$ for all $e$, the capacity constraint
@@ -162,11 +165,11 @@ $$
 The optimal LP solution is not necessarily an integer flow, though for max-flow an integer optimum always exists when capacities are integers.
 
 > [!tip] Duality intuition
-> Every maximization LP has a dual minimization LP with the same optimal value. The dual of the max-flow LP is a fractional min-cut, so the [[algorithms/network-flows|max-flow min-cut theorem]] is LP duality specialized to this program.
+> Every maximization LP has a dual minimization LP, and when either has a finite optimum, the two optimal values are equal (strong duality). The dual of the max-flow LP is a fractional min-cut, so the [[algorithms/network-flows|max-flow min-cut theorem]] is LP duality specialized to this program.
 
 ## Min-Cost Flow
 
-Add a cost $p(e)$ per unit of flow on each edge, and minimize total cost while shipping a required flow value $f$:
+Min-cost flow adds a cost $p(e)$ per unit of flow on each edge and minimizes the total cost subject to sending a required flow value $f$:
 
 $$
 \begin{array}{ccc}
@@ -180,9 +183,9 @@ $$
 
 ## Weighted Vertex Cover
 
-Given a graph $G = (V, E)$ where each vertex has a cost $c_v$, find the vertex cover $S$ minimizing $\sum_{v \in S} c_v$.
+Given a graph $G = (V, E)$ where each vertex has a cost $c_v$, find a vertex cover $S$ minimizing $\sum_{v \in S} c_v$.
 
-Give each vertex a variable $x_v$, intended to be $1$ if $v \in S$ and $0$ otherwise. Covering every edge means each edge needs at least one chosen endpoint, which is the linear constraint $x_u + x_v \ge 1$:
+Each vertex has a variable $x_v$, intended to be $1$ if $v \in S$ and $0$ otherwise. A cover contains at least one endpoint of each edge, which is the linear constraint $x_u + x_v \ge 1$:
 
 $$
 \begin{array}{ccc}
@@ -192,9 +195,9 @@ s.t.,   & x_u + x_v \ge 1 & \forall (u, v) \in E\\
 \end{array}
 $$
 
-With the extra restriction $x_v \in \{0, 1\}$ this is exactly weighted vertex cover, which is NP-hard, so the integer program is not directly solvable in polynomial time. Dropping the integrality restriction gives the **LP relaxation** above, which is solvable in polynomial time and whose optimum $LP^*$ satisfies $LP^* \le OPT$, since every true vertex cover is a feasible LP solution.
+With the extra restriction $x_v \in \{0, 1\}$ this is exactly weighted vertex cover, which is NP-hard, so the integer program is not solvable in polynomial time unless P = NP. Dropping the integrality restriction gives the **LP relaxation** above, which is solvable in polynomial time and whose optimum $LP^*$ satisfies $LP^* \le OPT$, since every vertex cover, written as a 0-1 vector, is a feasible LP solution.
 
-Rounding recovers a real cover: take $S = \{v : x_v \ge \frac{1}{2}\}$. Every edge constraint $x_u + x_v \ge 1$ forces at least one endpoint to be $\ge \frac{1}{2}$, so $S$ is a vertex cover. Rounding at most doubles each variable, so
+Rounding an optimal LP solution yields a vertex cover. Let $S = \{v : x_v \ge \frac{1}{2}\}$. Every edge constraint $x_u + x_v \ge 1$ forces at least one endpoint to be $\ge \frac{1}{2}$, so $S$ is a vertex cover. Rounding at most doubles each variable, so
 
 $$
 \sum_{v \in S} c_v \le 2 \sum_{v \in V} c_v x_v = 2 \cdot LP^* \le 2 \cdot OPT
@@ -202,7 +205,7 @@ $$
 
 which makes this a 2-approximation for weighted vertex cover.
 
-> [!warning] The LP optimum can sit strictly below OPT
+> [!warning] The LP optimum can lie strictly below OPT
 > On a triangle with unit costs, $x_v = \frac{1}{2}$ everywhere is feasible with value $\frac{3}{2}$, while the smallest vertex cover has two vertices. On $K_n$ the gap between $OPT = n - 1$ and $LP^* = \frac{n}{2}$ approaches a factor of $2$, so any analysis that bounds the output against $LP^*$ cannot prove a ratio better than $2$ for this relaxation.
 
 ## Related notes

@@ -8,22 +8,25 @@ tags:
   - induction proofs
   - graph properties
 date: 2024-04-03
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
 description: The characterization of trees as connected acyclic graphs, an induction proof that a tree on n vertices has n-1 edges, and the two-out-of-three property.
 sources:
   - https://www.cs.princeton.edu/~wayne/kleinberg-tardos/
 ---
 
-## Purpose
+A **tree** is a connected graph with no cycles.
 
-A tree is a connected graph with no cycles. This note proves the edge count of a tree by [[algorithms/induction|induction]] and records the two-out-of-three characterization that makes trees easy to recognize.
+A tree on $n$ vertices has $n - 1$ edges, which follows by [[algorithms/induction|induction]] on $n$. Any two of the properties of being connected, being acyclic and having $|V| - 1$ edges imply the third, so a graph can be recognized as a tree by checking two of them.
 
 ## Edge Count
 
 **Claim**: every tree with $n$ vertices has $n - 1$ edges.
 
-A tree on $6$ vertices has $5$ edges, and removing any leaf leaves a tree on $5$ vertices with $4$ edges. The proof below runs that deletion in reverse:
+The tree below has $6$ vertices and $5$ edges, and removing any leaf leaves a tree on $5$ vertices with $4$ edges. The inductive proof is based on this deletion.
 
 ```mermaid
 flowchart TD
@@ -43,8 +46,6 @@ flowchart TD
 **Inductive step**: let $T$ be a tree with $n \ge 2$ vertices. Since $T$ is acyclic, it has a vertex of degree at most 1 (proved in [[algorithms/graphs-intro|graph fundamentals]]), and since $T$ is connected with at least 2 vertices, that vertex has degree exactly 1. Remove it and its edge to get a graph $T'$ with $n - 1$ vertices. $T'$ is still connected (the removed vertex was a leaf) and still acyclic, so it is a tree, and by the inductive hypothesis it has $n - 2$ edges. Adding the vertex and its edge back gives $n - 1$ edges. $\blacksquare$
 
 ## Leaf Bound
-
-Trees need enough leaves to support their branching points.
 
 **Claim**: if $T$ is a tree, then the number of leaves of $T$ is at least the number of vertices of degree at least $3$.
 
@@ -74,7 +75,7 @@ Any graph $G$ satisfying two of the following properties must satisfy the third,
 - $G$ is acyclic
 - $G$ has $|V| - 1$ edges
 
-This gives a cheap tree test: count the edges and check either connectivity or acyclicity with a single [[algorithms/BFS|BFS]] or [[algorithms/DFS|DFS]] traversal.
+A graph can therefore be tested for being a tree by counting its edges and checking either connectivity or acyclicity with a single [[algorithms/BFS|BFS]] or [[algorithms/DFS|DFS]] traversal.
 
 > [!warning] One property alone is not enough
 > A two-component forest is acyclic without being connected. A triangle plus an isolated vertex has $|V| - 1$ edges and still contains a cycle. The test needs two of the three properties.

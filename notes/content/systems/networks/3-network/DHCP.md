@@ -10,9 +10,12 @@ tags:
   - ip-addressing
   - arp
 date: 2024-02-23
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: How DHCP assigns IP addresses on a network, covering the discover, offer, request, and ack exchange, renewal, and relays for networks without a local server.
+description: The assignment of IP addresses on a network by DHCP, covering the discover, offer, request, and ack exchange, lease renewal, and relays for networks without a local server.
 sources:
   - title: "RFC 2131: Dynamic Host Configuration Protocol"
     url: https://datatracker.ietf.org/doc/html/rfc2131
@@ -22,22 +25,20 @@ sources:
     type: textbook
 ---
 
-## Purpose
-
-Explain how a device joining a network gets an IP address without manual configuration. Covers the server, the client, and the relay.
+The Dynamic Host Configuration Protocol (DHCP, [RFC 2131](https://datatracker.ietf.org/doc/html/rfc2131)) assigns IP addresses to devices that join a network, so that a host obtains an address without manual configuration. A server leases addresses from a pool, clients request and renew leases, and relays forward requests to servers on other networks.
 
 ## Core idea
 
-DHCP ([RFC 2131](https://datatracker.ietf.org/doc/html/rfc2131)) assigns IP addresses within a network. A MAC address is burned into the device. An IP address is assigned, and the assignment can move to a different device over time. That flexibility is what lets networks renumber and reuse addresses, and DHCP is the protocol that manages the assignments.
+A MAC address is burned into the device. An IP address is assigned, and the assignment can move to a different device over time. This allows networks to renumber and reuse addresses, and DHCP manages the assignments.
 
-DHCP runs on top of UDP, with the server on port 67 and the client on port 68. It has to work before the client has an address, which is why the exchange starts with broadcast.
+DHCP runs on top of UDP, with the server on port 67 and the client on port 68. It must operate before the client has an address, which is why the exchange begins with a broadcast.
 
 ## DHCP server
 
-The DHCP server assigns IP addresses on the network. It is typically a router or a server, and it manages a pool of addresses. The exchange when a device joins:
+The DHCP server assigns IP addresses on the network. It is typically a router or a server, and it manages a pool of addresses. A device joining the network performs the following exchange:
 
-1. The device broadcasts a **DHCP Discover** to the all-ones address, since it doesn't yet know the server's address or its own.
-2. The server answers with a **DHCP Offer** containing an IP address it is willing to assign.
+1. The device broadcasts a **DHCP Discover** to the all-ones address, since it does not yet have the server's address or its own.
+2. The server answers with a **DHCP Offer** containing an IP address available for assignment.
 3. The device sends a **DHCP Request** for that address.
 4. The server confirms with a **DHCP Ack**.
 

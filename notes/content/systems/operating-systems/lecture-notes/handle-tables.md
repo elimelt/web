@@ -12,9 +12,12 @@ tags:
   - scheduling
   - fork-exec
 date: 2024-01-17
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: draft
-description: The process control block and the state the OS parks in it, state queues for scheduling, what a context switch does, and process creation with fork, exec, vfork, and copy-on-write.
+description: The process control block and the state the OS stores in it, state queues for scheduling, what a context switch does, and process creation with fork, exec, vfork, and copy-on-write.
 sources:
   - title: Linux task_struct definition (include/linux/sched.h)
     url: https://elixir.bootlin.com/linux/latest/source/include/linux/sched.h
@@ -26,17 +29,17 @@ sources:
     type: lecture
 ---
 
-The OS needs a per-process data structure to park all of a process's state. This note covers that structure (the process control block), the queues the scheduler keeps those structures on, what a context switch does, and how fork and exec create processes. Handles fit in as the way user code names kernel objects: each process has a local handle table, and the kernel keeps a global handle table.
+A process control block (PCB) is the per-process kernel data structure that holds a process's state while the process is not running. The scheduler keeps these structures on state queues, and a context switch saves and restores process state through them. Handles are the means by which user code names kernel objects: each process has a local handle table, and the kernel keeps a global handle table.
 
 ## Process control block
 
-The PCB tracks a process's state, with each entry identified by PID. While a process isn't running, the OS keeps all of its state in a `proc` structure within the PCB.
+The PCB tracks a process's state, with each entry identified by PID. While a process is not running, the OS keeps all of its state in a `proc` structure within the PCB.
 
-`proc` has many fields: the PID, a pointer to the parent's proc, execution state, and so on. Linux defines it as [`task_struct` in `include/linux/sched.h`](https://elixir.bootlin.com/linux/latest/source/include/linux/sched.h), and it is huge; the lecture counted over 95 fields.
+`proc` has many fields: the PID, a pointer to the parent's proc, execution state, and so on. Linux defines it as [`task_struct` in `include/linux/sched.h`](https://elixir.bootlin.com/linux/latest/source/include/linux/sched.h), and it is large; the lecture counted over 95 fields.
 
 ### proc and CPU state
 
-A **context switch** takes the running process's state off the CPU, saves it into the PCB, then grabs the next scheduled process's `proc` and loads it onto the CPU to run. Choosing which process runs next is called **scheduling**.
+A **context switch** removes the running process's state from the CPU, saves it into the PCB, then retrieves the next scheduled process's `proc` and loads it onto the CPU to run. Choosing which process runs next is called **scheduling**.
 
 The kernel itself has no process of its own; it is a block of code. The CPU is always executing in the context of some process, and that code can be in either kernel or user mode.
 
@@ -66,11 +69,11 @@ To start a program from a shell, the shell forks itself and the child execs the 
 
 ### Making creation faster
 
-`fork` copies the whole address space, which is wasted work when the child immediately calls `exec`. Two fixes exist.
+`fork` copies the whole address space, which is unnecessary work when the child immediately calls `exec`. Two optimizations address this.
 
-[`vfork`](https://man7.org/linux/man-pages/man2/vfork.2.html) is the older approach, now uncommon. The child's address space is a pointer to the parent's rather than a copy, same page table and everything, along with an unenforced promise that the child won't modify it.
+[`vfork`](https://man7.org/linux/man-pages/man2/vfork.2.html) is the older approach, now uncommon. The child's address space is a pointer to the parent's rather than a copy, so the child uses the parent's page table, and the child is expected, without enforcement, not to modify it.
 
-Copy-on-write is the modern approach. The child gets its own page table, but every entry maps to the parent's frames and both mappings are marked read-only. The first write to a page faults, and the OS copies just that page and makes it writable. Pages nobody writes never get copied.
+Copy-on-write is the modern approach. The child gets its own page table, but every entry maps to the parent's frames and both mappings are marked read-only. The first write to a page faults, and the OS copies only that page and makes it writable. Pages that neither process writes are never copied.
 
 ## Related notes
 

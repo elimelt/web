@@ -11,7 +11,10 @@ tags:
   - bytestreams
   - encapsulation
 date: 2024-02-25
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
 description: What the transport layer provides on top of the network layer, and the two service models it exposes, datagrams via UDP and bytestreams via TCP.
 sources:
@@ -23,13 +26,7 @@ sources:
     type: textbook
 ---
 
-## Purpose
-
-Orient the transport layer within the stack and name its two service models before the per-protocol notes go into detail.
-
-## Core idea
-
-The network layer moves packets between hosts. The transport layer builds on that to provide end-to-end connectivity between application processes across the network. In terms of encapsulation, application data rides in segments, segments ride in packets, and packets ride in frames.
+The transport layer provides end-to-end communication between application processes on different hosts, built on the network layer's delivery of packets between hosts. In terms of encapsulation, application data is carried in segments, segments in packets, and packets in frames.
 
 ```mermaid
 flowchart LR
@@ -42,7 +39,7 @@ flowchart LR
 
 The layer exposes two service models. Messages, also called datagrams, are discrete units of data delivered independently, and UDP provides them with no delivery guarantees. Bytestreams are continuous ordered streams of bytes, and TCP provides them with reliability, flow control, and congestion control layered on top of the network's best-effort delivery.
 
-Which one an application wants depends on whether it needs delivery guarantees more than it needs low overhead. [[systems/networks/4-transport/TCP|TCP]] and [[systems/networks/4-transport/UDP|UDP]] cover the two protocols.
+The choice between them depends on whether an application requires delivery guarantees more than low overhead. [[systems/networks/4-transport/TCP|TCP]] and [[systems/networks/4-transport/UDP|UDP]] treat the two protocols in detail.
 
 ## Related notes
 

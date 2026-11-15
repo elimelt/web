@@ -12,9 +12,12 @@ tags:
   - sequence modeling
   - attention
 date: 2026-07-31
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Recurrent neural networks from the simple recurrent network upward, including backpropagation through time, the vanishing-gradient problem, LSTM, and the alignment bottleneck that attention was built to fix.
+description: Recurrent neural networks from the simple recurrent network upward, including backpropagation through time, the vanishing-gradient problem, LSTM, and the fixed-length bottleneck that attention was introduced to remove.
 sources:
   - title: Elman (1990), Finding Structure in Time
     url: https://papers.baulab.info/papers/Elman-1990.pdf
@@ -27,9 +30,9 @@ sources:
     type: paper
 ---
 
-## Purpose
+A recurrent neural network (RNN) is a sequence model that applies the same parameterized transition at every time step, computing a hidden state from the previous hidden state and the current input.
 
-RNNs matter for two reasons. First, they were the canonical sequence model before transformers. Second, they make the core optimization problem of sequence learning painfully visible: both information and gradients must survive repeated application of the same transition.
+RNNs were the principal neural sequence model before transformers. They also make explicit the central optimization problem of sequence learning, in which both information and gradients must pass through repeated applications of the same transition.
 
 ## The Elman Simple Recurrent Network
 
@@ -45,17 +48,17 @@ $$
 o_t = W_{hy}h_t + b_y
 $$
 
-The model's bias is strong and clean:
+The model's inductive bias consists of three assumptions:
 
 - the same parameters are reused at every time step
 - the hidden state is the memory
 - prediction is a function of the current input plus that memory
 
-Elman's paper is important because it framed temporal structure as something the model could infer from raw sequence regularities rather than from manually defined symbolic units.
+Elman's paper framed temporal structure as something a model could infer from regularities in the raw sequence rather than from manually defined symbolic units.
 
 ## Backpropagation Through Time
 
-Unroll the recurrence over $T$ steps and the RNN becomes a depth-$T$ network with shared parameters:
+Unrolled over $T$ steps, the RNN is a depth-$T$ network with shared parameters:
 
 ```mermaid
 flowchart LR
@@ -90,24 +93,22 @@ $$
 \frac{\partial h_j}{\partial h_{j-1}}
 $$
 
-This is the whole vanishing/exploding gradient story. If those Jacobians tend to shrink norms, the product vanishes. If they amplify norms, it explodes.
-
-That is not a quirk of one optimizer. It is structural.
+This product is the source of vanishing and exploding gradients. If the Jacobians tend to shrink norms, the product vanishes; if they amplify norms, it explodes. The effect is a property of the recurrent structure and occurs with any gradient-based optimizer.
 
 > [!warning] Vanishing gradients are a property of the parameterization
-> The product $\prod_j \partial h_j / \partial h_{j-1}$ multiplies the same recurrent Jacobian $T$ times, so its norm behaves like $\lambda^T$ for the dominant singular value $\lambda$. Unless $\lambda$ sits almost exactly at 1, long-range gradient signal either dies or blows up exponentially in sequence length. Clipping handles the exploding side; the vanishing side needed an architectural fix, which is exactly what the LSTM's additive cell-state update provides.
+> The product $\prod_j \partial h_j / \partial h_{j-1}$ multiplies the same recurrent Jacobian $T$ times, so its norm behaves like $\lambda^T$ for the dominant singular value $\lambda$. Unless $\lambda$ is very close to 1, the long-range gradient either vanishes or grows exponentially in sequence length. Gradient clipping addresses the exploding case. The vanishing case required an architectural change, which the LSTM's additive cell-state update provides.
 
 ## Why a Fixed-Length State Can Be a Bottleneck
 
-Sequence-to-sequence encoder-decoder models before attention often forced the source sentence through one fixed-length vector. Bahdanau, Cho, and Bengio argue directly that this is a bottleneck. Their encoder-decoder extension lets the decoder **search softly** over relevant source positions rather than compressing the entire source into one vector once and for all.
+Sequence-to-sequence encoder-decoder models before attention often encoded the source sentence as a single fixed-length vector. Bahdanau, Cho, and Bengio argue that this vector is a bottleneck. Their extension of the encoder-decoder lets the decoder **search softly** over relevant source positions instead of compressing the entire source into one vector.
 
-That paper is the bridge between classic recurrent sequence models and the attention era.
+The paper connects recurrent sequence models to the later attention-based architectures.
 
 ## LSTM
 
-Hochreiter and Schmidhuber's key idea is to create a path for **constant error flow** through the cell state. The paper explicitly says LSTM can bridge lags in excess of **1000** time steps by enforcing this constant error flow through **constant error carousels**.
+The central idea of Hochreiter and Schmidhuber is a path for **constant error flow** through the cell state. The paper states that LSTM can bridge lags in excess of **1000** time steps by enforcing this constant error flow through **constant error carousels**.
 
-One standard modern presentation is:
+A common modern formulation is
 
 $$
 \begin{aligned}
@@ -120,19 +121,19 @@ h_t &= o_t \odot \tanh(c_t)
 \end{aligned}
 $$
 
-The important line is
+The essential equation is the cell-state update
 
 $$
 c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t
 $$
 
-because the additive state update is much friendlier to long-range credit assignment than repeatedly multiplying through one generic hidden transition.
+because an additive state update supports long-range credit assignment better than repeated multiplication through a single general hidden transition.
 
 The original paper also emphasizes locality: LSTM is **local in space and time**, with **$O(1)$ computational complexity per time step and weight**.
 
 ## GRU
 
-GRUs compress the gating logic:
+The GRU uses fewer gates:
 
 $$
 \begin{aligned}
@@ -143,9 +144,9 @@ h_t &= (1 - z_t)\odot h_{t-1} + z_t \odot \tilde{h}_t
 \end{aligned}
 $$
 
-They are not in the source papers listed here, but the comparison is useful because it highlights the main architectural idea: make state updates additive and gate-controlled rather than purely recurrent and multiplicative.
+The GRU does not appear in the sources cited here. It shares the LSTM's main architectural idea, which is to make state updates additive and gate-controlled instead of purely recurrent and multiplicative.
 
-## Attention as the Escape Hatch
+## Attention
 
 Bahdanau attention computes a context vector for decoder step $i$:
 
@@ -167,7 +168,7 @@ $$
 
 where $s_{i-1}$ is the decoder state and $h_j$ is the encoder annotation at source position $j$.
 
-This is the moment sequence modeling changed. Instead of asking a fixed-width hidden state to remember everything, the model learned where to look.
+With attention, the decoder no longer depends on a fixed-width hidden state to retain the entire source. The alignment weights determine, for each output step, which source positions are read.
 
 ## NumPy Vanilla RNN
 
@@ -227,17 +228,17 @@ class LSTMLM(nn.Module):
 
 ## Executable Experiment
 
-This companion trains a compact character-level GRU on a cropped WikiText-2 corpus. The loss curve, generated sample, and hidden-state behavior turn the recurrence equations into an inspectable training run.
+The companion notebook trains a compact character-level GRU on a cropped WikiText-2 corpus and reports the loss curve, a generated sample and the behavior of the hidden state.
 
 [Run the character-level RNN experiment](/ml/deep-learning/character-level-rnn-on-wikitext-2.ipynb)
 
-## Where RNNs Still Matter
+## Where RNNs Remain in Use
 
 - streaming settings where strict online updates are natural
 - smaller-scale sequence problems
 - domains where state compression is acceptable and low latency matters
 
-Their core weakness remains the same: the hidden state is a narrow information bottleneck. Attention relaxes that bottleneck by turning memory access into a data-dependent retrieval problem.
+Their main limitation is that the hidden state is a narrow information bottleneck. Attention relaxes this bottleneck by making memory access a data-dependent retrieval.
 
 ## Related Notes
 

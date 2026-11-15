@@ -9,7 +9,10 @@ tags:
   - nlp
   - llm
 date: 2025-03-10
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: draft
 description: Prompting techniques for language models, with small Python templates for few-shot prompting, retrieval-augmented generation, chain of thought, self-ask, and prompt self-improvement.
 sources:
@@ -33,22 +36,22 @@ sources:
     type: paper
 ---
 
-## Purpose
+Prompting is the specification of a task to a pretrained language model through its input text, without any update to the model's parameters. A prompt can contain instructions, demonstrations of the task, retrieved documents or a request for intermediate reasoning.
 
-A working reference for the prompt patterns I reach for most, each with a small Python template. Prompt behavior starts with how text gets split into tokens, so [[ml/nlp/reading/tokenization|tokenization]] is useful background. Retrieval-augmented prompting builds on [[ml/nlp/reading/information-retrieval|information retrieval]].
+Each pattern is given with a small Python template. Prompt behavior depends on how text is split into tokens, so [[ml/nlp/reading/tokenization|tokenization]] is useful background. Retrieval-augmented prompting builds on [[ml/nlp/reading/information-retrieval|information retrieval]].
 
 ## Basic concepts
 
-Where an instruction sits in the context matters. Models use information at the start and end of a long context more reliably than information buried in the middle ([Liu et al. 2023](https://arxiv.org/abs/2307.03172)), so put critical instructions near the end of the prompt, close to where generation begins.
+The position of an instruction in the context affects how reliably the model follows it. Models use information at the start and end of a long context more reliably than information in the middle ([Liu et al. 2023](https://arxiv.org/abs/2307.03172)), so critical instructions are best placed near the end of the prompt, close to where generation begins.
 
-> [!tip] Position beats phrasing in long contexts
-> The lost-in-the-middle effect is U-shaped: performance is highest when the relevant material sits at the very beginning or very end of the context. Before rewording an instruction the model keeps ignoring, try moving it.
+> [!tip] Position and phrasing in long contexts
+> The lost-in-the-middle effect is U-shaped; performance is highest when the relevant material is at the beginning or end of the context. An instruction that the model does not follow may be followed after it is moved, without any change to its wording.
 
-Signal the response format you want through examples or explicit instructions. Format-by-example works best on base models, which complete text patterns. Chat-tuned models respond better to explicit formatting instructions, since instruction tuning trains them to follow directions.
+The desired response format can be specified through examples or through explicit instructions. Specification by example is most effective with base models, which complete text patterns. Chat-tuned models follow explicit formatting instructions more reliably, since instruction tuning trains them to follow directions.
 
-Asking the model to adopt a persona ("You are an expert radiologist") steers tone and domain vocabulary. Treat it as a soft prior on style.
+A persona instruction ("You are an expert radiologist") affects tone and domain vocabulary and acts as a soft prior on style.
 
-Few-shot prompting demonstrates the desired input-output mapping with examples before the real query. Large models can pick up a task from a handful of demonstrations with no gradient updates ([Brown et al. 2020](https://arxiv.org/abs/2005.14165)).
+Few-shot prompting demonstrates the desired input-output mapping with examples before the real query. Large models can perform a task from a few demonstrations without gradient updates ([Brown et al. 2020](https://arxiv.org/abs/2005.14165)).
 
 ```python
 prompt = lambda persona, context, query: \
@@ -70,7 +73,7 @@ f"""<Persona>
 
 ## Retrieval augmented generation
 
-Retrieve documents relevant to the query, then include them in the prompt so the model answers from provided evidence instead of parametric memory ([Lewis et al. 2020](https://arxiv.org/abs/2005.11401)). This grounds the response and gives you something to check its claims against.
+Retrieval-augmented generation retrieves documents relevant to the query and includes them in the prompt, so that the model answers from the provided evidence instead of parametric memory ([Lewis et al. 2020](https://arxiv.org/abs/2005.11401)). The retrieved documents ground the response and provide a reference against which its claims can be checked.
 
 ```python
 def rag_prompt(
@@ -92,7 +95,7 @@ def rag_prompt(
 
 ## Chain of thought
 
-Ask the model to reason step by step before answering. Requesting explicit intermediate reasoning improves accuracy on multi-step problems ([Wei et al. 2022](https://arxiv.org/abs/2201.11903)).
+Chain-of-thought prompting asks the model to produce intermediate reasoning steps before the answer. Explicit intermediate reasoning improves accuracy on multi-step problems ([Wei et al. 2022](https://arxiv.org/abs/2201.11903)).
 
 ```python
 def chain_of_thought_prompt(problem, steps_required=True):
@@ -103,7 +106,7 @@ def chain_of_thought_prompt(problem, steps_required=True):
 
 ## Self-ask
 
-Have the model decompose a hard question into sub-questions, answer each in turn, and build toward the full answer. Press et al. ([2022](https://arxiv.org/abs/2210.03350)) introduced this format and showed the sub-questions give a natural place to plug in a search engine.
+Self-ask prompting has the model decompose a compositional question into sub-questions, answer each in turn and combine the answers into the full answer. Press et al. ([2022](https://arxiv.org/abs/2210.03350)) introduced this format and showed that the sub-questions provide a natural point at which to insert search engine results.
 
 ```python
 def self_ask_prompt(question, allow_search_queries=True):
@@ -118,7 +121,7 @@ Let me think through this carefully:"""
 
 ## Self improvement
 
-Use the model to critique a prompt given the output it produced and the goal it missed, then generate a revised prompt. Iterating with model-generated feedback is the same loop as Self-Refine ([Madaan et al. 2023](https://arxiv.org/abs/2303.17651)).
+In prompt self-improvement, the model critiques a prompt given the output it produced and the goal that the output did not meet, and then generates a revised prompt. Iteration with model-generated feedback follows the same loop as Self-Refine ([Madaan et al. 2023](https://arxiv.org/abs/2303.17651)).
 
 ```python
 def self_improvement_prompt(original_prompt, model_output, goal):

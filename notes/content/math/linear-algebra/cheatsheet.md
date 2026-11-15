@@ -11,17 +11,20 @@ tags:
   - tensor products
   - gaussian-elimination
 date: 2024-12-08
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: A broad linear algebra reference covering vectors, linear systems, matrices, vector spaces, and core matrix decompositions.
+description: Definitions and results on vectors, linear systems, matrices, vector spaces and the core matrix decompositions.
 sources:
   - https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/
   - https://textbooks.math.gatech.edu/ila/
 ---
 
-## Purpose
+Linear algebra is the study of vector spaces and the linear maps between them, which in finite dimensions are represented by matrices. The reference lists definitions and results on vectors, linear systems, matrices, vector spaces and the core matrix decompositions.
 
-For a shorter introduction to the computational basics, start with [[math/linear-algebra/elementry-linear-algebra|Elementary Linear Algebra]]; the corresponding NumPy operations are collected in the [[math/linear-algebra/python-cheatsheet|Python Linear Algebra Cheatsheet]].
+[[math/linear-algebra/elementry-linear-algebra|Elementary Linear Algebra]] gives a shorter introduction to the computational basics, and the [[math/linear-algebra/python-cheatsheet|Python Linear Algebra Cheatsheet]] collects the corresponding NumPy operations.
 
 ## Geometric Basics
 

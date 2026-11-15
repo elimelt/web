@@ -9,9 +9,12 @@ tags:
   - networks
   - databases
 date: 2026-07-31
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Map of the systems notes, organized around operating systems, scheduling, networking, distributed systems, data systems, performance, and research papers.
+description: Index of the systems notes, organized by operating systems, scheduling, networking, distributed systems, data systems, performance, and research papers.
 sources:
   - title: "Operating Systems: Principles and Practice"
     url: https://www.kea.nu/files/textbooks/ospp/
@@ -21,11 +24,9 @@ sources:
     type: book
 ---
 
-## Purpose
+Computer systems is the study of the software infrastructure on which programs run, including operating systems, networks, storage and distributed services, and the policies that allocate their resources. The section groups this material by subject rather than by source. The main branches are [[systems/operating-systems/index|operating systems]], [[systems/scheduling/index|scheduling]], [[systems/networks/index|networks]], [[systems/distributed-systems/index|distributed systems]], [[systems/databases/index|databases and data-intensive systems]], [[systems/performance/index|performance engineering]], and [[systems/research/index|systems research]].
 
-This section groups the computer systems material by subject rather than by source. The main branches are [[systems/operating-systems/index|operating systems]], [[systems/scheduling/index|scheduling]], [[systems/networks/index|networks]], [[systems/distributed-systems/index|distributed systems]], [[systems/databases/index|databases and data-intensive systems]], [[systems/performance/index|performance engineering]], and [[systems/research/index|systems research]].
-
-The boundaries are porous on purpose. Scheduling is its own branch because the same policy questions show up in CPU runtimes, packet handling, load balancing, and model serving. Networking and operating systems meet in queues, interrupts, and resource scheduling. Distributed systems reuse ideas from networking and storage. Performance work cuts across all of it.
+The branches overlap by design. Scheduling is a separate branch because the same policy questions arise in CPU runtimes, packet handling, load balancing, and model serving. Networking and operating systems intersect in queues, interrupts, and resource scheduling. Distributed systems reuse ideas from networking and storage. Performance engineering concerns every branch.
 
 ## Sections
 

@@ -10,18 +10,19 @@ tags:
   - paper-notes
   - file-systems
 date: 2025-01-16
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: draft
-description: Paper and lecture notes on the original Unix paper, covering the file system implementation, device model, and process model.
+description: Paper and lecture notes on Ritchie and Thompson's original Unix paper, covering the file system implementation, the device model and the process model.
 sources:
   - title: The UNIX Time-Sharing System (Ritchie and Thompson)
     url: https://people.eecs.berkeley.edu/~brewer/cs262/unix.pdf
     type: paper
 ---
 
-## Purpose
-
-Notes from reading the Unix paper alongside lecture. These stay close to the mechanics, mostly the file system and process model. I never wrote up my own takeaways, so this is a record of the design more than a review of it.
+[The UNIX Time-Sharing System](https://people.eecs.berkeley.edu/~brewer/cs262/unix.pdf) (Ritchie and Thompson) describes the design of Unix: a hierarchical file system in which devices also appear as files, a kernel that buffers block I/O, and a process model in which a process is an executing instance of an image. These notes, taken while reading the paper alongside lecture, record the mechanics of the file system and process model and do not evaluate the design.
 
 ## Citation
 
@@ -29,11 +30,11 @@ Notes from reading the Unix paper alongside lecture. These stay close to the mec
 
 ## Problem
 
-The problem statement is deliberately unspecific. The authors were burnt by Multics and wanted a simpler, more general system. The key design goal is simplicity: everything is hierarchical, and everything is a file.
+The paper does not state a specific problem. The authors had worked on Multics and set out to build a simpler and more general system. The principal design goal is simplicity: the file system is hierarchical, and devices and directories are accessed as files.
 
 ## File system implementation
 
-The [[systems/operating-systems/lecture-notes/file-systems|file system]] is a tree, and additional file systems get mounted onto a file. A system table of i-numbers (the i-list) holds an i-node of metadata for each file. Path names don't distinguish between files and directories, and a mount table tracks mounted file systems.
+The [[systems/operating-systems/lecture-notes/file-systems|file system]] is a tree, and additional file systems are mounted onto a file. A system table of i-numbers (the i-list) holds an i-node of metadata for each file. Path names do not distinguish between files and directories, and a mount table records the mounted file systems.
 
 Buffering is built into the kernel and transparent to the user, with write-behind flushing to disk when the buffer fills.
 
@@ -43,7 +44,7 @@ Block devices store data in fixed-size blocks and manage allocation through a fr
 
 ## Execution
 
-An **image** is an execution environment, a rough parallel to a container. A **process** is an instance of an image in execution. Program text is write-protected and shared between all processes running the same image, while each process gets its own virtual address space. The kernel sits underneath as the mediator for services, hardware, and shared resources.
+An **image** is an execution environment, loosely comparable to a container. A **process** is an instance of an image in execution. Program text is write-protected and shared between all processes running the same image, while each process gets its own virtual address space. The kernel mediates access to services, hardware and shared resources.
 
 ## Sources
 

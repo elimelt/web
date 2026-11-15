@@ -9,16 +9,19 @@ tags:
   - data structures
   - acyclic graphs
 date: 2024-04-03
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
 description: Definitions and basic facts about undirected graphs, with proofs of the degree sum formula, the parity of odd-degree vertices, and the edge count bound, plus a comparison of adjacency matrix and adjacency list storage.
 sources:
   - https://www.cs.princeton.edu/~wayne/kleinberg-tardos/
 ---
 
-## Purpose
+An **undirected graph** $G = (V, E)$ consists of a set $V$ of vertices and a set $E$ of edges, each of which is an unordered pair of distinct vertices, its endpoints.
 
-This note collects the definitions and small proofs that everything else about graphs builds on: terminology, the degree sum formula, bounds on edge count, and the tradeoff between the two standard graph representations.
+The degree sum formula, the parity of the number of odd-degree vertices and the bounds on the number of edges enter the running-time analysis of graph algorithms such as [[algorithms/BFS|breadth-first search]], as does the choice between the adjacency-matrix and adjacency-list representations.
 
 ## Undirected Graphs
 
@@ -32,8 +35,8 @@ $$
 
 - **Connected**: a graph is connected if there is a path between every pair of vertices.
 - **Isolated vertex**: a vertex with no edges.
-- **Planar graph**: a graph you can draw on a plane such that no two edges cross.
-- **Degree of a vertex**: $deg(v) =$ the number of edges that touch $v$.
+- **Planar graph**: a graph that can be drawn in the plane such that no two edges cross.
+- **Degree of a vertex**: $deg(v) =$ the number of edges incident to $v$.
 - **Connected components**: the maximal connected subsets of vertices. They partition $V$.
 - **Path**: a sequence of distinct vertices where each vertex is connected to the next by an edge. The length of a path is its number of edges.
 - **Cycle**: a path of length at least 3 that starts and ends at the same vertex.
@@ -63,7 +66,7 @@ $$
 G = (V, E) \text{ is acyclic} \to \exists v \in V, deg(v) \le 1
 $$
 
-**Proof**: by contradiction. Assume $\forall v \in V, deg(v) \ge 2$. Start walking from any vertex, and at each vertex $v_i$ leave along an edge other than the one you arrived on, which exists since $deg(v_i) \ge 2$. The graph has finitely many vertices, so some vertex eventually repeats, and the walk between the two visits forms a cycle. This contradicts $G$ being acyclic. $\blacksquare$
+**Proof**: by contradiction. Assume $\forall v \in V, deg(v) \ge 2$. Consider a walk that starts at any vertex and, at each vertex $v_i$, leaves along an edge other than the one on which it arrived, which exists since $deg(v_i) \ge 2$. The graph has finitely many vertices, so some vertex eventually repeats, and the walk between the two visits forms a cycle. This contradicts $G$ being acyclic. $\blacksquare$
 
 ### Number of Edges
 
@@ -87,29 +90,29 @@ So every acyclic graph on $n$ vertices has at most $n - 1$ edges. The contraposi
 
 ### Sparsity
 
-A graph is called sparse if $|E| \ll |V|^2$, and dense otherwise. Sparse graphs are common in practice: social networks, the web graph, and planar graphs are all sparse. For a sparse graph, an $O(n + m)$ algorithm behaves like $O(n)$, even though $O(n + m) = O(n^2)$ in the worst case.
+A graph is called sparse if $|E| \ll |V|^2$, and dense otherwise. Social networks, the web graph and planar graphs are sparse. When $m = O(n)$, as in planar graphs, an $O(n + m)$ algorithm runs in $O(n)$ time, although $O(n + m) = O(n^2)$ in the worst case.
 
 ## Storing Graphs
 
 ### Adjacency Matrix
 
-A matrix $A$ where $A_{ij} = 1$ if there is an edge between $v_i$ and $v_j$, and $0$ otherwise.
+The adjacency matrix of $G$ is the $n \times n$ matrix $A$ with $A_{ij} = 1$ if there is an edge between $v_i$ and $v_j$, and $0$ otherwise.
 
-- Pro: $O(1)$ time to check whether an edge exists between two vertices.
-- Con: $O(n^2)$ space regardless of how many edges exist.
-- Con: $O(n)$ time to enumerate the neighbors of a vertex.
+- Checking whether an edge exists between two vertices takes $O(1)$ time.
+- The matrix occupies $O(n^2)$ space regardless of the number of edges.
+- Enumerating the neighbors of a vertex takes $O(n)$ time.
 
-Good for dense graphs.
+The adjacency matrix suits dense graphs, in which $m = \Theta(n^2)$ and its space is within a constant factor of that of an adjacency list.
 
 ### Adjacency List
 
-A list of lists, where each vertex has a list of its neighbors.
+The adjacency list of $G$ stores, for each vertex, a list of its neighbors.
 
-- Pro: enumerating the neighbors of $v$ takes $O(deg(v))$ time.
-- Pro: $O(n + m)$ space.
-- Con: checking whether edge $(u, v)$ exists takes $O(deg(u))$ time.
+- Enumerating the neighbors of $v$ takes $O(deg(v))$ time.
+- The lists occupy $O(n + m)$ space.
+- Checking whether edge $(u, v)$ exists takes $O(deg(u))$ time.
 
-Good for sparse graphs.
+The adjacency list suits sparse graphs, for which $O(n + m)$ space is much smaller than $O(n^2)$.
 
 ```python
 from typing import List, Tuple

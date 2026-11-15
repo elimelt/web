@@ -10,9 +10,12 @@ tags:
   - fairness
   - ads
 date: 2026-07-31
-updated: 2026-08-01
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Why recommender logs are policy-shaped, how exploration and offline policy evaluation work, and why platforms have to care about producer-side exposure as well as user relevance.
+description: The dependence of recommender logs on the logging policy, exploration with contextual bandits, offline policy evaluation with IPS, SNIPS, the direct method and doubly robust estimators, and the allocation of producer-side exposure in two-sided marketplaces alongside user relevance.
 sources:
   - title: Li et al. (2010), A Contextual-Bandit Approach to Personalized News Article Recommendation
     url: https://arxiv.org/pdf/1003.0146
@@ -43,46 +46,44 @@ sources:
     type: paper
 ---
 
-## Purpose
+Recommendation logs are generated under the recommender's own policy. The policy determines which items each user is shown, only shown items can receive feedback, and the labels used for the next training run therefore depend on the current policy's decisions. Recommendation data is in this sense the product of an intervention by the system and not a passive observation of user preference.
 
-Recommendation data is not passive observation. The system decides what people see, and that decision shapes the very labels used for the next training run. This note is about the consequences: selection bias, exploration, offline policy evaluation, and producer-side exposure in two-sided marketplaces.
+The consequences include selection bias in the training data, the need for exploration and for offline policy evaluation with known propensities, and, in two-sided marketplaces, the question of how exposure is allocated among producers.
 
 ## Logged Data Is Policy-Shaped
 
-Suppose a platform only shows head items. The logs will contain lots of interactions with head items and very little evidence about the tail. That does not mean the tail is bad. It means the policy rarely exposed it.
+If a platform shows only head items, its logs contain many interactions with head items and little evidence about the tail. The scarcity of tail interactions then reflects how rarely the policy exposed tail items and gives little information about their quality.
 
-This creates a loop:
+This creates a feedback loop:
 
 1. policy chooses exposure
 2. exposure determines which labels can be observed
 3. observed labels train the next policy
 
-Chaney, Stewart, and Engelhardt study this directly and show that training on already-confounded recommendation data can homogenize behavior without increasing utility.
+Chaney, Stewart, and Engelhardt study this loop directly and show that training on recommendation data confounded in this way can homogenize user behavior without increasing utility.
 
-That is the mental model to keep. Recommendation logs are not a random sample from user preference. They are a sample filtered by yesterday's recommender.
+Recommendation logs are therefore a sample of user preferences filtered by the previously deployed recommender, and not a random sample.
 
 ## Biases That Matter in Practice
 
 - **Exposure bias**: unshown items cannot collect positive feedback.
 - **Position bias**: higher-ranked items attract more interaction for reasons partly unrelated to relevance.
-- **Popularity bias**: already-popular items collect more exposure, which makes them look even better.
-- **Selection bias**: the training set overrepresents traffic the current system was already willing to show.
+- **Popularity bias**: already-popular items collect more exposure, which further increases their observed engagement.
+- **Selection bias**: the training set overrepresents the traffic that the current system already shows.
 
-These biases are entangled. Popular items get better positions, better positions generate more clicks, and those clicks train the next model.
+These biases interact. Popular items receive higher positions, higher positions generate more clicks, and those clicks train the next model.
 
 ## Exploration and Contextual Bandits
 
-The contextual-bandit framing is the clean way to talk about learning under exposure constraints.
+The contextual bandit is a formal model of learning under exposure constraints. At each step $t$, the learner
 
-At each step:
+1. observes a context $x_t$,
+2. chooses an action $a_t$,
+3. observes the reward of the chosen action only.
 
-1. observe a context $x_t$
-2. choose an action $a_t$
-3. observe reward only for the chosen action
+Many recommendation surfaces have this structure, since the system observes rewards only for the items it shows.
 
-That is exactly the recommender problem on many surfaces. The system sees only the reward of shown items.
-
-Li, Chu, Langford, and Schapire apply this to personalized news recommendation and report a **12.5% click lift** over a context-free bandit baseline on Yahoo! Front Page traffic. The paper also makes a second contribution that matters just as much: offline evaluation is possible when the logging policy randomized enough to give known propensities.
+Li, Chu, Langford, and Schapire apply this model to personalized news recommendation and report a **12.5% click lift** over a context-free bandit baseline on Yahoo! Front Page traffic. The paper also shows that offline evaluation is possible when the logging policy randomizes its choices with known propensities.
 
 ## Counterfactual Evaluation
 
@@ -92,15 +93,15 @@ $$
 \hat{V}_{\text{IPS}}(\pi) = \frac{1}{n} \sum_{t=1}^{n} \frac{\pi(a_t \mid x_t)}{\pi_0(a_t \mid x_t)} r_t
 $$
 
-This is the core trick behind counterfactual evaluation. Logged data can evaluate a policy the system never deployed, as long as the logs contain enough randomized support and the propensities are known.
+Inverse-propensity weighting is the basis of counterfactual evaluation. With it, logged data can evaluate a policy that was never deployed, provided the logging policy gives nonzero probability to the actions the target policy takes and the propensities are known.
 
-The 2014 counterfactual evaluation paper argues for exactly this shift. Instead of waiting on serial A/B tests for every model idea, use causal estimators offline to cheaply screen many alternatives first.
+Li et al. (2014) propose using such causal estimators offline to screen many candidate models at low cost, in place of running a serial A/B test for each.
 
-The estimator is unbiased in the idealized setting: take the expectation over $a_t \sim \pi_0(\cdot \mid x_t)$ and the resulting reward, and each term contributes $\sum_a \pi_0(a\mid x)\frac{\pi(a\mid x)}{\pi_0(a\mid x)}r(x,a) = \sum_a \pi(a\mid x) r(x,a) = V(\pi \mid x)$, the true value of $\pi$ at that context. But the estimator is also noisy, and the noise has a specific cause. If $\pi_0(a\mid x)$ is small for an action that $\pi$ favors, that log line gets a huge weight $\pi(a\mid x)/\pi_0(a\mid x)$, and a handful of such lines can dominate the whole average. That is why randomized data collection is not optional bookkeeping. It is the price of honest offline evaluation.
+The estimator is unbiased when the propensities are known and positive wherever $\pi$ is positive. Taking the expectation over $a_t \sim \pi_0(\cdot \mid x_t)$ and the resulting reward, each term contributes $\sum_a \pi_0(a\mid x)\frac{\pi(a\mid x)}{\pi_0(a\mid x)}r(x,a) = \sum_a \pi(a\mid x) r(x,a) = V(\pi \mid x)$, the true value of $\pi$ at that context. The variance of the estimator, however, can be large. If $\pi_0(a\mid x)$ is small for an action to which $\pi$ assigns high probability, the corresponding log line receives a large weight $\pi(a\mid x)/\pi_0(a\mid x)$, and a few such lines can dominate the average. Randomized data collection with adequate probability on every action is therefore a requirement for reliable offline evaluation.
 
 ### Self-Normalized IPS (SNIPS)
 
-Plain IPS has an annoying property: it is unbiased for the value, but it is not invariant to how the reward is scaled or shifted, and its variance can be dominated by a single logged example with a tiny denominator. Swaminathan and Joachims call this **propensity overfitting**: when IPS is used as a training objective rather than just an evaluation metric, the optimizer can improve the estimate by driving down $\pi(a\mid x)$ on the specific actions that happened to get sampled, rather than by improving the policy.
+IPS is unbiased for the value, but it is not invariant to scaling or shifting of the reward, and its variance can be dominated by a single logged example with a small propensity. Swaminathan and Joachims call the resulting failure **propensity overfitting**. When IPS is used as a training objective as well as an evaluation metric, the optimizer can improve the estimate by reducing $\pi(a\mid x)$ on the actions that happened to be sampled instead of by improving the policy.
 
 The self-normalized (SNIPS) estimator divides by the sum of the importance weights instead of by $n$:
 
@@ -108,29 +109,29 @@ $$
 \hat{V}_{\text{SNIPS}}(\pi) = \frac{\sum_{t=1}^{n} \frac{\pi(a_t \mid x_t)}{\pi_0(a_t \mid x_t)} r_t}{\sum_{t=1}^{n} \frac{\pi(a_t \mid x_t)}{\pi_0(a_t \mid x_t)}}
 $$
 
-This is a ratio estimator, so it is biased at finite $n$, but the bias shrinks as $n$ grows and the reduction in variance is usually worth it. The intuition: if the importance weights happen to sum to more than $n$ on a given sample (an unlucky draw that over-favors $\pi$'s actions), IPS reports too much value and SNIPS automatically discounts for it, because the same inflated weights appear in the denominator.
+As a ratio estimator, SNIPS is biased at finite $n$. The bias vanishes as $n$ grows, and its variance is typically lower than that of IPS. If the importance weights sum to more than $n$ on a given sample (a draw that overrepresents the actions favored by $\pi$), IPS overestimates the value, and SNIPS corrects for the excess because the same inflated weights appear in the denominator.
 
 ### Direct Method (DM)
 
-The direct method skips importance weighting entirely. Fit a reward model $\hat{r}(x, a)$ from the logs by regression, then estimate policy value by averaging the model's prediction under $\pi$:
+The direct method uses no importance weighting. It fits a reward model $\hat{r}(x, a)$ to the logs by regression and estimates the value of a policy by averaging the model's predictions under $\pi$:
 
 $$
 \hat{V}_{\text{DM}}(\pi) = \frac{1}{n} \sum_{t=1}^{n} \sum_{a} \pi(a \mid x_t)\, \hat{r}(x_t, a)
 $$
 
-DM has low variance because there is no importance ratio to blow up. Its problem is bias: if $\hat{r}$ is wrong on actions the logging policy rarely took (which is exactly where $\pi$ wants to send traffic), DM will confidently report a wrong number, and there is no mechanism inside the estimator to signal that it is extrapolating into a region it has never seen.
+DM has low variance because it contains no importance ratio. Its error is bias. If $\hat{r}$ is inaccurate on actions that the logging policy rarely took, which may be the actions that $\pi$ favors, DM reports an incorrect value, and nothing in the estimator indicates that the reward model is extrapolating beyond the support of the logged data.
 
 ### Doubly Robust (DR) Estimator
 
-Dudík, Langford, and Li combine DM and IPS so that each covers the other's weak point. The DR estimator is
+Dudík, Langford, and Li combine DM and IPS so that each compensates for the other's source of error. The DR estimator is
 
 $$
 \hat{V}_{\text{DR}}(\pi) = \frac{1}{n} \sum_{t=1}^{n} \left[ \hat{r}(x_t, \pi) + \frac{\pi(a_t \mid x_t)}{\pi_0(a_t \mid x_t)} \bigl(r_t - \hat{r}(x_t, a_t)\bigr) \right], \qquad \hat{r}(x,\pi) := \sum_a \pi(a\mid x)\hat r(x,a)
 $$
 
-The first term is the DM baseline. The second term is an IPS correction applied not to the raw reward but to the *residual* between the observed reward and the model's prediction for the action actually taken.
+The first term is the DM baseline. The second term is an IPS correction applied to the *residual* between the observed reward and the model's prediction for the action actually taken, instead of to the raw reward.
 
-Here is the algebra behind the name. Fix a context $x$, let $a \sim \pi_0(\cdot \mid x)$, and let $r$ have $\mathbb{E}[r \mid x, a] = r(x,a)$, the true expected reward. Taking the expectation of one DR term over the logging policy's action distribution:
+The name refers to two cases in which the estimator is unbiased. Fix a context $x$, let $a \sim \pi_0(\cdot \mid x)$, and let $r$ have $\mathbb{E}[r \mid x, a] = r(x,a)$, the true expected reward. The expectation of one DR term over the logging policy's action distribution is
 
 $$
 \mathbb{E}_{a, r}\left[\hat r(x,\pi) + \frac{\pi(a\mid x)}{\pi_0(a\mid x)}\bigl(r - \hat r(x,a)\bigr)\right] = \hat r(x,\pi) + \sum_a \pi_0(a\mid x)\frac{\pi(a\mid x)}{\pi_0(a\mid x)}\bigl(r(x,a) - \hat r(x,a)\bigr)
@@ -140,85 +141,85 @@ $$
 = \hat r(x,\pi) + \sum_a \pi(a\mid x)\bigl(r(x,a) - \hat r(x,a)\bigr) = \hat r(x,\pi) + V(\pi\mid x) - \hat r(x,\pi) = V(\pi\mid x)
 $$
 
-Notice that $\hat r$ cancels regardless of whether it is any good, as long as $\pi_0(a\mid x) > 0$ wherever this cancellation needs to divide by it. That is the first robustness case: **the propensities are correct, the reward model can be arbitrarily wrong, and the estimator is still unbiased.**
+The reward model $\hat r$ cancels regardless of its accuracy, provided $\pi_0(a\mid x) > 0$ wherever the cancellation divides by it. This is the first robustness case: **the propensities are correct, the reward model can be arbitrarily wrong, and the estimator is still unbiased.**
 
-Now consider the other case: propensities are estimated (call them $\hat\pi_0$, possibly biased) but the reward model happens to be exactly correct, $\hat r(x,a) = r(x,a)$. Then the residual $r_t - \hat r(x_t,a_t)$ has expectation zero for every $t$ regardless of what $\hat\pi_0$ is, so the whole correction term vanishes in expectation and $\hat V_{\text{DR}}(\pi)$ collapses to $\hat r(x,\pi) = V(\pi\mid x)$ exactly. That is the second robustness case: **the reward model is correct, the propensities can be wrong, and the estimator is still unbiased.**
+In the second case, the propensities are estimated as $\hat\pi_0$, possibly with bias, and the reward model is exactly correct, $\hat r(x,a) = r(x,a)$. The residual $r_t - \hat r(x_t,a_t)$ then has expectation zero for every $t$ regardless of $\hat\pi_0$, so the correction term vanishes in expectation and $\hat V_{\text{DR}}(\pi)$ reduces to $\hat r(x,\pi) = V(\pi\mid x)$. This is the second robustness case: **the reward model is correct, the propensities can be wrong, and the estimator is still unbiased.**
 
-DR is unbiased if either piece is right. It also tends to have lower variance than plain IPS in practice, because a decent reward model absorbs most of the signal and the importance-weighted term only has to correct a residual, which is typically smaller and less heavy-tailed than the raw reward.
+DR is therefore unbiased if either the propensities or the reward model is correct. In practice its variance is also often lower than that of IPS, because an accurate reward model accounts for most of the reward and the importance-weighted term corrects only a residual, which is typically smaller and less heavy-tailed than the raw reward.
 
-### Support Mismatch and Variance Blow-Up
+### Support Mismatch and Variance
 
-All three importance-weighted estimators (IPS, SNIPS, DR) share one fatal weakness: they need $\pi_0(a\mid x) > 0$ everywhere $\pi(a\mid x) > 0$. If the logging policy never explored an action that the target policy wants to take, the ratio $\pi(a\mid x)/\pi_0(a\mid x)$ is either undefined or, just as bad, estimated from a near-zero denominator with huge sampling error. Dudík, Langford, and Li's empirical results and Li et al.'s search-engine deployment both stress this: propensity overlap is a precondition, not a nice-to-have.
+All three importance-weighted estimators (IPS, SNIPS, DR) require $\pi_0(a\mid x) > 0$ wherever $\pi(a\mid x) > 0$. If the logging policy never took an action that the target policy takes, the ratio $\pi(a\mid x)/\pi_0(a\mid x)$ is undefined, and if the logging propensity is near zero, the ratio is estimated from a near-zero denominator with large sampling error. Dudík, Langford, and Li's empirical results and Li et al.'s search-engine deployment both treat propensity overlap as a precondition for these estimators.
 
-In practice this shows up as one or two logged examples carrying almost all the weight in the sum, which means the effective sample size is far smaller than $n$ suggests. A rule of thumb: if the largest few importance weights account for a large share of the total weight mass, distrust the point estimate no matter how tight the naive confidence interval looks.
+Insufficient overlap appears in practice as one or two logged examples carrying almost all the weight in the sum, so that the effective sample size is far smaller than $n$. When the largest few importance weights account for a large share of the total weight, the point estimate is unreliable regardless of the width of the naive confidence interval.
 
 ### Practical Logging-Policy Design
 
-Because overlap is the precondition for everything above, the logging policy has to be designed with future counterfactual evaluation in mind, not just with today's user experience in mind:
+Because the estimators above require overlap, the logging policy must be designed for later counterfactual evaluation as well as for the current user experience:
 
-- keep a randomization floor on every action with nonzero business value, even a small one, so $\pi_0(a\mid x)$ never actually hits zero
-- log the propensity $\pi_0(a_t \mid x_t)$ alongside every impression, not just the action and outcome, since it cannot be reconstructed later if the serving logic changes
+- keep a small randomization floor on every action with nonzero business value, so that $\pi_0(a\mid x)$ never reaches zero
+- log the propensity $\pi_0(a_t \mid x_t)$ with every impression, in addition to the action and outcome, since it cannot be reconstructed after the serving logic changes
 - prefer stratified or epsilon-greedy exploration over policies with sharp decision boundaries, since sharp boundaries create regions with effectively zero support
-- treat propensity logging as part of the schema contract for the serving system, since a silent regression there quietly invalidates every downstream offline evaluation
+- treat propensity logging as part of the serving system's schema contract, since an undetected regression in it invalidates every downstream offline evaluation
 
 ### Interleaving vs. A/B Testing
 
-Interleaving is a different way to compare two rankers without a full traffic split: for a single query, merge the two rankers' results into one list (for example with team-draft interleaving) and attribute the win to whichever ranker contributed the clicked result. Chapelle, Joachims, Radlinski, and Yue's large-scale study across two commercial search engines found interleaving to be dramatically more sample-efficient than A/B testing at detecting the same ranking preference, because every single impression is a paired comparison rather than a between-subjects one.
+Interleaving compares two rankers without splitting traffic. For each query, the two rankers' results are merged into one list (for example by team-draft interleaving), and each click is credited to the ranker that contributed the clicked result. Chapelle, Joachims, Radlinski, and Yue's large-scale study across two commercial search engines found that interleaving detected the same ranking preference as A/B testing with far fewer impressions, because each impression is a paired comparison and not a between-subjects one.
 
-The tradeoff is scope. Interleaving answers "which ranker do users prefer," a relative, single-query judgment. It does not directly answer "how does this change move revenue, retention, or long-run engagement," which is what an A/B test measures and what a marketplace ultimately cares about. Counterfactual estimators, interleaving, and A/B tests form a ladder of increasing cost and increasing fidelity: use cheap offline estimators to screen ideas, interleaving to confirm a ranking preference cheaply, and A/B tests to sign off on end-to-end business metrics before a full rollout.
+Interleaving is narrower in scope. It measures which ranker users prefer, a relative judgment made per query. It does not directly measure the effect of a change on revenue, retention or long-run engagement, which an A/B test measures and on which a marketplace's objectives ultimately depend. Counterfactual estimators, interleaving and A/B tests are in increasing order of both cost and fidelity. Offline estimators can screen candidate models, interleaving can confirm a ranking preference with little traffic, and A/B tests can validate end-to-end business metrics before a full rollout.
 
 ### A Toy Comparison: IPS vs. SNIPS vs. DR
 
-The following is a synthetic, illustrative example, not a measurement from a real system. Suppose a logging policy $\pi_0$ chooses between two actions, $a_1$ and $a_2$, with $\pi_0(a_1\mid x) = 0.9$ and $\pi_0(a_2\mid x) = 0.1$ for a fixed context $x$, and the true rewards are $r(x,a_1) = 0$ and $r(x,a_2) = 1$. A target policy $\pi$ always picks $a_2$, so the true value is $V(\pi\mid x) = 1$.
+The following example is synthetic and illustrative and involves no measurement from a real system. Suppose a logging policy $\pi_0$ chooses between two actions, $a_1$ and $a_2$, with $\pi_0(a_1\mid x) = 0.9$ and $\pi_0(a_2\mid x) = 0.1$ for a fixed context $x$, and the true rewards are $r(x,a_1) = 0$ and $r(x,a_2) = 1$. A target policy $\pi$ always picks $a_2$, so the true value is $V(\pi\mid x) = 1$.
 
-Log five interactions: four draws of $a_1$ (reward 0 each) and one draw of $a_2$ (reward 1), matching the $0.9/0.1$ split exactly.
+Five interactions are logged, four draws of $a_1$ (reward 0 each) and one draw of $a_2$ (reward 1), matching the $0.9/0.1$ split exactly.
 
-- **IPS**: weight on the $a_2$ row is $\pi(a_2\mid x)/\pi_0(a_2\mid x) = 1/0.1 = 10$, weight on every $a_1$ row is $0/0.9 = 0$. $\hat V_{\text{IPS}} = \frac{1}{5}(0+0+0+0+10 \cdot 1) = 2.0$, badly overestimating the true value of $1$ purely from finite-sample noise in one rare draw.
-- **SNIPS**: same numerator, but divide by the sum of weights instead of $n$: $\hat V_{\text{SNIPS}} = \frac{10}{0+0+0+0+10} = 1.0$, exactly right on this sample because the one nonzero weight is also the only term in the denominator.
-- **DR** with a mediocre reward model $\hat r(x,a_1)=0.2, \hat r(x,a_2)=0.6$: $\hat r(x,\pi) = 0.6$. The correction term only fires on the $a_2$ row: $10 \cdot (1 - 0.6) = 4$. Averaging over five rows, $\hat V_{\text{DR}} = \frac{1}{5}(0.6+0.6+0.6+0.6+0.6+4) = \frac{1}{5}(3+4) = 1.4$, closer to the true value of $1$ than IPS despite a mediocre reward model, because the model absorbs most of the $a_1$ rows and the importance weighting only has to correct the residual on $a_2$.
+- **IPS**: weight on the $a_2$ row is $\pi(a_2\mid x)/\pi_0(a_2\mid x) = 1/0.1 = 10$, weight on every $a_1$ row is $0/0.9 = 0$. $\hat V_{\text{IPS}} = \frac{1}{5}(0+0+0+0+10 \cdot 1) = 2.0$, twice the true value of $1$, an error due entirely to finite-sample noise in one rare draw.
+- **SNIPS**: the numerator is the same, and the division is by the sum of weights instead of $n$. $\hat V_{\text{SNIPS}} = \frac{10}{0+0+0+0+10} = 1.0$, which equals the true value on this sample because the one nonzero weight is also the only term in the denominator.
+- **DR** with an inaccurate reward model $\hat r(x,a_1)=0.2, \hat r(x,a_2)=0.6$: $\hat r(x,\pi) = 0.6$. The correction term is nonzero only on the $a_2$ row, where it equals $10 \cdot (1 - 0.6) = 4$. Averaging over five rows, $\hat V_{\text{DR}} = \frac{1}{5}(0.6+0.6+0.6+0.6+0.6+4) = \frac{1}{5}(3+4) = 1.4$, closer to the true value of $1$ than IPS despite the inaccurate reward model, because the model accounts for the $a_1$ rows and the importance weighting corrects only the residual on $a_2$.
 
-The point of the toy example is not that SNIPS wins outright. It is that with one action drawn only 10% of the time, a single logged row can swing IPS by a factor of two, and both SNIPS and DR have mechanisms (normalization, residual correction) that dampen exactly that failure mode.
+With one action drawn only 10% of the time, a single logged row changes the IPS estimate by a factor of two. SNIPS and DR reduce this sensitivity through normalization and residual correction respectively. The exact SNIPS result is a property of this sample and does not show that SNIPS is preferable in general.
 
 ## Marketplace Effects
 
-Many platforms are not just matching users to content. They are marketplaces. Exposure is economically meaningful for the supplier side:
+Many platforms are two-sided marketplaces, in which exposure has economic value for suppliers in addition to its relevance for users. Suppliers include:
 
 - sellers on e-commerce platforms
 - creators on media platforms
 - restaurants on local discovery surfaces
 - drivers, hosts, or freelancers on labor platforms
 
-Patro et al. make the point plainly. A customer-centric top-$k$ recommender can create large disparities in producer exposure. That may be unfair to producers, and it may also damage the platform by driving suppliers away or shrinking user choice over time.
+Patro et al. show that a customer-centric top-$k$ recommender can create large disparities in producer exposure. Such disparities may be unfair to producers, and they may also harm the platform over time by causing suppliers to leave or by reducing user choice.
 
-This changes the objective. Recommendation is no longer only about user utility. It is also about how a scarce resource, attention, is allocated across the market.
+The objective of recommendation then includes, in addition to user utility, the allocation of a scarce resource, user attention, across the market.
 
 ## Producer Fairness Is Not the Same as Relevance
 
-If the platform always serves the highest predicted relevance item, head producers tend to absorb more and more exposure. A marketplace may instead want some mixture of:
+If the platform always serves the item of highest predicted relevance, head producers tend to receive a growing share of exposure. A marketplace may instead optimize a combination of:
 
 - user relevance
 - exposure floors
 - diversity across suppliers
 - long-run ecosystem health
 
-FairRec frames this as a two-sided allocation problem and aims for fairness notions on both sides:
+FairRec formulates recommendation as a two-sided allocation problem with a fairness criterion for each side:
 
 - **MMS-style exposure guarantees** for producers
 - **EF1-style fairness** for customers
 
-The algorithm itself is less important here than the framing. Once you admit the platform has multiple stakeholders, single-objective top-$k$ ranking stops looking sufficient.
+Once a platform's multiple stakeholders are taken into account, single-objective top-$k$ ranking no longer represents its objective adequately.
 
 ## Distribution Shift Compounds the Feedback Loop
 
-The exposure loop described at the top of this note is a special case of a more general problem: a model trained on today's distribution gets deployed into tomorrow's distribution, which its own decisions helped create. Kuang, Cui, Athey, Xiong, and Li study this directly for tabular prediction, where a classifier trained on one environment is later applied to an environment with a shifted feature-outcome relationship. Their fix, global balancing, reweights training examples so that each feature's estimated effect is decorrelated from the other features, which produces a classifier whose accuracy degrades more gracefully when the deployment distribution moves. The recommender analogue is direct: a ranker trained purely on exposure-filtered clicks has implicitly fit spurious feature correlations that only held under the old exposure policy, and those correlations do not have to survive a policy change.
+The exposure loop described under [Logged Data Is Policy-Shaped](#logged-data-is-policy-shaped) is a special case of a more general problem, in which a model trained on the current distribution is deployed on a later distribution that its own decisions helped create. Kuang, Cui, Athey, Xiong, and Li study this problem for tabular prediction, where a classifier trained on one environment is later applied to an environment with a shifted feature-outcome relationship. Their method, global balancing, reweights training examples so that each feature's estimated effect is decorrelated from the other features, and yields a classifier whose accuracy degrades less when the deployment distribution shifts. In the recommender setting, a ranker trained only on exposure-filtered clicks fits spurious feature correlations that held under the previous exposure policy, and these correlations need not persist after a policy change.
 
-Zou, Xia, Ding, Song, Liu, and Yin push on a related but distinct problem: even a distribution-stable model can optimize the wrong horizon. A ranker trained to predict the next click is a myopic model of engagement. Their FeedRec system frames session-level feed ranking as a reinforcement learning problem with reward defined over both click-type signals (clicks, orders) and richer engagement signals (dwell time, return visits), explicitly to counter policies that inflate short-term clicks at the expense of long-term stickiness. The mechanism worth remembering is not the specific RL architecture, it is the framing: a purely supervised, single-step objective cannot represent the tradeoff between an immediately engaging recommendation and one that keeps a user coming back next week, and a system that only measures next-click accuracy will look great right up until retention quietly erodes.
+Zou, Xia, Ding, Song, Liu, and Yin study a related problem: a model that is stable under distribution shift can still optimize over the wrong horizon. A ranker trained to predict the next click models engagement myopically. Their FeedRec system formulates session-level feed ranking as a reinforcement learning problem with reward defined over both click-type signals (clicks, orders) and richer engagement signals (dwell time, return visits), in order to penalize policies that increase short-term clicks at the expense of long-term engagement. The contribution lies in the formulation more than in the specific RL architecture. A supervised, single-step objective cannot represent the tradeoff between a recommendation with high immediate engagement and one that increases the probability of a return visit in later sessions, and a system evaluated only on next-click accuracy can report good results while retention declines.
 
-Both papers point at the same operational conclusion for this note: counterfactual estimators and interleaving tell you whether a policy change helped relative to the current traffic mix, but neither one detects a policy that is *stably* better on today's distribution and quietly worse once its own exposure decisions reshape tomorrow's distribution. That is a reason to keep the longer-horizon metrics below in rotation even when short-term online tests look clean.
+Both papers imply that counterfactual estimators and interleaving measure the effect of a policy change relative to the current traffic mix, and that neither detects a policy that is *stably* better on the current distribution and worse once its own exposure decisions have changed the distribution. Longer-horizon metrics, listed under [What to Measure](#what-to-measure), should therefore be tracked even when short-term online tests show no regression.
 
 ## What to Measure
 
-A recommender team that ignores this note usually ends up overfitting click metrics. A healthier metric set often includes:
+A recommender evaluated only on click metrics tends to overfit them. A broader metric set includes:
 
 - short-term engagement
 - retention or downstream value
@@ -227,7 +228,7 @@ A recommender team that ignores this note usually ends up overfitting click metr
 - tail coverage
 - creator or seller-side outcomes
 
-None of those replaces A/B tests. They just prevent the offline loop from lying too confidently.
+These metrics complement A/B tests and do not replace them. They reduce the risk that the offline evaluation loop reports incorrect conclusions with high confidence.
 
 ## Related Notes
 

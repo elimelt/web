@@ -7,7 +7,10 @@ tags:
   - classification
   - neural networks
 date: 2026-07-31
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
 description: Overview of the NLP notes, from tokenization and linear classifiers to neural models and prompting.
 sources:
@@ -16,11 +19,9 @@ sources:
     type: textbook
 ---
 
-## Purpose
+Natural language processing (NLP) is the computational analysis and generation of human language. The notes cover the pipeline that converts text into inputs a model can use, beginning with [[ml/nlp/reading/tokenization|tokenization]] and continuing with [[ml/nlp/reading/classification|classification]] and [[ml/nlp/reading/multinomial-logistic-regression|multinomial logistic regression]]. [[ml/nlp/reading/neural-networks|Neural networks]] treats models with nonlinear decision boundaries, for tasks on which linear boundaries are insufficient.
 
-These notes cover the basic pipeline for turning text into something a model can work with. Start with [[ml/nlp/reading/tokenization|tokenization]], then move to [[ml/nlp/reading/classification|classification]] and [[ml/nlp/reading/multinomial-logistic-regression|multinomial logistic regression]]. [[ml/nlp/reading/neural-networks|Neural networks]] shows what changes once linear decision boundaries stop being enough.
-
-The section also holds practical notes that sit closer to modern language models than to textbook NLP. [[ml/nlp/prompting|Prompting]] is the bridge between the older modeling material and the newer model-facing workflow, and [[ml/nlp/decoding-strategies|decoding strategies]] covers how a trained model is turned into text at inference time.
+Two further notes concern current large language models more than textbook NLP. [[ml/nlp/prompting|Prompting]] connects the earlier modeling material to the use of pretrained models through their inputs, and [[ml/nlp/decoding-strategies|decoding strategies]] covers the conversion of a trained model's output distributions into text at inference time.
 
 ## Suggested path
 

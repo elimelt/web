@@ -10,7 +10,10 @@ tags:
   - seq2seq
   - translation
 date: 2026-07-31
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
 description: The original transformer architecture, including encoder and decoder stacks, cross-attention, positional encoding, optimization details, and sequence-to-sequence training.
 sources:
@@ -25,9 +28,9 @@ sources:
     type: docs
 ---
 
-## Purpose
+An encoder-decoder transformer is a sequence-to-sequence model in which an encoder maps the source sequence to a sequence of hidden states and a decoder generates the target sequence autoregressively. Each decoder layer attends to the target prefix through masked self-attention and to the encoder's states through cross-attention.
 
-The original transformer was a sequence-to-sequence model, not a decoder-only language model. This note covers that original shape and the main idea that distinguishes it from plain self-attention stacks: cross-attention from the decoder into a separately encoded source sequence.
+This is the architecture of the original transformer of Vaswani et al. (2017). Cross-attention from the decoder into the separately encoded source is the component that distinguishes it from a decoder-only stack of self-attention layers.
 
 ## What Problem It Solves
 
@@ -37,17 +40,17 @@ $$
 p(y_{1:T} \mid x_{1:S}) = \prod_{t=1}^{T} p(y_t \mid y_{<t}, x_{1:S})
 $$
 
-This factorization says:
+Under this factorization,
 
 - the full source sequence is available
 - the target is generated autoregressively
 - each target step can condition on the whole source
 
-That is exactly the structure of translation and many other transduction tasks.
+Translation and many other transduction tasks have this structure.
 
-## Why Bahdanau Attention Matters Here
+## Bahdanau Attention
 
-Before transformers, Bahdanau, Cho, and Bengio argued that the plain encoder-decoder architecture suffered from a fixed-length bottleneck. Their fix was to let the decoder form a context vector by softly attending over source annotations:
+Before transformers, Bahdanau, Cho, and Bengio argued that the plain encoder-decoder architecture suffered from a fixed-length bottleneck. They proposed that the decoder form a context vector by attending softly over the source annotations:
 
 $$
 c_i = \sum_{j=1}^{T_x} \alpha_{ij} h_j
@@ -65,7 +68,7 @@ The transformer inherits this idea and replaces recurrence with attention blocks
 
 ## The Original Transformer Architecture
 
-Vaswani et al. use:
+The base model of Vaswani et al. uses the following configuration.
 
 - **$N = 6$** encoder layers
 - **$N = 6$** decoder layers
@@ -74,7 +77,7 @@ Vaswani et al. use:
 - **$h = 8$** attention heads
 - dropout rate **0.1**
 
-These numbers define the base model. The "big" model scales width and head count further.
+The "big" model increases the width and the number of heads.
 
 ## Encoder
 
@@ -104,7 +107,7 @@ Each decoder layer contains three sublayers:
 2. encoder-decoder attention
 3. feed-forward network
 
-That middle step is cross-attention.
+The second sublayer is cross-attention.
 
 ```mermaid
 flowchart LR
@@ -121,7 +124,7 @@ flowchart LR
     dffn --> out["Softmax over target vocabulary"]
 ```
 
-The single edge from encoder to decoder is the whole coupling between the two stacks. The encoder runs once per source sequence; the decoder consumes its output at every layer and every generation step.
+The edge from encoder to decoder is the only connection between the two stacks. The encoder runs once per source sequence; the decoder consumes its output at every layer and every generation step.
 
 ## Cross-Attention
 
@@ -139,14 +142,14 @@ $$
 \operatorname{softmax}\left(\frac{Q_{dec}K_{enc}^\top}{\sqrt{d_k}}\right)V_{enc}
 $$
 
-This is the mechanism that lets target position $t$ align to whichever source positions matter for predicting $y_t$.
+Through this mechanism, target position $t$ attends to the source positions relevant to predicting $y_t$.
 
 > [!tip] Cross-attention is self-attention with one substitution
-> The computation is identical to self-attention; only the inputs change. Queries come from the decoder, keys and values from the encoder. No causal mask is needed because the entire source is legitimately observable. Everything else in the layer — heads, scaling, softmax, output projection — is unchanged.
+> The computation is identical to self-attention; only the inputs change. Queries come from the decoder, keys and values from the encoder. No causal mask is needed, because the entire source is observed. The heads, scaling, softmax and output projection are unchanged.
 
 ## Positional Encoding
 
-Because the transformer has no recurrence and no convolution, order must be injected. The paper uses sinusoidal positional encodings:
+Because the transformer has neither recurrence nor convolution, position information must be supplied explicitly. The paper uses sinusoidal positional encodings:
 
 $$
 \operatorname{PE}(pos, 2i)
@@ -162,9 +165,9 @@ $$
 
 These are added to the token embeddings.
 
-## Optimization Details That Matter
+## Optimization Details
 
-The transformer paper is worth reading for the optimizer schedule alone. They use Adam with:
+The paper trains with Adam, using
 
 - $\beta_1 = 0.9$
 - $\beta_2 = 0.98$
@@ -191,7 +194,7 @@ The paper reports:
 - **41.8 BLEU** on WMT 2014 English-to-French for a single model
 - training of the big English-to-French model in **3.5 days on 8 GPUs**
 
-Those numbers mattered historically because they made the case that attention-only sequence transduction was not just elegant. It was competitive and cheaper to train.
+These results showed that a sequence transduction model built only from attention was competitive in quality with prior models and required less training compute.
 
 ## NumPy Cross-Attention
 
@@ -267,14 +270,14 @@ class Seq2SeqDecoderBlock(nn.Module):
         return y
 ```
 
-## Where Encoder-Decoder Still Wins
+## Where Encoder-Decoder Models Remain in Use
 
 - translation
 - summarization from a fully observed source
 - speech or vision to text
 - tasks where source and target have distinct roles
 
-Decoder-only models are simpler. Still, when one sequence is given in full and the other is generated conditioned on it, encoder-decoder structure remains natural.
+Decoder-only models have a simpler structure. When one sequence is given in full and the other is generated conditioned on it, the encoder-decoder structure corresponds directly to the task.
 
 ## Related Notes
 

@@ -11,9 +11,12 @@ tags:
   - performance
   - data-processing
 date: 2024-12-08
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: A working model for streaming data processing, covering memory bandwidth limits, page-based memory budgets for common file formats, parallelism strategies, syscall overhead, and zero-copy I/O.
+description: A model of streaming data processing, covering memory bandwidth limits, page-based memory budgets for common file formats, parallelism strategies, syscall overhead and zero-copy I/O.
 sources:
   - title: Apache Parquet documentation
     url: https://parquet.apache.org/docs/
@@ -29,30 +32,26 @@ sources:
     type: docs
 ---
 
-## Purpose
+Stream processing consumes a dataset as an ordered sequence of chunks, each of which is processed and discarded before later chunks are read. Memory use is then bounded by the chunk size and the number of chunks in flight, independent of the size of the dataset. The technique applies when a dataset does not fit in memory, or when holding all of it would add latency without benefit. Uploading a large file to cloud storage such as S3 is an example. Reading the whole file into memory before sending it would delay the upload until the file is fully buffered, although the upload is the bottleneck, and would raise both end-to-end latency and memory footprint.
 
-This note builds a model for reasoning about streaming workloads: when the bottleneck is memory bandwidth versus processing, how much memory a stream actually needs for common file formats, and where the operating system costs hide. The cache-line effects behind the bandwidth examples are measured directly in the [[systems/performance/streaming_benchmarks/cache_line_efficiency/README|Cache Line Efficiency Benchmark]].
+Libraries such as Node.js `stream` and the Java `Stream` APIs implement this mechanism and are generally efficient. Their internal behavior determines performance when the streaming machinery is itself the bottleneck.
 
-Streaming is a super common technique. The basic idea is you can't fit the entire dataset in memory, so you process it in a stream of chunks. For example, say we're uploading a massive file to cloud storage like S3. We don't want to read the entire thing into memory and then pipe it out into the network. We'd be waiting to buffer the entire file while the upload is the real bottleneck, filling up all our memory, getting higher end-to-end latency and a higher memory footprint at the same time.
-
-A lot of the time you can rely on libraries to do this for you, like Node.js `stream` or the Java `Stream` APIs. These are usually efficient and well optimized, but it's still fun, and sometimes necessary, to think about what's going on under the hood.
-
-The metrics I'll focus on the most are throughput and memory usage. It turns out to be pretty natural to think about processing streams of data in terms of bytes per second and peak memory footprint.
+The two metrics of interest are throughput and memory usage, measured in bytes per second and peak memory footprint. The relevant questions are whether the bottleneck is memory bandwidth or processing, how much memory a stream requires for common file formats, and where operating system overhead arises. The cache-line effects behind the bandwidth examples are measured in the [[systems/performance/streaming_benchmarks/cache_line_efficiency/README|Cache Line Efficiency Benchmark]].
 
 ## A basic model of streaming
 
-Every streaming workload has a bottleneck, and it lands in one of two places:
+The bottleneck of a streaming workload lies in one of two places.
 
-- Bottlenecked by processing: each byte of input takes long-running work with significant latency, resource usage, or contention that limits parallelism. Processing a file from disk with heavy per-record business logic looks like this. Here you optimize the business logic, since the processing dwarfs the time spent on the streaming machinery itself.
-- Bottlenecked by I/O: the per-byte work is cheap, so the raw movement of data dominates, and any overhead in the data path matters a lot.
+- Bottlenecked by processing: each byte of input requires long-running work with significant latency, resource usage or contention that limits parallelism. Processing a file from disk with heavy per-record business logic is an example. Optimization then targets the business logic, since processing time far exceeds the time spent in the streaming machinery.
+- Bottlenecked by I/O: the per-byte work is small, so the movement of data dominates and any overhead in the data path is significant.
 
-Being bottlenecked by processing means you can probably just use a library for the actual streaming and skip micro-optimizing it. Being bottlenecked by I/O is more interesting.
+A processing-bound workload can generally use a library for the streaming itself without further optimization of that layer. The performance of an I/O-bound workload depends on the details of the data path.
 
-Say you're reading a dataset from memory, transforming it $n$ times, and writing results back. That's $n + 2$ memory operations per byte of input (read original, write temporaries, write result). Under an idealized bandwidth model with memory bandwidth $B$ (GB/s), the effective rate is approximately $B / (n + 2)$. The upper bound for a simple copy is about $B / 2$, one read plus one write. Real systems land below this due to caches, NUMA, contention, and software overheads.
+Consider a dataset that is read from memory, transformed $n$ times and written back. Each byte of input incurs $n + 2$ memory operations (read original, write temporaries, write result). Under an idealized bandwidth model with memory bandwidth $B$ (GB/s), the effective rate is approximately $B / (n + 2)$. The upper bound for a simple copy is about $B / 2$, one read plus one write. Measured rates fall below this bound because of caches, NUMA, contention and software overheads.
 
-What determines $B$? Peak bandwidth is hard to approach in practice. Modern CPUs move data in cache lines (typically 64 B), and access pattern dominates:
+The achieved bandwidth $B$ is generally well below peak. CPUs move data in cache lines (typically 64 B), and the access pattern largely determines effective bandwidth:
 
-- `seq8`: Sequential scan that touches only 8 B per 64 B line. Hardware prefetchers can keep lines flowing, but most of each line is unused, so effective bandwidth tracks the fraction consumed (~1/8 of peak).
+- `seq8`: Sequential scan that touches only 8 B per 64 B line. Hardware prefetchers can sustain the stream of lines, but most of each line is unused, so effective bandwidth tracks the fraction consumed (~1/8 of peak).
 - `seq64`: Sequential scan consuming the whole 64 B line (e.g., via `memcpy`). Every byte brought in from DRAM is used, so measured throughput can approach the platform's sustained memory bandwidth.
 - `rand8`: Random pointer chasing with one dependent 8 B load per line. With little prefetch and limited outstanding misses, throughput is latency-bound and much lower than sequential scans.
 
@@ -66,15 +65,15 @@ Example relative outcomes (not absolute; highly system-dependent, measured in th
 
 ## Streaming is like sequential pagination
 
-At its core, streaming is sequential pagination where you process pages in order and discard them immediately. That constraint, sequential access with no retention, is what lets you process datasets larger than memory.
+Streaming is sequential pagination in which pages are processed in order and discarded immediately. This constraint, sequential access with no retention, is what permits processing datasets larger than memory.
 
-Traditional pagination lets you process pages in any order. REST APIs often include metadata that lets you request an arbitrary page, e.g. `?page=10`. Random access is nice, but without hash indexes or B-trees behind it, serving an arbitrary page means scanning through the dataset.
+Traditional pagination permits pages to be processed in any order. REST APIs often include metadata that allows a client to request an arbitrary page, e.g. `?page=10`. Without a hash index or B-tree behind it, however, serving an arbitrary page requires a scan of the dataset.
 
 > Some implementations of pagination rely on pointers to the next or previous page, which is closer to streaming.
 
-Streaming removes these freedoms. You process one page at a time in the order they arrive, then discard.
+Streaming removes this freedom; pages are processed one at a time, in arrival order, and then discarded.
 
-Either way, the memory requirement drops from O(total_dataset_size) to O(page_size). Streaming additionally needs no lookup or index structure, since it only ever touches sequential parts of the data. In many cases the input is a huge file, and processing it in the order it sits on disk gets you the `seq64`-style bandwidth from the table above for free.
+In both cases the memory requirement falls from O(total_dataset_size) to O(page_size). Streaming additionally requires no lookup or index structure, since it touches only sequential parts of the data. The input is often a large file, and processing it in on-disk order attains the `seq64`-style bandwidth of the table without further effort.
 
 ## File formats
 
@@ -86,35 +85,35 @@ Each format defines its page size differently:
 
 The memory required for streaming is the page size times the number of concurrent pages being processed, plus any overhead for decompression or parsing.
 
-**Apache Parquet** uses row groups as its unit of I/O. The default row group size is 128 MB of uncompressed data. With Snappy compression at a typical 2-3x ratio, that's 43-64 MB on disk. To process one row group you need:
+**Apache Parquet** uses row groups as its unit of I/O. The default row group size is 128 MB of uncompressed data. With Snappy compression at a typical 2-3x ratio, this corresponds to 43-64 MB on disk. Processing one row group requires:
 
 - Compressed row group in memory: 64 MB
 - Decompression buffer: 128 MB
 - Decoded values buffer: 128 MB (Parquet stores definition levels, repetition levels, and values separately)
 
-That works out to around 320 MB of working memory for a 64 MB disk chunk. If your schema has nested columns or variable-length strings, add another 1-2x for materialization.
+The total is around 320 MB of working memory for a 64 MB disk chunk. Nested columns or variable-length strings in the schema add another 1-2x for materialization.
 
-**CSV** processes line by line. A typical CSV row with 20 columns might be 200 bytes (illustrative; actual sizes vary widely). With a read buffer of 8 KB, you're holding 40 rows in memory at once. Working memory is your buffer size plus parsing overhead, call it 16 KB total.
+**CSV** processes line by line. A CSV row with 20 columns might be 200 bytes (illustrative; actual sizes vary widely). With a read buffer of 8 KB, 40 rows are held in memory at once. Working memory is the buffer size plus parsing overhead, about 16 KB in total.
 
-**Apache Arrow** uses a columnar memory layout that matches its on-disk format exactly. A column of 1 million 64-bit integers takes 8 MB on disk and 8 MB in memory. No decompression, no intermediate buffers. The memory requirement is exactly the size of the columns you're actively processing.
+**Apache Arrow** uses a columnar memory layout that matches its on-disk format exactly. A column of 1 million 64-bit integers takes 8 MB on disk and 8 MB in memory, and no decompression or intermediate buffers are required. The memory requirement is exactly the size of the columns being processed.
 
 For a 1 GB file with 10 million rows and 20 columns:
 
 - Parquet: 320 MB working memory per row group, times the number of concurrent row groups
 - CSV: 16 KB for streaming, or full file size if loaded entirely
-- Arrow: exactly the size of accessed columns (selective column reading is free)
+- Arrow: exactly the size of accessed columns (selective column reading adds no overhead)
 
 ## Algorithms
 
 Consider a simple streaming pipeline that parses JSON, filters records, enriches with external data, and aggregates results. We can calculate the theoretical throughput limits.
 
-Each algorithmic approach is really a different pagination strategy:
+Each algorithmic approach corresponds to a different pagination strategy:
 
 - **Pipeline parallelism**: One page flows through all stages sequentially
 - **Data parallelism**: Multiple pages processed simultaneously, one per worker
 - **Batch processing**: Accumulate many pages, then process as a group
 
-The streaming constraint (sequential processing, immediate disposal) limits us to the first two, though in practice you'd likely combine them using windowing.
+The streaming constraint (sequential processing, immediate disposal) excludes the third, although in practice the first two are often combined through windowing.
 
 **Pipeline parallelism** processes one record through all stages sequentially. Suppose the stages take:
 
@@ -123,7 +122,7 @@ The streaming constraint (sequential processing, immediate disposal) limits us t
 - Enrich: 200 μs
 - Aggregate: 20 μs
 
-Total latency is 275 μs per record, but throughput is limited by the slowest stage: $1 \div 200\ \mu s = 5{,}000$ records/second. The other stages spend most of their time waiting.
+Total latency is 275 μs per record, but throughput is limited by the slowest stage, at $1 \div 200\ \mu s = 5{,}000$ records/second. The other stages are idle most of the time.
 
 **Data parallelism** runs the complete pipeline on different data chunks. With 8 workers:
 
@@ -131,9 +130,9 @@ Total latency is 275 μs per record, but throughput is limited by the slowest st
 - Memory: $8 \times$ working set size
 - Coordination overhead: atomic counters, locks, or channels for aggregation
 
-The coordination becomes critical. If workers need to synchronize for aggregation (e.g. a global sum), that stage bottlenecks the whole pipeline. Applying Amdahl's law: if 5% of your work is serial, maximum speedup is $1 \div 0.05 = 20x$ regardless of worker count.
+Coordination then determines scalability. If workers synchronize for aggregation (e.g. a global sum), that stage becomes the bottleneck of the whole pipeline. By Amdahl's law, if 5% of the work is serial, the maximum speedup is $1 \div 0.05 = 20x$ regardless of worker count.
 
-**Windowing** introduces time-based memory requirements. A time-based window has a memory footprint of $W \times T \times R$, where $W$ is the window size in seconds, $T$ is the throughput in records/second, and $R$ is the record size in bytes. For example, a window of 10 seconds at 5,000 records/second needs to buffer 50,000 records. At 200 bytes per record, that's 10 MB.
+**Windowing** introduces time-based memory requirements. A time-based window has a memory footprint of $W \times T \times R$, where $W$ is the window size in seconds, $T$ is the throughput in records/second, and $R$ is the record size in bytes. For example, a window of 10 seconds at 5,000 records/second must buffer 50,000 records, which at 200 bytes per record occupy 10 MB.
 
 ## Linux I/O overhead
 
@@ -146,9 +145,9 @@ Every `read` system call:
 5. Switches back to user mode
 6. Restores registers
 
-On modern x86-64 processors, a minimal system call (like `getpid`) is on the order of hundreds of nanoseconds depending on CPU and kernel version. I/O system calls are more expensive because they involve actual work beyond the mode switch.
+On modern x86-64 processors, a minimal system call (like `getpid`) is on the order of hundreds of nanoseconds depending on CPU and kernel version. I/O system calls are more expensive because they perform work beyond the mode switch.
 
-Let's trace what happens with traditional `read` versus [io_uring](https://man7.org/linux/man-pages/man7/io_uring.7.html) for reading 1000 4 KB blocks:
+Reading 1000 4 KB blocks with traditional `read` and with [io_uring](https://man7.org/linux/man-pages/man7/io_uring.7.html) proceeds as follows.
 
 **Traditional read():**
 
@@ -172,7 +171,7 @@ io_uring_submit(ring);  // Single system call
 // Total data transfer: 4MB
 ```
 
-The gap grows with IOPS, since the per-call overhead is what gets amortized. `io_uring` adds complexity in exchange: you manage ring buffers, track completions, and handle partial reads. For simple sequential reading of large files, the overhead difference might not justify it.
+The difference grows with IOPS, since `io_uring` amortizes the per-call overhead. In exchange it adds complexity, because the application manages ring buffers, tracks completions and handles partial reads. For simple sequential reading of large files, the reduction in overhead may not justify that complexity.
 
 **Memory mapping** (mmap) amortizes system call cost differently. One `mmap` call maps the entire file into virtual address space, and page faults bring data into memory on demand:
 
@@ -182,16 +181,16 @@ void* data = mmap(NULL, file_size, PROT_READ, MAP_PRIVATE, fd, 0);
 // But: page fault on first access to each 4KB page
 ```
 
-Page fault cost is similar in magnitude to a system call, but you get cache-line-level granularity after the initial fault. For random access patterns this is often optimal. For sequential streaming, `read` with appropriate buffer sizes can trigger kernel read-ahead more effectively.
+A page fault costs about as much as a system call, but after the initial fault the data is accessible at cache-line granularity. For random access patterns this often performs well. For sequential streaming, `read` with appropriate buffer sizes can trigger kernel read-ahead more effectively.
 
 ## Zero-copy: following the data path
 
-Standard file-to-socket transfer involves multiple copies. Here's the exact path for `read` + `write`:
+A standard file-to-socket transfer with `read` + `write` copies the data several times along this path:
 
-1. **DMA from disk to kernel buffer**: Hardware handles this, no CPU involvement
+1. **DMA from disk to kernel buffer**: performed by hardware, without CPU involvement
 2. **CPU copy from kernel to user buffer**: `memcpy()` at memory bandwidth
 3. **CPU copy from user to kernel socket buffer**: Another `memcpy()`
-4. **DMA from kernel buffer to NIC**: Hardware again
+4. **DMA from kernel buffer to NIC**: performed by hardware
 
 For a 1 GB file, the CPU path performs two memory copies (kernel to user, user to kernel). If sustained memory bandwidth is $B_{mem}$, the copy time budget for steps 2 and 3 is roughly $2 \times 1\,GB \div B_{mem}$.
 
@@ -200,7 +199,7 @@ With [sendfile](https://man7.org/linux/man-pages/man2/sendfile.2.html), those tw
 1. DMA from disk to kernel buffer
 2. Direct DMA from kernel buffer to NIC
 
-The CPU never touches the data, which frees up memory bandwidth for other operations. The file transfer rate is then limited by the minimum of storage throughput, network throughput, and kernel path overheads rather than memory bandwidth.
+The CPU does not touch the data, which leaves memory bandwidth available for other operations. The file transfer rate is then limited by the minimum of storage throughput, network throughput, and kernel path overheads rather than memory bandwidth.
 
 ```mermaid
 flowchart LR

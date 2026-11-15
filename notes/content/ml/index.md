@@ -8,7 +8,10 @@ tags:
   - recommender systems
   - inference systems
 date: 2026-07-31
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
 description: Map of the machine learning notes, with separate paths for deep learning, language, recommendation, and serving systems.
 sources:
@@ -20,11 +23,9 @@ sources:
     type: paper
 ---
 
-## Purpose
+Machine learning is the study of algorithms that improve their performance on a task by fitting the parameters of a model to data. The notes are divided into four areas. [[ml/deep-learning/index|Deep learning]] covers neural networks from first principles and the main architecture families. [[ml/nlp/index|NLP]] covers language representations and textbook modeling ideas. [[ml/recommender-systems/reading-guide|Recommender systems]] covers retrieval, ranking, and feedback signals in personalization. [[ml/serving-systems/index|Serving systems]] covers the systems side of large-model inference: kernels, memory, batching, and parallelism.
 
-The machine learning notes now split four ways. [[ml/deep-learning/index|Deep learning]] covers neural networks from first principles and the main architecture families. [[ml/nlp/index|NLP]] covers language representations and textbook modeling ideas. [[ml/recommender-systems/reading-guide|Recommender systems]] covers retrieval, ranking, and feedback signals in personalization. [[ml/serving-systems/index|Serving systems]] covers the systems side of large-model inference: kernels, memory, batching, and parallelism.
-
-These areas connect in useful ways. Deep-learning architecture choices shape what later NLP and recommender models can express, and serving constraints push back on those architecture choices. Large-model serving leans on the same performance reasoning that shows up in [[systems/performance/index|performance engineering]] and the same hardware constraints that show up in [[hardware/index|hardware notes]].
+The areas are related. Architecture choices in deep learning determine what later NLP and recommender models can express, and serving constraints in turn limit those choices. Large-model serving relies on the same performance reasoning as [[systems/performance/index|performance engineering]] and is subject to the same hardware constraints as those in the [[hardware/index|hardware notes]].
 
 ## Sections
 

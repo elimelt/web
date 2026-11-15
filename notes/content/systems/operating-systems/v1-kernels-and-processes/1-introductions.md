@@ -12,35 +12,36 @@ tags:
   - availability
   - fault isolation
 date: 2023-12-22
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: needs-review
-description: Introductory operating systems notes on resource management, virtualization, system goals, and design exercises.
+description: Chapter 1 of Operating Systems, Principles and Practice on the roles of an operating system, virtualization and design goals, with answers to the chapter's design exercises.
 sources:
   - https://www.kea.nu/files/textbooks/ospp/osppv1.pdf
 ---
 
-## Purpose
-
-Summarize the first chapter's framing ideas, then answer the corresponding design exercises. The exercise answers are still personal sketches rather than textbook-quality solutions.
+Chapter 1 of [*Operating Systems: Principles and Practice*](https://www.kea.nu/files/textbooks/ospp/osppv1.pdf), volume 1, introduces the operating system through its roles as referee, illusionist and glue, describes virtualization and the services an operating system provides, and sets out the goals of operating system design and the history of their tradeoffs. The answers given to the chapter's exercises are informal design sketches.
 
 ## What is an Operating System?
 
-**Referee.** Manages the resources of a computer shared between applications.
+**Referee.** The OS manages the resources of a computer that are shared between applications.
 
-**Illusionist.** Makes the computer's resources appear to be dedicated to each application through abstraction.
+**Illusionist.** The OS uses abstraction to make the computer's resources appear dedicated to each application.
 
-**Glue.** Binds the hardware, software, and users through services that facilitate communication/sharing.
+**Glue.** The OS binds hardware, software and users together through services that facilitate communication and sharing.
 
 ### Virtualization
-- Creates the illusion of extra resources through abstraction.
-- Some examples of virtualization are:
+- Virtualization uses abstraction to create the illusion of additional resources.
+- Examples of virtualization include:
     - **Virtual Memory.** Creates the illusion of more memory than is physically available.
     - **Virtual Machines.** Creates the illusion of multiple computers on one computer.
     - **Virtual Processors.** Creates the illusion of multiple processors on one processor.
 
 ### Services
 
-Services are provided by the operating system so applications can adapt to a single interface (like POSIX) instead of the hardware. Some examples of services are:
+The operating system provides services so that applications are written against a single interface (such as POSIX) rather than against the hardware. Examples include:
 
 - **File System.** Create, delete, read, and write files through read, write, open, close, seek, etc.
 - **Network.** Access the network through sockets with read, write, bind, and connect, etc.
@@ -50,13 +51,13 @@ Services are provided by the operating system so applications can adapt to a sin
 
 ## Evolution of Operating Systems
 
-**Reliability and Availability.** Does what it is expected without crashing. At scale, an OS must tolerate failure even in edge cases. Availability, the percentage of time a system is available, is influenced by **Mean Time To Failure** (MTTF) and **Mean Time To Repair** (MTTR). Increasing MTTF and decreasing MTTR increases availability.
+**Reliability and Availability.** A reliable system does what it is expected to do without crashing. At scale, an OS must tolerate failure even in edge cases. Availability, the percentage of time a system is available, is influenced by **Mean Time To Failure** (MTTF) and **Mean Time To Repair** (MTTR). Increasing MTTF and decreasing MTTR increases availability.
 
-**Security.** Prevents compromise from malicious users. Privacy is an aspect of security; data is only accessible to authorized users. Strong fault isolation is necessary for security.
+**Security.** A secure system cannot be compromised by malicious users. Privacy is the aspect of security under which data is accessible only to authorized users. Strong fault isolation is necessary for security.
 
-**Portability.** Code can run independently of the hardware. This is achieved through abstraction. The **abstract virtual machine** (AVM) is the interface between the OS and applications. The **hardware abstraction layer** (HAL) is the interface between the OS and hardware.
+**Portability.** Portable code runs independently of the underlying hardware. This is achieved through abstraction. The **abstract virtual machine** (AVM) is the interface between the OS and applications. The **hardware abstraction layer** (HAL) is the interface between the OS and hardware.
 
-**Performance.** Must be fast and efficient for users' sake. Performance is measured by...
+**Performance.** The system should be fast and efficient for its users. Performance has several measures:
 - **overhead.** the cost of abstraction.
 - **efficiency.** the ability to minimize overhead.
 - **fairness.** the ability to allocate resources fairly.
@@ -64,17 +65,17 @@ Services are provided by the operating system so applications can adapt to a sin
 - **throughput.** the number of requests per unit time.
 - **predictability.** the ability to provide consistent performance.
 
-**Adoption.** Also important
+**Adoption.** Adoption by users and developers is also a design goal.
 
 ### Design Tradeoffs
 
-Sometimes, it is better to sacrifice one aspect for another. For example, losing some performance to fit an interface. The tradeoff of performance and complexity is common.
+Design often trades one goal against another, for example by accepting some loss of performance in order to conform to an interface. Performance is frequently traded against complexity.
 
-Early single-user operating systems would let the CPU wait idle for I/O. Later, when multi-user systems were introduced, the CPU could switch to another process while one process waited for I/O. This is called **multiprogramming**. In a **batch operating system**, the CPU reads from a queue of jobs, loading, running, and unloading each job.
+In early single-user operating systems the CPU sat idle while it waited for I/O. Later, when multi-user systems were introduced, the CPU could switch to another process while one process waited for I/O. This is called **multiprogramming**. In a **batch operating system**, the CPU reads from a queue of jobs, loading, running, and unloading each job.
 
 While one job is running, the OS may set up I/O devices for another in the background through direct memory access (DMA). Through interrupts, the OS can then switch to the new job when it is ready. From the point of view of the original job, there was only a short delay. This is called **time sharing**.
 
-When the OS directly controls multiple concurrent processes (**multiprocessing**), debugging becomes difficult, and developers often need to stop the system to inspect state. **Virtualization** helps by creating the illusion of multiple processors on one processor. This allows developers to debug one virtual processor while the others continue to run. Instead of debugging directly on the hardware, developers can debug on a virtual machine running as an application.
+When the OS directly controls multiple concurrent processes (**multiprocessing**), debugging becomes difficult, and developers often need to stop the system to inspect state. **Virtualization** addresses this by creating the illusion of multiple processors on one processor. This allows developers to debug one virtual processor while the others continue to run. Instead of debugging directly on the hardware, developers can debug on a virtual machine running as an application.
 
 
 
@@ -89,7 +90,7 @@ The OS manages the running processes and their access to resources.
 
 - **Illusionist?**
 
-The OS creates the illusion of dedicated resources through abstraction, like with malloc.
+The OS creates the illusion of dedicated resources through abstraction, as with malloc.
 
 - **Glue?**
 
@@ -99,7 +100,7 @@ The OS provides services like the file system and network.
 
 - **Reliability** vs. **availability?**
 
-Reliability is the ability to do what is expected without crashing. Availability is the percentage of time a system is available. More reliable systems have higher availability.
+Reliability is the ability to do what is expected without crashing. Availability is the percentage of time a system is available. Other things being equal, a more reliable system (one with a higher MTTF) has higher availability.
 
 - **Security** vs. **privacy?**
 
@@ -147,11 +148,11 @@ DMA allows the OS to set up IO devices for another process in the background whi
 
 ### 4. Before there were operating systems, someone needed to develop solutions without being able to look them up! How would you have designed the first operating system?
 
-Albeit relying on what I just read...
+The following design draws on the chapter, which I had just read.
 
-Users need to be able to execute arbitrary code on hardware. Although security is important, I won't focus on it for now.
+Users must be able to execute arbitrary code on the hardware. Security is important but is set aside in this design.
 
-First, I would need a way to load and run code. Assuming I can use a preexisting compiler (GCC?), I would first create a set of "kernel" modules that interact directly with the hardware. These modules would be written in C and assembly, and would cover the very basics of interacting with IO devices and any other hardware I need to control. In particular:
+The first requirement is a way to load and run code. Assuming that a preexisting compiler such as GCC is available, the first component is a set of "kernel" modules that interact directly with the hardware. These modules would be written in C and assembly and would cover the basic operations on I/O devices and any other hardware the system controls, in particular:
 
 - CPU
 - Disk Storage
@@ -160,7 +161,7 @@ First, I would need a way to load and run code. Assuming I can use a preexisting
 - Monitoring
 
 
-Next, I would write a few services that users can interact with as an interface to the hardware drivers above. Users should not interact with the drivers directly. These services would be written in C and assembly, and would cover the following:
+The next component is a set of services that serve as the users' interface to the hardware drivers. Users should not interact with the drivers directly. These services would be written in C and assembly, and would cover the following:
 
 - File System and Disk IO (read, write, open, close, seek, etc.)
 - Memory Allocator (malloc, free, etc. to access heap memory)
@@ -169,13 +170,13 @@ Next, I would write a few services that users can interact with as an interface 
 - Terminal/Shell (stdin, stdout, stderr, etc.)
 - GUI (windows, cut and paste, etc.)
 
-My file system would be a simple tree structure, with directories and files. Similar to the UNIX filesystem, I would use file descriptors to refer to all IO devices, including files, directories, and network sockets. Currently open file descriptors would be stored in a table, and would be passed to the kernel modules to perform IO operations. Disk IO would be buffered in memory for writes to make logging efficient. Reading can be done directly from disk with our storage device drivers.
+The file system would be a simple tree of directories and files. As in the UNIX file system, file descriptors would refer to all I/O devices, including files, directories and network sockets. Open file descriptors would be stored in a table and passed to the kernel modules to perform I/O operations. Writes to disk would be buffered in memory to make logging efficient, and reads would go directly to disk through the storage device drivers.
 
-My memory allocator would be a basic implementation of malloc using a linked list. Simple compaction running periodically would be used, with heap sweeping on process termination. No virtual memory yet...
+The memory allocator would be a basic linked-list implementation of malloc, with periodic compaction and a sweep of the heap on process termination. The design has no virtual memory.
 
-Network communication would be done entirely through reads and writes over sockets. TCP/IP would be used for communication, assuming a modern network stack is available. If not, then machines would need to be connected directly to each other and would read and write directly to each other's open sockets using whatever protocol is available, or a new one I would design.
+Network communication would be done entirely through reads and writes over sockets. TCP/IP would be used for communication, assuming a modern network stack is available. If not, then machines would need to be connected directly to each other and would read and write directly to each other's open sockets using whatever protocol is available, or a newly designed one.
 
-Process management would be done through `fork`, `exec`, and `wait`. I would need a way to handle interrupts so that processes can be interrupted and resumed when I/O is ready. Callbacks could handle this, where processes register a callback with the OS when blocked on I/O. When the I/O is ready, the OS would call the callback and the process would resume, or be added to the ready queue if it is not the highest-priority process. An event-driven model would be used for all I/O so that processes can be interrupted when I/O is ready. Each event should contain the necessary information to stop and resume work, and then I can use a producer-consumer model to handle events off an event queue. I would use a simple round-robin scheduler to switch between processes, and would keep both a log of events and streaming statistics to try to schedule work fairly. Although limited, this would still allow some concurrency because processes can be interrupted while waiting for I/O.
+Process management would be done through `fork`, `exec`, and `wait`. The OS would need to handle interrupts so that processes can be suspended and resumed when I/O is ready. Callbacks could handle this, where processes register a callback with the OS when blocked on I/O. When the I/O is ready, the OS would call the callback and the process would resume, or be added to the ready queue if it is not the highest-priority process. An event-driven model would be used for all I/O so that processes can be interrupted when I/O is ready. Each event should contain the information needed to stop and resume work, and a producer-consumer model would process events from an event queue. A simple round-robin scheduler would switch between processes, and the OS would keep a log of events and streaming statistics in order to schedule work fairly. The design provides limited concurrency, since processes can be suspended while they wait for I/O.
 
 
 ## System Design
@@ -184,27 +185,27 @@ Process management would be done through `fork`, `exec`, and `wait`. I would nee
 
 - **How should the operating system allocate the CPU to applications?**
 
-Round robin
+The OS should allocate the CPU by round robin.
 
 - **How should the operating system allocate physical memory to applications?**
 
-Ideally, each application would have its own memory space. This requires implementing some sort of virtual memory abstraction.
+Ideally, each application would have its own memory space. This requires a virtual memory abstraction.
 
 - **How should the operating system allocate its disk space?**
 
-Applications should access disk through the file system, which has an interface for creating, deleting, reading, and writing files. The OS keeps a table of open files, and uses this table to perform IO operations on files in a consistent/safe way. Simply blocking access to files while they are being written to would be sufficient, although more complex buffering and locking could be used to improve performance.
+Applications should access disk through the file system, which has an interface for creating, deleting, reading, and writing files. The OS keeps a table of open files, and uses this table to perform I/O operations on files consistently and safely. Blocking access to a file while it is being written would be sufficient, and more complex buffering and locking could improve performance.
 
 ### 6. Now suppose the computer system needs to support fault isolation. What hardware and/or operating support do you think would be needed to do the following?
 - **Protect an application's data structures in memory from being corrupted by other applications.**
 - **Protecting one user's disk files from being accessed or corrupted by another user.**
 - **Protecting the network from a virus trying to use your computer to send spam.**
 
-Permissions ^^^ and virtualization. Each process has its own memory space, and each user has its own file system. The OS can then use permissions to control access to resources for individual users. Network access should be mutually consentual, and the OS should prevent unauthorized access to the network.
+Permissions and virtualization address all three. Each process has its own memory space, and each user has its own file system. The OS can then use permissions to control access to resources for individual users. Network access should be mutually consensual, and the OS should prevent unauthorized access to the network.
 
 ### 7. How should an operating system support communication between applications?
 - **Through the file system?**
 
-Each application can independently request access to a file, getting an entry in the currently open file table. If two processes want to read from the same file this is fine, but writes to the same file should not interleave. There should be multiple levels of locking, so that processes can keep a file to themselves, prevent writes but allow reads, prevent reads but allow writes, or only allow atomic reads and writes while still permitting concurrent ownership when safe.
+Each application can independently request access to a file, getting an entry in the currently open file table. Two processes may read the same file concurrently, but writes to the same file should not interleave. There should be multiple levels of locking, so that a process can hold a file exclusively, prevent writes but allow reads, prevent reads but allow writes, or only allow atomic reads and writes while still permitting concurrent ownership when safe.
 
 - **Through messages passed between applications?**
 
@@ -212,35 +213,35 @@ Similar to network communication and file I/O, applications should be able to re
 
 - **Through regions of memory shared between the applications?**
 
-Reentrant locking service that thinly wraps a piece of shared memory owned in the kernel.
+A reentrant locking service could provide a thin wrapper around a region of shared memory owned by the kernel.
 
-Essentially all of the above, but programmers need to understand the tradeoffs and correctness of each approach.
+The OS should support all three mechanisms, and programmers need to understand the tradeoffs and correctness conditions of each.
 
 ### 8. How would you design combined hardware and software support to provide the illusion of a nearly infinite virtual memory on a limited amount of physical memory?
 
-Analogy of cache to memory, we would use main memory as a temporary space to hold the data of running processes. Then, when another process needs time on the CPU, the context of main memory is switched to another process, and the previously occupying memory is loaded to disk.
+By analogy with a cache in front of memory, main memory would serve as temporary storage for the data of running processes. When another process needs time on the CPU, main memory is switched to that process, and the memory of the previous process is written to disk.
 
-The process management service would handle this "paging" of memory by keeping a table of processes and the location and metadata for their memory. As tasks are pulled from the job queue, they are loaded into memory and added to the ready queue. When a process is blocked on IO, the OS can switch to another process and load the blocked process's memory to disk. When the process is ready again, the OS can load the process's memory from disk and resume execution.
+The process management service would handle this "paging" of memory by keeping a table of processes and the location and metadata for their memory. As tasks are pulled from the job queue, they are loaded into memory and added to the ready queue. When a process is blocked on IO, the OS can switch to another process and write the blocked process's memory to disk. When the process is ready again, the OS can load the process's memory from disk and resume execution.
 
 ### 9. How would you design a system to run an entire operating system as an application on top of another operating system?
 
-The hardware modules that the host OS run on all follow an interface, so by mocking the interface of these hardware systems, we can simulate the hardware. Then, simply running the guest OS on top of this simulated hardware would allow us to run the guest OS as an application on top of the host OS. This should all be done in an isolated environment, so that the guest OS cannot access the host resources directly.
+The hardware modules on which the host OS runs each follow an interface, so emulating those interfaces simulates the hardware. Running the guest OS on the simulated hardware then runs it as an application on top of the host OS. This should all be done in an isolated environment, so that the guest OS cannot access the host resources directly.
 
 ### 10. How would you design a system to update complex data structures on disk in a consistent fashion despite machine crashes?
 
-I would use a write-ahead log, buffered in memory for high-throughput events but flushed to disk in the background as often as possible to aid recovery, that keeps track of all disk writes. Each record in the log would correspond to an event that happened to our data structure, and each event would have an ID. We keep an atomic counter that tracks the last event executed on the structure. In the event of a crash, we can replay the log from the last completed event to the end of the log and restore a consistent state. We can also use this log to recover from a crash during a write by replaying from the beginning.
+A write-ahead log would record all disk writes. It would be buffered in memory for high-throughput events and flushed to disk in the background as often as possible to aid recovery. Each record in the log would correspond to an event applied to the data structure, and each event would have an ID. An atomic counter tracks the last event executed on the structure. After a crash, replaying the log from the last completed event to its end restores a consistent state. Replaying the log from the beginning also recovers from a crash during a write.
 
 ### 11. Society itself must grapple with managing resources. What ways do governments use to allocate resources, isolate misuse, and foster sharing in real life?
 
-Taxes, laws, and regulations. Taxes are used to allocate resources, and laws are used to prevent misuse and foster sharing. For example, public services such as firefighters are funded by taxes, and laws are supposed to help ensure people can fairly access these services.
+Governments use taxes, laws and regulations. Taxes are used to allocate resources, and laws are used to prevent misuse and foster sharing. For example, public services such as firefighters are funded by taxes, and laws are supposed to help ensure people can fairly access these services.
 
 ### 12. Suppose you were tasked with designing and implementing an ultra-reliable and ultra-available operating system. What techniques would you use? What tests, if any, might be sufficient to convince you of the system's reliability, short of handing your operating system to millions of users to serve as beta testers?
 
-Extensive testing like in other forms of software (unit, integration, fuzzing, fault injection), as well as monitoring and telemetry of real devices. Formal verification would be nice, but is probably not feasible. A microkernel would be a good start, since it would allow me to isolate "trusted" code.
+The techniques would be extensive testing, as for other software (unit, integration, fuzzing, fault injection), together with monitoring and telemetry of deployed devices. Formal verification would be desirable but is probably not feasible. A microkernel would be a reasonable starting point, since it isolates the "trusted" code.
 
 ### 13. For the computer you are currently using, how should the operating system designers prioritize among reliability, security, portability, performance, and adoption? Explain why.
 
-As a user of a MacBook Pro, security, performance, and adoption are extremely important. As a developer it would also be nice to have a portable and, secondarily, a reliable system. One area where Apple has clearly deprioritized portability is hardware support, although that is also wrapped up with adoption of Apple Silicon.
+As a user of a MacBook Pro, I consider security, performance and adoption the most important. As a developer, I would also value portability and, secondarily, reliability. Apple has deprioritized portability in hardware support, although that decision is also tied to the adoption of Apple Silicon.
 
 ## Related notes
 

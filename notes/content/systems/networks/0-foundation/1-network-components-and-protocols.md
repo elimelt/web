@@ -15,9 +15,12 @@ tags:
   - 802.11
   - physical-layer
 date: 2024-01-04
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Names the parts of a network (applications, hosts, routers, links), classifies networks by scale, and explains protocol layering, encapsulation, and demultiplexing. Ends with the OSI model and the Internet protocol stack.
+description: The components of a network (applications, hosts, routers, links), the classification of networks by scale, protocol layering, encapsulation and demultiplexing, the OSI model, and the Internet protocol stack.
 sources:
   - title: UW CSE 461 Computer Networks
     url: https://courses.cs.washington.edu/courses/cse461/
@@ -27,9 +30,9 @@ sources:
     type: textbook
 ---
 
-## Purpose
+A computer network is a set of hosts connected by links and routers, over which applications exchange messages according to protocols organized in layers.
 
-Pin down the vocabulary for the rest of these networking notes. Everything from [[systems/networks/0-foundation/2-physical-layer|the physical layer]] up assumes the terms and the layering model defined here.
+The later networking notes, beginning with [[systems/networks/0-foundation/2-physical-layer|the physical layer]], use the terms and the layering model defined in the following sections.
 
 ## Parts of a network
 
@@ -43,13 +46,13 @@ Pin down the vocabulary for the rest of these networking notes. Everything from 
 
 ### Types of links
 
-- **Full-duplex**: both ends can send and receive at the same time. Bidirectional. Ethernet is full-duplex.
+- **Full-duplex**: both ends can send and receive at the same time, so the link is bidirectional. Ethernet is full-duplex.
 - **Half-duplex**: bidirectional, but only one end can send at a time. WiFi is half-duplex.
-- **Simplex**: one direction only, one sender. Broadcast radio works this way.
+- **Simplex**: data flows in one direction only, from a single sender. Broadcast radio works this way.
 
 ### Wireless links
 
-Wireless messages are **broadcast**. Every node in range receives them, whether or not it is the intended destination. Graph drawings of wireless networks usually show only the logical links, since drawing every possible link would bury the picture.
+Wireless messages are **broadcast**. Every node in range receives them, whether or not it is the intended destination. Graph diagrams of wireless networks conventionally show only the logical links, since a drawing of every possible link would obscure the diagram.
 
 ## Network names by scale
 
@@ -61,11 +64,11 @@ Wireless messages are **broadcast**. Every node in range receives them, whether 
 | Wide Area Network (WAN) | a country or region | a large ISP, 3G/4G |
 | Internet | global | the Internet |
 
-Connect multiple networks and you get an **internetwork**, or **internet**. The Internet with a capital I is the global internet.
+A set of interconnected networks is an **internetwork**, or **internet**. The Internet with a capital I is the global internet.
 
 ### Switched networks
 
-**Switched networks** forward messages node to node until they reach their destination. The two common kinds are **circuit-switched** networks (telephony) and **packet-switched** networks (most computer networks).
+**Switched networks** forward messages node to node until they reach their destination. The two principal kinds are **circuit-switched** networks (telephony) and **packet-switched** networks (most computer networks).
 
 ```txt
     +-- (Host)      --+
@@ -93,9 +96,9 @@ Networks use an **address** to identify the destination of a packet. A packet ca
 (Router) --- (Host) --- server
 ```
 
-Which part is "the network"? Everything below the application. Some treatments exclude the hosts; the course these notes come from includes them.
+The network comprises everything below the application. Some treatments exclude the hosts; CSE 461, the course from which this material comes, includes them.
 
-You can also collapse the middle into a generic cloud when the internals don't matter:
+When its internals are irrelevant, the middle of the network can be drawn as a generic cloud:
 
 ```txt
    +-- (Host) --- client
@@ -107,12 +110,12 @@ You can also collapse the middle into a generic cloud when the internals don't m
 
 ## Key interfaces
 
-The network is modular. There are clean interfaces between apps and the network, and between the network components themselves. **Protocols** and **layering** provide that modularity.
+The network is modular. Well-defined interfaces separate applications from the network and the network components from each other. **Protocols** and **layering** provide that modularity.
 
-- Each instance of a protocol talks to its peer using the same protocol.
+- Each instance of a protocol communicates with its peer using the same protocol.
 - Each instance of a protocol uses only the services of the layer below it.
 
-Protocols are horizontal, layers are vertical.
+In the conventional diagram, a protocol connects peers horizontally, and layers are stacked vertically.
 
 ```txt
 #define protocols X, Y,
@@ -149,9 +152,9 @@ A browser fetching a page over WiFi runs this stack:
 
 ### Encapsulation
 
-Layering works by literally wrapping data. Each lower protocol wraps the higher protocol's data in its own format with extra information, like putting a letter inside an envelope before mailing it.
+Layering is implemented by encapsulation. Each lower protocol wraps the higher protocol's data in its own format with additional information, much as a letter is placed in an envelope before it is mailed.
 
-The message on the wire for the stack above looks like this as it descends:
+For the stack above, the message is built up as it descends:
 
 ```txt
                     +------+
@@ -168,7 +171,7 @@ The message on the wire for the stack above looks like this as it descends:
 +--------+----+-----+------+
 ```
 
-The sender builds these layers up until the data is ready for the physical medium. The receiver peels them back until it reaches the application layer. Real traffic is messier than the diagram. Protocols add trailers as well as headers, content gets encrypted or compressed, and messages get segmented and reassembled along the way.
+The sender builds these layers up until the data is ready for the physical medium. The receiver peels them back until it reaches the application layer. Real traffic is more complex than the diagram. Protocols add trailers as well as headers, content is encrypted or compressed, and messages are segmented and reassembled along the way.
 
 The full round trip runs down the sending host's stack, across the physical medium, and back up the receiver's:
 
@@ -199,12 +202,12 @@ A received message must be handed to exactly the protocols that should process i
 - **Abstraction**: each layer is a black box, so systems with different internals can interoperate.
 - **Standardization**: each layer can be standardized and implemented by many vendors.
 
-Layering shows up in ordinary traffic. When a home router forwards a request from WiFi to a wired uplink, it strips the WiFi header and adds an Ethernet header, and nothing above the link layer has to care.
+Layering is visible in ordinary traffic. When a home router forwards a request from WiFi to a wired uplink, it strips the WiFi header and adds an Ethernet header, and no layer above the link layer is affected.
 
 ### Disadvantages of layering
 
-- **Overhead**: every layer adds header bytes. Small messages hurt most, since the overhead is large relative to the payload.
-- **Hidden information**: each layer hides detail from the layer above. That complicates debugging, and it blocks applications that want lower-layer facts, like an app that wants to know network latency, or a network that wants to know app priorities for QoS.
+- **Overhead**: every layer adds header bytes. The relative overhead is largest for small messages, since the headers are large relative to the payload.
+- **Hidden information**: each layer hides detail from the layer above. That complicates debugging, and it prevents one layer from using information held by another, for example an application that requires the network latency, or a network that requires application priorities for QoS.
 
 ## OSI layers
 
@@ -214,11 +217,11 @@ The OSI model splits the stack into seven layers.
 - **Presentation**: formats data for the application layer, including encryption and compression. JPEG, MPEG, ASCII.
 - **Session**: manages the connection between two nodes. NetBIOS, PPTP.
 - **Transport**: transport protocol and error handling. TCP, UDP.
-- **Network**: routing and addressing, reads the IP address of a packet. Routers and layer 3 switches live here.
-- **Data link**: physical addressing, reads the MAC address of a frame. Switches and bridges live here.
+- **Network**: routing and addressing, reads the IP address of a packet. Routers and layer 3 switches operate at this layer.
+- **Data link**: physical addressing, reads the MAC address of a frame. Switches and bridges operate at this layer.
 - **Physical**: moves bits over a physical medium. Hubs, NICs, cables.
 
-## The actual Internet protocol stack
+## The Internet protocol stack
 
 The Internet collapses OSI's top three layers into one.
 

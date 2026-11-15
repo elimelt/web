@@ -9,9 +9,12 @@ tags:
   - rnn
   - diffusion
 date: 2026-07-31
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: A deep-learning track built from first principles, covering neural-network derivations, model-design choices, and the major architecture families.
+description: Index of the deep learning notes, covering neural-network derivations from first principles, model-design choices, and the major architecture families.
 sources:
   - title: Rumelhart, Hinton, and Williams (1986), Learning Representations by Back-Propagating Errors
     url: https://www.nature.com/articles/323533a0
@@ -27,11 +30,9 @@ sources:
     type: paper
 ---
 
-## Purpose
+Deep learning is the fitting of neural networks with many layers to data by gradient-based minimization of a loss function. The notes treat it as a modeling discipline. They begin with neural networks derived from first principles, continue with the design choices made before the first training run, and then cover the architecture families that recur across language, vision, sequence modeling and generative modeling.
 
-These notes treat deep learning as a modeling discipline, not just a list of branded architectures. The section starts with neural networks from first principles, then moves to the design choices that matter before the first training run, then covers the main architecture families that recur across language, vision, sequence modeling, and generative modeling.
-
-The goal is not only to say what each model is. The goal is to make the implementation and the math line up. Most notes include:
+Each note presents a model's mathematics and its implementation side by side. Most include
 
 - the forward equations
 - the backpropagation view or training objective

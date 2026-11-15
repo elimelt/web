@@ -8,9 +8,12 @@ tags:
   - signals
   - computer-architecture
 date: 2026-07-31
-updated: 2026-08-01
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Map of the hardware notes, spanning digital design, signal-conditioning lecture notes, computer architecture, and GPU architecture.
+description: Index of the hardware notes on digital design, signal conditioning (lecture notes), computer architecture and GPU architecture.
 sources:
   - title: The RISC-V Instruction Set Manual
     url: https://riscv.github.io/riscv-isa-manual/snapshot/spec/
@@ -20,11 +23,9 @@ sources:
     type: docs
 ---
 
-## Purpose
+The hardware section concerns the design of digital and analog circuits and of the processors built from them. It has four tracks. [[hardware/digital-design/369/combinational-logic|Digital design]] covers logic, state, timing, and HDL workflow. [[hardware/signal-conditioning/lecture-notes/lecture-1|Signal conditioning]] covers the analog side. [[hardware/computer-architecture/index|Computer architecture]] covers the stack from ISA through microarchitecture to RTL that is built on digital design. [[hardware/gpu-architecture|GPU architecture]] applies the same digital design primitives to a large-scale parallel processor.
 
-This area is split between four tracks. [[hardware/digital-design/369/combinational-logic|Digital design]] covers logic, state, timing, and HDL workflow. [[hardware/signal-conditioning/lecture-notes/lecture-1|Signal conditioning]] covers the analog side. [[hardware/computer-architecture/index|Computer architecture]] covers the ISA-to-microarchitecture-to-RTL stack that sits on top of digital design. [[hardware/gpu-architecture|GPU architecture]] applies the same digital design primitives to a real, large-scale parallel processor.
-
-The split is useful because the constraints are different. Digital design is mostly about discrete state, timing closure, and implementation. Signal conditioning is about how physical signals get shaped before a digital system can trust them. Computer architecture is about the abstractions (ISA, pipeline, out-of-order execution) that let digital design build something a compiler can target. GPU architecture is about what happens when you replicate and specialize that same digital logic at massive scale to extract data parallelism.
+The tracks are separated because their constraints differ. Digital design concerns discrete state, timing closure, and implementation. Signal conditioning concerns the shaping of physical signals before a digital system can use them reliably. Computer architecture concerns the abstractions (ISA, pipeline, out-of-order execution) through which digital design produces a target for compilers. GPU architecture concerns the replication and specialization of the same digital logic at large scale to exploit data parallelism.
 
 ## Sections
 

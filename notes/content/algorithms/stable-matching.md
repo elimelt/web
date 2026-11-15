@@ -9,7 +9,10 @@ tags:
   - complexity analysis
   - optimization
 date: 2024-03-29
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
 description: The stable matching problem and the Gale-Shapley algorithm, with proofs of termination, perfection, stability, company optimality, and applicant pessimality, plus a brute-force experiment on the top-choice question.
 sources:
@@ -18,9 +21,9 @@ sources:
     type: paper
 ---
 
-## Purpose
+Given $n$ companies and $n$ students, each of whom ranks every member of the other side, a **stable matching** is a perfect matching that contains no pair $(c, s)$, not matched to each other, in which $c$ prefers $s$ to its partner and $s$ prefers $c$ to theirs.
 
-Given $n$ companies and $n$ students, where each side ranks the other, we want a matching nobody wants to defect from. This note defines stability, walks the Gale-Shapley propose-and-reject algorithm, and proves its correctness and its optimality structure (proposers get their best valid partner, receivers get their worst). The algorithm and the existence guarantee come from [Gale and Shapley (1962)](https://www.jstor.org/stable/2312726).
+In a stable matching, no company and student both prefer each other to their assigned partners, so no pair has an incentive to leave the matching. [Gale and Shapley (1962)](https://www.jstor.org/stable/2312726) proved that a stable matching exists for every instance, by a propose-and-reject algorithm whose output gives every proposer its best valid partner and every receiver its worst.
 
 ## Problem
 
@@ -33,9 +36,9 @@ Find a **stable matching**: a matching where no company and student would prefer
 
 A stable matching is a matching that is both perfect and stable. In other words, no company-student pair has an incentive to break their current matches for each other.
 
-You can confirm a matching is stable by checking every non-matched pair for whether both sides prefer each other. With $n$ matched pairs, that is $n(n - 1)$ pairs to check.
+A matching can be verified as stable by checking every non-matched pair for whether both sides prefer each other. With $n$ matched pairs, that is $n(n - 1)$ pairs to check.
 
-Stable matchings always exist, and the algorithm below is the constructive proof.
+A stable matching exists for every instance, and the Gale-Shapley algorithm gives a constructive proof.
 
 ## Propose and Reject Algorithm (Gale-Shapley)
 
@@ -82,7 +85,7 @@ def gale_shapley(company_prefs, student_prefs):
 ```
 
 > [!example] A run with two companies
-> Take preferences $c_1: s_1 > s_2$, $c_2: s_1 > s_2$, $s_1: c_2 > c_1$, $s_2: c_1 > c_2$. Both companies want $s_1$, so one of them gets bumped:
+> Take preferences $c_1: s_1 > s_2$, $c_2: s_1 > s_2$, $s_1: c_2 > c_1$, $s_2: c_1 > c_2$. Both companies rank $s_1$ first, so $s_1$ rejects one of them.
 
 ```mermaid
 sequenceDiagram
@@ -100,17 +103,17 @@ sequenceDiagram
     Note over c1,s2: output {(c2, s1), (c1, s2)}
 ```
 
-The run shows both directions of movement at once: $s_1$ trades up from $c_1$ to $c_2$, while $c_1$ walks down its list from $s_1$ to $s_2$.
+In this run, $s_1$ exchanges $c_1$ for the preferred $c_2$, while $c_1$ proceeds down its list from $s_1$ to $s_2$.
 
 ### Properties
 
 - Companies propose to students in decreasing order of preference.
 - Each company proposes to each student at most once.
-- Once a student is matched, they never become unmatched, only "trade up".
+- Once a student is matched, the student remains matched, and each change of partner is to a company the student prefers.
 
 ### Proof of Correctness
 
-Two obligations: the algorithm terminates in reasonable time, and its output is a stable matching.
+Correctness requires that the algorithm terminate in polynomial time and that its output be a stable matching.
 
 **Termination**: each of the $n$ companies proposes to each of the $n$ students at most once, so there are at most $n^2$ proposals, and the algorithm runs in $O(n^2)$ time.
 
@@ -129,7 +132,7 @@ Since $c$ proposes in decreasing order of preference and ended with $a'$, it pro
 ## GS Solution Properties
 
 > [!tip] The invariant behind both results
-> Each proposer walks down its preference list, so its situation only worsens over the run, while each receiver only trades up, so its match only improves. This asymmetry drives everything below: whichever side proposes gets its best valid partner, and the receiving side gets its worst.
+> Each proposer proceeds down its preference list, so its partner can only become less preferred over the run, while each receiver's partner can only become more preferred. Company optimality and applicant pessimality both follow from this asymmetry: the proposing side receives its best valid partners, and the receiving side its worst.
 
 ### Company Optimal Assignments
 
@@ -156,9 +159,9 @@ By company optimality, $a = BVP(c)$, so $c$ prefers $a$ over $a'$. And since $c'
 
 ### Efficient Implementation
 
-GS runs in $O(n^2)$ time with the right data structures.
+GS runs in $O(n^2)$ time with an appropriate representation of the preferences.
 
-Name companies $1, \ldots, n$ and students $n + 1, \ldots, 2n$, each with a preference list of the other side. The one trick: precompute an inverse array of each student's preference list, so "does $s$ prefer $c$ to $c'$" is an $O(1)$ array lookup instead of a list scan.
+Companies are numbered $1, \ldots, n$ and students $n + 1, \ldots, 2n$, each with a preference list of the other side. An inverse array of each student's preference list is precomputed, so the test of whether $s$ prefers $c$ to $c'$ is an $O(1)$ array lookup instead of a list scan.
 
 ```python
 for i in range(n):
@@ -172,7 +175,7 @@ Given $2n$ people, each person ranks the other $2n - 1$ in order of preference. 
 
 ### Does a stable match always include at least one person's top choice?
 
-No. Brute force over every stable matching instance with $n = 3$ companies and applicants turns up 12 examples where nobody is matched with their top choice. The script below enumerates all preference profiles, finds their stable matchings, and counts how many participants got their first pick.
+It does not. An exhaustive search over all instances with $n = 3$ companies and applicants finds 12 pairs of a preference profile and a stable matching in which no participant is matched with their top choice. The script enumerates all preference profiles, finds their stable matchings, and counts how many participants are matched with their first choice.
 
 ```python
 from itertools import permutations, product

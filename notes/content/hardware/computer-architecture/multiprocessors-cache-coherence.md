@@ -12,13 +12,14 @@ tags:
   - false-sharing
   - synchronization
 date: 2026-08-01
-updated: 2026-10-09
+updated: 2026-11-15
 authors:
   - elimelt
   - gpt-5.6-sol
   - gpt-6
+  - claude-opus-5-5
 status: draft
-description: Coherence and consistency kept as separate axes - a MESI directory protocol traced through gem5's Ruby SLICC source, RVWMO preserved program order and two litmus tests, and the false-sharing benchmark's ping-pong explained state by state.
+description: Coherence and consistency treated as separate properties, with a MESI directory protocol traced through gem5's Ruby SLICC source, RVWMO preserved program order and two litmus tests, and the cache-line transfers in the false-sharing benchmark explained state by state.
 sources:
   - title: RVWMO Memory Consistency Model (RISC-V unprivileged ISA manual)
     url: https://github.com/riscv/riscv-isa-manual/blob/main/src/unpriv/rvwmo.adoc
@@ -31,17 +32,17 @@ sources:
     type: source
 ---
 
-## Purpose
+**Cache coherence** is the property that, for each memory location, all cores observe the writes to that location in a single order. A **memory consistency model** specifies which orderings of loads and stores to multiple locations a program may observe.
 
-**Coherence** and **consistency** answer different questions, and conflating them is the single most common confusion in this area. Coherence asks: for a *single memory location*, do all cores eventually agree on the order of writes to it? Consistency asks: across *multiple locations*, what orderings can a program observe at all? A machine can have perfect coherence and still let two cores disagree about the order two different variables were written. This note derives a directory-based MESI protocol against real gem5 SLICC source, then RVWMO's ordering rules against two litmus tests, and ties both to the [[systems/operating-systems/benchmarks/false_sharing|false-sharing benchmark]] already measured in this repo.
+Coherence asks whether, for a *single memory location*, all cores eventually agree on the order of writes to it. Consistency asks which orderings across *multiple locations* a program can observe. A machine can be fully coherent and still allow two cores to disagree about the order in which two different variables were written. The two properties are often conflated.
 
 ## Coherence: single-location agreement
 
-A coherent system guarantees, for every memory location: (1) a core's own reads and writes to that location appear in program order to itself, (2) if core A writes and core B later reads (with enough time between them), B sees A's value, and (3) writes to the same location are seen in the same order by every core (**write serialization**). Nothing here says anything about *different* locations — that's consistency's job, covered below.
+A coherent system guarantees, for every memory location: (1) a core's own reads and writes to that location appear in program order to itself, (2) if core A writes and core B later reads (with enough time between them), B sees A's value, and (3) writes to the same location are seen in the same order by every core (**write serialization**). These conditions concern a single location; ordering across *different* locations is the subject of consistency.
 
 ### Directory MESI, traced through gem5
 
-**MESI** gives each cached line one of four states: **M**odified (dirty, sole owner, may write silently), **E**xclusive (clean, sole owner, may write without asking anyone), **S**hared (clean, possibly cached elsewhere, must ask before writing), **I**nvalid (not present). A **directory** protocol tracks, per line, which cores currently hold a copy and in what state, so a writer only has to message the directory and the directory forwards invalidations to the actual sharers — no core has to broadcast to every other core (that's *snooping*, the alternative that doesn't scale past a shared bus).
+**MESI** gives each cached line one of four states: **M**odified (dirty, sole owner, may write silently), **E**xclusive (clean, sole owner, may write without a coherence request), **S**hared (clean, possibly cached elsewhere, must request ownership before writing), **I**nvalid (not present). A **directory** protocol tracks, per line, which cores currently hold a copy and in what state, so a writer sends a request only to the directory, which forwards invalidations to the current sharers. No core broadcasts to every other core, as cores do under *snooping*, the alternative that does not scale beyond a shared bus.
 
 ```mermaid
 stateDiagram-v2
@@ -58,7 +59,7 @@ stateDiagram-v2
     M --> I: Fwd_GETX, writeback + invalidate
 ```
 
-gem5's `MESI_Two_Level-L1cache.sm` SLICC source names states exactly this way, plus the transient states a real implementation needs while a request is in flight:
+gem5's `MESI_Two_Level-L1cache.sm` SLICC source uses these state names, together with the transient states that an implementation requires while a request is in flight:
 
 ```text
 state_declaration(State, desc="Cache states", default="L1Cache_State_I") {
@@ -73,7 +74,7 @@ state_declaration(State, desc="Cache states", default="L1Cache_State_I") {
 
 (from [gem5 `MESI_Two_Level-L1cache.sm`](https://github.com/gem5/gem5/blob/stable/src/mem/ruby/protocol/MESI_Two_Level-L1cache.sm))
 
-The transient states (`IS`, `IM`, `M_I`, ...) exist because a real protocol is not instantaneous: between issuing a `GETX` (get-exclusive) request and receiving data, the line is neither fully invalid nor fully modified, and the state machine has to define what happens if a forwarded request from another core (`Fwd_GETX`, `Fwd_GETS`) arrives during that window. This is the **invalidation race**: two cores can want the same line at once, and the directory has to serialize their requests into some order, whichever wins first blocking the other until it retries. Looking at the actual transitions:
+The transient states (`IS`, `IM`, `M_I`, ...) exist because protocol transactions are not instantaneous. Between issuing a `GETX` (get-exclusive) request and receiving data, the line is neither invalid nor modified, and the state machine must define the response to a forwarded request from another core (`Fwd_GETX`, `Fwd_GETS`) that arrives in that interval. This is the **invalidation race**. Two cores can request the same line at once, and the directory serializes their requests; the request ordered first blocks the other until it retries. The transitions out of `E` are the following.
 
 ```text
 transition(E, Fwd_GETX, I) {
@@ -90,21 +91,21 @@ transition(E, {Fwd_GETS, Fwd_GET_INSTR}, S) {
 
 (from [gem5 `MESI_Two_Level-L1cache.sm`](https://github.com/gem5/gem5/blob/stable/src/mem/ruby/protocol/MESI_Two_Level-L1cache.sm))
 
-A core holding a line **E**xclusive downgrades to **I** if another core wants to write it (`Fwd_GETX`), the requester takes full ownership and the old holder loses its copy entirely, but only downgrades to **S** on a read request (`Fwd_GETS`), keeping a shared clean copy while also forwarding data to both the requester and the L2 (`d2_sendDataToL2`), since L2 needs an up-to-date copy once no core holds exclusive/modified state. **Silent eviction** is visible too: `E` can be silently dropped without notifying anyone because the copy was clean and no one else has claimed it, whereas `M` (dirty) must write back before eviction (`g_issuePUTX`, sending data to L2), the entire reason write-back caches need eviction protocols and write-through caches don't.
+A core holding a line **E**xclusive transitions to **I** when another core requests write access (`Fwd_GETX`); the requester takes full ownership and the previous holder loses its copy. On a read request (`Fwd_GETS`) the core transitions only to **S**, keeping a clean shared copy, and forwards data to both the requester and the L2 (`d2_sendDataToL2`), since the L2 must hold an up-to-date copy once no core holds the line in exclusive or modified state. The source also shows **silent eviction**. A line in `E` can be dropped without notification because the copy is clean and no other core has requested it, whereas a line in `M` (dirty) must be written back before eviction (`g_issuePUTX`, sending data to L2). This requirement is the reason write-back caches need eviction protocols and write-through caches do not.
 
 ### Snooping vs. directory
 
-**Snooping**: every cache watches every request on a shared bus and reacts (invalidate, supply data) without a directory. It needs no extra storage but doesn't scale, since the bus itself becomes the bottleneck as core count grows — every request is seen by every cache whether or not it cares.
+**Snooping**: every cache observes every request on a shared bus and responds (invalidate, supply data) without a directory. It requires no extra storage but does not scale, since the bus becomes the bottleneck as core count grows; every request is observed by every cache, including caches that hold no copy of the line.
 
-**Directory**: a directory entry per line tracks exact sharers, so messages go point-to-point instead of broadcast. The cost is directory storage (bits per line per potential sharer, or a sharer list) and one more hop of indirection (core → directory → sharers, instead of core → bus). This is why directory protocols dominate past a handful of cores and snooping survives only in small-bus SMPs.
+**Directory**: a directory entry per line tracks exact sharers, so messages go point-to-point instead of broadcast. Its costs are directory storage (bits per line per potential sharer, or a sharer list) and an additional hop of indirection (core → directory → sharers, instead of core → bus). Because snooping traffic grows with core count, directory protocols predominate beyond a few cores, and snooping is used mainly in small bus-based SMPs.
 
 ## Consistency: cross-location ordering, via RVWMO
 
-RVWMO defines a total **global memory order** over every hart's loads and stores, constrained by **preserved program order (PPO)**: same-hart operation $a$ must precede $b$ in the global order if $a$ precedes $b$ in program order *and* one of several conditions holds — overlapping addresses, an explicit fence, an acquire/release annotation, or a syntactic dependency (address, data, or control) from $a$ to $b$. Crucially, PPO does **not** require ordering between a store and a *later*, non-dependent load to a different address — that gap is what store buffers exploit, and it's exactly what a fence closes.
+RVWMO defines a total **global memory order** over every hart's loads and stores, constrained by **preserved program order (PPO)**: same-hart operation $a$ must precede $b$ in the global order if $a$ precedes $b$ in program order *and* one of several conditions holds: overlapping addresses, an explicit fence, an acquire/release annotation, or a syntactic dependency (address, data, or control) from $a$ to $b$. PPO does **not** require ordering between a store and a *later*, non-dependent load to a different address. Store buffers rely on this relaxation, and a fence removes it.
 
 ### Litmus test: store buffering (SB)
 
-Two harts, `x` and `y` both start at 0, and `t0` contains 1 on both harts:
+In the following test on two harts, `x` and `y` both start at 0, and `t0` contains 1 on both harts.
 
 ```text
 Hart 0:               Hart 1:
@@ -125,17 +126,17 @@ fence w, w                 fence r, r
 sw x1, 0(flag_addr)        lw a1, 0(data_addr)
 ```
 
-Here the fences make it **illegal** for hart 1 to observe `flag == 1` but `data == 0`. `fence w, w` on hart 0 orders the write to `data` before the write to `flag` in PPO (rule 4); `fence r, r` on hart 1 orders the read of `flag` before the read of `data`. Combined with the load value axiom (a load returns the value of the store latest in global order among stores preceding it in that order or in program order), once hart 1 observes `flag == 1` it has observed a point in global order after hart 0's fenced store to `flag`, which itself is after the fenced store to `data` — so the read of `data` cannot return the stale value. Without the fences, RVWMO permits `flag == 1, data == 0`, which makes this publish/subscribe pattern unsafe under RVWMO unless the program supplies the required ordering.
+Here the fences make it **illegal** for hart 1 to observe `flag == 1` but `data == 0`. `fence w, w` on hart 0 orders the write to `data` before the write to `flag` in PPO (rule 4); `fence r, r` on hart 1 orders the read of `flag` before the read of `data`. Combined with the load value axiom (a load returns the value of the store latest in global order among stores preceding it in that order or in program order), once hart 1 observes `flag == 1` it has observed a point in global order after hart 0's fenced store to `flag`, which itself is after the fenced store to `data`, so the read of `data` cannot return the stale value. Without the fences, RVWMO permits `flag == 1, data == 0`, which makes this publish/subscribe pattern unsafe under RVWMO unless the program supplies the required ordering.
 
 ## False sharing: coherence traffic without any real conflict
 
-[[systems/operating-systems/benchmarks/false_sharing|The false-sharing benchmark]] packs 8 threads' independent counters into a single 64-byte cache line and measures an 8.5x slowdown (57.8 ms vs 6.8 ms padded) purely from coherence traffic. Reading it against the MESI transitions above: `counters[0]++` requires the line in **M** state on core 0 (a store needs write permission, i.e., MESI's read-modify-write access check `onAccess`). When core 1 then writes `counters[1]` — a different byte, same line — the directory sees a `GETX` and must invalidate core 0's **M** copy (the `M, Fwd_GETX -> I` transition, which also flushes the dirty data to whoever's tracking it). Core 0's next increment misses entirely and re-fetches, taking the line back to **M** and forcing core 1's next increment to fault the same way. Coherence is doing exactly what it's supposed to — no two cores are seeing stale data, write serialization holds — but the *granularity* of the protocol (whole 64-byte lines, not individual bytes) turns logically independent writes into a physical ownership fight. Padding each counter to its own line removes the ownership contention entirely: each core's `M` state is never contested since no other core's writes ever land in that line. `perf c2c` detects this directly by sampling cache-to-cache transfers, which is why the benchmark note recommends it for finding false sharing in the wild.
+[[systems/operating-systems/benchmarks/false_sharing|The false-sharing benchmark]] packs 8 threads' independent counters into a single 64-byte cache line and measures an 8.5x slowdown (57.8 ms vs 6.8 ms padded) attributable to coherence traffic. In terms of the MESI transitions, `counters[0]++` requires the line in **M** state on core 0 (a store needs write permission, i.e., MESI's read-modify-write access check `onAccess`). When core 1 then writes `counters[1]`, a different byte in the same line, the directory receives a `GETX` and must invalidate core 0's **M** copy (the `M, Fwd_GETX -> I` transition, which also writes the dirty data back to the cache that tracks the line). Core 0's next increment misses and refetches the line, returning it to **M** and causing core 1's next increment to miss in the same way. The protocol operates correctly, since no core reads stale data and write serialization holds, but its *granularity* (whole 64-byte lines, not individual bytes) converts logically independent writes into contention for ownership of one line. Padding each counter to its own line eliminates the contention, since no other core writes to a line that a given core holds in `M`. `perf c2c` detects false sharing by sampling cache-to-cache transfers, which is why the benchmark note recommends it for finding false sharing in existing programs.
 
 ## Edge cases and limits
 
-- **Coherence says nothing about atomicity across two locations.** A protocol can be perfectly coherent per-line and still let a thread observe half of a two-word update — that needs a consistency-model or lock-based guarantee, not a coherence one.
+- **Coherence provides no atomicity across two locations.** A protocol can be fully coherent per line and still allow a thread to observe half of a two-word update; preventing that requires a guarantee from the consistency model or from locking.
 - **RCpc vs RCsc acquire/release annotations change which litmus outcomes are legal.** RVWMO's PPO rules 5-7 treat acquire and release annotations as directional fences (acquire orders itself before *later* ops, release orders *earlier* ops before itself) rather than full fences, which is weaker than `fence rw, rw` and cheaper on hardware that supports it natively.
-- **Directory size is a real resource, not free metadata.** A directory tracking full sharer bit-vectors costs $O(\text{cores})$ bits per line; coarser encodings (limited pointers, coarse vectors) trade precision for storage and can force spurious invalidations when the encoding can't represent the exact sharer set.
+- **Directory storage grows with core count.** A directory tracking full sharer bit-vectors costs $O(\text{cores})$ bits per line; coarser encodings (limited pointers, coarse vectors) reduce storage at the cost of precision and can cause spurious invalidations when the encoding cannot represent the exact sharer set.
 
 ## Sources
 

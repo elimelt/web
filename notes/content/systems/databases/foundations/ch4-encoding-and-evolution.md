@@ -10,26 +10,27 @@ tags:
   - message passing
   - encoding-formats
 date: 2023-12-19
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Reading notes on chapter 4 of Designing Data-Intensive Applications. Covers serialization formats, schema evolution in Protocol Buffers, Thrift, and Avro, and compatibility across databases, services, and message brokers.
+description: Chapter 4 of Designing Data-Intensive Applications on serialization formats, schema evolution in Protocol Buffers, Thrift, and Avro, and the compatibility of encoded data across databases, services, and message brokers.
 sources:
   - title: Designing Data-Intensive Applications, Martin Kleppmann
     url: https://dataintensive.net/
     type: book
 ---
 
-## Purpose
-
-Reading notes on chapter 4 of [Designing Data-Intensive Applications](https://dataintensive.net/) by Martin Kleppmann. The chapter is about what happens to encoded data when the code around it changes, and how serialization formats and dataflow patterns keep old and new versions compatible.
+Chapter 4 of [Designing Data-Intensive Applications](https://dataintensive.net/) by Martin Kleppmann treats the compatibility of encoded data across changes to the code that writes and reads it, and the serialization formats and modes of dataflow that keep old and new versions interoperable.
 
 ## Vocabulary
 
-**Evolvability** is the ability to evolve as requirements change.
+**Evolvability** is the ease with which a system can be adapted as requirements change.
 
 **Schema-on-read** means the schema is not enforced when data is written, only interpreted when it is read, so it can change over time. **Schema-on-write** means the schema is enforced at write time, usually by a database.
 
-**Backward compatibility** means new code can read data written by old code. **Forward compatibility** means old code can read data written by new code, usually by ignoring fields it does not recognize. Backward compatibility is the easier of the two, since new code knows about the old format. Forward compatibility requires old code to tolerate additions it has never seen.
+**Backward compatibility** means new code can read data written by old code. **Forward compatibility** means old code can read data written by new code, usually by ignoring fields it does not recognize. Backward compatibility is the easier of the two to achieve, since the new code is written with the old format available. Forward compatibility requires old code to ignore additions made after it was written.
 
 ```mermaid
 flowchart LR
@@ -45,31 +46,31 @@ flowchart LR
 
 Programs work with at least two representations of data: in-memory data structures (objects, arrays, hash maps) and encoded bytes stored on disk or sent over the network. **Serialization** (also called encoding or marshaling) translates the in-memory form into bytes that can be stored or transmitted and reconstructed later, possibly on a different machine. **Deserialization** (decoding, unmarshaling) is the reverse.
 
-Language built-in formats like Java serialization and Python's pickle are usually slow, space-inefficient, and tied to one language, so they are a bad idea for long-term storage or cross-service communication.
+Language-specific formats such as Java serialization and Python's pickle are tied to one language and are often slow and space-inefficient, which makes them unsuitable for long-term storage or communication between services.
 
-**JSON** and **XML** are language-independent and human readable. Both handle UTF-8 strings well and binary strings poorly; the base64 workaround inflates data by 33%. **CSV** is popular and less powerful. It is not self-describing, so application code carries the burden of interpreting types.
+**JSON** and **XML** are language-independent and human readable. Both represent Unicode text directly but do not support binary strings; the base64 workaround increases data size by 33%. **CSV** is widely used and less expressive. It is not self-describing, so application code carries the burden of interpreting types.
 
-**Binary encodings** are more compact than the textual formats and faster to encode and decode. They fit internal communication well; for data crossing organizational boundaries, a textual format is usually the safer choice because every party can read it without shared tooling.
+**Binary encodings** are more compact than the textual formats and faster to encode and decode. They suit communication within an organization. For data that crosses organizational boundaries, a textual format has the advantage that every party can read it without shared tooling.
 
 ### Protocol Buffers, Thrift, and Avro
 
 **Protocol Buffers** (protobuf) pairs a schema language with a binary encoding. The encoding is not self-describing; decoding requires the schema. Code generators produce classes that encode and decode records. Each field gets a numeric field tag in the schema, and the encoding refers to fields by tag rather than name, so fields can be reordered without breaking compatibility. Lists are expressed as repeated fields rather than a dedicated array type.
 
-**Thrift** is similar: an interface definition language, a binary encoding, and code generation for many languages. It ships several protocols, including a binary protocol and a denser compact protocol. Field names never appear in the encoded bytes; field tags do. Unlike protobuf, it has real list types, which can nest.
+**Thrift** similarly consists of an interface definition language, a binary encoding, and code generation for many languages. It provides several protocols, including a binary protocol and a denser compact protocol. Field names never appear in the encoded bytes; field tags do. Unlike protobuf, it has dedicated list types, which can nest.
 
-**Avro** grew out of Hadoop as an alternative to protobuf and Thrift. It has two schema languages, an IDL for humans and a JSON form for machines. The encoding contains no tags or field identifiers at all, just lengths and values back to back, which makes it the most compact of the three, and it uses variable-length integers for lengths. Decoding requires knowing the exact schema the data was written with, which leads to its writer/reader schema design.
+**Avro** originated in the Hadoop project as an alternative to protobuf and Thrift. It has two schema languages, an IDL for humans and a JSON form for machines. The encoding contains no tags or field identifiers at all, only lengths and values in sequence, which makes it the most compact of the three, and it uses variable-length integers for lengths. Decoding requires knowing the exact schema the data was written with, which leads to its writer/reader schema design.
 
-What makes all three work well:
+The three formats share two properties:
 
 - **Compact structure.** Data is a sequence of fields identified by schema information rather than repeated names.
 - **Schema evolution.** New fields can be added if they get a fresh tag number and are optional or have a default value. Old code ignores unknown fields; new code fills defaults for missing ones. Fields can be removed or renamed only if their tag numbers are never reused.
 
-> [!warning] Tag numbers are forever
-> In protobuf and Thrift, a removed field's tag number can **never be reused**. Old data encoded with that tag still exists, and a new field wearing the same tag would be silently misinterpreted as the old one.
+> [!warning] Tag numbers cannot be reused
+> In protobuf and Thrift, a removed field's tag number can **never be reused**. Old data encoded with that tag still exists, and that data would be read without error as the value of any new field given the same tag.
 
 ### Avro's writer and reader schemas
 
-Avro decodes data by comparing two schemas: the writer schema the data was encoded with and the reader schema the consuming code expects. The two just have to be compatible:
+Avro decodes data by comparing two schemas: the writer schema the data was encoded with and the reader schema the consuming code expects. The two need not be identical, only compatible, under the following rules:
 
 - A field in the writer schema that the reader schema lacks is ignored.
 - A field the reader schema expects that the writer schema lacks is filled from the reader schema's default value.
@@ -77,11 +78,11 @@ Avro decodes data by comparing two schemas: the writer schema the data was encod
 - A field that should default to null must be declared as a union type including null.
 - Renaming a field uses aliases, which keeps backward compatibility only, since old writers know nothing about the new name.
 
-How the reader learns the writer schema depends on context. A Hadoop file with millions of records encoded identically stores the writer schema once at the top of the file. A database whose rows were written over years stores a schema version number per row plus a table of versions. Services can negotiate schemas at connection setup. A registry of schema versions is a good idea in all these cases.
+How the reader learns the writer schema depends on context. A Hadoop file with millions of records encoded identically stores the writer schema once at the top of the file. A database whose rows were written over years stores a schema version number per row plus a table of versions. Services can negotiate schemas at connection setup. A registry of schema versions is useful in each of these cases.
 
 ### Dynamically generated schemas
 
-Say you want to dump a relational database to disk in a binary format. The database schema has changed over time, so with protobuf or Thrift someone would have to hand-assign field tags for every historical version. Avro was designed for exactly this case: generate an Avro schema from the current database schema and regenerate it whenever the database schema changes. No tags means nothing to hand-maintain. This also makes Avro the natural choice in dynamic languages where a code generation step is unwelcome, while protobuf and Thrift lean into static code generation.
+Consider dumping a relational database to disk in a binary format. The database schema has changed over time, so with protobuf or Thrift field tags would have to be assigned by hand for every historical version. Avro is designed for this case. An Avro schema is generated from the current database schema and regenerated whenever the database schema changes, and since the encoding has no tags, nothing needs to be maintained by hand. Avro also suits dynamically typed languages, in which a code generation step offers little benefit, whereas protobuf and Thrift are designed around static code generation.
 
 ## Modes of dataflow
 
@@ -89,53 +90,53 @@ In every mode, one process encodes and another decodes. The modes differ in who 
 
 ### Through databases
 
-The writer encodes; every later reader decodes. Multiple processes running different code versions will access the same database at the same time, so both backward and forward compatibility are needed. One subtle trap is preservation of unknown fields: old code that reads a record, updates one field, and writes it back can silently drop fields added by newer code unless the application handles this. Data outlives code, so any value written at any time in the past may still need to be read.
+The writer encodes; every later reader decodes. Multiple processes running different code versions may access the same database at the same time, so both backward and forward compatibility are needed. A further difficulty is the preservation of unknown fields. Old code that reads a record, updates one field, and writes it back can drop fields added by newer code, without any error, unless the application handles this case. Data outlives the code that wrote it, so a value written at any time in the past may still need to be read.
 
-> [!warning] The read-modify-write trap
-> Forward compatibility at decode time is not enough. Old code that decodes a record, changes one field, and re-encodes it will **drop every field it did not recognize** unless unknown fields are explicitly carried through.
+> [!warning] Unknown fields in read-modify-write
+> Forward compatibility at decode time is insufficient on its own. Old code that decodes a record, changes one field, and re-encodes it will **drop every field it did not recognize** unless unknown fields are explicitly carried through.
 
 ### Dumping to files and archival storage
 
-Here the encoder is the process dumping the data and the decoder reads the file later. Dumps are typically encoded with the latest schema in one pass, which makes them a good opportunity to use an analytics-friendly column-oriented format. Avro fits this flow well.
+Here the encoder is the process dumping the data and the decoder reads the file later. A dump is typically encoded with the latest schema in one pass, which allows it to use an analytics-friendly column-oriented format. Avro suits this mode of dataflow.
 
 ### Through services: REST and RPC
 
 The client encodes requests; the server decodes them, and vice versa for responses. Servers are commonly updated before clients, and with public APIs the provider has no control over client versions at all, so both compatibility directions matter here too.
 
-In a service-oriented architecture, different teams own different services, each exposing an API that encapsulates its internals. Web services show up in three contexts: internal services within an organization, public APIs, and partner APIs exposed to specific external organizations.
+In a service-oriented architecture, different teams own different services, each exposing an API that encapsulates its internals. Web services appear in three contexts: internal services within an organization, public APIs, and partner APIs exposed to specific external organizations.
 
-**REST** is a design philosophy that builds on HTTP: simple data formats, URLs to identify resources, and HTTP's own mechanisms for caching, authentication, and content negotiation. The chapter mentions SOAP mostly to steer around it.
+**REST** is a design philosophy that builds on HTTP: simple data formats, URLs to identify resources, and HTTP's own mechanisms for caching, authentication, and content negotiation. Kleppmann discusses SOAP mainly to recommend against it.
 
-**RPC** frames a network request as a call to a function on a remote server, aiming for location transparency. The abstraction leaks. Network requests can fail, time out, or execute twice, which local calls cannot, so systems built on RPC still have to handle those failure modes. Idempotent operations make transparent retries safe. REST wins some credibility here by never pretending the network is absent. RPC frameworks also tend to couple client and server to specific languages, which hurts public APIs where you do not control the client.
+**RPC** frames a network request as a call to a function on a remote server, with the aim of location transparency. The abstraction is imperfect, since network requests can fail, time out, or execute twice, which local calls cannot, so systems built on RPC still have to handle those failure modes. Idempotent operations make transparent retries safe. REST does not present a network request as a local call and so avoids this mismatch. RPC frameworks also tend to couple client and server to specific languages, which is a disadvantage for public APIs, whose clients the provider does not control.
 
-**gRPC** is a modern RPC framework using protobuf as its interface definition language over HTTP/2. It suits internal services better than public APIs. Newer RPC frameworks generally represent asynchronous responses with futures or promises, support streaming for long-lived exchanges, and sometimes include service discovery so clients can find servers without hardcoded addresses.
+**gRPC** is an RPC framework using protobuf as its interface definition language over HTTP/2. It suits internal services better than public APIs. Newer RPC frameworks generally represent asynchronous responses with futures or promises, support streaming for long-lived exchanges, and sometimes include service discovery so clients can find servers without hardcoded addresses.
 
-REST's practical advantage is its ecosystem: servers, load balancers, proxies, caches, monitoring, and debugging tools all speak HTTP, and browsers do too.
+REST's principal practical advantage is its ecosystem, since servers, load balancers, proxies, caches, monitoring, and debugging tools all support HTTP, as do browsers.
 
-For evolvability, the usual simplifying assumption is that all servers update before all clients, so requests need only backward compatibility and responses only forward compatibility. Public RPC-style APIs still end up maintaining compatibility indefinitely, and with no single standard for API versioning, versioning tends to be ad hoc.
+For evolvability, a reasonable simplifying assumption is that all servers are updated before all clients, so requests need only backward compatibility and responses only forward compatibility. The provider of a public RPC-style API must nevertheless maintain compatibility indefinitely, and since no single standard for API versioning exists, versioning tends to be ad hoc.
 
 ### Through asynchronous message-passing
 
 Message passing sits between RPC and databases. A producer sends a message to a named queue or topic on a message broker (Kafka, RabbitMQ, and similar), the broker stores it, and one or more consumers receive it. The sender does not wait for a response.
 
-This buys several things:
+A broker provides four properties:
 
-- **Durability.** The broker holds messages until they are consumed, so a broker or consumer restart loses nothing.
+- **Durability.** The broker holds messages until they are consumed, so a broker or consumer restart loses no messages.
 - **Decoupling.** Producers and consumers do not need to be online at the same time, and neither needs to know the other's address.
 - **Fan-out.** A message can be delivered to multiple consumers.
 - **Buffering.** Queues absorb bursts when consumers fall behind.
 
-Communication is one-way by default, though request/response can be layered on top with reply queues. Brokers do not usually enforce a data format, so the encoding choices above still apply; the broker only needs to read routing metadata.
+Communication is one-way by default, though request/response can be layered on top with reply queues. Brokers do not usually enforce a data format, so the choice of encoding remains with the application; the broker reads only routing metadata.
 
 ### Distributed actor frameworks
 
-The actor model treats actors as the unit of concurrent computation. In response to a message, an actor can update local state, create more actors, and send more messages. Actors are effectively state machines that communicate only by message passing. A distributed actor framework uses the same message-passing machinery between machines as within one, so local and remote communication share code and semantics, a smaller mismatch than RPC's.
+The actor model treats actors as the unit of concurrent computation. In response to a message, an actor can update local state, create more actors, and send more messages. Each actor is a state machine that communicates only by message passing. A distributed actor framework uses the same message-passing mechanism between machines as within one, so local and remote communication share code and semantics, and the mismatch between them is smaller than in RPC.
 
 Rolling upgrades still require compatible message encodings across framework versions:
 
 - **Akka** uses Java serialization by default and can be configured to use protobuf, which enables rolling upgrades.
 - **Orleans** uses a custom encoding by default; upgrades historically required setting up a new cluster and migrating traffic.
-- **Erlang/OTP** makes record schema changes hard to roll out, though an experimental mapping to protobuf-style types exists.
+- **Erlang/OTP** makes record schema changes difficult to deploy as rolling upgrades, though an experimental mapping to protobuf-style types exists.
 
 ## Sources
 

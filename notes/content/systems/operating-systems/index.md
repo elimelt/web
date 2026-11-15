@@ -8,9 +8,12 @@ tags:
   - virtual-memory
   - file systems
 date: 2026-07-31
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Overview of the operating systems notes, spanning kernels, concurrency, memory, storage, and performance measurements.
+description: Index of the operating systems notes, spanning kernels, concurrency, memory, storage, and performance measurements.
 sources:
   - title: Operating systems course lecture notes
     type: lecture
@@ -19,11 +22,9 @@ sources:
     type: textbook
 ---
 
-## Purpose
+An operating system is the software that manages a computer's hardware resources and provides programs with abstractions over them, among them processes, threads, virtual memory and files. The operating systems notes combine lecture notes, textbook notes, and benchmarks, so that an abstraction such as virtual memory can be read alongside a benchmark that measures a related cache or TLB effect.
 
-This section mixes lecture notes, textbook notes, and benchmarks. The payoff is that the abstractions and the measurements live in one place. You can read about virtual memory in one note and then jump straight to a benchmark that makes a cache or TLB effect visible.
-
-For the conceptual path, start with [[systems/operating-systems/v1-kernels-and-processes/2-the-kernel-abstraction|the kernel abstraction]], [[systems/operating-systems/v1-kernels-and-processes/3-the-programming-interface|the programming interface]], then the concurrency notes in [[systems/operating-systems/v2-concurrency/4-concurrency-and-threads|concurrency and threads]] and [[systems/operating-systems/v2-concurrency/5-synchronizing-access-to-shared-objects|synchronization]]. Storage picks up in [[systems/operating-systems/v4-persistent-storage/11-file-systems-overview|file systems overview]].
+The conceptual sequence begins with [[systems/operating-systems/v1-kernels-and-processes/2-the-kernel-abstraction|the kernel abstraction]] and [[systems/operating-systems/v1-kernels-and-processes/3-the-programming-interface|the programming interface]], continues with the concurrency notes [[systems/operating-systems/v2-concurrency/4-concurrency-and-threads|concurrency and threads]] and [[systems/operating-systems/v2-concurrency/5-synchronizing-access-to-shared-objects|synchronization]], and reaches storage in [[systems/operating-systems/v4-persistent-storage/11-file-systems-overview|file systems overview]].
 
 ## Clusters
 

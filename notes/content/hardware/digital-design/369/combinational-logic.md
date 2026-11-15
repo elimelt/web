@@ -10,25 +10,28 @@ tags:
   - logic gates
   - minimization
 date: 2024-03-29
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Defines combinational logic, shows how to read boolean expressions out of truth tables, and collects the identities and gate costs that drive logic minimization.
+description: The definition of combinational logic, sum-of-products and product-of-sums expressions read from truth tables, and the boolean identities and gate costs used in logic minimization.
 sources:
   - title: UW CSE 369 lecture notes
     type: lecture
 ---
 
-## Purpose
+A combinational circuit is one whose outputs are a function of its present inputs alone. It contains no feedback paths and therefore holds no state.
 
-Pin down what makes a circuit combinational, and collect the tools for turning a truth table into a small boolean expression. Smaller expressions mean fewer transistors and less delay, so minimization is where most of this note goes.
+Such a circuit can be specified by a truth table and implemented from a boolean expression derived from it. Logic minimization replaces that expression with an equivalent one that has fewer gates, literals or levels, and smaller expressions require fewer transistors and have lower delay.
 
 ## Combinational vs. sequential
 
-The output of combinational logic depends only on the current input. There is no feedback, so the circuit holds no state. Multiplexers, decoders, and adders all work this way. Sequential logic adds feedback, so its output depends on the current input and on stored state. See [[hardware/digital-design/369/sequential-logic|Sequential Logic]] for that side.
+The output of combinational logic depends only on the current input. There is no feedback, so the circuit holds no state. Multiplexers, decoders, and adders are combinational. Sequential logic adds feedback, so its output depends on the current input and on stored state. [[hardware/digital-design/369/sequential-logic|Sequential Logic]] treats that case.
 
 ## Representation
 
-The same logic can be written as text, a circuit, a truth table, or an equation. Take a car's warning lights. The door is ajar if the driver door is open or the passenger door is open:
+The same logic can be written as text, a circuit, a truth table, or an equation. A car's warning lights provide an example. The door is ajar if the driver door is open or the passenger door is open:
 
 ```plaintext
 DoorAjar = DriverDoorOpen OR PassengerDoorOpen
@@ -40,7 +43,7 @@ The seat belt light is on if the driver's belt is unfastened, or if a passenger 
 SeatBeltLight = (NOT DriverSeatBeltFastened) OR (NOT PassengerSeatBeltFastened AND PassengerPresent)
 ```
 
-The same expression drawn as a gate network:
+The gate network for the same expression is:
 
 ```mermaid
 flowchart LR
@@ -65,7 +68,7 @@ Sum of products: for each row where the output is 1, AND the inputs together, co
 Product of sums: for each row where the output is 0, OR the inputs together, complementing any input that is 1 in that row. AND all of those sum terms.
 
 > [!tip] Pick the form from the truth table
-> Sum of products generates one term per 1 in the output column, and product of sums one term per 0. When the output is mostly 0s, SOP starts smaller; when it is mostly 1s, POS does. Both minimize to equivalent logic, so start from the shorter one.
+> Sum of products generates one term per 1 in the output column, and product of sums one term per 0. When the output is mostly 0s, SOP starts smaller; when it is mostly 1s, POS does. Both minimize to equivalent logic, so the shorter one is the more convenient starting point.
 
 ## Boolean identities
 
@@ -82,7 +85,7 @@ Product of sums: for each row where the output is 0, OR the inputs together, com
 
 ## Logic minimization
 
-Reducing complexity at the gate level buys smaller and faster hardware. The things worth counting:
+Reducing complexity at the gate level yields smaller and faster hardware. Minimization counts four quantities:
 
 - Number of gates. Fewer gates means less area.
 - Number of literals (gate inputs). Fewer literals means less wiring.
@@ -101,7 +104,7 @@ Simpler boolean expressions generally map to smaller transistor networks, which 
 | XOR | 8 |
 | XNOR | 8 |
 
-NAND and NOR are universal gates. You can build every other gate type from just one of them. For example, AND is a NAND followed by an inverter, and the inverter itself is a NAND with both inputs tied together. The table above also explains why NAND-based implementations are attractive, since NAND costs 4 transistors while AND costs 6.
+NAND and NOR are universal gates. Every other gate type can be built from either one alone. For example, AND is a NAND followed by an inverter, and the inverter itself is a NAND with both inputs tied together. NAND-based implementations also use fewer transistors, since NAND costs 4 transistors while AND costs 6.
 
 ## DeMorgan's law
 

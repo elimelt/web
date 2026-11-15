@@ -10,21 +10,24 @@ tags:
   - span
   - linear-independence
 date: 2024-12-08
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Introductory notes on systems of equations, Gaussian elimination, span, linear transformations, and matrix multiplication, with an emphasis on the ideas that stay useful past the algorithms.
+description: Systems of linear equations, Gaussian elimination, span, linear transformations and matrix multiplication, with emphasis on the consequences of row reduction that recur in later linear algebra.
 sources:
   - https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/
   - https://textbooks.math.gatech.edu/ila/
 ---
 
-## Purpose
+Elementary linear algebra begins with systems of linear equations $Ax = b$, the row operations that solve them, and the vector-space concepts that the solution procedure exposes: span, linear independence, linear transformations and matrix multiplication.
 
-These are introductory notes on the computational entry points to linear algebra, kept deliberately short on algorithm mechanics and longer on the takeaways that matter later. They are complemented by the broader [[math/linear-algebra/cheatsheet|Matrix Theory reference]] and its practical [[math/linear-algebra/python-cheatsheet|NumPy companion]].
+The algorithms are treated briefly, and the emphasis is on the consequences of row reduction that recur in later material. The broader [[math/linear-algebra/cheatsheet|Matrix Theory reference]] and its practical [[math/linear-algebra/python-cheatsheet|NumPy companion]] complement these definitions.
 
 ## Systems of Equations
 
-Systems of equations are both fundamental and important to actually understanding linear algebra. With that being said, the two primary introductory courses at the University of Washington, Math 208 and (to a much lesser extent) Applied Math 352, spend a significant amount of time on methods for *solving* systems of equations, something that I have almost no interest in. For the sake of completeness, I will briefly touch on notation and algorithms, but will try to both confine it to this document, and to focus on takeaways that become more useful later on.
+Systems of linear equations are fundamental to linear algebra. The two primary introductory courses at the University of Washington, Math 208 and, to a lesser extent, Applied Math 352, spend a significant amount of time on methods for *solving* systems of equations. The notation and algorithms are summarized briefly here, with the emphasis on the consequences that are used in later material.
 
 ### Notation
 
@@ -37,7 +40,7 @@ a_{m1}x_1 + a_{m2}x_2 + \cdots + a_{mn}x_n &= b_m
 \end{aligned}
 $$
 
-Or equivalently, in matrix form $Ax = b$.
+The same system is written in matrix form as $Ax = b$.
 
 $$
 \begin{aligned}
@@ -65,13 +68,13 @@ $$
 
 ### Gaussian Elimination
 
-Perform any of the following **elementary row operations** on the augmented matrix $\lbrack  A|b  \rbrack$:
+Gaussian elimination applies the following **elementary row operations** to the augmented matrix $\lbrack  A|b  \rbrack$:
 
 - Swap two rows
 - Multiply a row by a nonzero scalar
 - Add a multiple of one row to another
 
-The aim of the algorithm is to get the matrix into either **row echelon form** or **reduced row echelon form**. In row echelon form, the first nonzero entry of each row sits strictly to the right of the first nonzero entry of the row above it (many texts also scale each leading entry to 1). In reduced row echelon form, each leading entry is 1 and is the only nonzero entry in its column. For example, below $A$ is in row echelon form, and $B$ is in reduced row echelon form.
+The algorithm reduces the matrix to either **row echelon form** or **reduced row echelon form**. In row echelon form, the first nonzero entry of each row sits strictly to the right of the first nonzero entry of the row above it (many texts also scale each leading entry to 1). In reduced row echelon form, each leading entry is 1 and is the only nonzero entry in its column. For example, below $A$ is in row echelon form, and $B$ is in reduced row echelon form.
 
 $$
 \begin{aligned}
@@ -93,16 +96,16 @@ B &=
 \end{aligned}
 $$
 
-As you perform row operations, you also act on $b$ to keep the system equivalent. Once you have the matrix in row echelon form, you can solve the system by back substitution, or by continuing to row reduce to reduced row echelon form, where the solution is immediately apparent.
+Each row operation is applied to $b$ as well, which keeps the system equivalent. Once the matrix is in row echelon form, the system is solved by back substitution, or by further reduction to reduced row echelon form, from which the solution can be read directly.
 
 ### Takeaways
 
 #### Row Operations
 
-Solving systems of equations is pretty boring, but the emergent structure of a system on the verge of being solved cements a few important ideas:
+The structure that row reduction exposes illustrates several ideas used in later material.
 
-- **Row operations** need to *somehow* be legal, in particular reversible and preservative of the solution set. Each operation corresponds to multiplication by an invertible elementary matrix, so the operations form a **group** in action.
-- Row reducing exposes the structure of the solution set. Pivot columns correspond to determined variables and non-pivot columns to free ones, which gives a parameterization of the solution set and reads off the **rank** of the matrix.
+- **Row operations** are reversible and preserve the solution set. Each operation corresponds to left multiplication by an invertible elementary matrix, and the elementary matrices generate a **group** under multiplication.
+- Row reduction exposes the structure of the solution set. Pivot columns correspond to determined variables and non-pivot columns to free ones, which gives a parameterization of the solution set, and the number of pivots is the **rank** of the matrix.
 - Rows of zeros left after row reduction indicate **redundancy** among the original equations, in other words **linear dependence**.
 
 #### Span
@@ -117,7 +120,7 @@ $$
 \end{aligned}
 $$
 
-For a set of $n$ vectors in $\mathbb{R}^n$ to span $\mathbb{R}^n$, the vectors must be linearly independent. This is a necessary and sufficient condition for a set of vectors to be a **basis** for $\mathbb{R}^n$. You can perform additional reasoning to determine the rules for spanning sets, and implications on linear independence. For instance, a set of fewer than $n$ vectors in $\mathbb{R}^n$ cannot span $\mathbb{R}^n$, and a set of more than $n$ vectors in $\mathbb{R}^n$ must be linearly dependent.
+For a set of $n$ vectors in $\mathbb{R}^n$ to span $\mathbb{R}^n$, the vectors must be linearly independent. This is a necessary and sufficient condition for a set of vectors to be a **basis** for $\mathbb{R}^n$. Similar reasoning gives further rules relating spanning sets and linear independence. For instance, a set of fewer than $n$ vectors in $\mathbb{R}^n$ cannot span $\mathbb{R}^n$, and a set of more than $n$ vectors in $\mathbb{R}^n$ must be linearly dependent.
 
 #### Linear Transformations
 
@@ -126,7 +129,7 @@ For a function to be linear, it must satisfy two properties:
 - **Additivity**: $f(x + y) = f(x) + f(y)$
 - **Homogeneity**: $f(cx) = cf(x)$
 
-A linear transformation is a function $T: \mathbb{R}^n \to \mathbb{R}^m$ that satisfies these properties. The **kernel** of a linear transformation is the set of vectors that are mapped to the zero vector, e.g. $T(x) = 0$, or $Ax = 0$ for a matrix $A$ that represents the transformation. The kernel is a subspace of the domain. The **range** of a linear transformation is the set of all possible outputs, and is a subspace of the codomain.
+A linear transformation is a function $T: \mathbb{R}^n \to \mathbb{R}^m$ that satisfies these properties. The **kernel** of a linear transformation is the set of vectors that are mapped to the zero vector, the solutions of $T(x) = 0$, or $Ax = 0$ for a matrix $A$ that represents the transformation. The kernel is a subspace of the domain. The **range** of a linear transformation is the set of all possible outputs, and is a subspace of the codomain.
 
 $$
 \begin{aligned}
@@ -153,7 +156,7 @@ $$
 
 Matrix-vector multiplication is a linear transformation. The columns of the matrix are the images of the basis vectors, and the result is the image of the input vector. The kernel of the transformation is the null space of the matrix, and the range is the column space of the matrix.
 
-Visually, you can picture transforming the basis vectors, and with them the unit square, of the domain. The matrix is the transformation, its columns are where the basis vectors land, and the product is where the input vector lands.
+Geometrically, the matrix transforms the basis vectors of the domain, and with them the unit square. Its columns are the images of the basis vectors, and the product is the image of the input vector.
 
 #### Matrix-Matrix Multiplication
 
@@ -164,7 +167,7 @@ AB &= A\begin{bmatrix} b_1 & b_2 & \cdots & b_n \end{bmatrix} \\
 \end{aligned}
 $$
 
-The algorithm is to multiply $A$ by each column of $B$. The result is a matrix whose columns are the images of the columns of $B$ under $A$, which is exactly composing the two transformations. The column space of $AB$ sits inside the column space of $A$, and the null space of $AB$ contains the null space of $B$.
+The product is computed by multiplying $A$ by each column of $B$. The result is a matrix whose columns are the images of the columns of $B$ under $A$, which is the composition of the two transformations. The column space of $AB$ sits inside the column space of $A$, and the null space of $AB$ contains the null space of $B$.
 
 ```python
 import numpy as np
@@ -191,7 +194,7 @@ B = np.random.rand(N, M)
 ## %timeit multiply_good(A, B)
 ```
 
-Matrix multiplication is fundamentally a costly operation. The schoolbook algorithm above takes $O(n^3)$ time for square matrices, which is why the naive triple loop is unusable at any real size. Libraries like NumPy dispatch to heavily optimized BLAS routines that use vectorized instructions and cache-aware blocking, and run orders of magnitude faster than the naive loop even at the same asymptotic complexity. In practice you should **never** write your own matrix multiplication.
+Matrix multiplication is a costly operation. The schoolbook algorithm takes $O(n^3)$ time for square matrices, and the naive triple loop is impractically slow for matrices of realistic size. Libraries like NumPy dispatch to heavily optimized BLAS routines that use vectorized instructions and cache-aware blocking, and run orders of magnitude faster than the naive loop even at the same asymptotic complexity. Practical code therefore calls such a library instead of implementing matrix multiplication directly.
 
 ## Related notes
 

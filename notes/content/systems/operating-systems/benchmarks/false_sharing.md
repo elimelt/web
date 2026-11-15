@@ -11,9 +11,12 @@ tags:
   - cache-line
   - benchmarks
 date: 2025-12-29
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: needs-review
-description: Demonstrates the cost of false sharing by having eight threads increment counters packed into one cache line, then padding each counter to its own line for an 8.5x speedup.
+description: The cost of false sharing, measured with eight threads incrementing counters packed into one cache line, and the 8.5x speedup from padding each counter to its own line.
 sources:
   - title: What Every Programmer Should Know About Memory (Ulrich Drepper)
     url: https://www.akkadia.org/drepper/cpumemory.pdf
@@ -23,17 +26,15 @@ sources:
     type: docs
 ---
 
-## Purpose
-
-Measure what happens when threads write to different variables that happen to live in the same cache line. The coherence protocol works on whole lines, so the threads fight over the line even though they never touch each other's data. That is false sharing.
+False sharing is the coherence traffic that arises when threads on different cores write to distinct variables that reside in the same cache line. The coherence protocol operates on whole lines, so the cores contend for ownership of the line although no thread accesses another thread's data.
 
 ## Setup
 
-The CPU model and compiler flags were not recorded with these results, so the note is marked needs-review. The runs use 8 threads and the same `./bench` harness as the other notes in this directory. Cache lines are 64 bytes.
+The CPU model and compiler flags were not recorded with these results, so the results are marked needs-review. The runs use 8 threads and the same `./bench` harness as the other benchmarks in this directory. Cache lines are 64 bytes.
 
 ## Workload
 
-Eight threads, each incrementing its own counter in a shared array:
+Eight threads each increment their own counter in a shared array.
 
 ```c
 uint64_t counters[8];  // All 64 bytes = 1 cache line!
@@ -44,7 +45,7 @@ void thread_n() {
 }
 ```
 
-Each thread owns a different element, and all eight elements fit in one 64-byte cache line. The fixed version pads each counter out to its own line:
+Each thread owns a different element, and all eight elements fit in one 64-byte cache line. The padded version places each counter on its own line.
 
 ```c
 struct {
@@ -55,7 +56,7 @@ struct {
 
 ## Results
 
-16 MB of work total, which is about 167M increments per thread:
+The runs perform 16 MB of work in total, about 167M increments per thread.
 
 | Variant | Total time | ns/op | Speedup |
 |---------|------------|-------|---------|
@@ -64,11 +65,11 @@ struct {
 
 ## Interpretation
 
-The packed version loses because of the coherence protocol. Under MESI, a core must hold a line in Modified state to write it. So thread 0 writes `counters[0]` and its core takes the line Modified. Thread 1 then writes `counters[1]`, which forces an invalidation of core 0's copy before core 1 can proceed. Thread 0 writes again and invalidates core 1. The line ping-pongs between cores for the entire run, and every increment waits on a cross-core ownership transfer. Drepper covers the protocol and this exact failure mode in [What Every Programmer Should Know About Memory](https://www.akkadia.org/drepper/cpumemory.pdf).
+The packed version is slower because of the coherence protocol. Under MESI, a core must hold a line in Modified state to write it. When thread 0 writes `counters[0]`, its core takes the line in Modified state. Thread 1 then writes `counters[1]`, which forces an invalidation of core 0's copy before core 1 can proceed. Thread 0 writes again and invalidates core 1. The line moves back and forth between cores for the entire run, and every increment waits for a cross-core ownership transfer. Drepper covers the protocol and this case in [What Every Programmer Should Know About Memory](https://www.akkadia.org/drepper/cpumemory.pdf).
 
-The padded version gives each core a line nobody else touches. There is no coherency traffic at all, and each increment runs at register-plus-L1 speed. The entire 8.5x gap is ownership transfers.
+The padded version gives each core a line that no other core accesses. No coherence traffic arises, and each increment runs at the speed of a register operation and an L1 access. The 8.5x difference is therefore due entirely to ownership transfers.
 
-This shows up in real code wherever per-thread data gets packed into one allocation. Common cases are per-thread counters in a global stats array, several locks placed adjacently in a struct, and queue head and tail pointers that different threads update.
+False sharing occurs in real code wherever per-thread data is packed into one allocation. Common cases are per-thread counters in a global stats array, several locks placed adjacently in a struct, and queue head and tail pointers that different threads update.
 
 ## Detection
 
@@ -83,7 +84,7 @@ Look for the shared data cache line events and high snoop counts.
 
 ## Fixes
 
-Pad hot per-thread fields to a cache line boundary, align them with `__attribute__((aligned(64)))`, or move them into thread-local storage with `thread_local` so they never share an allocation in the first place.
+The remedies are to pad frequently written per-thread fields to a cache line boundary, to align them with `__attribute__((aligned(64)))`, or to move them into thread-local storage with `thread_local` so that they never share an allocation.
 
 ## Reproduction
 

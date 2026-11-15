@@ -14,9 +14,12 @@ tags:
   - file systems
   - kernel-structure
 date: 2024-01-13
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Surveys the services an OS provides (process operations, memory management, I/O, file systems) and compares monolithic, layered, and microkernel structures.
+description: The services an OS provides (process operations, memory management, I/O, file systems) and a comparison of monolithic, layered, and microkernel structures.
 sources:
   - title: E. W. Dijkstra, "The Structure of the 'THE'-Multiprogramming System" (CACM, 1968)
     url: https://dl.acm.org/doi/10.1145/363095.363143
@@ -25,7 +28,7 @@ sources:
     type: lecture
 ---
 
-This note maps out what an operating system actually contains. The first half lists the services the kernel provides for processes, memory, I/O, and files. The second half looks at how kernels arrange those pieces.
+An operating system consists of the services its kernel provides to programs, for processes, memory, I/O, and files, and of a structure that determines how those services are arranged and how they communicate. Kernel structures range from a single monolithic kernel through layered designs to microkernels that move most services into user space.
 
 ## Process operations
 
@@ -39,21 +42,21 @@ The OS provides operations to:
 
 ## Memory management
 
-Primary memory is the only storage the CPU can access directly. A program has to be in memory to execute, access is fast, and the contents disappear on power loss.
+Primary memory is the only storage the CPU can access directly. A program has to be in memory to execute, access is fast, and the contents are lost when power is removed.
 
 The OS allocates memory for a process, deallocates it when the process terminates, maintains the mapping between virtual and physical memory through page tables, and decides how much memory each process gets.
 
 ## I/O
 
-A big chunk of the kernel deals with I/O. It acts as the glue between devices and the rest of the system, and it has to present a uniform interface over wildly different hardware.
+A large part of the kernel handles I/O. This part connects devices to the rest of the system and must present a uniform interface over widely varying hardware.
 
 ### Device drivers
 
-Drivers are the routines that talk to a specific device type. They encapsulate the device's details, e.g. how to initialize it, how to request I/O, and how to handle its interrupts. SCSI drivers, Ethernet card drivers, and video card drivers are all examples. The lecture put the count of device drivers written for Windows around 35,000.
+Drivers are the routines that control a specific device type. They encapsulate the device's details, e.g. how to initialize it, how to request I/O, and how to handle its interrupts. SCSI drivers, Ethernet card drivers, and video card drivers are all examples. The lecture put the number of device drivers written for Windows at around 35,000.
 
 ### File systems
 
-The file system is an abstraction on top of the physical storage drivers. It provides the usual per-file operations (open, close, read, write, seek) plus higher level operations on the file system itself:
+The file system is an abstraction on top of the physical storage drivers. It provides the common per-file operations (open, close, read, write, seek) plus higher level operations on the file system itself:
 
 - create and delete files and directories
 - accounting and quotas
@@ -76,11 +79,11 @@ The file system is an abstraction on top of the physical storage drivers. It pro
 +----------------------+
 ```
 
-Everything lives in one kernel, so a call from one module to another costs only a procedure call. That is the main advantage. The price is a codebase that resists change, since every module can reach into every other module.
+All services reside in one kernel, so a call from one module to another costs only a procedure call, which is the structure's main advantage. Its main disadvantage is a codebase that is difficult to change, since every module can access every other module.
 
 ### Layering
 
-Dijkstra's ["THE" multiprogramming system](https://dl.acm.org/doi/10.1145/363095.363143) structured the OS as layers. Each layer presents a virtual machine to the layer above it and only uses the services of the layer below it:
+Dijkstra's ["THE" multiprogramming system](https://dl.acm.org/doi/10.1145/363095.363143) structured the OS as layers. Each layer presents a virtual machine to the layer above it and uses only the services of the layer below it:
 
 - Layer 5: job managers, execute user programs
 - Layer 4: device managers, handle devices and provide buffering
@@ -93,15 +96,15 @@ Each layer can be tested and verified independently.
 
 ### Hardware abstraction layer
 
-A HAL separates hardware-specific routines from the core OS, which makes the core portable and keeps hardware details out of the way of readers.
+A HAL separates hardware-specific routines from the core OS, which makes the core portable and isolates hardware details from readers of the core code.
 
 ### Microkernels
 
-Microkernels showed up in the late 80s and early 90s. The idea is to shrink the kernel and move as much as possible into user space. The microkernel keeps basic services like process management, memory management, and I/O. Higher level services (file system, networking, scheduling policy) run as user-space server processes.
+Microkernels appeared in the late 1980s and early 1990s. The design reduces the kernel to a minimum and moves as much as possible into user space. The microkernel keeps basic services such as process management, memory management, and I/O. Higher level services (file system, networking, scheduling policy) run as user-space server processes.
 
-The isolation between components buys reliability, and a smaller kernel means less code to port to new hardware. Extending the system means adding a server rather than patching the kernel. The cost is speed. Requests that a monolithic kernel would handle with a procedure call now cross address space boundaries, so a microkernel is probably slower.
+The isolation between components improves reliability, and a smaller kernel means less code to port to new hardware. The system is extended by adding a server rather than by patching the kernel. Requests that a monolithic kernel would handle with a procedure call cross address space boundaries in a microkernel, so a microkernel is probably slower.
 
-The structural difference is where services live and what a request crossing costs:
+The two structures differ in where services reside and in the cost of a request that crosses between components.
 
 ```mermaid
 flowchart TD

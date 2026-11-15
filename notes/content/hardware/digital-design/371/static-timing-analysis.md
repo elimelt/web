@@ -10,17 +10,20 @@ tags:
   - setup time
   - hold time
 date: 2025-05-17
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: The setup, hold, and clock-to-Q constraints on register inputs, how to bound tolerable combinational delays between registers, and where static timing analysis runs in the FPGA flow.
+description: The setup, hold and clock-to-Q constraints on register inputs, the bounds they place on combinational delay between registers, and the stages of the FPGA flow at which static timing analysis runs.
 sources:
   - title: UW CSE/EE 371 lecture notes
     type: lecture
 ---
 
-## Purpose
+Static timing analysis verifies, without simulation, that every register input in a synchronous circuit is stable throughout a window around each clock edge, which extends from the setup time before the edge to the hold time after it.
 
-Timing in synchronous hardware comes down to keeping every register input stable inside a window around each clock edge. This note defines the constraints, shows how to turn them into inequalities on path delays, and records where static timing analysis happens in the FPGA design flow.
+The analysis converts these constraints into inequalities on the delays of the combinational paths between registers and checks them for the longest and shortest paths.
 
 ## Sequential timing constraints
 
@@ -45,12 +48,12 @@ $$
 t_{h} \leq t_{\text{input}, i} \leq T_{clk} - t_{s} ~ \forall i
 $$
 
-So there are two constraints to keep in mind:
+The window imposes two constraints:
 
 - $t_{\text{input}, i} \geq t_h$: The input must stay stable for at least the hold time after the clock edge.
 - $t_{\text{input}, i} \leq T_{clk} - t_s$: The input must settle early enough to be stable for the setup time before the next clock edge.
 
-When reasoning about combinational delay between registers, the hold constraint cares about the fastest possible path and the setup constraint cares about the slowest. So for hold time you find the shortest path through the circuit, and for setup time you find the longest.
+When reasoning about combinational delay between registers, the hold constraint is determined by the fastest possible path and the setup constraint by the slowest. Hold analysis therefore uses the shortest path through the circuit, and setup analysis the longest.
 
 The canonical path runs from a launching register through combinational logic to a capturing register, with both registers on the same clock:
 
@@ -73,11 +76,11 @@ flowchart LR
 >
 > $$t_{co} + t_{comb,min} \geq t_h \qquad \text{(hold, shortest path)}$$
 
-A typical exam problem gives you $t_{co}$, $t_{h}$, $t_{s}$, and $T_{clk}$ and asks for the range of tolerable delays for a component on a path between two registers, or for how late an input signal can change after the clock edge. The method is the same either way. Identify the longest and shortest paths through the circuit that involve your component or connect the two registers, then write out the two inequalities above and solve for the unknown delay.
+A typical exam problem gives $t_{co}$, $t_{h}$, $t_{s}$, and $T_{clk}$ and asks for the range of tolerable delays for a component on a path between two registers, or for how late an input signal can change after the clock edge. Both are solved by identifying the longest and shortest paths through the circuit that involve the component or connect the two registers, writing out the two inequalities, and solving for the unknown delay.
 
 ## In practice
 
-Static timing analysis usually happens twice in the FPGA design process: once after synthesis, as static analysis of the RTL, and once after place and route, as static analysis of the netlist.
+In the FPGA design flow covered in the course, static timing analysis runs twice: once after synthesis, as static analysis of the RTL, and once after place and route, as static analysis of the netlist.
 
 ### Circuit path categorization
 

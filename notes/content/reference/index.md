@@ -6,14 +6,15 @@ tags:
   - cheatsheets
   - slides
 date: 2026-07-31
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Lightweight reference material, including cheatsheets and slide decks.
+description: Short reference material, including cheatsheets and slide decks.
 ---
 
-## Purpose
-
-Not every page needs to be a full note. This branch is where quick reference material lives.
+The reference section collects short material intended for lookup, such as cheatsheets, slide decks and recipes, which is not developed into full notes.
 
 ## Notes
 

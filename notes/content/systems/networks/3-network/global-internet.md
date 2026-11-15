@@ -11,18 +11,21 @@ tags:
   - autonomous-systems
   - inter-domain-routing
 date: 2024-02-25
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: draft
-description: Why intra-domain routing protocols can't cover the whole internet, and how autonomous systems and inter-domain routing let routing scale to billions of devices.
+description: The reasons intra-domain routing protocols cannot cover the whole internet, and the autonomous systems and inter-domain routing that allow routing to scale to billions of devices.
 sources:
   - title: "Computer Networks: A Systems Approach"
     url: https://book.systemsapproach.org/
     type: textbook
 ---
 
-## Purpose
+Routing in the global internet is hierarchical. The internet is divided into autonomous systems, each of which routes traffic internally with a protocol of its own choosing, and the autonomous systems exchange reachability information with an inter-domain routing protocol.
 
-Explain how routing scales from a single network to the whole internet. Protocols like RIP and OSPF require every router to know about every network they can reach, and no router can hold a complete list of all the networks in the internet. The fix is hierarchy.
+Intra-domain protocols such as RIP and OSPF require every router to hold a route to every network it can reach, and no router can hold a complete list of all the networks in the internet. The hierarchy limits the routing state that each router must hold.
 
 ## Structure of the internet
 
@@ -30,11 +33,11 @@ The modern internet is mainly composed of end-user sites and service providers. 
 
 ## Routing areas
 
-OSPF already divides a network into areas to shrink routing tables (see [[systems/networks/3-network/routing|routing]]). The global internet applies the same move at a much larger scale. It is divided into routing domains called **Autonomous Systems** (ASes). An AS is a collection of routers and networks under the control of a single organization. Each AS picks its own routing protocol and handles routing within itself. Routers inside an AS connect to each other over high-speed links and reach other ASes through border routers.
+OSPF already divides a network into areas to shrink routing tables (see [[systems/networks/3-network/routing|routing]]). The global internet applies the same principle at a much larger scale. It is divided into routing domains called **Autonomous Systems** (ASes). An AS is a collection of routers and networks under the control of a single organization. Each AS chooses its own routing protocol and handles routing within itself. Routers inside an AS connect to each other over high-speed links and reach other ASes through border routers.
 
 ## Inter-domain routing
 
-Routing between ASes is a separate problem from routing within one, because ASes are independently managed and don't share a cost metric. The interior routers handle traffic within the AS, the border routers handle traffic between ASes, and the protocol the border routers speak is [[systems/networks/3-network/BGP|BGP]].
+Routing between ASes is a separate problem from routing within one, because ASes are independently managed and do not share a cost metric. The interior routers handle traffic within the AS, the border routers handle traffic between ASes, and the protocol the border routers speak is [[systems/networks/3-network/BGP|BGP]].
 
 ```mermaid
 flowchart LR
@@ -54,7 +57,7 @@ flowchart LR
     style BB fill:#e3f2fd
 ```
 
-Each AS picks its own interior protocol and metric, and BGP between the border routers is the only thing they have to agree on.
+Each AS chooses its own interior protocol and metric, and the ASes need to agree only on BGP between their border routers.
 
 ## Related notes
 

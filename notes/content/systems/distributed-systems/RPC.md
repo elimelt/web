@@ -8,31 +8,32 @@ tags:
   - rpc
   - fault-model
 date: 2024-03-26
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: draft
-description: How RPC differs from a local call, the fault model it runs under, at-least-once versus at-most-once semantics, and why the two generals problem makes exactly-once hard.
+description: The differences between a remote procedure call and a local one, the fault model RPC assumes, at-least-once, at-most-once and exactly-once semantics, and the two generals problem as a limit on agreement over a lossy channel.
 sources:
   - title: Protocol Buffers documentation
     url: https://protobuf.dev
     type: docs
 ---
 
-## Purpose
-
-An RPC is a request from a client to execute a function on a server on a different machine. To the client it looks like a local function call. To the server it looks like an implementation of a function call. This note covers what that illusion hides. Underneath sit a fault model, delivery semantics that weaken when messages drop, and a hard limit on agreement over a lossy channel.
+A remote procedure call (RPC) is a request from a client to execute a function on a server on a different machine. To the client, the request has the form of a local function call; to the server, it has the form of an invocation of a function it implements. Unlike a local call, an RPC can fail through the loss of a message or the crash of either machine, so its semantics are defined relative to a fault model.
 
 ## Local procedure call
 
 - The caller invokes a function by name with args.
-    - Args pass in registers, extras push onto the stack.
-    - The return program counter (%rip) pushes onto the stack.
+    - Arguments are passed in registers, and additional arguments are pushed onto the stack.
+    - The return program counter (%rip) is pushed onto the stack.
     - Control jumps to the first instruction (entry point) of the callee.
 - The callee executes the function and returns to the caller.
     - It reads params from registers and the stack.
     - It computes the function, possibly updating state.
     - It jumps back to the next instruction after the call.
 
-The compiler defines the protocol for this call. Nothing gets lost between caller and callee.
+The compiler defines the protocol for this call, and no message can be lost between caller and callee.
 
 ## Remote procedure call
 
@@ -84,7 +85,7 @@ A discovery service keeps track of all available services, including versions, s
 
 ### Interface description language (IDL)
 
-Serialization matters. An IDL like protobuf generates client and server serialization stubs automatically. Procedure args can be values or pointers, and they need to be assembled into a single linear message in a transportable format. That format is not always a string; protobuf uses a binary encoding.
+An IDL such as protobuf generates the client and server serialization stubs automatically. Procedure arguments can be values or pointers, and they must be assembled into a single linear message in a transportable format. That format is not always a string; protobuf uses a binary encoding.
 
 ### Failures
 
@@ -92,18 +93,18 @@ Serialization matters. An IDL like protobuf generates client and server serializ
 - The client or server can crash at any time, before, during, or after the call.
 - The server or network can be slow, and the client can time out.
 
-TCP mitigates some network issues, but sockets fail, and messages are not always transmitted over TCP anyway.
+TCP mitigates some network failures, but connections can still fail, and not every RPC system uses TCP.
 
 ## Fault model
 
 - **Asynchronous fail-stop nodes**
     - A computer may be arbitrarily slow while still working.
-    - Nodes always fail by stopping, before transmitting garbage or forgetting state. This is a strong assumption. For arbitrarily behaving nodes, see *Byzantine fault tolerance*.
+    - Nodes fail only by stopping, never by transmitting garbage or forgetting state. This is a strong assumption. For arbitrarily behaving nodes, see *Byzantine fault tolerance*.
 - **Network model**
     - Messages can be lost, delayed, reordered, or duplicated, and can be arbitrarily delayed while the network still works correctly.
-    - Messages won't be corrupted (bit flips). Another strong assumption. See error detection and correction for working without it.
+    - Messages are not corrupted (no bit flips), which is also a strong assumption. Error detection and correction codes address networks in which it does not hold.
     - The network may partition nodes from each other, so nodes can end up in isolated groups with no connection between them.
-    - The network is commutative and transitive: if A can talk to B, then B can talk to A, and if A can talk to B and B can talk to C, then A can talk to C.
+    - Connectivity is symmetric and transitive: if A can talk to B, then B can talk to A, and if A can talk to B and B can talk to C, then A can talk to C.
 - Clients make only one RPC request at a time, a very strong assumption.
 
 ## Naive RPC
@@ -118,9 +119,9 @@ TCP mitigates some network issues, but sockets fail, and messages are not always
 
 ## Client timeout and retry
 
-If a request or reply message drops, the client waits forever. A client timer with retransmission fixes this, where the client resends the request if no response arrives in time. Retransmission then causes duplication and reordering at the server.
+If a request or reply message is lost, the client waits indefinitely. A client timer with retransmission addresses this: the client resends the request if no response arrives in time. Retransmission in turn causes duplication and reordering at the server.
 
-Unique request IDs handle the duplication. Include a message ID in each request and reply, reuse the same ID on retransmit, and let the server ignore duplicates it has already processed.
+Unique request IDs handle the duplication. Each request and reply carries a message ID, a retransmission reuses the same ID, and the server ignores duplicates it has already processed.
 
 ### RPC semantics
 
@@ -143,19 +144,19 @@ Unique request IDs handle the duplication. Include a message ID in each request 
 
 #### At least once
 
-The client should do a finite number of retries, eventually giving up and returning an error to the caller.
+The client makes a finite number of retries and then returns an error to the caller.
 
-This only works if the operation is **idempotent**, meaning repeated execution has the same effect as a single one. All read-only operations are idempotent. Many writes are not: incrementing a counter is not idempotent, while setting the counter to a value is.
+At-least-once semantics are correct only for **idempotent** operations, whose repeated execution has the same effect as a single execution. All read-only operations are idempotent. Many writes are not; incrementing a counter is not idempotent, while setting the counter to a value is.
 
-> [!tip] Idempotency is the key to surviving at-least-once
-> Design operations so repeating them is harmless. Use absolute values (`SET counter = 5`) instead of deltas (`INCREMENT counter`). Attach client-generated unique IDs so the server can deduplicate. Structure state changes as "apply if not already applied." When idempotency holds, retries become safe and at-least-once becomes good enough.
+> [!tip] Idempotent operations under at-least-once semantics
+> Operations can be designed so that repeating them has no further effect: absolute values (`SET counter = 5`) in place of deltas (`INCREMENT counter`), client-generated unique IDs that allow the server to deduplicate, and state changes structured as "apply if not already applied." When idempotency holds, retries are safe and at-least-once semantics suffice.
 
-Does TCP solve this? Not really, despite being reliable. Most RPCs travel over TCP, which guarantees in-order delivery with retransmission and duplicate detection. It still cannot give exactly-once semantics. If the server crashes after processing the request and before sending the response, the client retransmits and the server executes the request again.
+TCP does not solve this problem, although it is reliable. Many RPC systems run over TCP, which guarantees in-order delivery with retransmission and duplicate detection, but TCP cannot provide exactly-once semantics. If the server crashes after processing the request and before sending the response, the client retransmits and the server executes the request again.
 
-> [!warning] TCP doesn't give you exactly-once
-> TCP guarantees reliable, in-order delivery at the transport layer, but it operates below the application. If the server crashes *after* processing a request but *before* sending the response, the TCP connection breaks. The client retries, establishing a new connection, and the server—now recovered—executes the request a second time. The duplicate happens above TCP's view.
+> [!warning] TCP does not provide exactly-once semantics
+> TCP guarantees reliable, in-order delivery at the transport layer, but it operates below the application. If the server crashes *after* processing a request but *before* sending the response, the TCP connection breaks. The client retries, establishing a new connection, and the server, once recovered, executes the request a second time. The duplicate arises above the layer at which TCP operates.
 
-**[[systems/research/end-to-end-arguments-in-sys-design|End to end principle]]**: functionality should be implemented where it can be completely handled, rather than partially handled at each layer. Handling retries at the RPC layer rather than trusting TCP is an instance of this.
+**[[systems/research/end-to-end-arguments-in-sys-design|End to end principle]]**: functionality should be implemented where it can be completely handled, rather than partially handled at each layer. Handling retries at the RPC layer rather than relying on TCP is an instance of the principle.
 
 Examples of idempotent workloads:
 
@@ -169,7 +170,7 @@ With multiple clients, operations like `Put(k, v)` stop being safely retryable i
 
 ## Two generals problem
 
-A thought experiment that shows the hard limit on agreement over a lossy channel. Two generals coordinate an attack on a city. A valley separates them, and they communicate only by messenger. The city can capture the messenger, and the sender never learns whether the message arrived. The generals can only attack together, so they must agree on a time.
+The two generals problem is a thought experiment that demonstrates the impossibility of guaranteed agreement over a lossy channel. Two generals coordinate an attack on a city. A valley separates them, and they communicate only by messenger. The city can capture the messenger, and the sender never learns whether the message arrived. The attack succeeds only if both generals attack together, so they must agree on a time.
 
 ```mermaid
 sequenceDiagram
@@ -196,7 +197,7 @@ sequenceDiagram
     Note over G1,G2: No finite confirmations suffice—<br/>the last sender can never be certain
 ```
 
-The problem is that after sending any message, the sender cannot know it was delivered. No number of confirmation round trips helps, because the last message sent could always have been the one that dropped. This limit shows up all over distributed systems, for example in the commit problem that [[systems/distributed-systems/two-phase-commit|two-phase commit]] addresses.
+After sending any message, the sender cannot know whether it was delivered. No finite number of confirmation round trips resolves this, because the last message sent could always have been the one that was lost. The same limit appears throughout distributed systems, for example in the commit problem that [[systems/distributed-systems/two-phase-commit|two-phase commit]] addresses.
 
 ## To look into
 

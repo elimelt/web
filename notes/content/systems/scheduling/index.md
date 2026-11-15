@@ -8,7 +8,10 @@ tags:
   - latency
   - throughput
 date: 2026-07-31
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
 description: Cross-cutting systems notes on scheduling, from queueing laws and fairness objectives to CPU, packet, cluster, and model-serving schedulers.
 sources:
@@ -23,21 +26,19 @@ sources:
     type: paper
 ---
 
-## Purpose
+Scheduling is the allocation of a shared resource (a processor, a link, a cluster's machines, an accelerator) among competing jobs, flows or requests over time, according to a policy that determines which work is served next and where. Scheduling is treated here as a topic that spans domains, independently of the operating-systems chapters. The same questions arise for CPUs, routers, clusters, storage services and model-serving systems:
 
-This section is for scheduling as a systems idea rather than as one chapter inside operating systems. The same questions keep reappearing across CPUs, routers, clusters, storage services, and model-serving systems:
-
-- which job or flow goes next
-- what objective matters most
-- where the bottleneck actually is
+- which job or flow is served next
+- which objective the policy optimizes
+- where the bottleneck lies
 - how fairness trades against latency and throughput
 - what mechanism enforces the policy
 
-The emphasis here should stay reference-heavy. The goal is to preserve the derivations, code sketches, and mental pathways for grokking the main policies well enough to reuse them in another domain.
+The notes are reference material, with derivations and code sketches for the main policies in enough detail to apply them in other domains.
 
 ## Reading Path
 
-The best route is to start with the math, then the single-resource policies, then the multi-resource and domain-specific schedulers.
+The suggested order begins with the queueing results, then the single-resource policies, then the multi-resource and domain-specific schedulers.
 
 1. [[systems/performance/latency-throughput-and-utilization|Latency, Throughput, and Utilization]]
 2. [[systems/operating-systems/v2-concurrency/7-queueing-theory|Queueing Theory]]
@@ -89,7 +90,7 @@ The best route is to start with the math, then the single-resource policies, the
 
 ## Planned Depth
 
-The section should eventually cover at least these layers:
+Planned coverage includes at least the following layers:
 
 - queueing laws, response-time distributions, and bottleneck analysis
 - single-resource policies like FIFO, SJF, SRTF, RR, MLFQ, EDF, and fair sharing
@@ -100,4 +101,4 @@ The section should eventually cover at least these layers:
 
 ## Notes on Scope
 
-Some notes already exist in other branches and should stay there because their home context matters. This section is meant to link them together and eventually add the missing cross-domain material, not flatten everything into one folder.
+Some related notes reside in other branches and remain there because their surrounding context matters. The scheduling section links them together and is to add the missing cross-domain material without moving every note into one folder.

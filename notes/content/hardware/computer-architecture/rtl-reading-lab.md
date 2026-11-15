@@ -12,7 +12,10 @@ tags:
   - rocket
   - vexriscv
 date: 2026-08-01
-updated: 2026-08-01
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: draft
 description: A repository map and annotated RTL walkthrough across five open-source RISC-V cores (Ibex, CVA6, Rocket, BOOM, XiangShan) and one SpinalHDL core (VexRiscv), comparing how each implements the ALU, branch resolution, and register renaming, with commit-pinned source excerpts.
 sources:
@@ -36,9 +39,9 @@ sources:
     type: repo
 ---
 
-## Purpose
+Register-transfer-level (RTL) source describes a processor as registers and the combinational logic between them. An ISA specification defines what each instruction must do, and the RTL records how one implementation does it; implementations of the same ISA differ in these choices.
 
-Reading spec text tells you what a CPU must do. Reading RTL tells you how a real team chose to build it, and different teams choose differently even for the same ISA. This note is a map into six open-source RISC-V(-ish) cores, plus annotated excerpts, pinned to commit SHAs, for three concerns every core has to solve: integer ALU operations, branch resolution, and (where applicable) register renaming. The goal is a "same idea, different implementation" comparison table you can use as a jumping-off point for reading the full sources yourself.
+The repository map and annotated excerpts cover six open-source RISC-V and RISC-V-like cores, pinned to commit SHAs, and three functions each core implements: integer ALU operations, branch resolution, and, in the out-of-order cores, register renaming. They serve as an entry point for reading the full sources.
 
 ## Repository map
 
@@ -51,13 +54,13 @@ Reading spec text tells you what a CPU must do. Reading RTL tells you how a real
 | XiangShan | Chisel | Out-of-order, superscalar, server-class | Similar to BOOM, deeper OoO window | [OpenXiangShan/XiangShan](https://github.com/OpenXiangShan/XiangShan) | `4ce2f88a` |
 | VexRiscv | SpinalHDL (Scala DSL) | In-order, plugin-composed pipeline | Configurable stage count via plugins | [SpinalHDL/VexRiscv](https://github.com/SpinalHDL/VexRiscv) | `68075606` |
 
-Ibex and Rocket both target small in-order cores but differ in HDL (SystemVerilog vs. Chisel). BOOM is explicitly "Berkeley Out-of-Order Machine," built as an OoO sibling to Rocket and sharing its ALU. XiangShan is the most aggressive of the six, targeting server-class IPC. VexRiscv is unusual in that its pipeline depth and stage composition are not fixed in the source; they're assembled at elaboration time from a list of plugins (`BranchPlugin`, `IntAluPlugin`, and so on), which is why its branch logic below reads more like a builder pattern than fixed RTL.
+Ibex and Rocket both target small in-order cores but differ in HDL (SystemVerilog vs. Chisel). BOOM, the Berkeley Out-of-Order Machine, was built as an out-of-order sibling to Rocket and shares its ALU. XiangShan has the deepest out-of-order window of the six and targets server-class IPC. VexRiscv's pipeline depth and stage composition are not fixed in the source; they are assembled at elaboration time from a list of plugins (`BranchPlugin`, `IntAluPlugin`, and so on), so its branch logic reads more like a builder pattern than fixed RTL.
 
 ## Same idea, different implementation
 
 ### Integer ALU
 
-Every core needs `add`, `sub`, shifts, and comparisons. All six converge on the same trick for subtraction and comparison: negate-and-add, so the same adder does both.
+Each core implements `add`, `sub`, shifts and comparisons. The ALUs excerpted here, Ibex's and Rocket's (which BOOM reuses), implement subtraction and comparison by negating an operand and adding, so one adder performs both.
 
 Ibex (`rtl/ibex_alu.sv`, commit `3250d994`) prepares the adder operands explicitly and reuses the same 33-bit adder for `SLT`/`SLTU` by inspecting the sign bits and the adder's result bit:
 
@@ -75,7 +78,7 @@ end
 assign adder_result_ext_o = $unsigned(adder_in_a) + $unsigned(adder_in_b);
 ```
 
-Rocket's `ALU.scala` (commit `55bcad0f`, reused unmodified by BOOM) does the same negate-on-subtract trick in one line, then derives `SLT` from the adder's sign bit and an XOR of the two operand signs:
+Rocket's `ALU.scala` (commit `55bcad0f`, reused unmodified by BOOM) performs the same operand negation for subtraction in one line, then derives `SLT` from the adder's sign bit and an XOR of the two operand signs:
 
 ```scala
 val in2_inv = Mux(isSub(io.fn), ~io.in2, io.in2)
@@ -87,11 +90,11 @@ val slt =
   Mux(cmpUnsigned(io.fn), io.in2(xLen-1), io.in1(xLen-1)))
 ```
 
-The shared shape (one adder, operand-B inversion for subtract, sign-bit inspection for comparisons) is the textbook RISC ALU. What differs is bitmanip (Zbb/Zbs) support: Ibex's `ibex_alu.sv` spends most of its ~700 lines on optional `RV32B` logic (CLZ/CTZ/CPOP via a Brent-Kung-style parallel-prefix bit counter, carry-less multiply for CRC, a butterfly network for bit compress/decompress), gated behind a `RV32B` parameter so a minimal Ibex build strips all of it out. Rocket's `ALU.scala` folds its smaller Zbb subset (`FN_UNARY` for clz/ctz/cpop/orc.b/rev8, `FN_MAX`/`FN_MIN`, `FN_ROL`/`FN_ROR`) into the same `MuxLookup` as the base ops, conditionally included only `if (coreParams.useZbb)`.
+This structure (one adder, operand-B inversion for subtraction, sign-bit inspection for comparisons) is the textbook RISC ALU. The two differ in bit-manipulation (Zbb/Zbs) support. Ibex's `ibex_alu.sv` devotes most of its ~700 lines to optional `RV32B` logic (CLZ/CTZ/CPOP via a Brent-Kung-style parallel-prefix bit counter, carry-less multiply for CRC, a butterfly network for bit compress/decompress), gated behind a `RV32B` parameter so that a minimal Ibex build omits it. Rocket's `ALU.scala` folds its smaller Zbb subset (`FN_UNARY` for clz/ctz/cpop/orc.b/rev8, `FN_MAX`/`FN_MIN`, `FN_ROL`/`FN_ROR`) into the same `MuxLookup` as the base ops, conditionally included only `if (coreParams.useZbb)`.
 
 ### Branch resolution
 
-CVA6 resolves branch *prediction* correctness in its frontend BHT (`core/frontend/bht.sv`, commit `e4184b66`), a direct-mapped table of 2-bit saturating counters indexed by PC:
+CVA6 predicts branch direction in its frontend branch history table (BHT) (`core/frontend/bht.sv`, commit `e4184b66`), a direct-mapped table of 2-bit saturating counters indexed by PC:
 
 ```systemverilog
 if (saturation_counter == 2'b11) begin
@@ -107,7 +110,7 @@ end else begin
 end
 ```
 
-This is the classic 2-bit saturating counter: two consecutive wrong guesses are required to flip the prediction, which damps single-mispredict noise. It answers "was the branch taken," not "did the branch execute correctly," which is resolved separately once the branch reaches execute.
+Each entry is a 2-bit saturating counter. From a strongly biased state, two consecutive mispredictions are required to change the prediction, so a single anomalous outcome leaves it unchanged. The counter predicts whether the branch is taken; whether that prediction was correct is determined separately when the branch reaches execute.
 
 BOOM's `ALUUnit` (`functional-unit.scala`, commit `97bf5363`) computes the actual branch outcome in the execute stage and compares it against what the frontend predicted, generating a `mispredict` signal:
 
@@ -121,9 +124,9 @@ when (is_br || is_jalr) {
 }
 ```
 
-`uop.taken` here is the prediction that was stashed with the instruction back at fetch; `pc_sel` is what execute actually computed. A mismatch fires `brinfo.mispredict`, which higher-level logic uses to squash younger in-flight instructions, exactly the flush that Agner Fog's manual (cited in [[systems/operating-systems/benchmarks/branch|branch prediction benchmarks]]) prices at tens of cycles.
+`uop.taken` is the prediction stored with the instruction at fetch, and `pc_sel` is the outcome computed in execute. A mismatch asserts `brinfo.mispredict`, which higher-level logic uses to squash younger in-flight instructions. Agner Fog's manual (cited in [[systems/operating-systems/benchmarks/branch|branch prediction benchmarks]]) puts the cost of this flush at tens of cycles.
 
-VexRiscv's `BranchPlugin.scala` (commit `68075606`) shows the same "predict early, correct late" shape but reifies it as a plugin, with three build modes (`buildWithoutPrediction`, `buildFetchPrediction`, `buildDecodePrediction`) selected at elaboration based on which other plugins are present. The core comparison logic, shared by all three modes, is a straightforward `funct3`-based mux:
+VexRiscv's `BranchPlugin.scala` (commit `68075606`) implements the same structure, early prediction and late correction, as a plugin with three build modes (`buildWithoutPrediction`, `buildFetchPrediction`, `buildDecodePrediction`) selected at elaboration according to which other plugins are present. The comparison logic shared by all three modes is a `funct3`-indexed mux:
 
 ```scala
 insert(BRANCH_DO) := input(BRANCH_CTRL).mux(
@@ -140,24 +143,24 @@ insert(BRANCH_DO) := input(BRANCH_CTRL).mux(
 )
 ```
 
-The three cores agree on the underlying arithmetic (equal/less-than comparators feeding a funct3-indexed mux) and disagree entirely on how prediction and correction are staged across the pipeline, because that staging is inseparable from how many pipeline stages each core has.
+The three cores agree on the underlying arithmetic (equal/less-than comparators feeding a funct3-indexed mux) and differ in how prediction and correction are staged across the pipeline, because the staging depends on the number of pipeline stages in each core.
 
 ### Register renaming
 
-This is the sharpest split in the set. Ibex, CVA6, Rocket, and VexRiscv are all in-order and have no rename stage; the architectural register file is the only register file. BOOM and XiangShan are out-of-order and both need a rename stage to remove false (WAW/WAR) dependencies before instructions enter the out-of-order window, but they use different renaming schemes:
+Register renaming divides the six cores into two groups. Ibex, CVA6, Rocket, and VexRiscv are all in-order and have no rename stage; the architectural register file is the only register file. BOOM and XiangShan are out-of-order and both need a rename stage to remove false (WAW/WAR) dependencies before instructions enter the out-of-order window, but they use different renaming schemes:
 
 - BOOM uses a unified physical register file, so integer, floating point, and (if present) vector rename maps live in tables mapping architectural to physical register indices, with a free list of unallocated physical registers.
 - XiangShan's rename directory (`src/main/scala/xiangshan/backend/rename/`, commit `4ce2f88a`) splits the concern into separate files: `RenameTable.scala` for the architectural-to-physical map, `BusyTable.scala` for tracking which physical registers still have in-flight producers, `Snapshot.scala` for checkpointing rename state at branches (so a mispredict can roll the map back without replaying every rename), and `CompressUnit.scala`, unique among these six cores, for compressing multiple renames of the same architectural register within one superscalar rename bundle into a single effective rename before touching the free list.
 
-The `CompressUnit` split is worth pulling on if you read one file from this whole list: renaming N instructions per cycle, where several might write the same architectural register, requires resolving intra-bundle WAW hazards before the rename table update, and XiangShan makes that a standalone unit instead of folding it into the main `Rename.scala` control logic.
+`CompressUnit` addresses a problem specific to superscalar renaming. Renaming N instructions per cycle, where several may write the same architectural register, requires resolving intra-bundle WAW hazards before the rename table update, and XiangShan implements that step as a standalone unit instead of folding it into the main `Rename.scala` control logic.
 
 ## How to read further
 
-Clone the relevant repo at the pinned commit (or use GitHub's blob view with the commit SHA in the URL, which is what the excerpts above link to implicitly through their SHA-pinned paths) rather than `HEAD`, since all six repos are under active development and line numbers drift fast. Start from the functional unit or ALU file for the easiest orientation, then follow module instantiations upward into the pipeline stage that owns it. The `SupportedFuncUnits`/`FUConstants` pattern in BOOM's `functional-unit.scala` is a good map of what functional units a superscalar core needs at minimum: ALU, jump, memory address, integer mul, integer div, CSR, FPU, FP div, int-to-FP, FP-to-int.
+Clone each repository at the pinned commit rather than `HEAD`, or use GitHub's blob view with the commit SHA in the URL (the excerpts are identified by these SHA-pinned paths), since all six repositories are under active development and line numbers change between commits. The functional unit or ALU file is a convenient starting point, and module instantiations lead upward from it to the pipeline stage that contains it. The `SupportedFuncUnits`/`FUConstants` pattern in BOOM's `functional-unit.scala` enumerates the functional units of a superscalar core: ALU, jump, memory address, integer mul, integer div, CSR, FPU, FP div, int-to-FP, FP-to-int.
 
 ## Edge cases and limits
 
-Commit SHAs pin exact source text, but these projects move fast; treat every excerpt above as "true as of that commit," not as the current state of the file. CVA6's BHT file has a large FPGA-target branch (`gen_fpga_bht`) that this note skips entirely in favor of the simpler ASIC-target branch, since the FPGA path exists only to work around synchronous-BRAM read/write timing and adds no new algorithmic content. VexRiscv's plugin system means the "pipeline" you read about in `BranchPlugin.scala` doesn't exist as a fixed set of stages anywhere in the source; it's assembled from a configuration list elsewhere in a given SoC build, so reading one plugin in isolation only shows half the picture.
+Commit SHAs pin exact source text, but the projects change frequently, and each excerpt reflects its file at the pinned commit, which may differ from the current version. CVA6's BHT file has a large FPGA-target branch (`gen_fpga_bht`) that the excerpt omits in favor of the simpler ASIC-target branch, since the FPGA path exists only to accommodate synchronous-BRAM read/write timing and adds no algorithmic content. In VexRiscv, the pipeline referenced in `BranchPlugin.scala` does not exist as a fixed set of stages anywhere in the source. It is assembled from a configuration list elsewhere in a given SoC build, so a single plugin read in isolation shows only part of the design.
 
 ## Sources
 

@@ -8,12 +8,13 @@ tags:
   - microarchitecture
   - measurement
 date: 2026-08-01
-updated: 2026-11-12
+updated: 2026-11-15
 authors:
   - elimelt
   - gpt-6
+  - claude-opus-5-5
 status: draft
-description: A measurement-record schema for computer-architecture experiments (hardware, software, method, evidence class, results), applied honestly against this repo's existing benchmark notes, most of which are missing the hardware model, compiler flags, or both.
+description: A measurement-record schema for computer-architecture experiments (hardware, software, method, evidence class, results), applied to the repository's existing benchmark notes, most of which lack the hardware model, compiler flags, or both.
 sources:
   - title: What Every Programmer Should Know About Memory (Ulrich Drepper)
     url: https://www.akkadia.org/drepper/cpumemory.pdf
@@ -23,13 +24,13 @@ sources:
     type: docs
 ---
 
-## Purpose
+A **measurement record** for a computer-architecture experiment lists the hardware, software, method, evidence class, and results needed to reproduce and interpret a benchmark result.
 
-A benchmark result without its measurement record is a number you can't trust or reproduce. This note defines a minimal schema for recording computer-architecture experiments, whether the evidence is a wall-clock timer, a hardware performance counter, or an RTL simulation waveform, and then applies that schema to this repo's own benchmark notes under `systems/operating-systems/benchmarks/`. Most of them are missing required fields. That's stated here plainly rather than fixed silently, since silently backfilling unrecorded hardware details would violate `.notes/artifacts.yml`'s rule to never invent or reconstruct unrecorded measurements.
+A result without such a record can be neither reproduced nor checked. A minimal schema applies whether the evidence is a wall-clock timer, a hardware performance counter, or an RTL simulation waveform. Applied to the benchmark notes under `systems/operating-systems/benchmarks/`, it shows that most of them lack required fields. The gaps are reported as they are instead of filled in, since backfilling unrecorded hardware details would violate the rule in `.notes/artifacts.yml` against inventing or reconstructing unrecorded measurements.
 
 ## The measurement-record schema
 
-Every benchmark claim in this repo should be traceable to a record with these fields:
+Every benchmark claim in the repository should be traceable to a record with the following fields.
 
 ```yaml
 ## schema below: informal, not machine-validated
@@ -58,32 +59,32 @@ results:
   units: string
 ```
 
-Three evidence classes cover essentially everything in this repo and its likely extensions:
+Three evidence classes cover nearly all measurements in the repository and its likely extensions.
 
-- **Wall-clock**: `clock_gettime` or equivalent around a timed loop. Cheapest to collect, easiest to contaminate with noise (frequency scaling, other processes, page faults).
-- **Hardware-counter**: `perf stat`/`perf record` reading model-specific registers (cache misses, branch mispredicts, LLC references). Needs the exact microarchitecture recorded, because counter definitions and even counter availability vary across vendors and generations.
-- **RTL-waveform**: cycle-accurate simulation output (from something like Verilator or a vendor simulator) for a specific RTL design at a specific commit, as in [[hardware/computer-architecture/rtl-reading-lab|the RTL reading lab]]. The "hardware" here is the simulated microarchitecture, not a physical chip, and the record needs to say so plus name the simulator and commit.
+- **Wall-clock**: `clock_gettime` or equivalent around a timed loop. It is the simplest to collect and the most susceptible to noise (frequency scaling, other processes, page faults).
+- **Hardware-counter**: `perf stat`/`perf record` reading model-specific registers (cache misses, branch mispredicts, LLC references). It requires the exact microarchitecture to be recorded, because counter definitions and even counter availability vary across vendors and generations.
+- **RTL-waveform**: cycle-accurate simulation output (from a simulator such as Verilator or a vendor simulator) for a specific RTL design at a specific commit, as in [[hardware/computer-architecture/rtl-reading-lab|the RTL reading lab]]. The "hardware" is then the simulated microarchitecture, not a physical chip, and the record must state this and name the simulator and commit.
 
-`evidence_class` matters because it changes what "reproducible" means. A wall-clock number is only reproducible on the same or comparable hardware; a hardware-counter number needs the same microarchitecture family to even be comparable across machines; an RTL-waveform number is reproducible by anyone who checks out the same commit and simulator version, independent of physical hardware entirely.
+`evidence_class` determines what "reproducible" means. A wall-clock number is reproducible only on the same or comparable hardware; a hardware-counter number is comparable across machines only within the same microarchitecture family; an RTL-waveform number can be reproduced from the same commit and simulator version, independently of physical hardware.
 
 ## Why the record matters: a simulation
 
-Each field under `method` and `os` names a way a wall-clock comparison can go wrong. The figure below simulates one comparison so you can watch it happen. Version B of some routine is truly 2% faster than version A, a typical size for a micro-optimization. The harness times all of A's runs and then all of B's, the way a simple shell loop would. Every control you leave off adds a noise source that the record would have to admit to:
+Each field under `method` and `os` corresponds to a source of error in a wall-clock comparison. The figure simulates one comparison. Version B of a routine is 2% faster than version A, a plausible size for a micro-optimization. The harness times all of A's runs and then all of B's, as a simple shell loop would. Each control that is omitted adds a noise source that the record would have to disclose.
 
-- **Warm-up** (`method.warmup`): the first runs pay for cold caches, page faults and untrained branch predictors.
-- **Pinning** (`method.affinity`): an unpinned thread sometimes migrates to another core and pays to refill its caches.
-- **Fixed frequency** (the governor and turbo settings under `os`): turbo clocks fade as the chip heats, so whatever runs later runs slower.
-- **A quiet machine**: other processes occasionally take the core.
+- **Warm-up** (`method.warmup`): the first runs incur cold caches, page faults and untrained branch predictors.
+- **Pinning** (`method.affinity`): an unpinned thread sometimes migrates to another core and must refill its caches.
+- **Fixed frequency** (the governor and turbo settings under `os`): turbo frequencies decline as the chip heats, so later runs execute more slowly.
+- **A quiet machine**: other processes occasionally occupy the core.
 
 <BenchmarkNoise />
 
-With no controls and five runs of each, the interval for the speedup spans tens of percent and the experiment can't say anything. Turn on only the warm-up and it becomes confident and wrong: the interval narrows, but thermal drift lands entirely on B because B runs second, and most repetitions of the experiment name A the winner. Fixing the frequency removes that bias. Fifty runs of each mostly hide it too, but only because the chip reaches a steady temperature early in the session, which is a property of this simulated machine rather than something to count on. Interleaving A and B runs would cancel the drift as well, so a complete record should also say in what order the runs were taken.
+With no controls and five runs of each version, the interval for the speedup spans tens of percent, and the experiment cannot distinguish the two versions. With only the warm-up enabled, the interval narrows but the estimate is biased. Thermal drift falls entirely on B because B runs second, and most repetitions of the experiment find A faster. Fixing the frequency removes that bias. Fifty runs of each version also mostly conceal it, but only because the chip reaches a steady temperature early in the session, a property of this simulated machine that does not hold in general. Interleaving A and B runs would also cancel the drift, so a complete record should state the order in which the runs were taken.
 
-The figure's measurement record shows the same thing from the other side: the four controls are exactly the fields that the audit below finds missing from most of this repo's benchmark notes, and without them a reader can't tell which of these scenarios produced a number.
+The measurement record shown in the figure lists the four controls. These are the fields that most of the repository's benchmark notes lack, and without them a reader cannot determine which of these scenarios produced a number.
 
 ## Auditing this repo's benchmark notes against the schema
 
-The table below records the provenance of the original measurements under `content/systems/operating-systems/benchmarks/`. Missing fields remain missing for those measurements. The October 9, 2026 [[systems/operating-systems/benchmarks/store_fwd|store-forwarding experiment]] adds a separate runnable harness and measurement record with CPU model, compiler and flags, kernel, affinity, warmup, repetitions, and raw samples. It does not reconstruct the original experiment.
+The table records the provenance of the original measurements under `content/systems/operating-systems/benchmarks/`. Missing fields remain missing for those measurements. The October 9, 2026 [[systems/operating-systems/benchmarks/store_fwd|store-forwarding experiment]] adds a separate runnable harness and measurement record with CPU model, compiler and flags, kernel, affinity, warmup, repetitions, and raw samples. It does not reconstruct the original experiment.
 
 | Note | `cpu_model` | `compiler`+flags | `os`/kernel | `repetitions` | `variance_reported` | Evidence class |
 |---|---|---|---|---|---|---|
@@ -99,11 +100,11 @@ The table below records the provenance of the original measurements under `conte
 
 The original records above lack OS/kernel details, and most omit repetition and variability. These gaps prevent checking whether an apparent difference could reflect frequency changes, scheduling, or run-to-run noise. The new store-forwarding record shows how to preserve the source and individual samples alongside the setup; its limitations still include uncontrolled frequency and background activity.
 
-Relative comparisons also need a valid harness and controlled conditions; their size and sometimes their ordering can change across processors. Keep historical results separate when running a new experiment, and record enough detail to distinguish the observed behavior from its proposed explanation.
+Relative comparisons also need a valid harness and controlled conditions; their size and sometimes their ordering can change across processors. Historical results should be kept separate when a new experiment is run, with enough detail recorded to distinguish the observed behavior from its proposed explanation.
 
 ## What a complete record looks like
 
-The `cache_line_efficiency` benchmark comes closest, so it's worth extracting what it does right as the template for new benchmarks:
+The `cache_line_efficiency` benchmark comes closest to a complete record, and its record serves as the template for new benchmarks:
 
 ```yaml
 question: "How much of peak memory bandwidth is achieved for sequential
@@ -127,17 +128,17 @@ results:
   units: "GB/s"
 ```
 
-Even this benchmark's biggest gap, no per-pass variance, is fixable without rerunning anything expensive: report min/max or stddev across the 5 passes instead of collapsing straight to the mean, since 5 samples is enough to say something about noise but the current note discards that information.
+The largest gap in this record, the absence of per-pass variance, can be closed without an expensive rerun by reporting the min/max or standard deviation across the 5 passes instead of only the mean. Five samples are enough to give some indication of noise, but the current note discards that information.
 
 ## Applying this to RTL evidence
 
-The RTL-waveform evidence class needs one more field the schema above doesn't spell out for the wall-clock and hardware-counter cases: the exact commit SHA of the RTL under test, plus the simulator and its version, because "cycles to execute this trace" is only meaningful pinned to both. [[hardware/computer-architecture/rtl-reading-lab|The RTL reading lab]] pins every excerpt to a commit SHA for exactly this reason, even though it doesn't run simulations itself; any future benchmark note built on those cores (say, comparing branch misprediction recovery cycles between BOOM and XiangShan via waveform traces) should inherit that same commit-pinning discipline plus the simulator name and flags used to build the design.
+The RTL-waveform evidence class requires a field that the schema does not specify for the wall-clock and hardware-counter cases: the exact commit SHA of the RTL under test, together with the simulator and its version, because "cycles to execute this trace" is meaningful only when pinned to both. [[hardware/computer-architecture/rtl-reading-lab|The RTL reading lab]] pins every excerpt to a commit SHA for this reason, although it runs no simulations itself. A future benchmark note built on those cores (for example, one comparing branch misprediction recovery cycles between BOOM and XiangShan via waveform traces) should pin commits in the same way and also record the simulator name and the flags used to build the design.
 
 ## Edge cases and limits
 
-This schema is deliberately informal (YAML-shaped prose, not a JSON Schema with a validator), because `.notes/` has no tooling to enforce measurement-record structure yet. It's a checklist for the author to run through before publishing a benchmark note, not a machine-checked contract. A future version could plausibly become a real schema file under `.notes/`, alongside `frontmatter.yml`, `content.yml`, and `prose.yml`, and get referenced from `AGENTS.md`'s benchmark-note workflow, but that's a repo-infrastructure change outside the scope of this note.
+The schema is informal by design (YAML-shaped prose, not a JSON Schema with a validator), because `.notes/` has no tooling to enforce measurement-record structure yet. It is a checklist for the author to complete before publishing a benchmark note and is not checked by machine. A future version could become a schema file under `.notes/`, alongside `frontmatter.yml`, `content.yml`, and `prose.yml`, referenced from the benchmark-note workflow in `AGENTS.md`; that change concerns the repository's infrastructure.
 
-The schema also doesn't fully cover comparative benchmarking across systems with different ISAs (say, comparing an x86 result to a result from RVV hardware), since cycle counts and even the meaning of "one operation" diverge across ISAs in ways a single `hardware.cpu_model` field can't capture. That's a gap worth returning to once such a comparison is actually attempted rather than speculatively designed for now.
+The schema also does not fully cover comparative benchmarking across systems with different ISAs (for example, comparing an x86 result with a result from RVV hardware), since cycle counts and even the meaning of "one operation" differ across ISAs in ways that a single `hardware.cpu_model` field cannot capture. The schema can be extended for this case when such a comparison is first attempted.
 
 ## Sources
 

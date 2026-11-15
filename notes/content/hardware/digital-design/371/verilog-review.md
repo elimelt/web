@@ -11,7 +11,10 @@ tags:
   - fsm
   - test benches
 date: 2025-04-03
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
 description: SystemVerilog review for EE271/CSE371 Spring 2025, covering basic concepts for combinational and sequential logic, FSMs, and test benches.
 sources:
@@ -19,9 +22,7 @@ sources:
     type: lecture
 ---
 
-## Purpose
-
-Review sheet for the SystemVerilog assumed going into EE 271/CSE 371. It stays terse on purpose. [[hardware/digital-design/369/system-verilog|SystemVerilog]] has fuller explanations of the basics.
+The SystemVerilog assumed as background for EE 271/CSE 371 (Spring 2025) comprises integer representation, constants and operators, modules, procedural blocks, FSMs and test benches. [[hardware/digital-design/369/system-verilog|SystemVerilog]] gives fuller explanations of the basics.
 
 ## Integer representation
 
@@ -88,7 +89,7 @@ Review sheet for the SystemVerilog assumed going into EE 271/CSE 371. It stays t
 - Both store information, but operate differently:
   - Latches are asynchronous (level-sensitive)
   - Flip-flops are edge-triggered (synchronous)
-- Beware of inadvertent latches from incomplete assignments
+- Incomplete assignments can infer latches inadvertently
 
 > [!warning] Accidental latch inference
 > If any path through a combinational always block leaves an output unassigned, the synthesizer must hold its old value, and it does that by inferring a latch. Assign every output on every path, add a `default` to case statements, or set default values at the top of the block. Using `always_comb` instead of `always @(*)` helps because tools warn when a block declared combinational infers storage.

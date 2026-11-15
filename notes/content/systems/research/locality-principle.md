@@ -13,7 +13,10 @@ tags:
   - caching
   - paper-notes
 date: 2025-03-05
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
 description: Review notes on Denning's retrospective about the working set model and how locality of reference became a general design principle for memory systems.
 sources:
@@ -25,9 +28,7 @@ sources:
     type: paper
 ---
 
-## Purpose
-
-Reading notes on Denning's retrospective about locality. The note traces how the working set model fixed thrashing in early virtual memory, and why locality generalized into a design principle far beyond paging. My original note linked the wrong PDF; the sources above are the correct ones.
+[The Locality Principle](https://dl.acm.org/doi/10.1145/1070838.1070856) (Peter J. Denning, CACM, July 2005) is a retrospective on the working set model and on locality of reference, the tendency of a program's memory references to cluster in a subset of its address space that changes slowly over time. Denning traces how the working set model resolved thrashing in early virtual memory systems and how locality became a design principle for systems well beyond paging. My original note linked the wrong PDF; the sources listed with the citation are the correct ones.
 
 ## Citation
 
@@ -35,28 +36,28 @@ Reading notes on Denning's retrospective about locality. The note traces how the
 
 ## Problem
 
-Early virtual memory implementations were plagued by thrashing, where the system spends more time swapping pages in and out of memory than executing the program. Thrashing happens when a program's working set is larger than the physical memory available to it, so it page faults repeatedly and throughput collapses.
+Thrashing was a recurring problem in early virtual memory implementations. A thrashing system spends more time swapping pages in and out of memory than executing the program. Thrashing occurs when a program's working set is larger than the physical memory available to it, so it page faults repeatedly and throughput falls sharply.
 
 ## Main idea
 
-Denning recounts the history of virtual memory and the development of the working set model for managing memory. While studying the problem, he found a natural pattern in program behavior: memory references cluster, and the set of pages a program needs stays related over time by locality. That property is general, and it can be exploited to improve the performance of systems well beyond paging, particularly any system that talks to external storage.
+Denning recounts the history of virtual memory and the development of the working set model for managing memory. In studying the problem, he observed a regularity in program behavior. Memory references cluster, and the set of pages a program uses changes slowly over time. That property is general and can be exploited to improve the performance of systems well beyond paging, particularly systems that access external storage.
 
 ## Mechanism
 
-The working set model $W(t, T)$ defines a process's memory needs as the set of pages it referenced in the time interval of length $T$ preceding time $t$. That gives an abstract, measurable definition of what a process needs, and a theoretical basis for reasoning about memory behavior.
+The working set model $W(t, T)$ defines a process's memory needs as the set of pages it referenced in the time interval of length $T$ preceding time $t$. This gives an abstract, measurable definition of a process's memory demand, and a theoretical basis for reasoning about memory behavior.
 
-The model turns into a control mechanism through admission control on the multiprogramming level. The OS refuses to activate a program whose working set would not fit in available memory. Feedback control on that admission decision prevents thrashing outright, because memory never gets committed past what the active working sets demand. The same coping strategy applies whenever working sets grow too large: queue up requests and control admission.
+The model becomes a control mechanism through admission control on the multiprogramming level. The OS does not activate a program whose working set would not fit in available memory. Feedback control on that admission decision prevents thrashing, because memory is never committed beyond what the active working sets demand. The same strategy, queueing requests and controlling admission, applies whenever working sets grow too large.
 
-> [!tip] The thrashing fix in one line
-> Never activate a program whose working set does not fit in available memory. $W(t, T)$ is what makes "fit" a measurable condition.
+> [!tip] Preventing thrashing
+> A program is activated only if its working set fits in available memory. $W(t, T)$ makes "fit" a measurable condition.
 
 ## Assumptions and limits
 
-The original model fixes $T$, which makes it behave like an LRU cache of a fixed window, and no single window suits all workloads. Some workloads also break the model's shape entirely, like a job that reads a massive file sequentially and never revisits a page.
+The original model fixes $T$, which makes it behave like an LRU cache of a fixed window, and no single window suits all workloads. Some workloads also fall entirely outside the model, such as a job that reads a large file sequentially and never revisits a page.
 
 ## Evidence
 
-The paper is historical, so the evidence is the record. Working-set-based memory management made virtual memory viable and reasonably predictable, and locality went on to be applied across caches, storage hierarchies, and plenty of other domains.
+The paper is historical, so its evidence is the historical record. Working-set-based memory management made virtual memory viable and reasonably predictable, and locality was subsequently applied to caches, storage hierarchies and many other domains.
 
 ## Open questions
 

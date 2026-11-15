@@ -10,9 +10,12 @@ tags:
   - clock-recovery
   - latency
 date: 2024-01-05
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: How bits become signals on a link. Covers simple codings (NRZ, RZ), clock recovery, the difference between coding and modulation, a simple link model, and message latency with a worked example.
+description: The representation of bits as signals on a link, covering simple codings (NRZ, RZ), clock recovery, the distinction between coding and modulation, a simple link model, and message latency with a worked example.
 sources:
   - title: UW CSE 461 Computer Networks
     url: https://courses.cs.washington.edu/courses/cse461/
@@ -22,9 +25,9 @@ sources:
     type: textbook
 ---
 
-## Purpose
+The physical layer specifies how a sender represents bits as a signal on a transmission medium and how a receiver recovers them. It covers the conversion of digital data to an analog signal and back, and the delays a message incurs in crossing a link.
 
-Explain how signals carry bits over a link. That means how digital data becomes an analog signal and back, and what delays a message picks up along the way. [[systems/networks/1-physical/coding-and-modulation|Coding and modulation]] goes deeper on the encoding schemes themselves.
+The conversion has two parts. A coding or modulation scheme maps bits to signal levels, and the receiver must recover the timing of the symbols in order to sample them. The encoding schemes are treated in more detail in [[systems/networks/1-physical/coding-and-modulation|Coding and modulation]].
 
 ## Coding and modulation
 
@@ -32,15 +35,15 @@ A modem (modulator-demodulator) converts digital signals to analog signals and b
 
 ### A simple coding
 
-Use a high positive voltage for 1 and a low negative voltage for 0. This is **NRZ** (non-return-to-zero). Each time interval carries one **symbol**, and the receiver samples once per symbol.
+**NRZ** (non-return-to-zero) coding represents 1 by a high positive voltage and 0 by a low negative voltage. Each time interval carries one **symbol**, and the receiver samples once per symbol.
 
-NRZ only gets 1 bit per symbol. Using more voltage levels packs more bits into each symbol. To get $N$ bits per symbol you need $2^N$ voltage levels, and the more levels you use, the more sensitive the signal is to noise. Practical coding schemes trade these off in different ways depending on the engineering constraints of the link.
+NRZ carries 1 bit per symbol. Additional voltage levels carry more bits per symbol: $N$ bits per symbol require $2^N$ voltage levels, and a signal with more levels is more sensitive to noise. Practical coding schemes balance these two effects according to the engineering constraints of the link.
 
 ### Clock recovery
 
-The receiver needs frequent signal transitions to decode bits. A long run of identical bits gives it nothing to synchronize on, so it loses track of where symbols begin and end. Manchester coding and scrambling both solve this.
+The receiver relies on frequent signal transitions to decode bits. A long run of identical bits contains no transitions to synchronize on, so the receiver can lose track of where symbols begin and end. Manchester coding and scrambling both address this.
 
-A simple fix is return-to-zero (RZ) coding, which alternates between the signal voltage and zero after each bit:
+Return-to-zero (RZ) coding is a simple remedy. It alternates between the signal voltage and zero after each bit:
 
 ```txt
     0       1        1      1       0
@@ -53,11 +56,11 @@ A simple fix is return-to-zero (RZ) coding, which alternates between the signal 
 -V |___|   |   |   |   |   |   |   |___|
 ```
 
-You can do better than RZ. Map input bit patterns to longer output patterns chosen so that long runs of zeros cannot occur (4b/5b works this way). Or XOR the data with a pseudorandom bit pattern before sending, which makes the encoded data look random and kills most long runs. Both approaches show up in [[systems/networks/1-physical/coding-and-modulation|coding and modulation]].
+Two approaches are more efficient than RZ. The first maps input bit patterns to longer output patterns chosen so that long runs of zeros cannot occur, as 4b/5b does. The second XORs the data with a pseudorandom bit pattern before transmission, so that the encoded data appears random and most long runs are removed. Both are described in [[systems/networks/1-physical/coding-and-modulation|coding and modulation]].
 
 ### Modulation vs. coding
 
-With **coding**, the signal goes directly onto the wire. That works poorly for wireless, so wireless links use **modulation** instead. Modulation carries a signal by varying the frequency, amplitude, or phase of a carrier wave. The original signal is the **baseband**, and the modulated signal is the **passband**.
+With **coding**, the signal is placed directly on the wire. This works poorly for wireless links, which use **modulation** instead. Modulation carries a signal by varying the frequency, amplitude, or phase of a carrier wave. The original signal is the **baseband** signal, and the modulated signal is the **passband** signal.
 
 Examples:
 
@@ -66,26 +69,26 @@ Examples:
 - Frequency shift keying (Bluetooth)
 - Phase shift keying
 
-Modern WiFi goes further and uses a whole band of frequencies with many signal levels rather than two.
+Modern WiFi uses a band of frequencies and many signal levels rather than two.
 
 ### Key points
 
-- Everything is analog, even digital signals. A digital signal is conceptually discrete but lives in a continuous physical medium.
-- Modulating and demodulating converts between the digital data and the analog carrier.
-- A coding is an agreed-upon language for your data.
+- All signals are physically analog. A digital signal is conceptually discrete but is carried by a continuous physical medium.
+- Modulation and demodulation convert between the digital data and the analog carrier.
+- A coding is a convention, shared by sender and receiver, for representing data as a signal.
 
 ## Simple link model
 
 Two main parameters describe a link:
 
 - **Rate** (bandwidth, capacity, speed): bits per second
-- **Delay**: how long a message takes to get across
+- **Delay**: the time a message takes to cross the link
 
-Also relevant are the type of cast (unicast, multicast, broadcast) and the error rate.
+The type of cast (unicast, multicast, broadcast) and the error rate are also relevant.
 
 ### Message latency
 
-**Latency** is the time a message takes to travel from one end of a link to the other. It is the sum of the **transmission delay** (time to put the bits on the wire) and the **propagation delay** (time for the bits to cross the link). Signals in copper and fiber travel at roughly $\frac{2}{3}c$, which is where the $3D/2c$ form comes from.
+**Latency** is the time a message takes to travel from one end of a link to the other. It is the sum of the **transmission delay** (the time to put the bits on the wire) and the **propagation delay** (the time for the bits to cross the link). Signals in copper and fiber travel at roughly $\frac{2}{3}c$, which gives the $3D/2c$ form below.
 
 ```txt
 Transmission delay:
@@ -108,11 +111,11 @@ T = 8 Mb / 10 Mbps = 0.8 s
 L_t = 0.8 s + 0.05 s = 0.85 s
 ```
 
-Transmission delay dominates here. On a faster link the propagation delay would take over, since distance does not shrink with the rate.
+Transmission delay dominates in this example. On a faster link the propagation delay would dominate, since it does not decrease as the rate increases.
 
 ### Cut-through routing
 
-Store-and-forward switching pays the full transmission delay at every hop, because each node buffers the whole message before sending it on. Cut-through routing starts forwarding as soon as the destination header arrives, before the rest of the message is in. That cuts per-hop latency, at the cost of forwarding frames before their checksum can be verified.
+Store-and-forward switching incurs the full transmission delay at every hop, because each node buffers the whole message before forwarding it. Cut-through routing begins forwarding as soon as the destination header arrives, before the rest of the message has been received. This reduces per-hop latency, but frames are forwarded before their checksum can be verified.
 
 ## Related notes
 

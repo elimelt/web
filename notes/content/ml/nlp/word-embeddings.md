@@ -8,8 +8,12 @@ tags:
   - glove
   - representation learning
 date: 2026-08-01
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: draft
-description: Dense lexical representations from the distributional hypothesis through word2vec and GloVe, why they work, where their geometry misleads, and how they connect to transformer token embeddings, with a verified toy skip-gram implementation.
+description: Dense lexical representations from the distributional hypothesis through word2vec and GloVe, the reasons their geometry encodes word relations, the cases in which distributional similarity departs from semantic similarity, and their relation to transformer token embeddings, with a toy skip-gram implementation and its measured output.
 sources:
   - title: Mikolov et al. (2013), Efficient Estimation of Word Representations in Vector Space
     url: https://arxiv.org/abs/1301.3781
@@ -25,21 +29,21 @@ sources:
     type: paper
 ---
 
-## Purpose
+Word embeddings are dense, low-dimensional real-valued vectors that represent the words of a vocabulary and are learned so that words occurring in similar contexts have nearby vectors. Static embeddings assign one vector to each word type, and they are trained either by predicting context words (word2vec) or by fitting global co-occurrence statistics (GloVe).
 
-This note fills the gap between sparse count representations like [[ml/nlp/ppmi|PPMI]] and [[ml/nlp/reading/information-retrieval|tf-idf]] on one side and transformer models on the other: how dense word vectors are trained, why they capture meaning, and where their geometry misleads. It ends at the boundary where static embeddings hand off to the learned embedding matrices inside [[ml/deep-learning/decoder-only-transformers|decoder-only transformers]].
+They occupy the position between sparse count representations such as [[ml/nlp/ppmi|PPMI]] and [[ml/nlp/reading/information-retrieval|tf-idf]], whose vectors are as long as the vocabulary, and the learned embedding matrices inside [[ml/deep-learning/decoder-only-transformers|decoder-only transformers]], whose upper layers make each token's representation depend on its context.
 
 ## The distributional hypothesis
 
-The idea predates neural networks by decades. Harris (1954) argued that "difference of meaning correlates with difference of distribution," and Firth (1957) gave it the slogan: you shall know a word by the company it keeps. Operationally: represent each word by statistics of the contexts it appears in, and words with similar meanings end up with similar representations, because they occur in similar contexts.
+The distributional hypothesis states that words occurring in similar contexts tend to have similar meanings. The idea predates neural networks by decades. Harris (1954) argued that "difference of meaning correlates with difference of distribution," and Firth (1957) summarized it as "you shall know a word by the company it keeps." Operationally, each word is represented by statistics of the contexts in which it appears, and words with similar meanings receive similar representations because they occur in similar contexts.
 
-Sparse methods implement this directly. A co-occurrence matrix (optionally reweighted, as in [[ml/nlp/ppmi|PPMI]]) gives each word a vector as long as the vocabulary. These vectors work for retrieval-style tasks but have two structural problems: dimensionality equal to vocabulary size, and no sharing between related contexts. Seeing "the cat sat" teaches a count model nothing about "the dog sat" — the counts live in different columns.
+Sparse methods implement this directly. A co-occurrence matrix (optionally reweighted, as in [[ml/nlp/ppmi|PPMI]]) gives each word a vector as long as the vocabulary. These vectors are adequate for retrieval tasks but have two structural limitations. Their dimensionality equals the vocabulary size, and statistics are not shared between related contexts. A count model that observes "the cat sat" acquires no information about "the dog sat", since the two sets of counts occupy different columns.
 
-[Bengio et al. (2003)](https://www.jmlr.org/papers/volume3/bengio03a/bengio03a.pdf) diagnosed this as the curse of dimensionality for n-gram language models and made the key move: learn a shared real-valued vector per word (they used ~60 dimensions) jointly with a neural next-word predictor, so that one observed sentence transfers probability mass to the exponentially many similar sentences reachable by swapping semantically close words. Their neural LM beat modified Kneser-Ney trigrams on Brown and AP News perplexity, at a steep 2003-era cost (weeks on 40 CPUs). The lasting contribution was not the LM but the recipe: embeddings as the first layer of a network trained on a prediction task.
+[Bengio et al. (2003)](https://www.jmlr.org/papers/volume3/bengio03a/bengio03a.pdf) identified this as the curse of dimensionality for n-gram language models and proposed learning a shared real-valued vector for each word (about 60 dimensions in their experiments) jointly with a neural next-word predictor. A single observed sentence then raises the probability of the exponentially many similar sentences obtained by substituting semantically close words. Their neural language model achieved lower perplexity than modified Kneser-Ney trigram models on the Brown and AP News corpora, at a training cost of weeks on 40 CPUs. Later work retained from it the use of embeddings as the first layer of a network trained on a prediction task, more than the language model itself.
 
 ## word2vec: prediction as the training signal
 
-[Mikolov et al. (2013)](https://arxiv.org/abs/1301.3781) stripped Bengio's model down to the embeddings themselves — no hidden layer, just a log-linear predictor — which made training fast enough for billions of tokens. Two architectures:
+[Mikolov et al. (2013)](https://arxiv.org/abs/1301.3781) reduced Bengio's model to the embeddings and a log-linear predictor with no hidden layer, which made training on billions of tokens feasible. The paper proposed two architectures:
 
 - **CBOW** averages the context vectors and predicts the center word.
 - **Skip-gram** uses the center word to predict each context word within a window of radius $c$, maximizing
@@ -48,23 +52,23 @@ $$
 \frac{1}{T}\sum_{t=1}^{T} \sum_{\substack{-c \le j \le c \\ j \ne 0}} \log p(w_{t+j} \mid w_t).
 $$
 
-Skip-gram tends to win on rare words; CBOW is faster. The bottleneck in both is the softmax over the vocabulary, $p(w_O \mid w_I) = \exp(v'^{\top}_{w_O} v_{w_I}) / \sum_w \exp(v'^{\top}_w v_{w_I})$, whose denominator costs $O(|V|)$ per update.
+Skip-gram tends to give better representations of rare words, and CBOW trains faster. In both, the computational bottleneck is the softmax over the vocabulary, $p(w_O \mid w_I) = \exp(v'^{\top}_{w_O} v_{w_I}) / \sum_w \exp(v'^{\top}_w v_{w_I})$, whose denominator requires $O(|V|)$ operations per update.
 
-[The follow-up paper](https://arxiv.org/abs/1310.4546) replaced it with **negative sampling**: turn the multiclass prediction into a set of binary discriminations, one real (word, context) pair against $k$ sampled fake ones:
+[The follow-up paper](https://arxiv.org/abs/1310.4546) replaced it with **negative sampling**, which converts the multiclass prediction into binary discriminations between one observed (word, context) pair and $k$ sampled noise pairs:
 
 $$
 \log \sigma(v'^{\top}_{w_O} v_{w_I}) + \sum_{i=1}^{k} \mathbb{E}_{w_i \sim P_n(w)} \left[ \log \sigma(-v'^{\top}_{w_i} v_{w_I}) \right],
 $$
 
-with noise distribution $P_n(w) \propto U(w)^{3/4}$ (the 3/4 power flattens the unigram distribution so rare words get sampled more) and $k$ = 5-20 for small corpora, 2-5 at billion-word scale. Two further tricks from the same paper: subsampling frequent words (discard tokens of very common words with probability tied to their frequency, since "the" co-occurring with everything carries little signal) and, jointly, these cut training to under a day for 1.6B words on one machine.
+with noise distribution $P_n(w) \propto U(w)^{3/4}$ (the 3/4 power flattens the unigram distribution so that rare words are sampled more often) and $k$ = 5-20 for small corpora, 2-5 at billion-word scale. The same paper subsamples frequent words, discarding tokens of very common words with a probability tied to their frequency, since a word such as "the" co-occurs with nearly every word and carries little information about it. Together these techniques reduced training to under a day for 1.6B words on one machine.
 
-The famous result is the analogy geometry: $\text{vec}(\text{king}) - \text{vec}(\text{man}) + \text{vec}(\text{woman})$ lands nearest $\text{vec}(\text{queen})$. On the paper's semantic/syntactic analogy test set, 300-dimensional skip-gram reached roughly 50-65% total accuracy depending on training data, where prior NNLM embeddings scored under 25% ([Mikolov et al. 2013](https://arxiv.org/abs/1301.3781), Tables 3-4). Relations like capital-country and adjective-adverb are approximately parallel offsets in the space, which is the concrete sense in which "meaning" became linear structure.
+In the resulting space, the vector nearest to $\text{vec}(\text{king}) - \text{vec}(\text{man}) + \text{vec}(\text{woman})$ is $\text{vec}(\text{queen})$. On the paper's semantic/syntactic analogy test set, 300-dimensional skip-gram reached roughly 50-65% total accuracy depending on training data, where prior NNLM embeddings scored under 25% ([Mikolov et al. 2013](https://arxiv.org/abs/1301.3781), Tables 3-4). Relations such as capital-country and adjective-adverb correspond approximately to parallel offsets in the space, so that these relations are represented by linear structure.
 
 ## GloVe: regression on global counts
 
-[Pennington et al. (2014)](https://aclanthology.org/D14-1162.pdf) observed that what discriminates meaning is not co-occurrence probabilities but their *ratios*. From their corpus (their Table 1): for the pair ice/steam, the probe word "solid" has $P(\text{solid}\mid\text{ice})/P(\text{solid}\mid\text{steam}) = 8.9$, "gas" has ratio $0.085$, while "water" and "fashion" — related to both or neither — have ratios near 1. The ratio isolates the axis that separates the pair; raw probabilities are dominated by overall word frequency.
+[Pennington et al. (2014)](https://aclanthology.org/D14-1162.pdf) observed that *ratios* of co-occurrence probabilities discriminate meaning more clearly than the probabilities themselves. In their corpus (their Table 1), for the pair ice/steam, the probe word "solid" has $P(\text{solid}\mid\text{ice})/P(\text{solid}\mid\text{steam}) = 8.9$ and "gas" has ratio $0.085$, while "water" and "fashion" (related to both or to neither) have ratios near 1. The ratio isolates the axis that separates the pair; raw probabilities are dominated by overall word frequency.
 
-GloVe builds this in by fitting log co-occurrence counts with a weighted least-squares objective over the global count matrix $X$:
+GloVe incorporates this observation by fitting log co-occurrence counts with a weighted least-squares objective over the global count matrix $X$:
 
 $$
 J = \sum_{i,j=1}^{|V|} f(X_{ij}) \left( w_i^\top \tilde{w}_j + b_i + \tilde{b}_j - \log X_{ij} \right)^2,
@@ -72,23 +76,23 @@ J = \sum_{i,j=1}^{|V|} f(X_{ij}) \left( w_i^\top \tilde{w}_j + b_i + \tilde{b}_j
 f(x) = \begin{cases} (x/x_{\max})^{\alpha} & x < x_{\max} \\ 1 & \text{otherwise} \end{cases}
 $$
 
-with $x_{\max} = 100$, $\alpha = 3/4$. The weighting keeps the huge mass of frequent pairs from dominating while ignoring the noise in singleton counts (and zero counts drop out entirely, so the sum is over observed pairs). Because differences of the fitted quantities are log-ratios, the ratio structure becomes vector arithmetic by construction. Where skip-gram makes many stochastic passes over windows, GloVe makes one pass to build counts and then fits them, using the same information (word2vec with negative sampling is implicitly factorizing a shifted PMI matrix, which is why the two land in similar places). On the analogy task GloVe reported results competitive with or better than word2vec at equal dimension and corpus.
+with $x_{\max} = 100$, $\alpha = 3/4$. The weighting caps the contribution of the many frequent pairs and reduces the weight of noisy, rarely observed pairs, and zero counts contribute nothing, so the sum runs over observed pairs. Because differences of the fitted quantities are log-ratios, the ratio structure is expressed as vector arithmetic by construction. Skip-gram makes many stochastic passes over windows, while GloVe makes one pass to build counts and then fits them, and the two use the same information. Word2vec with negative sampling implicitly factorizes a shifted PMI matrix, which accounts for the similarity of the embeddings the two methods produce. On the analogy task GloVe reported results competitive with or better than word2vec at equal dimension and corpus.
 
-## Where the geometry misleads
+## Limits of the embedding geometry
 
 > [!warning] Distributional similarity is not semantic similarity
-> These spaces put words close together when they appear in similar contexts. Antonyms, senses of a polysemous word, and hub vectors all exploit that gap in different ways.
+> These spaces put words close together when they appear in similar contexts. Antonyms, the senses of a polysemous word and hub vectors each show the difference between the two in a different way.
 
-Nearest-neighbor structure in these spaces rewards distributional similarity, which is not the same as semantic similarity:
+Nearest neighbors in these spaces reflect distributional similarity, which differs from semantic similarity in the following ways.
 
 - **Antonyms cluster together.** "cheap" and "expensive" occur in nearly identical contexts, so their vectors are close. Distance cannot distinguish synonym from antonym.
-- **One vector per type.** Polysemous words get the frequency-weighted average of their senses; "bank" sits between finance and rivers, near neither cleanly. This is the limitation contextual models were built to fix.
+- **One vector per type.** A polysemous word receives approximately a frequency-weighted average of its senses; the vector for "bank" lies between the finance and river senses and close to neither. Contextual models were designed to remove this limitation.
 - **Hubness.** In high dimensions some vectors become nearest neighbors of a disproportionate number of words, degrading k-NN retrieval; cross-lingual embedding work introduced corrections like CSLS specifically for this.
-- **Analogy arithmetic is fragile.** The standard evaluation excludes the three input words from the candidate set; without that exclusion, the nearest vector to king - man + woman is usually king itself. Accuracy also drops sharply for rare words and relations beyond the curated test set.
+- **Analogy arithmetic is fragile.** The analogy evaluation excludes the three input words from the candidate set; without that exclusion, the nearest vector to king - man + woman is usually king itself. Accuracy also drops sharply for rare words and relations beyond the curated test set.
 
 ## Toy skip-gram with negative sampling
 
-A minimal implementation on a synthetic corpus with two topic clusters, verified in the repo venv. Words within a topic co-occur; the embedding should recover the cluster structure.
+The following minimal implementation trains on a synthetic corpus with two topic clusters and was run in the repository's virtual environment. Words co-occur only within a topic, so the embedding is expected to recover the cluster structure.
 
 ```python
 import numpy as np
@@ -126,11 +130,11 @@ cross = np.mean([sims[idx[a], idx[b]] for a in animals for b in tech])
 print(f"within-topic cosine: {same:.3f}, cross-topic: {cross:.3f}")
 ```
 
-Measured output: `within-topic cosine: 0.990, cross-topic: 0.132`. Words that share contexts collapse onto nearly the same direction while the two topics stay separated — the distributional hypothesis reduced to eight words and forty lines. (With only two hard topic clusters the within-topic similarity is more extreme than in real corpora, where 0.5-0.8 between close neighbors is typical.)
+The measured output is `within-topic cosine: 0.990, cross-topic: 0.132`. Words that share contexts have nearly identical directions, and the two topics remain separated. With only two disjoint topic clusters, the within-topic similarity is higher than in real corpora, where cosine similarities of 0.5-0.8 between close neighbors are typical.
 
-## Bridge to transformers
+## Relation to transformer embeddings
 
-A transformer's input layer is the same object: a learned embedding matrix $E \in \mathbb{R}^{|V| \times d}$ over [[ml/nlp/reading/tokenization|subword tokens]] rather than words, trained end-to-end on next-token prediction — skip-gram's training signal generalized from a window to the full causal context, with the log-linear predictor replaced by the transformer stack. The difference is what happens above the lookup: static embeddings stop there, so every occurrence of a type shares one vector, while attention layers produce token representations conditioned on the sentence, which is what resolves polysemy. Static embeddings survive where their economics win: initialization in low-resource settings, lightweight similarity and retrieval, and interpretability studies.
+The input layer of a transformer is also a learned embedding matrix $E \in \mathbb{R}^{|V| \times d}$, defined over [[ml/nlp/reading/tokenization|subword tokens]] instead of words and trained end-to-end on next-token prediction. That training signal generalizes skip-gram's from a fixed window to the full causal context, with the transformer stack in place of the log-linear predictor. The two differ in the computation above the lookup. A static embedding model performs none, so every occurrence of a type shares one vector, while the attention layers of a transformer produce token representations conditioned on the sentence, which resolves polysemy. Static embeddings remain in use where their lower computational cost matters, in initialization for low-resource settings, lightweight similarity and retrieval, and interpretability studies.
 
 ## Sources
 

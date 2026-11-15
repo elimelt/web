@@ -9,16 +9,19 @@ tags:
   - complexity analysis
   - bipartite graphs
 date: 2024-04-03
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
 description: BFS pseudocode and Python implementations, the O(|V| + |E|) runtime analysis, and proofs that BFS levels differ by at most one across any edge and equal shortest path distances.
 sources:
   - https://www.cs.princeton.edu/~wayne/kleinberg-tardos/
 ---
 
-## Purpose
+**Breadth-first search** (BFS) from a source vertex $s$ of a graph $G = (V, E)$ visits every vertex reachable from $s$ in nondecreasing order of its distance from $s$, where the distance of $v$ is the number of edges on a shortest path from $s$ to $v$.
 
-Breadth first search explores the vertices of a graph in order of their distance from the starting vertex. This note gives the algorithm, its runtime analysis, and proofs of the two structural facts that make BFS useful: adjacent vertices sit within one level of each other, and the level of a vertex equals its shortest path distance from the start.
+The search proceeds in levels. Level 0 contains $s$, level 1 contains the neighbors of $s$, and level $i + 1$ contains the vertices first discovered from vertices of level $i$. Two structural facts follow from this order: the levels of adjacent vertices differ by at most one, and the level of a vertex equals its shortest path distance from $s$.
 
 ## Core idea
 
@@ -28,7 +31,7 @@ A vertex is in one of three states during BFS:
 - **Discovered**: the vertex has been seen, but its neighbors have not been explored yet.
 - **Explored**: the vertex has been seen and its neighbors have been explored.
 
-BFS holds discovered vertices in a queue, so vertices leave the queue in the same order they were discovered. Discovery order respects distance from the start, which is what the proofs below make precise.
+BFS holds discovered vertices in a queue, so vertices leave the queue in the order in which they were discovered. Discovery order is nondecreasing in distance from the start, as [[#Levels are shortest path distances]] proves.
 
 ```text
 BFS(G, s):
@@ -60,7 +63,7 @@ $$
 3. Level $i$ of the tree contains exactly the vertices $v$ such that the shortest path from $s$ to $v$ has $i$ edges.
 4. All non-tree edges of $G$ connect vertices in the same level or adjacent levels.
 
-A BFS from $s$ on a small graph shows all four facts at once. Solid edges are tree edges, dashed edges are the non-tree edges of $G$, and every dashed edge stays within one level of itself:
+The following BFS from $s$ on a small graph exhibits all four facts. Solid edges are tree edges and dashed edges are the non-tree edges of $G$; each dashed edge joins two vertices of the same level or of adjacent levels.
 
 ```mermaid
 flowchart TD
@@ -89,7 +92,7 @@ flowchart TD
 ```
 
 > [!tip] Non-tree edges never skip a level
-> Fact 4 is the structural payoff of using a queue. If an edge spanned two or more levels, its deeper endpoint would have a shorter path than its level allows, contradicting the shortest-path claim below. The same-level case is exactly what the [[algorithms/bipartite-graphs|bipartiteness test]] looks for, since a same-level edge closes an odd cycle.
+> Fact 4 is a consequence of processing vertices in queue order. If an edge spanned two or more levels, its deeper endpoint would have a shorter path than its level allows, contradicting [[#Levels are shortest path distances]]. The same-level case is exactly what the [[algorithms/bipartite-graphs|bipartiteness test]] looks for, since a same-level edge closes an odd cycle.
 
 ### Difference in levels
 
@@ -139,7 +142,7 @@ def bfs(graph, start):
                 queue.append(neighbor)
 ```
 
-Or a reusable level-order iterator over a graph. The visited set matters here: without it, any cycle makes the traversal loop forever.
+A generator that also yields the level of each vertex follows. Without the visited set, the traversal does not terminate when a cycle is reachable from the start vertex.
 
 ```python
 from collections import deque

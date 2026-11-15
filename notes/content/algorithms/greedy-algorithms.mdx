@@ -10,12 +10,13 @@ tags:
   - interval graphs
   - matroids
 date: 2024-04-19
-updated: 2026-11-12
+updated: 2026-11-15
 status: evergreen
-description: Why earliest finish time is optimal for interval scheduling and start time for interval partitioning, with a figure that runs each greedy rule step by step against a brute-force optimum, measurements of how badly the wrong rules lose, and where greedy stops working.
+description: Proofs that earliest finish time is optimal for interval scheduling and earliest start time for interval partitioning, a figure that runs each greedy rule step by step against a brute-force optimum, measurements of the shortfall of the suboptimal rules on random inputs, and the failure of greedy rules on weighted and online variants.
 authors:
   - elimelt
   - gpt-5.6-sol
+  - claude-opus-5-5
 sources:
   - title: Kleinberg and Tardos (2005), Algorithm Design, chapters 4 and 6
     url: https://www.cs.princeton.edu/~wayne/kleinberg-tardos/
@@ -58,50 +59,48 @@ sources:
     type: paper
 ---
 
-## Purpose
-
-A greedy algorithm builds its answer one irrevocable choice at a time, always taking whatever looks best right now. That is easy to code and often wrong, so every greedy algorithm needs a proof. This note works through the two interval problems where the right greedy choice can be proved optimal:
+A **greedy algorithm** constructs a solution by a sequence of irrevocable choices, each of which optimizes a local criterion given the choices already made. Such algorithms are simple to implement, but a locally optimal choice need not lead to a global optimum, so the optimality of a greedy algorithm requires proof. For interval scheduling and interval partitioning, a suitable greedy order is provably optimal:
 
 | Problem | Goal | Greedy order | Why it is optimal |
 | --- | --- | --- | --- |
 | Interval scheduling | Keep the most pairwise-disjoint intervals | Earliest finish time | Greedy stays ahead: its $r$th interval ends no later than the $r$th interval of any optimal answer |
-| Interval partitioning | Put every interval in a room, using the fewest rooms | Earliest start time | When greedy opens room $d$, it can point at $d$ intervals that all overlap one moment, so every answer needs $d$ rooms |
+| Interval partitioning | Put every interval in a room, using the fewest rooms | Earliest start time | When greedy opens room $d$, some $d$ intervals all overlap one moment, so every answer needs $d$ rooms |
 
-Most of the interest is in the orders that look just as reasonable and lose. The figure below runs each one on an input you can edit, next to an optimum found by brute force. An experiment then measures how often and by how much they lose on random inputs. The last sections cover why greedy fails once intervals carry weights, and what changes when they arrive online.
+Other orders that appear equally plausible are suboptimal on some inputs, and their shortfall on random inputs is measured in [[#How badly the wrong rules lose]].
 
-The proofs use induction; [[algorithms/induction|Induction]] covers the pattern. Intervals are half-open, $[s(j), f(j))$, so one can start exactly when another finishes.
+The proofs use [[algorithms/induction|induction]]. Intervals are half-open, $[s(j), f(j))$, so one interval can start exactly when another finishes.
 
 ## The Figure
 
-Each row is an interval, listed in the order the chosen rule scans them, so the run reads top to bottom. Blue is what greedy kept, gray what it skipped, and green an optimal answer found by checking every subset of the input.
+Each row is an interval, listed in the order in which the selected rule scans the intervals, so the run proceeds from top to bottom. Blue marks the intervals greedy kept, gray those it skipped, and green an optimal answer found by checking every subset of the input.
 
-Things to try:
+The figure has the following controls.
 
 - **Switch the rule.** On the starting input, earliest finish keeps 4, fewest conflicts also keeps 4, shortest first keeps 3 and earliest start keeps 2.
-- **Read the table under the chart.** It checks the stays-ahead lemma row by row. For earliest finish every row holds against every optimal answer. A rule that loses breaks it somewhere against every optimal answer, which is the proof's argument run backwards.
+- **Read the table under the chart.** It checks the stays-ahead lemma row by row. For earliest finish every row holds against every optimal answer. A suboptimal rule violates it in some row against every optimal answer, which is the proof's argument in reverse.
 - **Step through with ◀ ▶.** The text says why each interval was kept or skipped, and an orange ring marks the kept interval that blocked it.
-- **Drag the intervals.** Drag a bar to move it and an end to resize it, or select one and use the arrow keys. Everything recomputes as you edit.
-- **Ask for a counterexample.** "Find an input where this rule loses" tries random inputs until the rule loses, then deletes intervals one at a time for as long as it keeps losing. For earliest finish it never finds one.
-- **Switch to rooms.** In partitioning mode the strip at the bottom is the depth, how many intervals cover each moment. Each time first fit opens a room, the text says whether the intervals blocking it all share a moment, and an orange line marks the new interval's start.
+- **Drag the intervals.** Drag a bar to move it and an end to resize it, or select one and use the arrow keys. The figure recomputes after each edit.
+- **Ask for a counterexample.** "Find an input where this rule loses" tries random inputs until the rule is suboptimal on one, then deletes intervals one at a time for as long as the rule remains suboptimal. For earliest finish it finds none.
+- **Switch to rooms.** In partitioning mode the strip at the bottom shows the depth, the number of intervals that cover each moment. Each time first fit opens a room, the text says whether the intervals blocking it all share a moment, and an orange line marks the new interval's start.
 
 <IntervalGreedy preset="mixed" />
 
 ## Interval Scheduling
 
-Job $j$ runs from $s(j)$ to $f(j)$, and two jobs are compatible if they don't overlap. The goal is to keep as many jobs as possible with no two overlapping. It is the first of the two classic [[reference/cheatsheets/algorithms/intervals|interval problems]].
+Job $j$ runs from $s(j)$ to $f(j)$, and two jobs are compatible if they do not overlap. The problem is to select as many jobs as possible with no two overlapping. It is the first of the two [[reference/cheatsheets/algorithms/intervals|interval problems]].
 
-Every rule in this note uses the same template. Sort the jobs by some key, scan them in that order, and keep each job that is compatible with everything kept so far. Only the key changes. [Kleinberg and Tardos (§4.1)](https://www.cs.princeton.edu/~wayne/kleinberg-tardos/pdf/04GreedyAlgorithmsI.pdf) list four natural keys:
+[Kleinberg and Tardos (§4.1)](https://www.cs.princeton.edu/~wayne/kleinberg-tardos/pdf/04GreedyAlgorithmsI.pdf) list four natural greedy rules, which follow the same template. Each sorts the jobs by a key, scans them in that order, and keeps each job that is compatible with every job kept so far; the rules differ only in the key.
 
-| Rule | Keeps next | Smallest input where it loses |
+| Rule | Keeps next | Smallest input on which it is suboptimal |
 | --- | --- | --- |
 | Earliest start | the job that starts first | $[0, 3), [1, 2), [2, 3)$: keeps $[0, 3)$ alone, while $[1, 2), [2, 3)$ gives 2 |
 | Shortest first | the shortest job | $[0, 3), [2, 4), [3, 5)$: keeps $[2, 4)$ alone, while $[0, 3), [3, 5)$ gives 2 |
 | Fewest conflicts | the job that overlaps the fewest others | $[0, 1), [0, 2), [0, 2), [1, 4), [3, 5), [4, 7), [5, 8), [7, 8)$: keeps 3, while earliest finish keeps 4. No input of 7 or fewer intervals with small integer endpoints loses |
 | Earliest finish | the job that finishes first | none |
 
-The first two are the smallest possible: an exhaustive search over inputs with integer endpoints found nothing smaller. Fewest conflicts rarely loses on small inputs, so its example came from a random search that deletes intervals while the rule still loses; the [measurement record](#how-badly-the-wrong-rules-lose) has the details.
+The first two examples are of minimum size; an exhaustive search over inputs with integer endpoints found no smaller ones. Fewest conflicts is suboptimal on few small inputs, so its example came from a random search that deletes intervals while the rule remains suboptimal; the [measurement record](#how-badly-the-wrong-rules-lose) gives the details.
 
-With earliest finish the template gets simpler. Kept jobs come out sorted by finish time, so a new job is compatible with all of them exactly when it starts after the last one ends:
+With earliest finish the template simplifies. The kept jobs are sorted by finish time, so a new job is compatible with all of them exactly when it starts no earlier than the last one finishes:
 
 ```python
 def interval_scheduling(jobs):
@@ -115,15 +114,15 @@ def interval_scheduling(jobs):
     return selected
 ```
 
-The sort costs $O(n \log n)$ and the scan $O(n)$. Sorting can't be avoided in general: [Bhattacharya et al. (2014, Lemma 2)](https://www.cccg.ca/proceedings/2014/papers/paper33.pdf) reduce element uniqueness to this problem, and combined with Ben-Or's $\Omega(n \log n)$ bound for element uniqueness in the algebraic decision tree model, that gives the same lower bound here.
+The sort takes $O(n \log n)$ time and the scan $O(n)$. The sort cannot be avoided in general. [Bhattacharya et al. (2014, Lemma 2)](https://www.cccg.ca/proceedings/2014/papers/paper33.pdf) reduce element uniqueness to this problem, and combined with Ben-Or's $\Omega(n \log n)$ bound for element uniqueness in the algebraic decision tree model, the reduction gives the same lower bound for interval scheduling.
 
 ### Why earliest finish is optimal: greedy stays ahead
 
-Say greedy kept jobs $i_1, \ldots, i_k$ and some optimal answer keeps $j_1, \ldots, j_m$, both listed in order of finish time. The goal is $m \le k$.
+Suppose greedy kept jobs $i_1, \ldots, i_k$ and some optimal answer keeps $j_1, \ldots, j_m$, both listed in order of finish time. It suffices to show $m \le k$.
 
 **Lemma.** $f(i_r) \le f(j_r)$ for every $r \le k$.
 
-**Proof** by induction on $r$. For $r = 1$, greedy's first pick finishes earliest of all jobs. For the step, assume $f(i_{r-1}) \le f(j_{r-1})$. The optimal answer's jobs don't overlap, so
+**Proof** by induction on $r$. For $r = 1$, greedy's first pick finishes earliest of all jobs. For the step, assume $f(i_{r-1}) \le f(j_{r-1})$. The optimal answer's jobs do not overlap, so
 
 $$
 f(i_{r-1}) \le f(j_{r-1}) \le s(j_r).
@@ -133,32 +132,32 @@ So $j_r$ was still compatible with everything greedy had kept when greedy made i
 
 Now suppose $m > k$. The lemma gives $f(i_k) \le f(j_k) \le s(j_{k+1})$, so $j_{k+1}$ was compatible with all of greedy's picks and greedy would have kept it. Greedy stopped at $k$, so $m \le k$.
 
-The figure's table is this lemma with numbers in it. Run any losing rule and the table finds a row where $f(i_r) > f(j_r)$. Such a row always exists: if every row held, the argument above would show the losing rule could have kept another job, but the template keeps every compatible job it sees, so its answer can't be extended.
+The table in the figure evaluates this lemma on the current input. For every suboptimal rule, the table contains a row with $f(i_r) > f(j_r)$. Such a row exists because, if every row held, the preceding argument would show that the rule could have kept another job, whereas the template keeps every compatible job it scans, so its answer cannot be extended.
 
 ### Exchange argument
 
-The same fact gives a second proof. Take an optimal answer and replace $j_1$ with $i_1$. Since $f(i_1) \le f(j_1) \le s(j_2)$, the result is still compatible and has the same size, so it is still optimal, and it agrees with greedy on the first job. If an optimal answer agrees with greedy on its first $r$ jobs, swapping $j_{r+1}$ for $i_{r+1}$ works the same way, because greedy picked the earliest-finishing job compatible with those $r$. Repeating turns the optimal answer into greedy's one swap at a time without changing its size.
+The same fact gives a second proof. Take an optimal answer and replace $j_1$ with $i_1$. Since $f(i_1) \le f(j_1) \le s(j_2)$, the result is still compatible and has the same size, so it is still optimal, and it agrees with greedy on the first job. If an optimal answer agrees with greedy on its first $r$ jobs, swapping $j_{r+1}$ for $i_{r+1}$ works the same way, because greedy picked the earliest-finishing job compatible with those $r$. Repeating the swap transforms the optimal answer into greedy's, one swap at a time, without changing its size.
 
-### A certificate you can check
+### A checkable certificate
 
-A third proof needs no induction and can be checked by eye. Put a mark at the last instant of each job greedy kept, just before $f(i_r)$. These are the dashed lines in the figure.
+A third proof requires no induction and can be verified by inspection. It places a mark at the last instant of each job greedy kept, just before $f(i_r)$; the marks are the dashed lines in the figure.
 
 - **Every job crosses a mark.** A kept job crosses its own. A skipped job overlapped some kept job $i_r$ that finished no later than it did, since greedy scans by finish time. So it starts before $f(i_r)$ and ends at or after it, which puts the mark at $f(i_r)$ inside it.
 - **Disjoint jobs need different marks.** No moment lies inside two disjoint jobs.
 
-So any compatible set has at most $k$ jobs, one per mark, and greedy has $k$. In general the largest set of disjoint intervals is exactly as large as the smallest set of points that hits every interval ([Ben-David et al. 2012](https://2012.cccg.ca/papers/paper69.pdf) derive it from total unimodularity). Earliest finish produces both sets at once.
+So any compatible set has at most $k$ jobs, one per mark, and greedy has $k$. In general the largest set of disjoint intervals is exactly as large as the smallest set of points that stabs every interval ([Ben-David et al. 2012](https://2012.cccg.ca/papers/paper69.pdf) derive it from total unimodularity). Earliest finish produces both sets at once.
 
-### Shortest first loses at most half
+### Shortest first keeps at least half of the optimum
 
-Shortest first can lose, but never by more than half. Charge every job of an optimal answer to a job greedy kept: a job greedy also kept is charged to itself, and a skipped one to the kept job that blocked it. That blocker was scanned first, so it is no longer than the job charged to it.
+Shortest first can be suboptimal, but it keeps at least half as many jobs as an optimal answer. The proof charges every job of an optimal answer to a job greedy kept. A job that greedy also kept is charged to itself, and a skipped one to the kept job that blocked it. That blocker was scanned first, so it is no longer than the job charged to it.
 
-Now take a kept job $a$ and an optimal job $b$ charged to it, with $|b| \ge |a|$. If $b$ started after $s(a)$ and ended before $f(a)$, it would be shorter than $a$. So $b$ contains $s(a)$ or the last instant of $a$. The optimal jobs are disjoint, so at most two of them can be charged to $a$, one through each point. Greedy therefore keeps at least half of the optimum, and the three-interval input in the table above shows the bound is tight.
+Now take a kept job $a$ and an optimal job $b$ charged to it, with $|b| \ge |a|$. If $b$ started after $s(a)$ and ended before $f(a)$, it would be shorter than $a$. So $b$ contains $s(a)$ or the last instant of $a$. The optimal jobs are disjoint, so at most two of them can be charged to $a$, one through each point. Greedy therefore keeps at least half of the optimum, and the three-interval input for shortest first in the table of rules shows that the bound is tight.
 
 ### How badly the wrong rules lose
 
-The experiment runs every rule on random inputs and compares it with earliest finish, which the proof makes the optimum. Starts are uniform on $[0, 1)$. Lengths come from one of three distributions with the same mean: uniform, exponential, or bimodal (80% short and 20% ten times as long). The mean length is set so that about 10 intervals cover a typical moment; the measurement record also has a lighter setting with about 2.
+The experiment runs every rule on random inputs and compares its result with that of earliest finish, which is optimal. Starts are uniform on $[0, 1)$. Lengths come from one of three distributions with the same mean: uniform, exponential, or bimodal (80% short and 20% ten times as long). The mean length is set so that about 10 intervals cover a typical moment; the measurement record also has a lighter setting with about 2.
 
-Share of the optimum each rule keeps on 1,000-interval inputs, averaged over 1,000 inputs per row:
+The following table gives the share of the optimum that each rule keeps on 1,000-interval inputs, averaged over 1,000 inputs per row.
 
 | Rule | Uniform | Exponential | Bimodal |
 | --- | ---: | ---: | ---: |
@@ -168,17 +167,15 @@ Share of the optimum each rule keeps on 1,000-interval inputs, averaged over 1,0
 | Fewest conflicts, counted once | 99.2% | 99.6% | 98.1% |
 | Fewest conflicts, recounted | 99.96% | 99.98% | 99.72% |
 
-Every 95% confidence interval across the five seeds is within ±0.6 points, too small to print.
+Every 95% confidence interval across the five seeds is within ±0.6 percentage points, and the intervals are omitted from the table.
 
-What the numbers show:
-
-- **Earliest start is worse than no rule at all.** Scanning in random order keeps 64% to 72%. The intervals earliest start keeps average 1.00 to 1.02 times the mean length, while random order's average 0.44 to 0.61 times. In random order a long interval usually collides with something already kept, so the template quietly favors short ones. Earliest start takes whatever begins next, however long it is.
-- **Shortest first and fewest conflicts lose often but by little.** Shortest first lost on 92% to 100% of the 1,000-interval inputs and still kept 94% to 99% of the optimum. On 10-interval inputs it lost on 3% to 13% of them, and its worst loss there was exactly half, the bound proved above.
-- **Recounting conflicts helps a lot.** Counting once lost on 60% to 99% of the large inputs, while recounting after each pick lost on 4% to 46%, by under 0.3%. Its worst result on any input was 75% of the optimum, above the proved $2/3$ (see [interval graphs](#weighted-intervals-and-matroids)).
-- **Bigger inputs lose more often.** Every wrong rule loses on more inputs as $n$ grows, since a large input contains many small traps.
+- **Earliest start keeps fewer intervals than random order.** Scanning in random order keeps 64% to 72%. The intervals earliest start keeps average 1.00 to 1.02 times the mean length, while those kept in random order average 0.44 to 0.61 times. In random order a long interval is likely to overlap an interval already kept, so the template implicitly favors short intervals. Earliest start keeps the interval that begins next, regardless of its length.
+- **Shortest first and fewest conflicts are frequently suboptimal, by small margins.** Shortest first was suboptimal on 92% to 100% of the 1,000-interval inputs and kept 94% to 99% of the optimum. On 10-interval inputs it was suboptimal on 3% to 13% of them, and its worst result there was exactly half of the optimum, the bound proved in [[#Shortest first keeps at least half of the optimum]].
+- **Recounting conflicts reduces the shortfall.** Counting once was suboptimal on 60% to 99% of the large inputs, while recounting after each pick was suboptimal on 4% to 46%, by less than 0.3%. Its worst result on any input was 75% of the optimum, above the proved $2/3$ (see [interval graphs](#weighted-intervals-and-matroids)).
+- **Suboptimal results are more frequent on larger inputs.** Every suboptimal rule falls short on a larger share of inputs as $n$ grows, since a large input contains many small configurations on which the rule is suboptimal.
 
 > [!note]- Measurement record
-> - **Code and data**: [`greedy_intervals.py`](greedy-intervals/greedy_intervals.py), run from `notes/` as `python3 content/algorithms/greedy-intervals/greedy_intervals.py --exhaustive 5,8 6,8 7,8 7,10`. Results are in [`greedy_intervals_results.json`](greedy-intervals/greedy_intervals_results.json), including every cell below as per-seed means.
+> - **Code and data**: [`greedy_intervals.py`](greedy-intervals/greedy_intervals.py), run from `notes/` as `python3 content/algorithms/greedy-intervals/greedy_intervals.py --exhaustive 5,8 6,8 7,8 7,10`. Results are in [`greedy_intervals_results.json`](greedy-intervals/greedy_intervals_results.json), including every table cell as per-seed means.
 > - **Inputs**: starts uniform on $[0, 1)$; mean length $L/n$ for load $L$ of 2 or 10; uniform lengths on $[0, 2L/n]$, exponential with mean $L/n$, or bimodal (80% short, 20% ten times longer, each scaled by a uniform factor in $[0.5, 1.5]$). With $L = 10$ the measured depth averages about 21 at $n = 1000$, 16 to 17 at $n = 100$ and 6 to 8 at $n = 10$.
 > - **Repetitions**: 5 seeds per setting, with 200 inputs per seed at $n = 1000$, 2,000 at $n = 100$ and 20,000 at $n = 10$. Means are averaged over seeds; the confidence intervals are $1.96$ standard errors of the five seed means.
 > - **Rules**: all use the scan-and-keep template except "recounted", which repeatedly keeps the interval with the fewest overlaps among those still available and discards its neighbors. Ties break by finish time, then start, then input position. Earliest finish is the reference; it was checked against brute force on 3,000 random inputs of up to 12 intervals, and the start-order heap partitioner against the depth on every input.
@@ -187,9 +184,9 @@ What the numbers show:
 
 ## Interval Partitioning
 
-Now every interval has to be placed, and the goal is to use the fewest rooms, so that no two intervals in one room overlap. Think of lectures and classrooms. This is the second of the [[reference/cheatsheets/algorithms/intervals|interval problems]].
+In interval partitioning every interval must be assigned to a room so that no two intervals in one room overlap, and the objective is to minimize the number of rooms. Lectures assigned to classrooms are an example. This is the second of the [[reference/cheatsheets/algorithms/intervals|interval problems]].
 
-The greedy algorithm is first fit: take the intervals in some order and put each one in the lowest-numbered room where it overlaps nothing, opening a new room when none fits. Take them by **start time**:
+The greedy algorithm is first fit, which takes the intervals in some order and places each one in the lowest-numbered room in which it overlaps no interval, opening a new room when none fits. The following implementation takes them in order of **start time**:
 
 ```python
 def partition_intervals(intervals):
@@ -205,7 +202,7 @@ def partition_intervals(intervals):
     return rooms
 ```
 
-That loop is $O(nd)$ for $d$ rooms. The proof below works for any room that fits, not just the first, so the [Kleinberg–Tardos slides](https://www.cs.princeton.edu/~wayne/kleinberg-tardos/pdf/04GreedyAlgorithmsI.pdf) keep the rooms in a min-heap keyed by when each frees up, and reuse whichever frees up first, for $O(n \log n)$:
+The loop takes $O(nd)$ time for $d$ rooms. The [[#Proof of correctness|proof of correctness]] holds for any room that fits, not only the first, so the [Kleinberg–Tardos slides](https://www.cs.princeton.edu/~wayne/kleinberg-tardos/pdf/04GreedyAlgorithmsI.pdf) keep the rooms in a min-heap keyed by the time at which each becomes free and reuse the room that becomes free first, in $O(n \log n)$ time:
 
 ```python
 import heapq
@@ -222,7 +219,7 @@ def count_rooms(intervals):
 
 ### Why the order matters
 
-Finish time, the right order for scheduling, is the wrong one here. The smallest input where it loses has four intervals, listed here in finish order:
+Finish time, the optimal order for interval scheduling, is not optimal for partitioning. The smallest input on which it is suboptimal has four intervals, listed in finish order:
 
 $$
 [0, 1),\; [0, 2),\; [2, 3),\; [1, 4)
@@ -230,58 +227,58 @@ $$
 
 First fit puts $[0, 1)$ in room 1 and $[0, 2)$ in room 2. Then $[2, 3)$ fits in room 1 after $[0, 1)$. Last, $[1, 4)$ overlaps $[2, 3)$ in room 1 and $[0, 2)$ in room 2, so it opens room 3. No moment is covered by more than two of the intervals, and two rooms suffice: $[0, 1), [1, 4)$ in one and $[0, 2), [2, 3)$ in the other.
 
-Room 3 was opened because $[1, 4)$ overlapped one interval in each room. Those two blockers, $[2, 3)$ and $[0, 2)$, don't overlap each other, so nothing forces a third room. The proof below needs the blockers to share a moment, and start order is what guarantees it.
+Room 3 was opened because $[1, 4)$ overlapped one interval in each room. Those two blockers, $[2, 3)$ and $[0, 2)$, do not overlap each other, so the depth does not require a third room. The [[#Proof of correctness|proof of correctness]] requires the blockers to share a moment, and start order guarantees that they do.
 
-Ties need care in examples like this. With $[0, 1), [0, 3), [2, 5), [4, 5)$, first fit in finish order needs three rooms if $[4, 5)$ comes before $[2, 5)$ and two if it comes after, so finish order alone doesn't decide it. The figure and the experiment break every tie by finish time, then start time.
+Ties affect examples of this kind. With $[0, 1), [0, 3), [2, 5), [4, 5)$, first fit in finish order needs three rooms if $[4, 5)$ comes before $[2, 5)$ and two if it comes after, so finish order alone does not determine the number of rooms. The figure and the experiment break every tie by finish time, then start time.
 
 ### Proof of correctness
 
-The **depth** of a set of intervals is the largest number that overlap at any one moment. Every valid assignment needs at least depth rooms, since intervals that overlap at one moment need different rooms.
+The **depth** of a set of intervals is the largest number that overlap at any one moment. Every valid assignment requires at least as many rooms as the depth, since intervals that overlap at one moment must be in different rooms.
 
 **Claim.** First fit in start order uses exactly depth rooms.
 
-**Proof.** Say it uses $d$ rooms. Room $d$ was opened for some interval $j$ that overlapped an interval in each of rooms $1, \ldots, d-1$. Everything already placed started no later than $s(j)$, so in each room the interval that overlaps $j$ starts at or before $s(j)$ and ends after $s(j)$. Those $d - 1$ intervals and $j$ all contain the moment $s(j)$, so the depth is at least $d$. No assignment uses fewer rooms than the depth, and greedy uses $d$. $\blacksquare$
+**Proof.** Suppose it uses $d$ rooms. Room $d$ was opened for some interval $j$ that overlapped an interval in each of rooms $1, \ldots, d-1$. Everything already placed started no later than $s(j)$, so in each room the interval that overlaps $j$ starts at or before $s(j)$ and ends after $s(j)$. Those $d - 1$ intervals and $j$ all contain the moment $s(j)$, so the depth is at least $d$. No assignment uses fewer rooms than the depth, and greedy uses $d$. $\blacksquare$
 
-Both proofs build a witness that bounds every possible answer, marks for scheduling and a crowded moment for partitioning, and then show greedy meets the bound. The Kleinberg–Tardos slides call this a structural bound.
+Both proofs construct a witness that bounds every feasible answer (the marks for scheduling, a moment of maximum depth for partitioning) and then show that greedy attains the bound. The Kleinberg–Tardos slides call this a structural bound.
 
 ### How many rooms the wrong orders waste
 
-The same random inputs, partitioned by first fit. Start order used exactly the depth on every input, as the proof says. Extra rooms beyond the depth on 1,000-interval inputs, with load 10 (depth about 21):
+The same random inputs were partitioned by first fit. Start order used exactly the depth on every input, in agreement with the proof. The following table gives the extra rooms beyond the depth on 1,000-interval inputs with load 10 (depth about 21).
 
 | Order | Uniform | Exponential | Bimodal |
 | --- | ---: | ---: | ---: |
 | Finish time | 6.0% | 7.6% | 7.0% |
 | Random arrival | 5.2% | 4.2% | 3.2% |
 
-Finish order wasted at least one room on 79% to 87% of these inputs, and at worst used 29% more rooms than needed. It does a little worse than taking the intervals in random order. The smallest losing input has 4 intervals, and the worst observed ratio on 10-interval inputs was 5 rooms where 3 suffice.
+Finish order used at least one extra room on 79% to 87% of these inputs, and in the worst case used 29% more rooms than needed. It used slightly more extra rooms than random order. The smallest input on which it is suboptimal has 4 intervals, and the worst observed ratio on 10-interval inputs was 5 rooms where 3 suffice.
 
 > [!note]- Deep dive: arrivals in arbitrary order
-> If intervals arrive one at a time in an order you don't control, and each must get its room on arrival, the problem becomes online interval coloring. Rooms are colors, and the depth is the size of the largest clique in the interval graph, written $\omega$.
+> If intervals arrive one at a time in an arbitrary order, and each must be assigned a room on arrival, the problem is online interval coloring. Rooms are colors, and the depth is the size of the largest clique in the interval graph, written $\omega$.
 >
-> - First fit is no longer optimal. In the worst case it uses between 5 ([Kierstead, Smith and Trotter 2016](https://www.math.gatech.edu/~trotter/papers/135-First-fit.pdf)) and 8 ([Narayanaswamy and Subhash Babu 2008](https://doi.org/10.1007/s11083-008-9076-6), at most $8\omega - 3$) times as many rooms as the depth. Which number is right has been open for years ([Krekelberg and Liu 2025](https://arxiv.org/abs/2502.06558)).
-> - Kierstead and Trotter (1981) gave an online algorithm that never uses more than $3\omega - 2$ rooms and showed no deterministic online algorithm can promise fewer.
+> - First fit is no longer optimal. Its worst-case ratio to the depth is known to lie between 5 ([Kierstead, Smith and Trotter 2016](https://www.math.gatech.edu/~trotter/papers/135-First-fit.pdf)) and 8 ([Narayanaswamy and Subhash Babu 2008](https://doi.org/10.1007/s11083-008-9076-6), at most $8\omega - 3$ rooms), and its exact value remains open ([Krekelberg and Liu 2025](https://arxiv.org/abs/2502.06558)).
+> - Kierstead and Trotter (1981) gave an online algorithm that never uses more than $3\omega - 2$ rooms and showed that no deterministic online algorithm can guarantee fewer.
 >
-> Random arrival is far kinder than the worst case. In the experiment, first fit in random order never used more than 1.29 times the depth on a 1,000-interval input.
+> Random arrival order gives far better results than the worst case. In the experiment, first fit in random order never used more than 1.29 times the depth on a 1,000-interval input.
 
 ## Weighted Intervals and Matroids
 
-Give each job a value and ask for the most valuable compatible set, and every greedy rule here fails. One long job worth 10 with two short jobs worth 1 each inside it defeats earliest finish, which takes the two short ones. Make the long job worth 3 and the short ones 2 each, and taking the most valuable job first fails instead. [[algorithms/dynamic-programming#Weighted Interval Scheduling|Weighted interval scheduling]] needs dynamic programming, which still runs in $O(n \log n)$.
+When each job has a value and the objective is a compatible set of maximum total value, each of the greedy rules for the unweighted problem is suboptimal on some input. On one long job of value 10 that contains two short jobs of value 1, earliest finish takes the two short jobs. With value 3 for the long job and 2 for each short job, taking the most valuable job first is suboptimal instead. [[algorithms/dynamic-programming#Weighted Interval Scheduling|Weighted interval scheduling]] is solved by dynamic programming, also in $O(n \log n)$ time.
 
-Matroids explain why. A family of "independent" sets that is closed under taking subsets is a **matroid** if it also has the exchange property: when $A$ and $B$ are independent and $|A| < |B|$, some element of $B$ can be added to $A$ with the result still independent. The theorem behind most greedy algorithms says that repeatedly adding the heaviest element that keeps the set independent finds a maximum-weight independent set for every choice of nonnegative weights, if and only if the family is a matroid. Rado (1957) proved the "only if" direction, and Gale (1968) and [Edmonds (1971)](https://doi.org/10.1007/BF01584082) the "if" ([Schrijver, Theorem 40.1](https://page.math.tu-berlin.de/~felsner/Lehre/SemMatS/Literatur/Schrijver-40:GreedyAlg.pdf)).
+Matroid theory explains this failure. A family of "independent" sets that is closed under taking subsets is a **matroid** if it also has the exchange property: when $A$ and $B$ are independent and $|A| < |B|$, some element of $B$ can be added to $A$ with the result still independent. The matroid greedy theorem states that repeatedly adding the heaviest element that keeps the set independent finds a maximum-weight independent set for every choice of nonnegative weights, if and only if the family is a matroid. Rado (1957) proved the "only if" direction, and Gale (1968) and [Edmonds (1971)](https://doi.org/10.1007/BF01584082) the "if" ([Schrijver, Theorem 40.1](https://page.math.tu-berlin.de/~felsner/Lehre/SemMatS/Literatur/Schrijver-40:GreedyAlg.pdf)).
 
-Sets of disjoint intervals are not a matroid. Take $A = \{[0, 10)\}$ and $B = \{[0, 1), [2, 3)\}$: $B$ is larger, but neither of its intervals can join $A$. So by the theorem some weighting defeats heaviest-first, which is the weighted failure above. The unweighted problem escapes because every weight is equal and earliest finish uses the order of the line, which the matroid theorem doesn't see. Kruskal's minimum spanning tree algorithm is the standard example on the other side: the forests of a graph form a matroid, so cheapest edge first is optimal for any edge weights.
+Sets of disjoint intervals do not form a matroid. For $A = \{[0, 10)\}$ and $B = \{[0, 1), [2, 3)\}$, $B$ is larger, but neither of its intervals can be added to $A$. By the theorem, some weighting therefore makes heaviest-first suboptimal, which is the weighted failure described above. The unweighted problem is not subject to this failure because every weight is equal and earliest finish uses the order of the intervals on the line, which the matroid theorem does not take into account. Kruskal's minimum spanning tree algorithm is an example of the opposite case. The forests of a graph form a matroid, so taking the lightest edge first is optimal for any edge weights.
 
 > [!note]- Deep dive: interval graphs
-> Make each interval a vertex and join two vertices when their intervals overlap. The result is an **interval graph**. Interval scheduling is then maximum independent set, interval partitioning is graph coloring, and the depth is the size of the largest clique. Both problems are NP-hard on general graphs. [Gavril (1972)](https://doi.org/10.1137/0201013) solves both in polynomial time on chordal graphs, which include interval graphs, with greedy algorithms over a special vertex order.
+> The **interval graph** of a set of intervals has a vertex for each interval and an edge between two vertices whose intervals overlap. Interval scheduling is then maximum independent set, interval partitioning is graph coloring, and the depth is the size of the largest clique. Both problems are NP-hard on general graphs. [Gavril (1972)](https://doi.org/10.1137/0201013) solves both in polynomial time on chordal graphs, which include interval graphs, with greedy algorithms over a special vertex order.
 >
-> The partitioning proof shows that an interval graph's chromatic number equals its clique number. Every induced subgraph of an interval graph is again an interval graph, so this holds for all of them, which makes interval graphs **perfect**. The certificate for scheduling is the matching statement for independent sets and point covers.
+> The partitioning proof shows that an interval graph's chromatic number equals its clique number. Every induced subgraph of an interval graph is again an interval graph, so this holds for all of them, which makes interval graphs **perfect**. The certificate for scheduling is the corresponding statement for independent sets and point covers.
 >
 > Fewest conflicts is the minimum-degree heuristic for independent set. [Chaplick et al. (2024)](https://arxiv.org/abs/2403.10868) study the version that recounts conflicts after each pick and discards the picked interval's neighbors. They prove it always keeps at least $2/3$ of the optimum on interval graphs, even with the worst tie-breaking, and that $2/3$ is tight. The figure uses the version in the Kleinberg–Tardos slides, which counts conflicts once and then scans. The experiment measures both.
 
 > [!note]- Deep dive: intervals that arrive online
-> Suppose jobs arrive in order of start time and each must be accepted or rejected on arrival. If an accepted job may later be dropped, earliest finish survives in online form: keep the current job unless a new one that overlaps it finishes earlier, and swap when it does. [Faigle and Nawijn (1995)](https://doi.org/10.1016/0166-218X(95)00112-5) show this matches the offline optimum on every input.
+> Suppose jobs arrive in order of start time and each must be accepted or rejected on arrival. If an accepted job may later be dropped, earliest finish has an online form, which keeps the current job unless a new job that overlaps it finishes earlier, and replaces it when one does. [Faigle and Nawijn (1995)](https://doi.org/10.1016/0166-218X(95)00112-5) show this matches the offline optimum on every input.
 >
-> If accepted jobs can never be dropped, nothing works well. [Bachmann, Halldórsson and Shachnai (2013, Theorem 6)](https://staff.ru.is/mmh/papers/oninter.pdf) show that every online algorithm, randomized ones included, can be forced down to a share of the optimum that shrinks like $1/n$, even when jobs arrive in order of start time. A long job that arrives first is the trap: accept it and many short jobs inside it follow, reject it and none do.
+> If accepted jobs can never be dropped, no online algorithm keeps a constant share of the optimum. [Bachmann, Halldórsson and Shachnai (2013, Theorem 6)](https://staff.ru.is/mmh/papers/oninter.pdf) show that every online algorithm, randomized ones included, can be forced to a share of the optimum that decreases as $1/n$, even when jobs arrive in order of start time. The adversarial input begins with a long job. If the algorithm accepts it, many short jobs inside it follow; if it rejects it, none do.
 
 ## Sources
 
@@ -298,6 +295,6 @@ Sets of disjoint intervals are not a matroid. Take $A = \{[0, 10)\}$ and $B = \{
 - [[reference/cheatsheets/algorithms/intervals|interval scheduling and partitioning cheatsheet]]
 - [[algorithms/practice/4|problem set 4]], which works a partitioning counterexample by hand
 - [[algorithms/dynamic-programming|dynamic programming]], for the weighted version
-- [[algorithms/approximation-algorithms|approximation algorithms]], where greedy set cover gets within $\ln n$ of optimal
+- [[algorithms/approximation-algorithms|approximation algorithms]], where greedy set cover is within a factor of about $\ln n$ of optimal
 - [[algorithms/induction|induction]]
 - [[algorithms/stable-matching|stable matching]]

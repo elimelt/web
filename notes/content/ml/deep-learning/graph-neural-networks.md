@@ -8,9 +8,12 @@ tags:
   - message passing
   - gcn
 date: 2026-07-31
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Graph neural networks from message passing upward, with special focus on GCN and GAT, their update equations, and the assumptions they make about graph neighborhoods.
+description: The message-passing formulation of graph neural networks, the update equations of GCN and GAT, and the assumptions each makes about graph neighborhoods.
 sources:
   - title: Kipf and Welling (2016), Semi-Supervised Classification with Graph Convolutional Networks
     url: https://arxiv.org/abs/1609.02907
@@ -23,9 +26,9 @@ sources:
     type: dataset
 ---
 
-## Purpose
+A graph neural network (GNN) is a neural network that computes a representation of each node of a graph by repeatedly aggregating the representations of the node's neighbors.
 
-Graphs break the assumptions behind both sequences and images. There is no fixed left-to-right order and no regular lattice. GNNs solve this by learning over neighborhoods.
+Graph data has neither the fixed left-to-right order of a sequence nor the regular lattice of an image, so the layers of recurrent and convolutional networks do not apply to it directly. A GNN instead defines each layer over node neighborhoods.
 
 ## Message Passing View
 
@@ -48,7 +51,7 @@ j \in \mathcal{N}(i)
 \right)
 $$
 
-Most named GNN architectures are concrete instantiations of `MSG`, `AGG`, and `UPDATE`.
+Many named GNN architectures are concrete instantiations of `MSG`, `AGG`, and `UPDATE`.
 
 ```mermaid
 flowchart TD
@@ -63,7 +66,7 @@ flowchart TD
 One layer moves information one hop. Stacking $\ell$ layers gives each node a receptive field of its $\ell$-hop neighborhood, which is the graph analogue of stacking convolutions.
 
 > [!tip] GCN and GAT differ only in how AGG weighs neighbors
-> GCN fixes the weights from graph structure: neighbor $j$ contributes with weight $1/\sqrt{\tilde{d}_i \tilde{d}_j}$, determined entirely by degrees. GAT learns the weights: $\alpha_{ij}$ comes from an attention score over the node features themselves. Both fit the message-passing template above; the choice is whether neighbor importance should be structural or content-dependent.
+> GCN fixes the weights from graph structure: neighbor $j$ contributes with weight $1/\sqrt{\tilde{d}_i \tilde{d}_j}$, determined entirely by degrees. GAT learns the weights: $\alpha_{ij}$ comes from an attention score over the node features themselves. Both fit the message-passing template; they differ in whether neighbor weights are determined by graph structure or by node content.
 
 ## GCN from Spectral Approximation
 
@@ -94,15 +97,15 @@ is the corresponding degree matrix.
 
 The paper explicitly introduces this as a **renormalization trick** to avoid numerical instability and exploding/vanishing gradients in deeper stacks.
 
-## What the GCN Layer Is Doing
+## Interpretation of the GCN Layer
 
-The GCN update can be read in three steps:
+The GCN update decomposes into three steps:
 
 1. add each node to its own neighborhood
 2. average or normalize neighbor information
 3. apply a learned linear map
 
-This makes GCN very simple, though the simplicity comes with a bias: all neighbors are treated symmetrically after normalization.
+The layer is simple, and after normalization it treats all neighbors symmetrically, which is an inductive bias.
 
 ## Datasets and Setting
 
@@ -114,11 +117,11 @@ The paper evaluates on citation-network benchmarks:
 
 and also on NELL. The problem is semi-supervised node classification with few labels.
 
-This framing matters because it is one reason GCN became popular so quickly. The update rule is short, scalable, and effective on a benchmark family many people cared about.
+This setting contributed to the rapid adoption of GCN. The update rule is short and scalable, and it was effective on a widely used family of benchmarks.
 
 ## Executable Cora Experiment
 
-The companion notebook implements sparse graph convolution with PyTorch and uses the official LINQS Cora archive. It compares a feature-only MLP, a GCN over observed citations, and the same GCN after edge destinations are shuffled. Five initialization seeds expose run-to-run variation, while edge-label agreement and the rewired null show when neighborhood aggregation has useful structure to exploit.
+The companion notebook implements sparse graph convolution with PyTorch and uses the official LINQS Cora archive. It compares a feature-only MLP, a GCN over observed citations, and the same GCN after edge destinations are shuffled. Five initialization seeds measure run-to-run variation, and edge-label agreement and the rewired null indicate whether the graph contains structure that neighborhood aggregation can use.
 
 [Run the Cora node-classification experiment](/ml/deep-learning/graph-neural-networks.ipynb)
 
@@ -126,7 +129,7 @@ The companion notebook implements sparse graph convolution with PyTorch and uses
 
 Velickovic et al. replace fixed normalized averaging with learned attention over neighborhoods.
 
-First compute unnormalized attention score
+The unnormalized attention score is
 
 $$
 e_{ij}
@@ -138,7 +141,7 @@ e_{ij}
 \right)
 $$
 
-then normalize over the neighborhood:
+which is normalized over the neighborhood,
 
 $$
 \alpha_{ij}
@@ -148,7 +151,7 @@ $$
 \frac{\exp(e_{ij})}{\sum_{k \in \mathcal{N}_i}\exp(e_{ik})}
 $$
 
-and update:
+and the node update is
 
 $$
 \vec{h}'_i
@@ -163,16 +166,14 @@ The paper uses **LeakyReLU** with negative slope **0.2** inside the attention me
 
 ## Multi-Head Attention on Graphs
 
-Like transformers, GAT stabilizes learning with multi-head attention. The paper says explicitly that extending the mechanism to **multi-head attention** was beneficial.
+As in transformers, GAT uses multi-head attention to stabilize learning. The paper states that extending the mechanism to **multi-head attention** was beneficial.
 
-This allows either:
+Head outputs are combined in one of two ways, depending on the stage of the network:
 
 - concatenation of head outputs in hidden layers
 - averaging of head outputs at the final layer
 
-depending on the stage of the network.
-
-## Why GAT Was Interesting
+## Properties and Evaluation of GAT
 
 GAT addresses a limitation of GCN. In GCN, every neighbor contributes through the same normalized operator. In GAT, the model can assign different weights to different neighbors without expensive global matrix operations or requiring a fixed spectral basis.
 
@@ -183,7 +184,7 @@ The paper evaluates on:
 - **Pubmed**
 - **PPI**
 
-The PPI result matters because it shows the method in an inductive setting where test graphs are unseen during training.
+The PPI result evaluates the method in an inductive setting, in which the test graphs are unseen during training.
 
 ## NumPy GCN Layer
 
@@ -217,19 +218,19 @@ class GCNLayer(nn.Module):
         return torch.relu(A_norm @ self.proj(H))
 ```
 
-## What to Watch For
+## Common Failure Modes
 
-GNNs often run into:
+Known difficulties for GNNs include
 
 - oversmoothing
 - oversquashing
 - noisy neighborhoods
 - weak or missing node features
 
-> [!warning] Deeper is not better by default
-> Because each layer averages over neighborhoods, stacking many layers drives node representations toward each other — oversmoothing. This is why the strong Cora baselines here are only two layers deep. Depth in a GNN widens the receptive field to more hops, and past the graph's useful correlation length that mostly mixes in noise.
+> [!warning] Depth and oversmoothing
+> Because each layer averages over neighborhoods, stacking many layers makes node representations converge toward one another, an effect called oversmoothing. For this reason the strong Cora baselines in the notebook are only two layers deep. Each additional layer extends the receptive field by one hop, and beyond the distance over which node labels are correlated, the additional neighbors contribute mostly noise.
 
-The papers here do not solve all of that. They just establish two key design points:
+GCN and GAT do not address all of these problems. They establish two designs for neighborhood aggregation:
 
 - fixed normalized neighborhood mixing
 - learned attention-weighted neighborhood mixing

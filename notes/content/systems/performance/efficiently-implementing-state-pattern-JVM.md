@@ -11,42 +11,45 @@ tags:
   - atomic-reference
   - benchmarks
 date: 2024-12-08
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: needs-review
-description: Compares an enum-based inline state pattern against a polymorphic state pattern using AtomicReference on the JVM, with single-threaded and multi-threaded timing runs. Hardware, JVM version, and the full benchmark harness were not recorded.
+description: A comparison of an enum-based inline state pattern and a polymorphic state pattern using AtomicReference on the JVM, with single-threaded and multi-threaded timing runs. Hardware, JVM version and the full benchmark harness were not recorded.
 sources:
   - title: "State pattern (Refactoring Guru)"
     url: https://refactoring.guru/design-patterns/state
     type: docs
 ---
 
-## Purpose
+The state pattern lets an object change its behavior when its internal state changes, by delegating state-dependent behavior to an object that represents the current state ([Refactoring Guru's state pattern page](https://refactoring.guru/design-patterns/state) describes it in detail). On the JVM it can be implemented with enum constants whose transitions are written inline, or with polymorphic state classes whose current instance is held in an `AtomicReference`. The two implementations differ in dispatch and synchronization cost, and the difference is most relevant when several threads drive transitions concurrently.
 
-I was reading some interesting code at AWS and came across an implementation of the state pattern written by one of the senior engineers on our team. If you aren't already familiar, read [Refactoring Guru's state pattern page](https://refactoring.guru/design-patterns/state). The problem I would usually reach for the state pattern to solve is about logical complexity and structure, and (without revealing anything in particular about the code I was reading) I got curious about the performance of the underlying implementations, especially with multiple threads. This note records the two implementations I compared and the timing runs.
+I made the comparison after reading an implementation of the state pattern written by a senior engineer on my team at AWS; nothing specific to that code is described. The state pattern addresses logical complexity and structure, and the question here is the performance of the underlying implementations, particularly with multiple threads.
 
-A caveat on the measurements up front. I didn't record the hardware, OS, or JVM version these ran on, and the `benchmark` helper plus the two pattern classes aren't reproduced here, so treat the numbers as one anecdote rather than a reproducible result. The relative comparisons within a single run are still informative because both implementations ran in the same environment.
+The hardware, OS and JVM version were not recorded, and the `benchmark` helper and the two pattern classes are not reproduced, so the numbers are a single anecdote and not a reproducible result. Comparisons within a single run remain informative because both implementations ran in the same environment.
 
 ## The implementations
 
 1. **Inline state pattern using enums.** In `InlineStatePattern`, states are enums with direct in-line transitions. A state change is a check and an assignment.
-2. **Polymorphic state pattern with lazy transitions.** In `PolymorphicStatePattern`, a generic context holds the current state in an `AtomicReference` for thread-safe transitions. Lazy evaluation lets the state change only when necessary, which can reduce overhead in *certain cases* (emphasis on *certain*).
+2. **Polymorphic state pattern with lazy transitions.** In `PolymorphicStatePattern`, a generic context holds the current state in an `AtomicReference` for thread-safe transitions. Lazy evaluation changes the state only when necessary, which can reduce overhead in some cases.
 
-## When might I reach for either?
+## When each implementation applies
 
-Reach for the inline pattern when transitions are simple and predictable and you care about synchronization overhead, for example a high-throughput component like a cache or a message queue with little locking.
+The inline pattern suits transitions that are simple and predictable in components where synchronization overhead matters, for example a high-throughput cache or a message queue with little locking.
 
-Reach for the polymorphic pattern when transitions are complex or need additional logic, or when concurrent access requires the safety of `AtomicReference`. Contention level is a rough guide rather than a hard rule. Even with low contention, complex transitions can justify the polymorphic version purely for readability and maintainability.
+The polymorphic pattern suits transitions that are complex or require additional logic, and concurrent access that requires the safety of `AtomicReference`. Contention level is a rough guide and does not decide the choice by itself. Even with low contention, complex transitions can justify the polymorphic version purely for readability and maintainability.
 
 ## JVM costs of each approach
 
 The enum version keeps each transition to an assignment with no extra method dispatch or object creation. Each `DocumentState` enum implements its own `handle` and `nextState` methods, and the transition is simple enough that the JIT can inline it at runtime.
 
-The `AtomicReference` version pays for thread safety with compare-and-swap (CAS) operations. Under high contention, failed CAS attempts retry, which costs cycles. With lazy state transitions, this implementation can skip unnecessary state updates, which may help when contention is low.
+The `AtomicReference` version obtains thread safety through compare-and-swap (CAS) operations. Under high contention, failed CAS attempts are retried, which consumes cycles. With lazy state transitions, this implementation can skip unnecessary state updates, which may help when contention is low.
 
 ## Predictions
 
-1. **Single-threaded.** `InlineStatePattern` should win by avoiding `AtomicReference` overhead.
-2. **Multi-threaded.** At low contention, `InlineStatePattern` should still win on fewer synchronization requirements. Under high contention, CAS retries in `PolymorphicStatePattern` may limit its performance.
+1. **Single-threaded.** `InlineStatePattern` should be faster because it avoids `AtomicReference` overhead.
+2. **Multi-threaded.** At low contention, `InlineStatePattern` should still be faster because it has fewer synchronization requirements. Under high contention, CAS retries in `PolymorphicStatePattern` may limit its performance.
 
 ## Results
 
@@ -65,7 +68,7 @@ Inline State Pattern - Single Thread: 201363 µs for 10000000 iterations (0.02 �
 Polymorphic State Pattern - Single Thread: 133314 µs for 10000000 iterations (0.01 µs/op) - Last result: Published: Single-threaded Test
 ```
 
-My prediction failed. The polymorphic version finished 10M iterations in 133 ms against 201 ms for the inline version, so an uncontended `AtomicReference` cost less here than whatever the inline version paid per transition. A single-shot loop like this is also at the mercy of JIT warmup and run ordering, which the low-contention runs below demonstrate.
+The prediction was wrong. The polymorphic version completed 10M iterations in 133 ms against 201 ms for the inline version, so an uncontended `AtomicReference` cost less here than the per-transition overhead of the inline version. A single-shot loop of this kind is also sensitive to JIT warmup and run ordering, as the low-contention runs show.
 
 ### Multi-threaded, low contention
 
@@ -102,7 +105,7 @@ Inline Pattern - Multi-thread Low Contention: 368001 µs for 2500000 iterations 
 Inline Pattern - Multi-thread Low Contention: 385776 µs for 2500000 iterations (0.15 µs/op) - Last result: Published: Multi-thread Test
 ```
 
-Roughly neck and neck, with per-thread averages of 356043.75 µs (0.1424 µs/op) for polymorphic and 366129.0 µs (0.1465 µs/op) for inline. The inline pattern came out slightly slower. Since I hate being proven wrong, I wondered whether run order was the culprit, so I swapped the order of the tests:
+The two were close, with per-thread averages of 356043.75 µs (0.1424 µs/op) for polymorphic and 366129.0 µs (0.1465 µs/op) for inline. The inline pattern was slightly slower. To test whether run order explained the result, I swapped the order of the tests:
 
 ```txt
 Polymorphic Pattern - Multi-thread Low Contention: 494816 µs for 2500000 iterations (0.20 µs/op) - Last result: Published: Multi-thread Test
@@ -115,9 +118,9 @@ Inline Pattern - Multi-thread Low Contention: 483745 µs for 2500000 iterations 
 Inline Pattern - Multi-thread Low Contention: 475941 µs for 2500000 iterations (0.19 µs/op) - Last result: Published: Multi-thread Test
 ```
 
-This time the averages were 490159.0 µs (0.1961 µs/op) polymorphic and 476225.5 µs (0.1905 µs/op) inline, so the winner flipped with the ordering. Well well well.
+This time the averages were 490159.0 µs (0.1961 µs/op) polymorphic and 476725.5 µs (0.1907 µs/op) inline, so the faster implementation changed with the ordering.
 
-To take ordering out of the picture I ran each test in its own JVM instance:
+To remove the effect of ordering, I ran each test in its own JVM instance:
 
 ```txt
 Polymorphic Pattern - Multi-thread Low Contention: 372321 µs for 2500000 iterations (0.15 µs/op) - Last result: Published: Multi-thread Test
@@ -133,7 +136,7 @@ Inline Pattern - Multi-thread Low Contention: 392855 µs for 2500000 iterations 
 Inline Pattern - Multi-thread Low Contention: 419996 µs for 2500000 iterations (0.17 µs/op) - Last result: Published: Multi-thread Test
 ```
 
-Isolated, the averages were 392371.75 µs (0.1569 µs/op) polymorphic and 402128.75 µs (0.1609 µs/op) inline. The inline pattern lost again, by about 2%. `AtomicReference`s are preetttty pretty good.
+In separate JVMs the averages were 392371.75 µs (0.1569 µs/op) polymorphic and 402128.75 µs (0.1609 µs/op) inline. The inline pattern was again slower, by about 2%.
 
 ### High contention
 
@@ -154,8 +157,8 @@ for (int i = 0; i < 8; i++) {
 }
 ```
 
-The prediction was that CAS retries would hurt `PolymorphicStatePattern` as thread count rises. I never recorded the output of this run, so the high-contention question stays open.
+The prediction was that CAS retries would degrade `PolymorphicStatePattern` as the thread count rises. The output of this run was not recorded, so the high-contention case remains open.
 
 ## What the numbers say
 
-The measurements contradict the intuition I started with. The polymorphic pattern with `AtomicReference` matched or beat the enum-based inline pattern in every run where I kept the output: 34% faster single-threaded, and 2% to 3% faster at 4 threads in the isolated-JVM runs. The differences in the low-contention runs are close to the run-to-run noise, as the order-swap experiment shows, so the honest summary is that the two implementations cost about the same at this contention level and the safety of `AtomicReference` came essentially for free. Picking between them on maintainability grounds looks like the right call until a profiler says otherwise. A proper rematch would use JMH, record the JVM and hardware, and include the high-contention run.
+The measurements contradict the initial prediction. The polymorphic pattern with `AtomicReference` matched or outperformed the enum-based inline pattern in every run whose output was kept, by 34% single-threaded and by 2% to 3% at 4 threads in the isolated-JVM runs. The differences in the low-contention runs are close to the run-to-run variation, as the order-swap experiment shows, so at this contention level the two implementations cost about the same and the safety of `AtomicReference` added no measurable overhead. Absent profiler evidence to the contrary, maintainability is a reasonable basis for choosing between them. A more rigorous comparison would use JMH, record the JVM and hardware, and include the high-contention run.

@@ -8,8 +8,12 @@ tags:
   - distributed coordination
   - fencing
 date: 2026-08-01
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: draft
-description: How systems suspect failure, bound authority with time, and elect leaders - the Chandra-Toueg detector hierarchy, lease mechanics under clock drift, fencing tokens, and the Chubby, ZooKeeper, etcd, and Raft patterns.
+description: Failure detection, time-bounded authority and leader election, covering the Chandra-Toueg failure detector hierarchy, lease correctness under bounded clock drift, fencing tokens, and leader election in Chubby, ZooKeeper, etcd and Raft.
 sources:
   - title: Chandra and Toueg (1996), Unreliable Failure Detectors for Reliable Distributed Systems
     url: https://dl.acm.org/doi/10.1145/226643.226647
@@ -25,17 +29,17 @@ sources:
     type: blog
 ---
 
-## Purpose
+A **failure detector** is a mechanism by which a process forms suspicions that other processes have crashed. A **lease** grants authority for a bounded time, and **leader election** selects one process to act for a group. These mechanisms underlie [[systems/distributed-systems/paxos-intro|consensus]] and [[systems/distributed-systems/managing-critical-state|critical-state management]]: they determine when a node is treated as failed, grant time-bounded authority, and prevent two nodes from acting as leader at once.
 
-The machinery underneath [[systems/distributed-systems/paxos-intro|consensus]] and [[systems/distributed-systems/managing-critical-state|critical-state management]]: how a system decides someone is dead, how it grants time-bounded authority, and how it keeps two nodes from both acting as leader. The theory says perfect detection is impossible; the engineering answer is to make *wrong* detection safe and merely slow.
+Perfect failure detection is impossible in an asynchronous system, so practical designs ensure that a *wrong* suspicion delays progress without violating safety.
 
-## Suspicion is all you get
+## Failure detection in asynchronous systems
 
-In an asynchronous system — unbounded message delay, unbounded processing pauses — a crashed process and a slow one are indistinguishable by any observation. This is the operational content of the FLP impossibility result (Fischer, Lynch, Paterson 1985): deterministic consensus is unsolvable with even one possible crash, because no protocol can safely wait out the ambiguity. Every real "failure detector" is therefore a *suspicion* mechanism whose verdicts can be wrong, and every correct system design starts from the question: what happens when it is?
+In an asynchronous system, with unbounded message delay and unbounded processing pauses, no observation distinguishes a crashed process from a slow one. This indistinguishability underlies the FLP impossibility result (Fischer, Lynch, Paterson 1985), which shows that deterministic consensus is unsolvable when even one process may crash, because no protocol can distinguish waiting for a slow process from waiting for a crashed one. Every implementable failure detector is therefore a *suspicion* mechanism whose output can be wrong, and a correct system design must specify its behavior when a suspicion is wrong.
 
-[Chandra and Toueg (1996)](https://dl.acm.org/doi/10.1145/226643.226647) turned this into a taxonomy by scoring detectors on two axes — **completeness** (crashed processes get suspected) and **accuracy** (correct processes do not) — and asking how much accuracy consensus actually needs. The hierarchy: a perfect detector $P$ (never suspects a correct process) requires synchrony no real network has. The consequential class is **eventually strong** $\Diamond S$: suspicion can be arbitrarily wrong for an arbitrary prefix, as long as *eventually* some correct process stops being suspected by anyone. Their two theorems frame all of practice: consensus is solvable with $\Diamond S$ plus a majority of correct processes, and (with Hadzilacos) nothing weaker suffices — $\Diamond W$/$\Omega$, the "eventual leader oracle," is the weakest detector for consensus. The translation: a system does not need reliable failure detection, only an eventually-stable leader hint plus quorums — which is exactly the shape of Paxos and Raft.
+[Chandra and Toueg (1996)](https://dl.acm.org/doi/10.1145/226643.226647) classified failure detectors by two properties, **completeness** (crashed processes are suspected) and **accuracy** (correct processes are not), and asked how much accuracy consensus requires. A perfect detector $P$, which never suspects a correct process, requires a degree of synchrony that real networks do not provide. The class of practical consequence is **eventually strong** $\Diamond S$, under which suspicions can be arbitrarily wrong for an arbitrary prefix of the execution, provided that *eventually* some correct process is no longer suspected by any correct process. Consensus is solvable with $\Diamond S$ and a majority of correct processes, and, in work with Hadzilacos, no weaker detector suffices: $\Diamond W$/$\Omega$, the "eventual leader oracle," is the weakest failure detector for consensus. Consensus therefore requires an eventually stable leader hint and quorums rather than reliable failure detection, and Paxos and Raft have this structure.
 
-Practical detectors approximate $\Diamond S$ with heartbeats and timeouts. The tuning tension is fundamental: short timeouts detect fast but suspect wrongly under load spikes (and a wrongly-suspected leader triggers a gratuitous election, which causes more load — a classic metastable loop); long timeouts are calm but leave the system leaderless longer after real crashes. Two refinements are standard. The **phi-accrual detector** (Cassandra, Akka) replaces the binary verdict with a suspicion level computed from the observed heartbeat-interval distribution, letting the timeout adapt to current network behavior. **SWIM**-style protocols decouple detection (randomized pings, with indirect probes through third parties before declaring suspicion) from dissemination (gossip), keeping per-node load constant as the cluster grows.
+Practical detectors approximate $\Diamond S$ with heartbeats and timeouts, and the choice of timeout is a tradeoff. Short timeouts detect crashes quickly but produce false suspicions under load spikes. A falsely suspected leader triggers an unnecessary election, which adds load and can sustain a metastable failure. Long timeouts produce fewer false suspicions but leave the system without a leader for longer after an actual crash. Two refinements are widely deployed. The **phi-accrual detector** (Cassandra, Akka) replaces the binary verdict with a suspicion level computed from the observed heartbeat-interval distribution, so that the effective timeout adapts to current network behavior. **SWIM**-style protocols decouple detection (randomized pings, with indirect probes through third parties before declaring suspicion) from dissemination (gossip), keeping per-node load constant as the cluster grows.
 
 ```mermaid
 stateDiagram-v2
@@ -46,16 +50,16 @@ stateDiagram-v2
     Declared_Dead --> [*]
 ```
 
-Suspicion is a reversible state — the `Suspected -> Alive` edge is what makes wrong verdicts survivable, and everything downstream (elections, leases, fencing) exists to make traversing it cheap.
+Suspicion is a reversible state. The `Suspected -> Alive` transition allows a wrong suspicion to be corrected, and the mechanisms built on detection (elections, leases, fencing) limit the cost of such corrections.
 
 ## Leases: authority with an expiry date
 
-A **lease** ([Gray and Cheriton 1989](https://dl.acm.org/doi/10.1145/74850.74870)) is a grant of authority — cache validity, lock ownership, leadership — valid for a bounded time and renewable by communication. The crucial property: expiry needs no communication. If the holder crashes or partitions, the grantor waits out the term and reassigns; a lock with a timeout is a lease. Correctness does not require synchronized clocks, only **bounded drift rate**: grantor and holder each measure the term on their own clock, and if clocks tick within (say) 1% of true rate, the grantor adds a small margin and the holder conservatively expires early. Bounded-rate assumptions are among the safest in systems practice — this is the same clock discussion as [[systems/distributed-systems/clocks|Clocks]], but leaning only on rates, not on synchronization.
+A **lease** ([Gray and Cheriton 1989](https://dl.acm.org/doi/10.1145/74850.74870)) is a grant of authority, such as cache validity, lock ownership or leadership, that is valid for a bounded time and renewable by communication. Expiry requires no communication. If the holder crashes or is partitioned, the grantor waits until the term ends and then reassigns the grant; a lock with a timeout is a lease. Correctness requires a **bounded drift rate** rather than synchronized clocks. The grantor and the holder each measure the term on their own clock, and if clocks run within (for example) 1% of the true rate, the grantor adds a small margin and the holder treats its lease as expired slightly early. An assumption on clock rate is weaker than an assumption on clock synchronization (see [[systems/distributed-systems/clocks|Clocks]]), since it does not require clocks to agree on the time.
 
 > [!warning] The stalled leaseholder
-> The trap is what the holder does at the edge. [Kleppmann's distributed-locking critique](https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html): a client acquires a lease, then stalls — GC pause, VM migration, swap storm — past its expiry. The lease service correctly reassigns. The stalled client resumes *believing it holds the lease* (its check ran before the pause) and writes to shared storage: two writers, data corrupted, and no amount of timeout tuning fixes it, because the pause can exceed any timeout.
+> The hazard lies in the holder's behavior near expiry. [Kleppmann's distributed-locking critique](https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html) describes a client that acquires a lease and then stalls (a GC pause, VM migration or swap storm) past its expiry. The lease service correctly reassigns the lease. The stalled client resumes *acting as the lease holder*, because its check ran before the pause, and writes to shared storage. Two clients then write to the same data and corrupt it, and timeout tuning cannot prevent this, because the pause can exceed any timeout.
 
-The fix is the **fencing token**: the lease service issues a monotonically increasing number with each grant, every write to the protected resource carries it, and the resource rejects tokens older than the highest seen. The stale writer's token is stale; the write bounces.
+A **fencing token** prevents this failure. The lease service issues a monotonically increasing number with each grant, every write to the protected resource carries it, and the resource rejects tokens older than the highest it has seen. The stalled client's token is older than the current one, so its write is rejected.
 
 ```mermaid
 sequenceDiagram
@@ -77,18 +81,18 @@ sequenceDiagram
     S--xC1: Rejected: 33 < 34
 ```
 
-The same mechanism recurs as Raft's term numbers, ZooKeeper's zxid epochs, and Chubby's lock generation numbers — versioned authority, checked at the point of effect, is the universal answer to "the detector was wrong and the old leader is still moving."
+The same mechanism appears as Raft's term numbers, ZooKeeper's zxid epochs and Chubby's lock generation numbers. In each, authority carries a version that is checked where the effect takes place, which prevents a former leader that was wrongly suspected from acting after its replacement.
 
-> [!tip] The safety/liveness split in one sentence
-> **Timeouts and elections provide liveness** (a dead leader is eventually replaced), while **quorums and fencing provide safety** (a falsely-suspected leader cannot do damage) — wrong suspicion may slow the system, but must never corrupt it.
+> [!tip] Safety and liveness
+> **Timeouts and elections provide liveness** (a crashed leader is eventually replaced), and **quorums and fencing provide safety** (a falsely suspected leader cannot corrupt state). A wrong suspicion may slow the system but must not corrupt it.
 
 ## Leader election in practice
 
-**Chubby** ([Burrows 2006](https://research.google/pubs/pub27897/)) is the canonical packaging: a Paxos-replicated, five-node lock service exposing a small filesystem with advisory locks, built explicitly for coarse-grained use — locks held for hours, not milliseconds, so the cost of an election amortizes. Clients hold **sessions** maintained by keepalive RPCs with a ~12-second lease; if a session's lease lapses, the client enters a ~45-second grace period ("jeopardy") in which caches are disabled but handles survive, masking brief master failovers. Applications elect leaders by racing to acquire a lock file: GFS and Bigtable both pick masters this way, and the winner writes its identity into the file for discovery. Ephemeral files double as liveness signals. Burrows's deployment observation is a design lesson in itself: a service intended for election and configuration became, in practice, a name server — coarse coordination points attract every use that needs "one agreed value, rarely changed."
+**Chubby** ([Burrows 2006](https://research.google/pubs/pub27897/)) is a Paxos-replicated, five-node lock service that exposes a small filesystem with advisory locks. It was designed for coarse-grained use, with locks held for hours rather than milliseconds, so that the cost of an election is amortized. Clients hold **sessions** maintained by keepalive RPCs with a ~12-second lease; if a session's lease lapses, the client enters a ~45-second grace period ("jeopardy") in which caches are disabled but handles survive, masking brief master failovers. Applications elect leaders by competing to acquire a lock file. GFS and Bigtable both elect masters this way, and the process that acquires the lock writes its identity into the file for discovery. Ephemeral files also serve as liveness signals. Burrows reports that a service intended for election and configuration came to be used primarily as a name server, a use that likewise requires one agreed value that changes rarely.
 
-**ZooKeeper**'s election recipe: every candidate creates a sequential-ephemeral znode; the lowest sequence number is leader; each other node watches only its immediate predecessor. When the leader's session dies, its znode vanishes and exactly one successor wakes — avoiding the thundering herd of everyone re-racing. **etcd** exposes election directly over its lease API: campaign on a key bound to a lease, leadership persists while the lease is kept alive, and the key's creation revision serves as the fencing token. **Raft** internalizes election into the consensus protocol: followers that miss heartbeats become candidates after a *randomized* timeout (the randomization is the entire split-vote-avoidance mechanism), majority vote elects, and the incremented term number fences the old leader — any RPC carrying a stale term is rejected by protocol rule.
+In **ZooKeeper**'s election recipe, every candidate creates a sequential-ephemeral znode, the candidate with the lowest sequence number is leader, and each other candidate watches only its immediate predecessor. When the leader's session ends, its znode is deleted and exactly one successor is notified, which avoids the thundering herd that results when every candidate competes again. **etcd** exposes election directly through its lease API. A candidate campaigns on a key bound to a lease, leadership persists while the lease is kept alive, and the key's creation revision serves as the fencing token. **Raft** integrates election into the consensus protocol. Followers that miss heartbeats become candidates after a *randomized* timeout (the randomization is Raft's only mechanism for avoiding split votes), a majority vote elects a leader, and the incremented term number fences the old leader, since any RPC carrying a stale term is rejected by protocol rule.
 
-All three reduce to the same layering:
+All three implement the same layering.
 
 ```text
 suspicion:  heartbeats + timeouts        (approximate an eventual leader hint)
@@ -97,7 +101,7 @@ authority:  lease with bounded term      (self-expiring, renewable)
 safety:     epoch/term/fencing token     (checked by every downstream effect)
 ```
 
-A coordination service sells this stack as a primitive so that applications above it — masters, shard owners, singleton workers — inherit consensus-grade safety while writing only lock-acquire loops. That inheritance has a condition: the *resources those applications write to* must check the fencing token too. A leader elected perfectly through Chubby can still corrupt a storage system that accepts unfenced writes; the election machinery bounds who may act, but only token checks at the data bound what a zombie can do.
+A coordination service provides this stack as a primitive, so that applications built on it (masters, shard owners, singleton workers) obtain consensus-level safety with code no more complex than a lock-acquisition loop. This safety holds only if the *resources those applications write to* also check the fencing token. A leader correctly elected through Chubby can still corrupt a storage system that accepts unfenced writes. The election determines which process may act, and only token checks at the data limit the effects of a former leader that continues to act.
 
 ## Related notes
 
