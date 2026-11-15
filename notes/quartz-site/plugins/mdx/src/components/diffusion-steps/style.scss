@@ -1,0 +1,121 @@
+figure.dfs {
+  @include fig-frame;
+
+  .dfs-plot {
+    max-width: 340px;
+    margin: 0 auto;
+
+    svg {
+      @include fig-chart;
+      aspect-ratio: 1;
+    }
+  }
+
+  .dfs-frame {
+    fill: none;
+    stroke: var(--lightgray);
+  }
+
+  .dfs-pt {
+    fill: var(--fig-blue);
+    fill-opacity: 0.75;
+  }
+
+  .dfs-data {
+    fill: var(--gray);
+    fill-opacity: 0.35;
+  }
+
+  .dfs-x0 {
+    fill: var(--fig-orange);
+    fill-opacity: 0.7;
+  }
+
+  .dfs-hidden {
+    display: none;
+  }
+
+  .dfs-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.2rem 1rem;
+    margin-top: 0.4rem;
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  .dfs-key-xt {
+    color: var(--fig-blue);
+  }
+
+  .dfs-key-x0 {
+    color: var(--fig-orange);
+  }
+
+  .dfs-controls {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.9rem;
+    max-width: 460px;
+    margin: 0.7rem auto 0;
+
+    button {
+      @include fig-button(0.3rem 0.9rem, 0.9rem);
+      @include fig-button-hover;
+      min-width: 4.6rem;
+
+      &:disabled {
+        cursor: progress;
+        opacity: 0.6;
+      }
+    }
+  }
+
+  .dfs-slider {
+    @include fig-slider;
+    flex: 1;
+    font-size: 0.9rem;
+
+    span {
+      gap: 0.75rem;
+    }
+
+    output {
+      white-space: nowrap;
+    }
+
+    input:disabled {
+      cursor: progress;
+    }
+  }
+
+  .dfs-readout {
+    max-width: 460px;
+    min-height: 2.8em;
+    margin: 0.5rem auto 0;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dfs-timing {
+    max-width: 460px;
+    margin: 0.1rem auto 0;
+    color: var(--gray);
+    font-size: 0.8rem;
+
+    &:empty {
+      display: none;
+    }
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .dfs-plot {
+      max-width: 100%;
+    }
+  }
+}
