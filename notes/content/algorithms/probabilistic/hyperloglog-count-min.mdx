@@ -1,0 +1,294 @@
+---
+title: HyperLogLog and Count-Min
+category: Algorithms
+tags:
+  - probabilistic data structures
+  - sketching
+  - streaming algorithms
+  - cardinality estimation
+  - hyperloglog
+  - count-min sketch
+  - count sketch
+  - hashing
+date: 2026-11-15
+updated: 2026-11-15
+authors:
+  - elimelt
+status: draft
+description: HyperLogLog for distinct counting and the Count-Min sketch for frequency estimation, with the estimators and bounds derived from the original papers, the corrections introduced by HyperLogLog++ and Ertl's estimator, Count Sketch and conservative update, and the error of each measured over thousands of trials on 161 million Wikimedia pageview records.
+sources:
+  - title: Flajolet, Fusy, Gandouet and Meunier (2007), HyperLogLog, the analysis of a near-optimal cardinality estimation algorithm
+    url: https://algo.inria.fr/flajolet/Publications/FlFuGaMe07.pdf
+    type: paper
+  - title: Heule, Nunkesser and Hall (2013), HyperLogLog in practice
+    url: https://doi.org/10.1145/2452376.2452456
+    type: paper
+  - title: Ertl (2017), New cardinality estimation algorithms for HyperLogLog sketches
+    url: https://arxiv.org/abs/1702.01284
+    type: paper
+  - title: Durand and Flajolet (2003), Loglog counting of large cardinalities
+    url: https://doi.org/10.1007/978-3-540-39658-1_55
+    type: paper
+  - title: Flajolet and Martin (1985), Probabilistic counting algorithms for data base applications
+    url: https://doi.org/10.1016/0022-0000(85)90041-8
+    type: paper
+  - title: Whang, Vander-Zanden and Taylor (1990), A linear-time probabilistic counting algorithm for database applications
+    url: https://doi.org/10.1145/78922.78925
+    type: paper
+  - title: Kane, Nelson and Woodruff (2010), An optimal algorithm for the distinct elements problem
+    url: https://doi.org/10.1145/1807085.1807094
+    type: paper
+  - title: Cormode and Muthukrishnan (2005), An improved data stream summary, the count-min sketch and its applications
+    url: https://doi.org/10.1016/j.jalgor.2003.12.001
+    type: paper
+  - title: Cormode and Muthukrishnan (2005), Summarizing and mining skewed data streams
+    url: https://doi.org/10.1137/1.9781611972757.5
+    type: paper
+  - title: Charikar, Chen and Farach-Colton (2004), Finding frequent items in data streams
+    url: https://doi.org/10.1016/S0304-3975(03)00400-6
+    type: paper
+  - title: Estan and Varghese (2002), New directions in traffic measurement and accounting
+    url: https://doi.org/10.1145/633025.633056
+    type: paper
+  - title: Redis, hyperloglog.c
+    url: https://github.com/redis/redis/blob/unstable/src/hyperloglog.c
+    type: code
+  - title: Wikimedia, Analytics datasets, pageviews
+    url: https://dumps.wikimedia.org/other/pageviews/readme.html
+    type: dataset
+---
+
+HyperLogLog is a randomized summary of a multiset that estimates its number of distinct elements $F_0$ to within a relative standard error of about $1.04/\sqrt{m}$, using $m$ registers of $\lceil \lg \lg U \rceil$ bits each for a universe of hash values of size $U$ ([Flajolet et al. 2007](https://algo.inria.fr/flajolet/Publications/FlFuGaMe07.pdf)). The Count-Min sketch is a $d \times w$ array of counters that estimates the frequency $a_i$ of any item $i$ in a stream with one-sided error: the estimate $\hat{a}_i$ satisfies $a_i \le \hat{a}_i$ always, and $\hat{a}_i \le a_i + \varepsilon \|a\|_1$ with probability at least $1 - \delta$ when $w = \lceil e/\varepsilon \rceil$ and $d = \lceil \ln(1/\delta) \rceil$ ([Cormode and Muthukrishnan 2005](https://doi.org/10.1016/j.jalgor.2003.12.001)).
+
+Both structures hash each item and keep only an aggregate of the hash values: HyperLogLog keeps, per register, the largest number of leading zero bits seen, and Count-Min keeps, per row, the sum of the counts that hashed to each cell. Neither stores the items, so the space is independent of the stream length, and both are mergeable: the register-wise maximum of two HyperLogLog sketches is the sketch of the union of their inputs, and the cell-wise sum of two Count-Min sketches built with the same hash functions is the sketch of the concatenated streams.
+
+The notation ($a$, $N = \|a\|_1$, $F_0$, $(\varepsilon, \delta)$) and the benchmark stream are those of the [[algorithms/probabilistic/index|series index]]. All measurements below use one day of pageviews across every Wikimedia project, with the desktop and mobile sites of a project counted separately (`en` and `en.m`): 160,961,718 hourly records over 60,974,808 distinct (project, page) keys, with 445,961,446 views in total.
+
+## Distinct counting
+
+The distinct-elements problem asks for $F_0 = |\{i : a_i \ne 0\}|$ in one pass. An exact one-pass answer requires memory proportional to the number of distinct items in the worst case, so a summary of fixed size must approximate. [Kane, Nelson and Woodruff (2010)](https://doi.org/10.1145/1807085.1807094) give an algorithm using $O(\varepsilon^{-2} + \log n)$ bits for a $(1 \pm \varepsilon)$ approximation with constant success probability, which matches the known lower bound. HyperLogLog does not achieve that bound asymptotically, since each of its registers needs $\Theta(\log \log n)$ bits, but its constants are small and an update costs one hash evaluation, a count of leading zeros and a maximum.
+
+### The observable: leading zeros of a hash
+
+Let $h$ map items to uniformly distributed bit strings, and let $\rho(x)$ be the position of the leftmost 1-bit of $x$, so $\rho(1\ldots) = 1$, $\rho(01\ldots) = 2$, and $\Pr[\rho(h(i)) \ge k] = 2^{-(k-1)}$. Repeated occurrences of an item produce the same hash value, so the largest $\rho$ over a stream depends only on the set of distinct items. If $F_0 = \nu$, the maximum $M = \max \rho$ satisfies $\Pr[M \le k] = (1 - 2^{-k})^{\nu}$, and $M$ is close to $\lg \nu$: a set of a million distinct items is expected to contain one whose hash starts with about 20 zeros.
+
+One such maximum estimates $\lg \nu$ to within a constant, so $2^M$ estimates $\nu$ only to within a constant factor, with a standard deviation comparable to $\nu$ itself. HyperLogLog reduces the variance by *stochastic averaging*: the first $p$ bits of the hash choose one of $m = 2^p$ registers, the remaining bits supply $\rho$, and each register $M_j$ records the maximum $\rho$ over the items assigned to it. Each register then sees about $\nu / m$ items, and the estimate combines the $m$ registers.
+
+```text
+update(i):  x = h(i);  j = first p bits of x;  w = remaining bits
+            M[j] = max(M[j], rho(w))
+```
+
+### The raw estimator
+
+The combination step is a normalized harmonic mean of $2^{M_j}$:
+
+$$
+E = \alpha_m \, m^2 \Bigl(\sum_{j=1}^{m} 2^{-M_j}\Bigr)^{-1}, \qquad \alpha_\infty = \frac{1}{2 \ln 2} \approx 0.72135 .
+$$
+
+Flajolet et al. give $\alpha_{16} = 0.673$, $\alpha_{32} = 0.697$, $\alpha_{64} = 0.709$ and $\alpha_m = 0.7213/(1 + 1.079/m)$ for $m \ge 128$. The harmonic mean is used because $2^{M_j}$ has a heavy right tail, and the harmonic mean is less sensitive to a few large values than the arithmetic or geometric mean. The predecessor algorithm, LogLog ([Durand and Flajolet 2003](https://doi.org/10.1007/978-3-540-39658-1_55)), used the geometric mean and reached a standard error of $1.30/\sqrt{m}$; HyperLogLog reaches $1.04/\sqrt{m}$, so it attains LogLog's accuracy with $(1.04/1.30)^2 \approx 64\%$ of the registers.
+
+**Where $\alpha_\infty$ and $1.04$ come from.** The constants follow from a short calculation in the Poisson model, in which the number of items assigned to each register is an independent Poisson variable with mean $\lambda = \nu / m$. A register is at most $k$ exactly when none of its items has $\rho > k$, so $\Pr[M_j \le k] = \exp(-\lambda 2^{-k})$. Summing by parts,
+
+$$
+\mathbb{E}\bigl[2^{-M_j}\bigr] = \sum_{k \ge 0} 2^{-k-1} e^{-\lambda 2^{-k}}, \qquad
+\mathbb{E}\bigl[2^{-2M_j}\bigr] = \sum_{k \ge 0} \tfrac{3}{4}\, 2^{-2k} e^{-\lambda 2^{-k}} .
+$$
+
+For large $\lambda$ each sum is close to the integral obtained by substituting $u = \lambda 2^{-k}$, $dk = -du/(u \ln 2)$:
+
+$$
+\mathbb{E}\bigl[2^{-M_j}\bigr] \approx \frac{1}{2\lambda \ln 2}\int_0^\infty e^{-u}\, du = \frac{1}{2 \lambda \ln 2}, \qquad
+\mathbb{E}\bigl[2^{-2M_j}\bigr] \approx \frac{3}{4 \lambda^2 \ln 2}\int_0^\infty u\, e^{-u}\, du = \frac{3}{4 \lambda^2 \ln 2} .
+$$
+
+So $\sum_j 2^{-M_j} \approx m^2 / (2 \nu \ln 2)$, and inverting gives $\nu \approx \alpha_\infty m^2 / \sum_j 2^{-M_j}$. The relative variance of one term is $\operatorname{Var}(2^{-M_j}) / \mathbb{E}[2^{-M_j}]^2 = 4\lambda^2 \ln^2 2 \cdot \bigl(\tfrac{3}{4\lambda^2 \ln 2} - \tfrac{1}{4\lambda^2 \ln^2 2}\bigr) = 3 \ln 2 - 1$. The sum of $m$ independent terms has relative variance $(3 \ln 2 - 1)/m$, and by the delta method its reciprocal has the same relative standard deviation to first order:
+
+$$
+\frac{\operatorname{sd}(E)}{\nu} \approx \frac{\sqrt{3 \ln 2 - 1}}{\sqrt{m}} = \frac{1.03896}{\sqrt{m}} .
+$$
+
+The integral approximation discards a small periodic oscillation in $\lg \lambda$, and the Poisson model replaces the multinomial assignment of a fixed $\nu$ items. Flajolet et al. treat both exactly with Mellin transforms and depoissonization. Their Theorem 1 states that $\mathbb{E}[E]/\nu = 1 + \delta_1(\nu) + o(1)$ with $|\delta_1(\nu)| < 5 \cdot 10^{-5}$ for $m \ge 16$, and that the standard error is $\beta_m/\sqrt{m}$ with $\beta_{16} \approx 1.106$, $\beta_{64} \approx 1.054$, $\beta_{128} \approx 1.046$ and $\beta_\infty = \sqrt{3 \ln 2 - 1} \approx 1.03896$. They also state that the estimate is approximately Gaussian, so it falls within one, two and three standard errors of $\nu$ in about 65%, 95% and 99% of cases.
+
+**Memory.** A register stores a value of $\rho$ at most $L - p + 1$ for an $L$-bit hash, so 5 bits suffice for a 32-bit hash and 6 bits for a 64-bit hash. With 6-bit registers, $p = 14$ uses 12 KiB and gives a standard error of 0.81%. The abstract of Flajolet et al. describes the 32-bit version as able to "estimate cardinalities well beyond $10^9$ with a typical accuracy of 2% while using a memory of only 1.5 kilobytes".
+
+| $p$ | $m$ | $1.04/\sqrt{m}$ | Memory, 6-bit registers |
+| ---: | ---: | ---: | ---: |
+| 4 | 16 | 26% | 12 B |
+| 8 | 256 | 6.5% | 192 B |
+| 10 | 1,024 | 3.25% | 768 B |
+| 12 | 4,096 | 1.63% | 3 KiB |
+| 14 | 16,384 | 0.81% | 12 KiB |
+| 16 | 65,536 | 0.41% | 48 KiB |
+| 18 | 262,144 | 0.20% | 192 KiB |
+
+### Small and large cardinalities
+
+The derivation above assumes that every register has received many items. When $\nu$ is comparable to $m$ or smaller, many registers are still 0, each contributing $2^0 = 1$ to the denominator, and the raw estimator is biased upward: with no items at all, $E = \alpha_m m \approx 0.72 m$. On the pageview keys with $p = 14$, the mean raw estimate is about 11,800 at $\nu = 1$, 12.3 times the true value at $\nu = 1000$, and still 2.7% too large at $\nu = 2.43m$.
+
+Flajolet et al. handle this range with *linear counting* ([Whang et al. 1990](https://doi.org/10.1145/78922.78925)). If $V$ registers are empty, then $\mathbb{E}[V] \approx m e^{-\nu/m}$, and inverting gives the estimate $m \ln(m/V)$. With $t = \nu/m$, the occupancy variance $\operatorname{Var}(V) \approx m e^{-t}\bigl(1 - (1 + t)e^{-t}\bigr)$ and the delta method give a relative standard error of $\sqrt{m(e^t - t - 1)}/\nu$, the expression in Whang et al. That formula matches the measurement at $p = 14$: it predicts 0.56%, 0.58% and 0.78% at $\nu$ = 1000, 5012 and 29,286, and the measured RMSE over 2000 trials is 0.56%, 0.57% and 0.77%. Linear counting is more accurate than $1.04/\sqrt{m}$ until about $t \approx 2$, where $(e^t - t - 1)/t^2 = 1.04^2$, and its error grows quickly after that.
+
+The 2007 algorithm uses linear counting when $E \le \tfrac{5}{2} m$ and some register is empty, and the raw estimate otherwise. For a 32-bit hash it also applies a large-range correction, $-2^{32} \ln(1 - E/2^{32})$, when $E > 2^{32}/30$, intended to account for distinct items whose 32-bit hash values collide.
+
+**The switch at $\tfrac{5}{2}m$ is visible on real data.** Near $\nu = 2.5m$ the raw estimate is biased upward by about 2.7%, and the rule chooses between two estimators according to the value of one of them: trials whose raw estimate is high cross the threshold and report the biased raw value, and trials whose raw estimate is low report linear counting. The mixture has a bias of +1.04% and an RMSE of 2.20% at $p = 14$, $\nu = 39{,}811$, which is 2.71 times the nominal 0.81%. The raw estimator's bias at a fixed $\nu/m$ does not shrink as $m$ grows while $1.04/\sqrt{m}$ does, so the excess roughly doubles with each increase of 2 in $p$:
+
+| $p$ | Worst RMSE of the 2007 algorithm, $\nu$ near $2.5m$ | Ratio to $1.04/\sqrt{m}$ |
+| ---: | ---: | ---: |
+| 10 | 4.2% | 1.29 |
+| 12 | 2.95% | 1.81 |
+| 14 | 2.20% | 2.71 |
+| 16 | 2.03% | 4.99 |
+| 18 | 2.05% | 10.1 |
+
+**The large-range correction is not needed.** The analysis treats the hash values of the $\nu$ distinct items as independent uniform draws. Two items whose hash values coincide are two draws that happen to be equal, and the register maxima have the same distribution whether or not this happens, up to the truncation of $\rho$ at $33 - p$. The raw estimator therefore already estimates $\nu$ when some hash values coincide, and the correction, which treats $E$ as a count of distinct hash values and inflates it, introduces a bias. With a 32-bit hash at $p = 14$ on all 60,974,808 keys, the raw estimate had a mean error of $-0.004\% \pm 0.018\%$ (mean and its standard error over 2000 trials), and applying the correction moved it to $+0.71\%$, which equals the first-order size of the correction, $E/(2 \cdot 2^{32})$. The data set is below the $2^{32}/30 \approx 1.43 \times 10^8$ threshold, so the 2007 rule does not apply the correction here. [Ertl (2017)](https://arxiv.org/abs/1702.01284) reaches the same conclusion analytically and observes that the correction "makes the bias worse".
+
+### HyperLogLog++
+
+[Heule, Nunkesser and Hall (2013)](https://doi.org/10.1145/2452376.2452456) describe the changes made for Google's production implementation.
+
+- **A 64-bit hash.** Registers take 6 bits, and the large-range correction is removed, since $\rho$ is not truncated below $\nu \approx 2^{64-p}$.
+- **Empirical bias correction.** The bias of the raw estimator for $E \le 5m$ was measured by simulation on 5000 data sets at about 200 values of $\nu$ for each precision $p = 4, \dots, 18$. At run time the bias is estimated by averaging the tabulated biases of the 6 nearest tabulated raw estimates and subtracted. Linear counting is used below a per-precision threshold determined experimentally (11,500 at $p = 14$, about $0.70m$), and the bias-corrected raw estimate above it.
+- **A sparse representation.** While few registers are nonzero, the sketch stores a sorted list of (index, $\rho$) pairs computed with a larger precision $p' = 25$, and converts to the dense array when the list would exceed the dense array's $6m$ bits. Linear counting over $2^{25}$ buckets has a much smaller error than over $2^{p}$: by the formula above, at $\nu = 10^4$ the relative standard error is about $1/\sqrt{2 \cdot 2^{25}} \approx 0.012\%$ against 0.61% for $p = 14$.
+
+Measured at $p = 14$, the bias correction removes the spike of the 2007 algorithm: the RMSE of the dense HyperLogLog++ estimate stays below 0.75% for every $\nu \le 5m$, under the nominal 0.81%. The correction leaves a small upward bias of 0.06% to 0.12% between $\nu \approx 30{,}000$ and $63{,}000$, which is under 15% of the standard error but four to eight standard errors of the mean over 2000 trials, so sampling noise does not account for it. The sparse mode, simulated as linear counting on $2^{25}$ buckets until 12,107 pairs (the conversion point for $p = 14$ in the paper's Table 1), had an RMSE of 0.01% or less up to that point, against 0.56% to 0.6% for the dense sketch. At $p = 16$ the dense estimate has one irregularity: at $\nu \approx 0.83m$ its RMSE is 0.68%, 1.67 times the nominal value, while the raw estimate's spread at that point is 0.21% and the neighboring checkpoints are near 0.22%. One possible cause is that the interpolated bias correction changes steeply in this region.
+
+### Ertl's estimator
+
+Ertl derives an estimator that needs neither switching nor tables. Write $C_k$ for the number of registers with value $k$, for $k = 0, \dots, q + 1$ where $q = L - p$. The raw estimator's denominator is $\sum_k C_k 2^{-k}$, and the bias at small and large $\nu$ comes from the two boundary counts: $C_0$, the empty registers, and $C_{q+1}$, the registers whose $\rho$ has reached its maximum. Ertl replaces their contributions with functions derived from the Poisson model:
+
+$$
+E = \frac{\alpha_\infty\, m^2}{m\,\sigma(C_0/m) + \sum_{k=1}^{q} C_k 2^{-k} + m\,\tau(1 - C_{q+1}/m)\, 2^{-q}},
+$$
+
+$$
+\sigma(x) = x + \sum_{k \ge 1} x^{2^k} 2^{k-1}, \qquad
+\tau(x) = \tfrac{1}{3}\Bigl(1 - x - \sum_{k \ge 1} \bigl(1 - x^{2^{-k}}\bigr)^2 2^{-k}\Bigr).
+$$
+
+When no register is empty or saturated, $\sigma(0) = 0$ and $\tau(1) = 0$, and the formula reduces to the raw estimator with $\alpha_\infty$ in place of $\alpha_m$. Ertl states that $\alpha_\infty$ is sufficient for $p \ge 8$ and that the estimate is monotone in the register values. Redis computes this estimator (the functions `hllSigma` and `hllTau` in `hyperloglog.c` cite Ertl) with $p = 14$ and 6-bit registers.
+
+On the pageview stream at $p = 14$ the estimator tracks linear counting at small $\nu$ (RMSE 0.56% to 0.60% up to $\nu = 20{,}000$) and $1.04/\sqrt{m}$ beyond, with no spike anywhere on the 214 checkpoints. Its mean error is below 0.04% in absolute value at every checkpoint, within about two standard errors of the mean. At $p \le 8$ the replacement of $\alpha_m$ by $\alpha_\infty$ is visible: the measured bias at $\nu = 61\text{M}$ is $+6.5\% \pm 0.7\%$ at $p = 4$, $+1.5\% \pm 0.3\%$ at $p = 6$ and $+0.49\% \pm 0.15\%$ at $p = 8$, close to the ratios $\alpha_\infty/\alpha_m - 1$ = 7.2%, 1.7% and 0.43%.
+
+The figure repeats the comparison in the browser for $p = 4$ to $10$, with 300 trials per curve. It plots the median relative error of the raw estimator, of the 2007 algorithm and of Ertl's estimator against $\nu$, the 5% and 95% quantiles of the 2007 algorithm (dashed) and of Ertl's estimator (shaded), and $\pm 1.04/\sqrt{m}$. The curves show the raw estimator's upward bias below about $5m$, the jump of the 2007 algorithm at $\tfrac{5}{2}m$, and Ertl's estimator following $\pm 1.04/\sqrt{m}$ without either.
+
+<HllError />
+
+### Measured error at $\nu = 61$ million
+
+Each row is 2000 independent trials, each with a different seed for the 64-bit hash, over all 60,974,808 distinct keys of the day, using Ertl's estimator. The bracket is a 95% bootstrap interval for the standard deviation.
+
+| $p$ | $1.04/\sqrt{m}$ | Measured sd | Within $1\sigma$ | Within $2\sigma$ | Within $3\sigma$ |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | 26.0% | 29.8% [28.4, 31.3] | 69.8% | 92.4% | 97.2% |
+| 6 | 13.0% | 13.3% [12.8, 13.7] | 69.6% | 94.8% | 99.1% |
+| 8 | 6.50% | 6.50% [6.28, 6.70] | 69.8% | 95.0% | 99.5% |
+| 10 | 3.25% | 3.18% [3.09, 3.28] | 69.9% | 95.9% | 99.9% |
+| 12 | 1.63% | 1.60% [1.55, 1.65] | 68.8% | 96.1% | 99.8% |
+| 14 | 0.81% | 0.82% [0.79, 0.85] | 67.8% | 95.2% | 99.8% |
+| 16 | 0.41% | 0.43% [0.41, 0.44] | 65.2% | 94.8% | 99.7% |
+| 18 | 0.20% | 0.20% [0.20, 0.21] | 68.1% | 95.2% | 99.7% |
+
+From $p = 8$ upward the interval contains $1.04/\sqrt{m}$ except at $p = 16$, where the measured value is 4.8% above it. At $p = 4$ the measured value exceeds even $\beta_{16}/\sqrt{16} = 27.7\%$, and the coverage at $3\sigma$ (97.2% against 99.7% for a Gaussian) indicates a long upper tail with only 16 registers. At $p = 6$ the coverage at $3\sigma$ is 99.1%, still about five binomial standard errors below 99.7%. From $p = 8$ upward the coverage figures are consistent with a Gaussian estimate.
+
+### Hash functions on real keys
+
+The analysis assumes a uniformly random hash. Real keys are strings with long shared prefixes (`en Talk:...`, `en.m Category:...`), and a weak hash can map them to correlated values. The same 64-bit estimator at $p = 14$ was run on each of the 24 hourly key sets and on the whole day with five hash functions, one estimate each:
+
+| Hash | Mean error over 24 hours | Range over 24 hours | Error for the day |
+| --- | ---: | ---: | ---: |
+| MurmurHash64A | +0.24% | $-1.48\%$ to $+1.42\%$ | $-0.22\%$ |
+| FNV-1a, 64-bit | $-0.31\%$ | $-1.88\%$ to $+1.52\%$ | $-1.12\%$ |
+| FNV-1a, 32-bit | $-0.27\%$ | $-2.11\%$ to $+0.92\%$ | $+1.24\%$ |
+| CRC-32 | $-0.19\%$ | $-2.04\%$ to $+0.86\%$ | $+0.15\%$ |
+| Polynomial, base 31 (Java's `String.hashCode`) | $-3.97\%$ | $-5.76\%$ to $-2.21\%$ | $-4.09\%$ |
+
+With a standard error of 0.81% per estimate, the first four are consistent with an unbiased estimator. The base-31 polynomial underestimates in every one of the 24 hours. Its top 14 bits, which choose the register, are far from uniform on the hour-0 keys: the $\chi^2$ statistic of the register loads is 243,389 on 16,383 degrees of freedom, against 16,168 for FNV-1a and 16,548 for CRC-32. Uneven loads bias the estimate downward because the harmonic mean of the per-register loads is smaller than their arithmetic mean $\nu/m$; for these loads the ratio is 0.986. Replacing only the index bits or only the $\rho$ bits with those of a good hash showed that both halves contribute (hour 0, one estimate each: $-4.9\%$ with both from the polynomial, $-2.0\%$ with only $\rho$ from it, $-0.2\%$ with only the index from it, and $+0.6\%$ with neither). Its collision count was also high, 5178 colliding keys against 3949 for FNV-1a and an expected 3975 for a random 32-bit function.
+
+### Merging, unions and intersections
+
+The sketch of $A \cup B$ is the register-wise maximum of the sketches of $A$ and $B$, so unions are exact operations on sketches and carry the same relative error $1.04/\sqrt{m}$ with respect to $|A \cup B|$. Intersections are not directly supported. The inclusion-exclusion estimate $|A| + |B| - |A \cup B|$ has an absolute error on the order of $1.04 \max(|A|, |B|, |A \cup B|)/\sqrt{m}$, so its relative error is larger by the factor $|A \cup B| / |A \cap B|$; for two sets whose overlap is 1% of their union, it is about 100 times the relative error of the union. MinHash, planned as a later note of the [[algorithms/probabilistic/index|series]], estimates the Jaccard similarity $|A \cap B|/|A \cup B|$ directly.
+
+## Frequency estimation
+
+The point-query problem asks, after a stream of updates $(i_t, c_t)$, for an estimate of $a_i$ for any $i$. An exact answer requires a counter per distinct item. The Count-Min sketch replaces the counters with $d$ rows of $w$ shared counters and answers within an additive error proportional to $\|a\|_1$.
+
+### The Count-Min sketch
+
+Choose $d$ hash functions $h_1, \dots, h_d : [n] \to [w]$ independently from a pairwise-independent family. The sketch is an array $\mathrm{count}[1..d][1..w]$, initially zero.
+
+```text
+update(i, c):  for j in 1..d:  count[j][h_j(i)] += c
+query(i):      return min over j of count[j][h_j(i)]
+```
+
+**Theorem** (Cormode and Muthukrishnan, Theorem 1). With $w = \lceil e/\varepsilon \rceil$, $d = \lceil \ln(1/\delta) \rceil$ and all $c_t \ge 0$, the estimate $\hat{a}_i$ satisfies $a_i \le \hat{a}_i$, and with probability at least $1 - \delta$, $\hat{a}_i \le a_i + \varepsilon \|a\|_1$.
+
+*Proof.* Each cell $\mathrm{count}[j][h_j(i)]$ contains $a_i$ plus the counts of the other items that hash to the same cell, so with nonnegative counts every row overestimates and so does the minimum. Let $X_j = \sum_{k \ne i} a_k \mathbf{1}[h_j(k) = h_j(i)]$ be the excess in row $j$. Pairwise independence gives $\Pr[h_j(k) = h_j(i)] \le 1/w$ for $k \ne i$, so $\mathbb{E}[X_j] \le \|a\|_1/w \le (\varepsilon/e)\|a\|_1$. By Markov's inequality $\Pr[X_j > \varepsilon \|a\|_1] \le 1/e$. The rows use independent hash functions, so the minimum exceeds $a_i + \varepsilon\|a\|_1$ only if every row does, which has probability at most $e^{-d} \le \delta$. $\square$
+
+The sketch stores $wd \approx (e/\varepsilon)\ln(1/\delta)$ counters and $d$ hash functions; the paper states the space as $(2 + e/\varepsilon)\ln(1/\delta)$ words. The base $e$ is the choice that minimizes this product for a proof of this form. If each row is made to fail with probability $1/b$, Markov requires $w = b/\varepsilon$ and the rows needed are $d = \ln(1/\delta)/\ln b$, so $wd = (b/\ln b)\,\varepsilon^{-1}\ln(1/\delta)$, and $b/\ln b$ is minimized at $b = e$.
+
+Updates and queries take $d$ hash evaluations. The same structure answers inner-product, range and quantile queries with errors stated in the paper. In the turnstile model, where counts may be negative, the minimum no longer bounds $a_i$ from below, and the first part of the theorem fails.
+
+**Skew.** The bound charges every query the same $\varepsilon\|a\|_1$, the mass of the whole stream. When the frequencies follow a Zipf law with exponent $z > 1$, most of that mass is in a few items, which collide with any given item only rarely. [Cormode and Muthukrishnan (2005, SDM)](https://doi.org/10.1137/1.9781611972757.5) show that point queries with error $\varepsilon\|a\|_1$ then need only $O(\varepsilon^{-\min\{1, 1/z\}} \ln(1/\delta))$ space, and prove a matching $\Omega(\varepsilon^{-1/z})$ lower bound for Zipf data. The pageview frequencies are skewed but with an exponent below 1 over most of the ranks (0.75 between ranks 10 and 1000, 0.72 between $10^3$ and $10^5$), where the improvement does not apply.
+
+### Count Sketch
+
+Count Sketch ([Charikar, Chen and Farach-Colton 2004](https://doi.org/10.1016/S0304-3975(03)00400-6)) adds a second hash $g_j : [n] \to \{-1, +1\}$ per row. An update adds $g_j(i)\,c$ to $\mathrm{count}[j][h_j(i)]$, and the query returns the median over $j$ of $g_j(i)\,\mathrm{count}[j][h_j(i)]$. Colliding items now enter with random signs, so each row's estimate is unbiased, with variance at most $\sum_{k \ne i} a_k^2 / w$. The error therefore scales with $\|a\|_2/\sqrt{w}$ instead of $\|a\|_1/w$. Charikar et al. state the guarantee for the top-$k$ problem: with $b$ buckets per row and $O(\log(n/\delta))$ rows, every estimate is within $8\gamma$ of the truth, where $\gamma = \bigl(\sum_{q > k} a_{(q)}^2 / b\bigr)^{1/2}$ is computed over the items outside the $k$ largest.
+
+For the pageview stream $\|a\|_2/\|a\|_1 = 0.0124$, but $\|a\|_2 = 5.52 \times 10^6$ is dominated by a few pages (English Wikipedia's Main Page alone has 4.35 million of the 446 million views). A query collides with such a page in a given row with probability $1/w$, and the median over rows discards those rows, so the error of a typical query is governed by the norm of the remaining items, the quantity in which Charikar et al. state their bound. Beyond the 1000 most viewed pages that norm is $5.06 \times 10^5$.
+
+### Conservative update
+
+[Estan and Varghese (2002)](https://doi.org/10.1145/633025.633056) proposed, for nonnegative updates, to increase only the counters that would otherwise become the minimum: "We update the smallest of the counters normally... the other counters are set to the maximum of their old value and the new value of the smallest counter." Every counter still upper-bounds each item mapped to it, so the estimate remains an overestimate and the theorem's bound still holds, but counters grow less. The method does not support deletions, and its result depends on the order of updates.
+
+### Measured error
+
+Count-Min and Count Sketch were built over all 60,974,808 keys with their total daily views, for widths $w = 2^{10}$ to $2^{20}$ and depths 1 to 8, with hash functions $h_j(x) = ((a_j x + b_j) \bmod (2^{61} - 1)) \bmod w$ drawn independently for each of 8 trials. Every key was then queried. Over the 8 trials the Count-Min mean error varied by less than 0.5% and the Count Sketch mean absolute error by less than 6% (largest minus smallest, relative to the mean), so the table gives trial means. Depth is 4 ($\delta = e^{-4} = 1.8\%$) and memory counts 32-bit counters.
+
+| $w$ | Memory | $\varepsilon N = eN/w$ | $N/w$ | CM mean error | CM median | CM 99th percentile | CS mean abs. error | CS median | CS 99th percentile |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| $2^{10}$ | 16 KiB | 1,183,837 | 435,509 | 390,409 | 380,189 | 416,869 | 12,856 | 9,552 | 54,336 |
+| $2^{12}$ | 64 KiB | 295,959 | 108,877 | 92,609 | 91,201 | 104,713 | 4,696 | 3,508 | 19,953 |
+| $2^{14}$ | 256 KiB | 73,990 | 27,219 | 21,317 | 20,893 | 26,303 | 1,723 | 1,296 | 7,244 |
+| $2^{16}$ | 1 MiB | 18,497 | 6,805 | 4,676 | 4,571 | 6,310 | 618 | 457 | 2,754 |
+| $2^{18}$ | 4 MiB | 4,624 | 1,701 | 953 | 912 | 1,514 | 208 | 145 | 1,000 |
+| $2^{20}$ | 16 MiB | 1,156 | 425 | 174 | 158 | 347 | 63 | 42 | 347 |
+
+Percentiles are of the absolute error over all keys, read from a histogram with 50 bins per decade, so they are accurate to about 5%.
+
+- **The bound holds with a large margin.** At depth 4 the fraction of keys whose error exceeded $\varepsilon N$ was at most $1.9 \times 10^{-6}$ at every width, against the guaranteed $\delta = 0.018$. At depth 1 it was 0.5% to 3.7%, against $\delta = 1/e = 0.37$. Markov's inequality is loose here because a row's excess is a sum of many small counts and rarely reaches $e$ times its mean.
+- **One row's mean error is $N/w$.** At depth 1 the measured mean error equals $N/w$ to within 0.01% at every width, as the expectation in the proof predicts.
+- **The minimum over rows removes collisions with heavy pages.** The depth-4 mean error is 0.90 of $N/w$ at $w = 2^{10}$ and 0.41 of it at $w = 2^{20}$, so the error falls faster than $1/w$. Pages with more than $N/w$ views hold 2.5% of $N$ at $w = 2^{10}$ and 32% at $w = 2^{20}$, and these are the collisions that the minimum can avoid. Going from depth 4 to depth 8 reduces the error only by a further 2% to 17%.
+- **The error does not depend on the queried count.** At $w = 2^{20}$ the mean overestimate is about 174 views for pages with one view and for pages with thousands of views alike. In relative terms the sketch is accurate for popular pages (the 100 most viewed are within 0.18% on average) and uninformative for the rest: 99.5% of all keys, including the median key with one view, receive an estimate more than twice their true count. A Count-Min sketch over $n$ keys with $wd \ll n$ counters is a summary of the heavy part of the distribution.
+- **Count Sketch has 2.8 to 30 times smaller mean absolute error** at the same width and depth, and is unbiased: its mean signed error is under 1% of its mean absolute error at depth 4. Its error is two-sided, so it can report a negative count, and its rare large errors are larger relative to its typical error (the 99th percentile is 5.6 to 8.3 times the median, against 1.1 to 2.2 for Count-Min). Its fraction of keys with error above $\varepsilon N$ is $5 \times 10^{-6}$ to $3 \times 10^{-4}$.
+
+The width needed for a given relative accuracy follows from the table: to estimate a page's views within 10% with Count-Min at depth 4, the page needs about $10 \times$ the mean error, about 1,700 views at $w = 2^{20}$. About 14,000 of the 61 million keys have that many.
+
+**Conservative update on the same stream.** Fed the 161 million hourly records in file order at depth 4, conservative update reduced the mean error by a factor of 2.18 at $w = 2^{10}$, falling to 1.72 at $w = 2^{18}$ and $2^{20}$ (4 trials each; at $w = 2^{20}$ the mean overestimate fell from 174 to 101 views). Estan and Varghese report an improvement of up to an order of magnitude on their network traces. The plain Count-Min sketch computed from the same records in the same runs matched the separate run above to within 0.1%. Count Sketch still had the smaller mean absolute error at every width, by a factor of 1.6 at $w = 2^{20}$ and 14 at $w = 2^{10}$.
+
+The figure runs Count-Min in the browser on a smaller stream from the same data, the views of the 1,370,576 English Wikipedia desktop pages that were viewed in the hour ending 13:00 UTC ($N = 3{,}762{,}677$). It plots each page's estimate against its true count on logarithmic axes, with the lines $\hat{a} = a$, $\hat{a} = a + N/w$ and $\hat{a} = a + \varepsilon N$. At the default $w = 1024$, $d = 4$ the points form a horizontal band near $N/w$ for every page below a few thousand views, and only the most viewed pages lie near the diagonal.
+
+<CountMinLab />
+
+> [!note]- How this was measured
+> The harness sources are in the `sketch-experiments` directory, and [`run.sh`](sketch-experiments/run.sh) reproduces every number from the raw files. Large intermediate files (the 2 GB stream and the per-trial outputs) are not committed. The summaries the tables are taken from are: [`hll_summary.json`](sketch-experiments/hll_summary.json), [`hashq.txt`](sketch-experiments/hashq.txt), [`cms_summary.json`](sketch-experiments/cms_summary.json) and [`cu_summary.json`](sketch-experiments/cu_summary.json).
+>
+> - **Data.** The 24 hourly pageview files dated 4 March 2026, read from a public mirror of the Wikimedia dumps. A key is the string `domain_code page_title`. `prep.c` hashes each key with MurmurHash64A (seed `0x9747b28c`), identifies keys by that hash in an open-addressing table, and writes the stream of (hash, hourly count) records, the distinct hashes in order of first appearance and the per-key daily totals. For 61 million keys the expected number of 64-bit collisions is about $10^{-4}$, so the hash identifies the key.
+> - **HyperLogLog.** `hll.c` inserts the distinct keys in order of first appearance, rehashing each 64-bit key with a per-trial seed (two rounds of the SplitMix64 finalizer), and records every estimator at 214 checkpoints from $\nu = 1$ to $\nu = 60{,}974{,}808$, about 30 per decade, for $p = 4, 6, \dots, 18$. The 32-bit variants use the top 32 bits of the same hash at $p = 14$. HyperLogLog++ uses the bias tables and thresholds of Heule et al.'s appendix as distributed in the `hyperloglog` 0.1.8 Python package, with 6-nearest-neighbour interpolation. The sparse mode is simulated as linear counting over $2^{25}$ buckets until 12,107 distinct bucket indices. Ertl's estimator follows the formula above with $q = 64 - p$, or $q = 32 - p$ for the 32-bit variant. 2000 trials take about 25 minutes on 4 cores.
+> - **Hash functions.** `hashq.c` hashes the raw key strings with each named function, unseeded, and estimates each hour and the union of the hours with Ertl's estimator at $p = 14$. `coll.c` and `split.c` compute collisions, register loads and the mixed-hash estimates on the hour-0 file.
+> - **Count-Min and Count Sketch.** `cms.c` uses 6 widths and the first $d$ of 8 rows for $d = 1, \dots, 8$, with $h_j(x) = ((a_j x + b_j) \bmod (2^{61} - 1)) \bmod w$ applied to the key's 64-bit hash, and a second function of the same form whose low bit gives the Count Sketch sign. It inserts the daily totals of all keys and queries every key. 8 trials take 17 minutes on 4 cores.
+> - **Conservative update.** `cu.c` feeds the 161 million hourly records in their file order, since conservative update depends on the order of updates, at depth 4.
+> - **Environment.** gcc 13.3 with `-O2 -fopenmp`, Python 3.13.18 with NumPy 2.5.3, on a 4-core Intel Xeon at 2.10 GHz with 15 GB of memory.
+> - **The figures.** The HyperLogLog figure simulates uniformly random 64-bit hash values from a seeded generator, which is the input HyperLogLog receives from any set of distinct keys under a good hash; its estimators are tested against an independent Python implementation of the same formulas ([`figure_check.py`](sketch-experiments/figure_check.py)). The Count-Min figure uses the real hourly counts and a seeded hash of the page's rank; its error statistics match a NumPy recomputation exactly.
+
+> [!note]- Potentially interesting ideas
+> - **The sparse-mode improvement reported for HyperLogLog++.** Heule et al. report that the sparse representation reduces the error for small cardinalities by about a factor of 4. Simulated as linear counting over $2^{25}$ buckets, it reduced the RMSE at $p = 14$ from about 0.56% to under 0.01% for $\nu \le 12{,}000$, a factor of about 50, which is what the linear-counting formula predicts. The paper's figure may average over a different range or include the effect of the conversion to the dense representation; the difference was not resolved.
+> - **The irregularity of HyperLogLog++ at $p = 16$.** Near $\nu = 0.83m$ the bias-corrected estimate has three times the spread of the raw estimate at the same point. A plausible cause is that the six nearest tabulated raw estimates change abruptly in that region, so that the subtracted bias is a steep function of the raw estimate; checking this requires plotting the interpolated correction against the tabulated points, which was not done.
+> - **The base-31 polynomial hash.** Both its index bits and its $\rho$ bits bias the estimate, by amounts larger than the non-uniformity of the register loads explains. The joint distribution of index and $\rho$ over keys with long shared prefixes may account for the rest; a test of that would measure the per-register maxima directly.
+
+## Related notes
+
+- [[algorithms/probabilistic/index|Probabilistic data structures]], the series index, with the notation and the benchmark stream
+- [[math/probability/probability-expectation-concentration|Expectation and concentration]], for Markov's inequality and the delta method used above
+- [[systems/databases/foundations/ch3-storage-and-retrieval#Bloom filters|Bloom filters]], the membership counterpart of these sketches
