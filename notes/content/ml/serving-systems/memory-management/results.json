@@ -1,0 +1,2390 @@
+{
+ "env": {
+  "python": "3.13.18",
+  "machine": "x86_64",
+  "platform": "Linux-6.18.44-fc-v470-x86_64-with-glibc2.39"
+ },
+ "model": {
+  "dim": 4096,
+  "n_layers": 32,
+  "n_heads": 32,
+  "n_kv_heads": 8,
+  "vocab": 128256,
+  "ffn_dim_multiplier": 1.3,
+  "multiple_of": 1024,
+  "max_len": 8192,
+  "params": 8030261248,
+  "ffn_hidden": 14336,
+  "kv_bytes_per_token": 131072,
+  "weights_bytes_bf16": 16060522496
+ },
+ "budget": {
+  "gib": 56,
+  "tokens": 458752,
+  "window_s": 600
+ },
+ "traces": {
+  "code": {
+   "requests": 8819,
+   "windows": [
+    {
+     "requests": 1482,
+     "dropped_over_max_len": 0
+    },
+    {
+     "requests": 2146,
+     "dropped_over_max_len": 0
+    },
+    {
+     "requests": 2112,
+     "dropped_over_max_len": 0
+    },
+    {
+     "requests": 1751,
+     "dropped_over_max_len": 0
+    },
+    {
+     "requests": 609,
+     "dropped_over_max_len": 0
+    }
+   ],
+   "prompt_mean": 2047.848282118154,
+   "output_mean": 27.88252636353328,
+   "output_median": 13,
+   "final_len_mean_kept": 2070.044814814815,
+   "results": {
+    "max": {
+     "runtime_s": 0.10789082899987079,
+     "windows": [
+      {
+       "used": 0.2565155595053503,
+       "reserved": 0.008648109228036395,
+       "internal": 0.7348363312666132,
+       "external": 0.0,
+       "free": 0.0,
+       "running": 56.0,
+       "steady_iterations": 655,
+       "iterations": 1135,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 40649,
+       "peak_running": 56
+      },
+      {
+       "used": 0.25398129770078015,
+       "reserved": 0.011305021035550821,
+       "internal": 0.734713681263669,
+       "external": 0.0,
+       "free": 0.0,
+       "running": 56.0,
+       "steady_iterations": 990,
+       "iterations": 1972,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 59896,
+       "peak_running": 56
+      },
+      {
+       "used": 0.2620660474597502,
+       "reserved": 0.007263285628205737,
+       "internal": 0.7306706669120441,
+       "external": 0.0,
+       "free": 0.0,
+       "running": 56.0,
+       "steady_iterations": 940,
+       "iterations": 1511,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 56485,
+       "peak_running": 56
+      },
+      {
+       "used": 0.2652148480558311,
+       "reserved": 0.007564583699328979,
+       "internal": 0.7272205682448398,
+       "external": 0.0,
+       "free": 0.0,
+       "running": 56.0,
+       "steady_iterations": 810,
+       "iterations": 1795,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 49596,
+       "peak_running": 56
+      },
+      {
+       "used": 0.28197136032147235,
+       "reserved": 0.006998210661217612,
+       "internal": 0.7110304290173101,
+       "external": 0.0,
+       "free": 0.0,
+       "running": 56.0,
+       "steady_iterations": 255,
+       "iterations": 724,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 17304,
+       "peak_running": 56
+      }
+     ],
+     "used": {
+      "mean": 0.2639498226086368,
+      "min": 0.25398129770078015,
+      "max": 0.28197136032147235,
+      "stdev": 0.01100641263600692
+     },
+     "reserved": {
+      "mean": 0.008355842050467908,
+      "min": 0.006998210661217612,
+      "max": 0.011305021035550821,
+      "stdev": 0.0017639450878846562
+     },
+     "internal": {
+      "mean": 0.7276943353408952,
+      "min": 0.7110304290173101,
+      "max": 0.7348363312666132,
+      "stdev": 0.009836769055824125
+     },
+     "external": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     },
+     "free": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     },
+     "running": {
+      "mean": 56.0,
+      "min": 56.0,
+      "max": 56.0,
+      "stdev": 0.0
+     },
+     "preempt_per_req": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     },
+     "recompute_frac": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     },
+     "copy_frac": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     }
+    },
+    "double": {
+     "runtime_s": 0.10026995999987776,
+     "windows": [
+      {
+       "used": 0.6690966488153088,
+       "reserved": 0.013301836327991498,
+       "internal": 0.25812648895743445,
+       "external": 0.05621976194036227,
+       "free": 0.003255263958902939,
+       "running": 147.244019138756,
+       "steady_iterations": 209,
+       "iterations": 935,
+       "preemptions": 21,
+       "recomputed_tokens": 45734,
+       "copied_tokens": 62800,
+       "generated_tokens": 40649,
+       "peak_running": 181
+      },
+      {
+       "used": 0.6543546953965366,
+       "reserved": 0.01600817089719558,
+       "internal": 0.23485313244116615,
+       "external": 0.09401256242714073,
+       "free": 0.0007714388379610004,
+       "running": 148.25816023738872,
+       "steady_iterations": 337,
+       "iterations": 1913,
+       "preemptions": 3,
+       "recomputed_tokens": 6838,
+       "copied_tokens": 59696,
+       "generated_tokens": 59896,
+       "peak_running": 222
+      },
+      {
+       "used": 0.6718111622090241,
+       "reserved": 0.013455495697697297,
+       "internal": 0.23896144215976783,
+       "external": 0.07362244473919888,
+       "free": 0.0021494551943117674,
+       "running": 144.4437689969605,
+       "steady_iterations": 329,
+       "iterations": 1076,
+       "preemptions": 16,
+       "recomputed_tokens": 31733,
+       "copied_tokens": 71488,
+       "generated_tokens": 56485,
+       "peak_running": 206
+      },
+      {
+       "used": 0.6911824729225852,
+       "reserved": 0.012006455458603895,
+       "internal": 0.2229972779905641,
+       "external": 0.07209580458603895,
+       "free": 0.0017179890422077922,
+       "running": 145.66181818181818,
+       "steady_iterations": 275,
+       "iterations": 1448,
+       "preemptions": 19,
+       "recomputed_tokens": 39663,
+       "copied_tokens": 59120,
+       "generated_tokens": 49596,
+       "peak_running": 186
+      },
+      {
+       "used": 0.6870340832089228,
+       "reserved": 0.011820012872869318,
+       "internal": 0.238961157860694,
+       "external": 0.06071899640538033,
+       "free": 0.0014657496521335806,
+       "running": 144.32467532467533,
+       "steady_iterations": 77,
+       "iterations": 677,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 18848,
+       "generated_tokens": 17304,
+       "peak_running": 181
+      }
+     ],
+     "used": {
+      "mean": 0.6746958125104755,
+      "min": 0.6543546953965366,
+      "max": 0.6911824729225852,
+      "stdev": 0.014811108856718849
+     },
+     "reserved": {
+      "mean": 0.013318394250871517,
+      "min": 0.011820012872869318,
+      "max": 0.01600817089719558,
+      "stdev": 0.001674835777564665
+     },
+     "internal": {
+      "mean": 0.2387798998819253,
+      "min": 0.2229972779905641,
+      "max": 0.25812648895743445,
+      "stdev": 0.012637909016225763
+     },
+     "external": {
+      "mean": 0.07133391401962423,
+      "min": 0.05621976194036227,
+      "max": 0.09401256242714073,
+      "stdev": 0.014673556255332443
+     },
+     "free": {
+      "mean": 0.0018719793371034159,
+      "min": 0.0007714388379610004,
+      "max": 0.003255263958902939,
+      "stdev": 0.0009206511492370398
+     },
+     "running": {
+      "mean": 145.98648837591975,
+      "min": 144.32467532467533,
+      "max": 148.25816023738872,
+      "stdev": 1.7312490505492029
+     },
+     "preempt_per_req": {
+      "mean": 0.006798938010814865,
+      "min": 0.0,
+      "max": 0.01417004048582996,
+      "stdev": 0.006057053168330204
+     },
+     "recompute_frac": {
+      "mean": 0.5201553597601867,
+      "min": 0.0,
+      "max": 1.1250953282983591,
+      "stdev": 0.469370253894797
+     },
+     "copy_frac": {
+      "mean": 1.2176928424429037,
+      "min": 0.996660878856685,
+      "max": 1.5449334546975326,
+      "stdev": 0.20940353835933667
+     }
+    },
+    "double_h5": {
+     "runtime_s": 0.10502211800007899,
+     "windows": [
+      {
+       "used": 0.6615484973617167,
+       "reserved": 0.013234972476322595,
+       "internal": 0.2554170840254454,
+       "external": 0.03300689982476636,
+       "free": 0.036792546311749,
+       "running": 145.6822429906542,
+       "steady_iterations": 214,
+       "iterations": 936,
+       "preemptions": 11,
+       "recomputed_tokens": 29053,
+       "copied_tokens": 63904,
+       "generated_tokens": 40649,
+       "peak_running": 172
+      },
+      {
+       "used": 0.6470148165193214,
+       "reserved": 0.015852096030137184,
+       "internal": 0.2322127132900354,
+       "external": 0.08528022178259058,
+       "free": 0.01964015237791545,
+       "running": 146.44314868804665,
+       "steady_iterations": 343,
+       "iterations": 1912,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 69568,
+       "generated_tokens": 59896,
+       "peak_running": 212
+      },
+      {
+       "used": 0.6736735433651596,
+       "reserved": 0.013476800420143048,
+       "internal": 0.23961214736778977,
+       "external": 0.04181450501551611,
+       "free": 0.03142300383139155,
+       "running": 144.79268292682926,
+       "steady_iterations": 328,
+       "iterations": 1076,
+       "preemptions": 10,
+       "recomputed_tokens": 19940,
+       "copied_tokens": 70352,
+       "generated_tokens": 56485,
+       "peak_running": 198
+      },
+      {
+       "used": 0.6878943591384414,
+       "reserved": 0.011947244837664175,
+       "internal": 0.22194203283969413,
+       "external": 0.05250211285261387,
+       "free": 0.02571425033158644,
+       "running": 144.9963768115942,
+       "steady_iterations": 276,
+       "iterations": 1450,
+       "preemptions": 12,
+       "recomputed_tokens": 23367,
+       "copied_tokens": 55136,
+       "generated_tokens": 49596,
+       "peak_running": 175
+      },
+      {
+       "used": 0.6853388855320182,
+       "reserved": 0.01170889831429731,
+       "internal": 0.23871243110614276,
+       "external": 0.025985802701762522,
+       "free": 0.03825398234577922,
+       "running": 144.03896103896105,
+       "steady_iterations": 77,
+       "iterations": 684,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 24928,
+       "generated_tokens": 17304,
+       "peak_running": 175
+      }
+     ],
+     "used": {
+      "mean": 0.6710940203833314,
+      "min": 0.6470148165193214,
+      "max": 0.6878943591384414,
+      "stdev": 0.017049534984019614
+     },
+     "reserved": {
+      "mean": 0.013244002415712863,
+      "min": 0.01170889831429731,
+      "max": 0.015852096030137184,
+      "stdev": 0.0016503449314221059
+     },
+     "internal": {
+      "mean": 0.2375792817258215,
+      "min": 0.22194203283969413,
+      "max": 0.2554170840254454,
+      "stdev": 0.012216048569602529
+     },
+     "external": {
+      "mean": 0.04771790843544989,
+      "min": 0.025985802701762522,
+      "max": 0.08528022178259058,
+      "stdev": 0.02322371827354662
+     },
+     "free": {
+      "mean": 0.03036478703968433,
+      "min": 0.01964015237791545,
+      "max": 0.03825398234577922,
+      "stdev": 0.007767248465791385
+     },
+     "running": {
+      "mean": 145.19068249121707,
+      "min": 144.03896103896105,
+      "max": 146.44314868804665,
+      "stdev": 0.9128148707132444
+     },
+     "preempt_per_req": {
+      "mean": 0.0038020954743353975,
+      "min": 0.0,
+      "max": 0.007422402159244264,
+      "stdev": 0.003612406074484578
+     },
+     "recompute_frac": {
+      "mean": 0.30777789416459667,
+      "min": 0.0,
+      "max": 0.7147285296071244,
+      "stdev": 0.30975757341663385
+     },
+     "copy_frac": {
+      "mean": 1.3062731650481065,
+      "min": 1.111702556657795,
+      "max": 1.5720927944106866,
+      "stdev": 0.19443372759480398
+     }
+    },
+    "double_h10": {
+     "runtime_s": 0.10439403899999888,
+     "windows": [
+      {
+       "used": 0.6356268213665676,
+       "reserved": 0.012904285249255952,
+       "internal": 0.24553139338417657,
+       "external": 0.003714812748015873,
+       "free": 0.10222268725198413,
+       "running": 139.92,
+       "steady_iterations": 225,
+       "iterations": 941,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 65872,
+       "generated_tokens": 40649,
+       "peak_running": 168
+      },
+      {
+       "used": 0.640155891176603,
+       "reserved": 0.0157048432313645,
+       "internal": 0.22975169370674017,
+       "external": 0.03746880146150679,
+       "free": 0.0769187704237855,
+       "running": 144.80691642651297,
+       "steady_iterations": 347,
+       "iterations": 1913,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 67504,
+       "generated_tokens": 59896,
+       "peak_running": 202
+      },
+      {
+       "used": 0.64736404992584,
+       "reserved": 0.01302468308629647,
+       "internal": 0.230153459056577,
+       "external": 0.01798941119073726,
+       "free": 0.0914683967405493,
+       "running": 139.05847953216374,
+       "steady_iterations": 342,
+       "iterations": 1090,
+       "preemptions": 17,
+       "recomputed_tokens": 28450,
+       "copied_tokens": 76480,
+       "generated_tokens": 56485,
+       "peak_running": 186
+      },
+      {
+       "used": 0.6669393974438048,
+       "reserved": 0.011658999794407893,
+       "internal": 0.21495690214305294,
+       "external": 0.005819357965225564,
+       "free": 0.10062534265350877,
+       "running": 140.60701754385966,
+       "steady_iterations": 285,
+       "iterations": 1458,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 64336,
+       "generated_tokens": 49596,
+       "peak_running": 170
+      },
+      {
+       "used": 0.6547539475072136,
+       "reserved": 0.011383083223881207,
+       "internal": 0.2283465820737832,
+       "external": 0.00139296262521777,
+       "free": 0.10412342456990419,
+       "running": 137.3170731707317,
+       "steady_iterations": 82,
+       "iterations": 684,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 19008,
+       "generated_tokens": 17304,
+       "peak_running": 169
+      }
+     ],
+     "used": {
+      "mean": 0.6489680214840058,
+      "min": 0.6356268213665676,
+      "max": 0.6669393974438048,
+      "stdev": 0.012396181667373038
+     },
+     "reserved": {
+      "mean": 0.012935178917041205,
+      "min": 0.011383083223881207,
+      "max": 0.0157048432313645,
+      "stdev": 0.001711551929012831
+     },
+     "internal": {
+      "mean": 0.22974800607286597,
+      "min": 0.21495690214305294,
+      "max": 0.24553139338417657,
+      "stdev": 0.010839977691711591
+     },
+     "external": {
+      "mean": 0.01327706919814065,
+      "min": 0.00139296262521777,
+      "max": 0.03746880146150679,
+      "stdev": 0.014964393332555025
+     },
+     "free": {
+      "mean": 0.09507172432794637,
+      "min": 0.0769187704237855,
+      "max": 0.10412342456990419,
+      "stdev": 0.01125195460426688
+     },
+     "running": {
+      "mean": 140.34189733465362,
+      "min": 137.3170731707317,
+      "max": 144.80691642651297,
+      "stdev": 2.78304707359486
+     },
+     "preempt_per_req": {
+      "mean": 0.0016098484848484848,
+      "min": 0.0,
+      "max": 0.008049242424242424,
+      "stdev": 0.0035997306455962524
+     },
+     "recompute_frac": {
+      "mean": 0.10073470832964504,
+      "min": 0.0,
+      "max": 0.5036735416482252,
+      "stdev": 0.2252496555187006
+     },
+     "copy_frac": {
+      "mean": 1.2994381901224394,
+      "min": 1.0984743411927878,
+      "max": 1.6205072695515266,
+      "stdev": 0.20986927962047236
+     }
+    },
+    "double_h20": {
+     "runtime_s": 0.1026468779998595,
+     "windows": [
+      {
+       "used": 0.5642469083151631,
+       "reserved": 0.011961544013720352,
+       "internal": 0.21795447255390754,
+       "external": 0.0,
+       "free": 0.20583707511720903,
+       "running": 124.04633204633204,
+       "steady_iterations": 259,
+       "iterations": 959,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 65824,
+       "generated_tokens": 40649,
+       "peak_running": 151
+      },
+      {
+       "used": 0.5747152236278428,
+       "reserved": 0.01433008846392505,
+       "internal": 0.20552983174797232,
+       "external": 0.0,
+       "free": 0.2054248561602599,
+       "running": 129.45038167938932,
+       "steady_iterations": 393,
+       "iterations": 1917,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 73280,
+       "generated_tokens": 59896,
+       "peak_running": 177
+      },
+      {
+       "used": 0.5776013776059552,
+       "reserved": 0.011950275574848328,
+       "internal": 0.20488050970839056,
+       "external": 0.0,
+       "free": 0.20556783711080587,
+       "running": 124.21282051282051,
+       "steady_iterations": 390,
+       "iterations": 1125,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 72240,
+       "generated_tokens": 56485,
+       "peak_running": 169
+      },
+      {
+       "used": 0.5937429554371053,
+       "reserved": 0.010620914685186193,
+       "internal": 0.19031524658203125,
+       "external": 0.0,
+       "free": 0.20532088329567727,
+       "running": 125.16463414634147,
+       "steady_iterations": 328,
+       "iterations": 1484,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 66128,
+       "generated_tokens": 49596,
+       "peak_running": 152
+      },
+      {
+       "used": 0.581906795501709,
+       "reserved": 0.010546184721447171,
+       "internal": 0.20247797738938103,
+       "external": 0.0,
+       "free": 0.2050690423874628,
+       "running": 121.57291666666667,
+       "steady_iterations": 96,
+       "iterations": 687,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 21168,
+       "generated_tokens": 17304,
+       "peak_running": 151
+      }
+     ],
+     "used": {
+      "mean": 0.5784426520975551,
+      "min": 0.5642469083151631,
+      "max": 0.5937429554371053,
+      "stdev": 0.010749653239862598
+     },
+     "reserved": {
+      "mean": 0.01188180149182542,
+      "min": 0.010546184721447171,
+      "max": 0.01433008846392505,
+      "stdev": 0.0015312465807365303
+     },
+     "internal": {
+      "mean": 0.20423160759633655,
+      "min": 0.19031524658203125,
+      "max": 0.21795447255390754,
+      "stdev": 0.009838239239389736
+     },
+     "external": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     },
+     "free": {
+      "mean": 0.20544393881428297,
+      "min": 0.2050690423874628,
+      "max": 0.20583707511720903,
+      "stdev": 0.00028546500650082537
+     },
+     "running": {
+      "mean": 124.88941701031,
+      "min": 121.57291666666667,
+      "max": 129.45038167938932,
+      "stdev": 2.8742778567338574
+     },
+     "preempt_per_req": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     },
+     "recompute_frac": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     },
+     "copy_frac": {
+      "mean": 1.335667665569946,
+      "min": 1.2233009708737863,
+      "max": 1.6193264286944329,
+      "stdev": 0.16500440511145403
+     }
+    },
+    "paged8": {
+     "runtime_s": 0.08369037600004958,
+     "windows": [
+      {
+       "used": 0.984466704815329,
+       "reserved": 0.001504874836698851,
+       "internal": 0.0001480930535368217,
+       "external": 0.0,
+       "free": 0.013880327294435215,
+       "running": 217.35658914728683,
+       "steady_iterations": 129,
+       "iterations": 895,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 40649,
+       "peak_running": 252
+      },
+      {
+       "used": 0.9847124307462485,
+       "reserved": 0.0015849608511702175,
+       "internal": 0.00014986850247524752,
+       "external": 0.0,
+       "free": 0.013552739900106081,
+       "running": 227.65841584158414,
+       "steady_iterations": 202,
+       "iterations": 1900,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 59896,
+       "peak_running": 292
+      },
+      {
+       "used": 0.9833810923050861,
+       "reserved": 0.0014715077925701529,
+       "internal": 0.0001412216497927296,
+       "external": 0.0,
+       "free": 0.01500617825255102,
+       "running": 211.06190476190477,
+       "steady_iterations": 210,
+       "iterations": 995,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 56485,
+       "peak_running": 268
+      },
+      {
+       "used": 0.9839260413596947,
+       "reserved": 0.0014501850256759129,
+       "internal": 0.00013404711482995586,
+       "external": 0.0,
+       "free": 0.014489726499799358,
+       "running": 207.6067415730337,
+       "steady_iterations": 178,
+       "iterations": 1384,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 49596,
+       "peak_running": 239
+      },
+      {
+       "used": 0.985589670580487,
+       "reserved": 0.0014643368134862958,
+       "internal": 0.00015375384460651994,
+       "external": 0.0,
+       "free": 0.012792238761420266,
+       "running": 211.86046511627907,
+       "steady_iterations": 43,
+       "iterations": 677,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 17304,
+       "peak_running": 249
+      }
+     ],
+     "used": {
+      "mean": 0.9844151879613691,
+      "min": 0.9833810923050861,
+      "max": 0.985589670580487,
+      "stdev": 0.0008335218812796276
+     },
+     "reserved": {
+      "mean": 0.001495173063920286,
+      "min": 0.0014501850256759129,
+      "max": 0.0015849608511702175,
+      "stdev": 5.4062034109590795e-05
+     },
+     "internal": {
+      "mean": 0.00014539683304825492,
+      "min": 0.00013404711482995586,
+      "max": 0.00015375384460651994,
+      "stdev": 7.799893163118507e-06
+     },
+     "external": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     },
+     "free": {
+      "mean": 0.013944242141662387,
+      "min": 0.012792238761420266,
+      "max": 0.01500617825255102,
+      "stdev": 0.000852896885548062
+     },
+     "running": {
+      "mean": 215.1088232880177,
+      "min": 207.6067415730337,
+      "max": 227.65841584158414,
+      "stdev": 7.838292783601233
+     },
+     "preempt_per_req": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     },
+     "recompute_frac": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     },
+     "copy_frac": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     }
+    },
+    "paged16": {
+     "runtime_s": 0.08706326099991202,
+     "windows": [
+      {
+       "used": 0.9827226742293484,
+       "reserved": 0.0028076847790351606,
+       "internal": 0.0007312559210184801,
+       "external": 0.0,
+       "free": 0.013738385070598007,
+       "running": 216.89147286821705,
+       "steady_iterations": 129,
+       "iterations": 895,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 40649,
+       "peak_running": 252
+      },
+      {
+       "used": 0.9819414065953191,
+       "reserved": 0.002996614663907797,
+       "internal": 0.0007262277131033415,
+       "external": 0.0,
+       "free": 0.014335751027669732,
+       "running": 227.05940594059405,
+       "steady_iterations": 202,
+       "iterations": 1900,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 59896,
+       "peak_running": 290
+      },
+      {
+       "used": 0.982115972609747,
+       "reserved": 0.0027712555969653485,
+       "internal": 0.0006787462299372873,
+       "external": 0.0,
+       "free": 0.01443402556335034,
+       "running": 210.83333333333334,
+       "steady_iterations": 210,
+       "iterations": 995,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 56485,
+       "peak_running": 269
+      },
+      {
+       "used": 0.9823294527840652,
+       "reserved": 0.0027190280381596105,
+       "internal": 0.0006549890313064306,
+       "external": 0.0,
+       "free": 0.0142965301464687,
+       "running": 207.2865168539326,
+       "steady_iterations": 178,
+       "iterations": 1384,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 49596,
+       "peak_running": 239
+      },
+      {
+       "used": 0.983571684205687,
+       "reserved": 0.002727062671215503,
+       "internal": 0.0006960088556463069,
+       "external": 0.0,
+       "free": 0.013005244267451298,
+       "running": 210.86363636363637,
+       "steady_iterations": 44,
+       "iterations": 677,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 17304,
+       "peak_running": 249
+      }
+     ],
+     "used": {
+      "mean": 0.9825362380848334,
+      "min": 0.9819414065953191,
+      "max": 0.983571684205687,
+      "stdev": 0.0006480962189855437
+     },
+     "reserved": {
+      "mean": 0.002804329149856684,
+      "min": 0.0027190280381596105,
+      "max": 0.002996614663907797,
+      "stdev": 0.00011327535857403509
+     },
+     "internal": {
+      "mean": 0.0006974455502023693,
+      "min": 0.0006549890313064306,
+      "max": 0.0007312559210184801,
+      "stdev": 3.2116346080951313e-05
+     },
+     "external": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     },
+     "free": {
+      "mean": 0.013961987215107616,
+      "min": 0.013005244267451298,
+      "max": 0.01443402556335034,
+      "stdev": 0.0005999569879657521
+     },
+     "running": {
+      "mean": 214.58687307194268,
+      "min": 207.2865168539326,
+      "max": 227.05940594059405,
+      "stdev": 7.780135112030736
+     },
+     "preempt_per_req": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     },
+     "recompute_frac": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     },
+     "copy_frac": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     }
+    },
+    "paged32": {
+     "runtime_s": 0.09971350999990136,
+     "windows": [
+      {
+       "used": 0.9785658448607056,
+       "reserved": 0.004705005687671703,
+       "internal": 0.0026113824529962228,
+       "external": 0.0,
+       "free": 0.014117766998626375,
+       "running": 216.04615384615386,
+       "steady_iterations": 130,
+       "iterations": 895,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 40649,
+       "peak_running": 253
+      },
+      {
+       "used": 0.9782038560474028,
+       "reserved": 0.005103307907888371,
+       "internal": 0.0025618873290156577,
+       "external": 0.0,
+       "free": 0.014130948715693174,
+       "running": 226.14778325123152,
+       "steady_iterations": 203,
+       "iterations": 1900,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 59896,
+       "peak_running": 289
+      },
+      {
+       "used": 0.9789758358361587,
+       "reserved": 0.004707860818127738,
+       "internal": 0.0023542234518457296,
+       "external": 0.0,
+       "free": 0.013962079893867925,
+       "running": 210.13679245283018,
+       "steady_iterations": 212,
+       "iterations": 996,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 56485,
+       "peak_running": 268
+      },
+      {
+       "used": 0.9791995183239912,
+       "reserved": 0.004643165484867567,
+       "internal": 0.00235762295490822,
+       "external": 0.0,
+       "free": 0.01379969323623304,
+       "running": 206.5754189944134,
+       "steady_iterations": 179,
+       "iterations": 1384,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 49596,
+       "peak_running": 238
+      },
+      {
+       "used": 0.979467317655489,
+       "reserved": 0.00452675757470069,
+       "internal": 0.002462461397245333,
+       "external": 0.0,
+       "free": 0.013543463372564934,
+       "running": 210.0909090909091,
+       "steady_iterations": 44,
+       "iterations": 677,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 17304,
+       "peak_running": 247
+      }
+     ],
+     "used": {
+      "mean": 0.9788824745447494,
+      "min": 0.9782038560474028,
+      "max": 0.979467317655489,
+      "stdev": 0.0005030039698222416
+     },
+     "reserved": {
+      "mean": 0.004737219494651214,
+      "min": 0.00452675757470069,
+      "max": 0.005103307907888371,
+      "stdev": 0.0002174055910386539
+     },
+     "internal": {
+      "mean": 0.0024695155172022327,
+      "min": 0.0023542234518457296,
+      "max": 0.0026113824529962228,
+      "stdev": 0.0001167483892057241
+     },
+     "external": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     },
+     "free": {
+      "mean": 0.01391079044339709,
+      "min": 0.013543463372564934,
+      "max": 0.014130948715693174,
+      "stdev": 0.00024556635224026594
+     },
+     "running": {
+      "mean": 213.79941152710762,
+      "min": 206.5754189944134,
+      "max": 226.14778325123152,
+      "stdev": 7.6955177246288775
+     },
+     "preempt_per_req": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     },
+     "recompute_frac": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     },
+     "copy_frac": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     }
+    }
+   }
+  },
+  "conv": {
+   "requests": 19366,
+   "windows": [
+    {
+     "requests": 2867,
+     "dropped_over_max_len": 0
+    },
+    {
+     "requests": 3117,
+     "dropped_over_max_len": 1
+    },
+    {
+     "requests": 4123,
+     "dropped_over_max_len": 0
+    },
+    {
+     "requests": 4068,
+     "dropped_over_max_len": 0
+    },
+    {
+     "requests": 3125,
+     "dropped_over_max_len": 0
+    }
+   ],
+   "prompt_mean": 1154.6974078281523,
+   "output_mean": 211.12594237323142,
+   "output_median": 129.0,
+   "final_len_mean_kept": 1383.0209248554913,
+   "results": {
+    "max": {
+     "runtime_s": 1.3921791109999049,
+     "windows": [
+      {
+       "used": 0.15244672474850077,
+       "reserved": 0.02293736665785143,
+       "internal": 0.8246159085936479,
+       "external": 0.0,
+       "free": 0.0,
+       "running": 56.0,
+       "steady_iterations": 13107,
+       "iterations": 13642,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 746194,
+       "peak_running": 56
+      },
+      {
+       "used": 0.15068063641698254,
+       "reserved": 0.022337597770204293,
+       "internal": 0.8269817658128131,
+       "external": 0.0,
+       "free": 0.0,
+       "running": 56.0,
+       "steady_iterations": 13528,
+       "iterations": 13991,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 766090,
+       "peak_running": 56
+      },
+      {
+       "used": 0.1574454788469803,
+       "reserved": 0.018564605847836584,
+       "internal": 0.8239899153051831,
+       "external": 0.0,
+       "free": 0.0,
+       "running": 56.0,
+       "steady_iterations": 12115,
+       "iterations": 12505,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 684624,
+       "peak_running": 56
+      },
+      {
+       "used": 0.13915442079274454,
+       "reserved": 0.016968377535753056,
+       "internal": 0.8438772016715024,
+       "external": 0.0,
+       "free": 0.0,
+       "running": 56.0,
+       "steady_iterations": 11601,
+       "iterations": 12064,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 659468,
+       "peak_running": 56
+      },
+      {
+       "used": 0.1509331764132741,
+       "reserved": 0.020558265042028588,
+       "internal": 0.8285085585446973,
+       "external": 0.0,
+       "free": 0.0,
+       "running": 56.0,
+       "steady_iterations": 11928,
+       "iterations": 12406,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 678260,
+       "peak_running": 56
+      }
+     ],
+     "used": {
+      "mean": 0.15013208744369644,
+      "min": 0.13915442079274454,
+      "max": 0.1574454788469803,
+      "stdev": 0.006713699693222653
+     },
+     "reserved": {
+      "mean": 0.02027324257073479,
+      "min": 0.016968377535753056,
+      "max": 0.02293736665785143,
+      "stdev": 0.0025140569653726726
+     },
+     "internal": {
+      "mean": 0.8295946699855687,
+      "min": 0.8239899153051831,
+      "max": 0.8438772016715024,
+      "stdev": 0.008188390526572985
+     },
+     "external": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     },
+     "free": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     },
+     "running": {
+      "mean": 56.0,
+      "min": 56.0,
+      "max": 56.0,
+      "stdev": 0.0
+     },
+     "preempt_per_req": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     },
+     "recompute_frac": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     },
+     "copy_frac": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     }
+    },
+    "double": {
+     "runtime_s": 1.6757545570001184,
+     "windows": [
+      {
+       "used": 0.5750252099749249,
+       "reserved": 0.08324469717075407,
+       "internal": 0.23779649853671717,
+       "external": 0.06438949254914476,
+       "free": 0.03954410176845913,
+       "running": 212.5507120023249,
+       "steady_iterations": 3441,
+       "iterations": 4243,
+       "preemptions": 22984,
+       "recomputed_tokens": 26987997,
+       "copied_tokens": 1151840,
+       "generated_tokens": 746194,
+       "peak_running": 347
+      },
+      {
+       "used": 0.5803959388723477,
+       "reserved": 0.0833120826404846,
+       "internal": 0.24618480777654003,
+       "external": 0.05602368238526296,
+       "free": 0.03408348832536477,
+       "running": 216.69763416041548,
+       "steady_iterations": 3466,
+       "iterations": 4020,
+       "preemptions": 25960,
+       "recomputed_tokens": 28508515,
+       "copied_tokens": 1270064,
+       "generated_tokens": 766090,
+       "peak_running": 275
+      },
+      {
+       "used": 0.5660451468994224,
+       "reserved": 0.06218973256225379,
+       "internal": 0.2604901708907744,
+       "external": 0.08137123359030371,
+       "free": 0.029903716057245715,
+       "running": 200.71526128266032,
+       "steady_iterations": 3368,
+       "iterations": 3929,
+       "preemptions": 13836,
+       "recomputed_tokens": 19644505,
+       "copied_tokens": 2908416,
+       "generated_tokens": 684624,
+       "peak_running": 283
+      },
+      {
+       "used": 0.5965826007741287,
+       "reserved": 0.06751625809875807,
+       "internal": 0.2588801500582782,
+       "external": 0.06592881554218076,
+       "free": 0.01109217552665431,
+       "running": 242.02827265685517,
+       "steady_iterations": 2582,
+       "iterations": 3228,
+       "preemptions": 5271,
+       "recomputed_tokens": 6368927,
+       "copied_tokens": 1696752,
+       "generated_tokens": 659468,
+       "peak_running": 343
+      },
+      {
+       "used": 0.5847593815610751,
+       "reserved": 0.07500993017713524,
+       "internal": 0.23517764031852859,
+       "external": 0.10019236637771323,
+       "free": 0.004860681565547906,
+       "running": 217.91633199464525,
+       "steady_iterations": 2988,
+       "iterations": 3654,
+       "preemptions": 1214,
+       "recomputed_tokens": 1390860,
+       "copied_tokens": 572336,
+       "generated_tokens": 678260,
+       "peak_running": 348
+      }
+     ],
+     "used": {
+      "mean": 0.5805616556163797,
+      "min": 0.5660451468994224,
+      "max": 0.5965826007741287,
+      "stdev": 0.011354517873559226
+     },
+     "reserved": {
+      "mean": 0.07425454012987716,
+      "min": 0.06218973256225379,
+      "max": 0.0833120826404846,
+      "stdev": 0.009412712686166391
+     },
+     "internal": {
+      "mean": 0.24770585351616767,
+      "min": 0.23517764031852859,
+      "max": 0.2604901708907744,
+      "stdev": 0.011680846460359724
+     },
+     "external": {
+      "mean": 0.07358111808892108,
+      "min": 0.05602368238526296,
+      "max": 0.10019236637771323,
+      "stdev": 0.017465334936890207
+     },
+     "free": {
+      "mean": 0.023896832648654366,
+      "min": 0.004860681565547906,
+      "max": 0.03954410176845913,
+      "stdev": 0.0150915698747571
+     },
+     "running": {
+      "mean": 217.98164241938022,
+      "min": 200.71526128266032,
+      "max": 242.02827265685517,
+      "stdev": 15.062505528562358
+     },
+     "preempt_per_req": {
+      "mean": 4.277054968793083,
+      "min": 0.38848,
+      "max": 8.328521013795315,
+      "stdev": 3.716775809037855
+     },
+     "recompute_frac": {
+      "mean": 22.756541542547517,
+      "min": 2.0506295520891693,
+      "max": 37.21301022073125,
+      "stdev": 16.003211221325895
+     },
+     "copy_frac": {
+      "mean": 2.1732813897651666,
+      "min": 0.8438297997817946,
+      "max": 4.248194629460842,
+      "stdev": 1.3128737954487304
+     }
+    },
+    "double_h5": {
+     "runtime_s": 1.4876757019999332,
+     "windows": [
+      {
+       "used": 0.5831630408182914,
+       "reserved": 0.08405382479955499,
+       "internal": 0.24312563739792828,
+       "external": 0.042667361234112675,
+       "free": 0.04699013575011272,
+       "running": 215.37871956717763,
+       "steady_iterations": 3327,
+       "iterations": 4125,
+       "preemptions": 7210,
+       "recomputed_tokens": 7946704,
+       "copied_tokens": 1140544,
+       "generated_tokens": 746194,
+       "peak_running": 326
+      },
+      {
+       "used": 0.5804733218484416,
+       "reserved": 0.08302434152966268,
+       "internal": 0.24729729692596739,
+       "external": 0.03398781692585664,
+       "free": 0.0552172227700717,
+       "running": 216.1689524365334,
+       "steady_iterations": 3427,
+       "iterations": 3971,
+       "preemptions": 13467,
+       "recomputed_tokens": 15589956,
+       "copied_tokens": 1273184,
+       "generated_tokens": 766090,
+       "peak_running": 261
+      },
+      {
+       "used": 0.5795775931222098,
+       "reserved": 0.0637920907827524,
+       "internal": 0.268121344597785,
+       "external": 0.04350946514423077,
+       "free": 0.044999506353021974,
+       "running": 205.69969230769232,
+       "steady_iterations": 3250,
+       "iterations": 3791,
+       "preemptions": 7375,
+       "recomputed_tokens": 10522451,
+       "copied_tokens": 2872832,
+       "generated_tokens": 684624,
+       "peak_running": 272
+      },
+      {
+       "used": 0.6018744471951859,
+       "reserved": 0.06794250341076599,
+       "internal": 0.2617044454736446,
+       "external": 0.02736175689449072,
+       "free": 0.04111684702591284,
+       "running": 243.96702002355713,
+       "steady_iterations": 2547,
+       "iterations": 3111,
+       "preemptions": 1597,
+       "recomputed_tokens": 2303789,
+       "copied_tokens": 1720016,
+       "generated_tokens": 659468,
+       "peak_running": 321
+      },
+      {
+       "used": 0.5984641325117455,
+       "reserved": 0.07682779028196482,
+       "internal": 0.24083487413515045,
+       "external": 0.052771079650028314,
+       "free": 0.031102123421110944,
+       "running": 223.08859014133057,
+       "steady_iterations": 2901,
+       "iterations": 3605,
+       "preemptions": 22,
+       "recomputed_tokens": 28322,
+       "copied_tokens": 570384,
+       "generated_tokens": 678260,
+       "peak_running": 332
+      }
+     ],
+     "used": {
+      "mean": 0.5887105070991748,
+      "min": 0.5795775931222098,
+      "max": 0.6018744471951859,
+      "stdev": 0.010612000850961034
+     },
+     "reserved": {
+      "mean": 0.07512811016094018,
+      "min": 0.0637920907827524,
+      "max": 0.08405382479955499,
+      "stdev": 0.00901451667954228
+     },
+     "internal": {
+      "mean": 0.25221671970609516,
+      "min": 0.24083487413515045,
+      "max": 0.268121344597785,
+      "stdev": 0.01203504195889986
+     },
+     "external": {
+      "mean": 0.04005949596974382,
+      "min": 0.02736175689449072,
+      "max": 0.052771079650028314,
+      "stdev": 0.009726066422738372
+     },
+     "free": {
+      "mean": 0.043885167064046035,
+      "min": 0.031102123421110944,
+      "max": 0.0552172227700717,
+      "stdev": 0.008808630281258147
+     },
+     "running": {
+      "mean": 220.8605948952582,
+      "min": 205.69969230769232,
+      "max": 243.96702002355713,
+      "stdev": 14.324683926434423
+     },
+     "preempt_per_req": {
+      "mean": 1.8047373204282304,
+      "min": 0.00704,
+      "max": 4.320500481231954,
+      "stdev": 1.7363364856256969
+     },
+     "recompute_frac": {
+      "mean": 9.98090434023537,
+      "min": 0.04175684840621591,
+      "max": 20.350031980576695,
+      "stdev": 8.334854743901625
+     },
+     "copy_frac": {
+      "mean": 2.167152883117985,
+      "min": 0.8409518473741633,
+      "max": 4.196218654327047,
+      "stdev": 1.2974575527615408
+     }
+    },
+    "double_h10": {
+     "runtime_s": 1.5514949930000057,
+     "windows": [
+      {
+       "used": 0.5724356340835676,
+       "reserved": 0.08216883141428023,
+       "internal": 0.23918911762006853,
+       "external": 0.00929473074198596,
+       "free": 0.0969116861400977,
+       "running": 211.1302545885139,
+       "steady_iterations": 3378,
+       "iterations": 4185,
+       "preemptions": 1202,
+       "recomputed_tokens": 1255015,
+       "copied_tokens": 1144976,
+       "generated_tokens": 746194,
+       "peak_running": 310
+      },
+      {
+       "used": 0.5604475961626487,
+       "reserved": 0.08011310609265941,
+       "internal": 0.2400940463818429,
+       "external": 0.024632221825962912,
+       "free": 0.09471302953688608,
+       "running": 208.59144079885877,
+       "steady_iterations": 3505,
+       "iterations": 4045,
+       "preemptions": 3683,
+       "recomputed_tokens": 4041568,
+       "copied_tokens": 1249248,
+       "generated_tokens": 766090,
+       "peak_running": 244
+      },
+      {
+       "used": 0.5617695663260522,
+       "reserved": 0.06187633533861198,
+       "internal": 0.2608711982038047,
+       "external": 0.030141316307970085,
+       "free": 0.08534158382356093,
+       "running": 199.5100510051005,
+       "steady_iterations": 3333,
+       "iterations": 3880,
+       "preemptions": 3135,
+       "recomputed_tokens": 4489694,
+       "copied_tokens": 2878624,
+       "generated_tokens": 684624,
+       "peak_running": 256
+      },
+      {
+       "used": 0.57962259460242,
+       "reserved": 0.06543133449867931,
+       "internal": 0.25213489757566004,
+       "external": 0.003912117689753193,
+       "free": 0.09889905563348736,
+       "running": 234.90418709920786,
+       "steady_iterations": 2651,
+       "iterations": 3201,
+       "preemptions": 212,
+       "recomputed_tokens": 312917,
+       "copied_tokens": 1706640,
+       "generated_tokens": 659468,
+       "peak_running": 300
+      },
+      {
+       "used": 0.5856343369977773,
+       "reserved": 0.0750474862225984,
+       "internal": 0.23548180772309593,
+       "external": 0.0027261276025120963,
+       "free": 0.10111024145401618,
+       "running": 218.31611358193638,
+       "steady_iterations": 2923,
+       "iterations": 3682,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 579664,
+       "generated_tokens": 678260,
+       "peak_running": 315
+      }
+     ],
+     "used": {
+      "mean": 0.5719819456344932,
+      "min": 0.5604475961626487,
+      "max": 0.5856343369977773,
+      "stdev": 0.010980745064364856
+     },
+     "reserved": {
+      "mean": 0.07292741871336586,
+      "min": 0.06187633533861198,
+      "max": 0.08216883141428023,
+      "stdev": 0.008942178431102484
+     },
+     "internal": {
+      "mean": 0.24555421350089443,
+      "min": 0.23548180772309593,
+      "max": 0.2608711982038047,
+      "stdev": 0.010603026124340265
+     },
+     "external": {
+      "mean": 0.014141302833636848,
+      "min": 0.0027261276025120963,
+      "max": 0.030141316307970085,
+      "stdev": 0.012494914243274103
+     },
+     "free": {
+      "mean": 0.09539511931760965,
+      "min": 0.08534158382356093,
+      "max": 0.10111024145401618,
+      "stdev": 0.00609874962729876
+     },
+     "running": {
+      "mean": 214.49040941472347,
+      "min": 199.5100510051005,
+      "max": 234.90418709920786,
+      "stdev": 13.246300813759294
+     },
+     "preempt_per_req": {
+      "mean": 0.4826642313916575,
+      "min": 0.0,
+      "max": 1.1815848572345204,
+      "stdev": 0.4969831269110622
+     },
+     "recompute_frac": {
+      "mean": 2.7979727117731166,
+      "min": 0.0,
+      "max": 6.55789747364977,
+      "stdev": 2.947388255101224
+     },
+     "copy_frac": {
+      "mean": 2.16246373801602,
+      "min": 0.8546339161973284,
+      "max": 4.2046787725817385,
+      "stdev": 1.2980072576010429
+     }
+    },
+    "double_h20": {
+     "runtime_s": 1.4589877109999634,
+     "windows": [
+      {
+       "used": 0.5120902823645971,
+       "reserved": 0.07336446744447656,
+       "internal": 0.21399422678143873,
+       "external": 0.0,
+       "free": 0.20055102340948763,
+       "running": 188.72523117569352,
+       "steady_iterations": 3785,
+       "iterations": 4587,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 1151440,
+       "generated_tokens": 746194,
+       "peak_running": 280
+      },
+      {
+       "used": 0.5083290448229348,
+       "reserved": 0.07261576905582631,
+       "internal": 0.21819020199195302,
+       "external": 0.0,
+       "free": 0.2008649841292859,
+       "running": 189.15828821861305,
+       "steady_iterations": 3879,
+       "iterations": 4412,
+       "preemptions": 15,
+       "recomputed_tokens": 18771,
+       "copied_tokens": 1262784,
+       "generated_tokens": 766090,
+       "peak_running": 215
+      },
+      {
+       "used": 0.5075422939068508,
+       "reserved": 0.05596360083847977,
+       "internal": 0.2361881680156323,
+       "external": 7.957850248582303e-05,
+       "free": 0.2002263587365513,
+       "running": 180.305328983143,
+       "steady_iterations": 3678,
+       "iterations": 4223,
+       "preemptions": 58,
+       "recomputed_tokens": 61087,
+       "copied_tokens": 2799072,
+       "generated_tokens": 684624,
+       "peak_running": 228
+      },
+      {
+       "used": 0.5163396391524576,
+       "reserved": 0.05806650816967085,
+       "internal": 0.22434805894205573,
+       "external": 0.0002927821159818442,
+       "free": 0.20095301161983398,
+       "running": 208.94715719063547,
+       "steady_iterations": 2990,
+       "iterations": 3502,
+       "preemptions": 45,
+       "recomputed_tokens": 65224,
+       "copied_tokens": 1742576,
+       "generated_tokens": 659468,
+       "peak_running": 274
+      },
+      {
+       "used": 0.5210291942647897,
+       "reserved": 0.06670841070575642,
+       "internal": 0.20942716951479098,
+       "external": 0.0,
+       "free": 0.20283522551466296,
+       "running": 194.13014527845036,
+       "steady_iterations": 3304,
+       "iterations": 4063,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 578512,
+       "generated_tokens": 678260,
+       "peak_running": 274
+      }
+     ],
+     "used": {
+      "mean": 0.513066090902326,
+      "min": 0.5075422939068508,
+      "max": 0.5210291942647897,
+      "stdev": 0.00565754528075164
+     },
+     "reserved": {
+      "mean": 0.06534375124284197,
+      "min": 0.05596360083847977,
+      "max": 0.07336446744447656,
+      "stdev": 0.008062597522878724
+     },
+     "internal": {
+      "mean": 0.22042956504917416,
+      "min": 0.20942716951479098,
+      "max": 0.2361881680156323,
+      "stdev": 0.010382307003506678
+     },
+     "external": {
+      "mean": 7.447212369353344e-05,
+      "min": 0.0,
+      "max": 0.0002927821159818442,
+      "stdev": 0.00012681050770693993
+     },
+     "free": {
+      "mean": 0.20108612068196435,
+      "min": 0.2002263587365513,
+      "max": 0.20283522551466296,
+      "stdev": 0.0010187623381969163
+     },
+     "running": {
+      "mean": 192.25323016930707,
+      "min": 180.305328983143,
+      "max": 208.94715719063547,
+      "stdev": 10.57104293638775
+     },
+     "preempt_per_req": {
+      "mean": 0.005988338614353211,
+      "min": 0.0,
+      "max": 0.014067426631093864,
+      "stdev": 0.006405399750085451
+     },
+     "recompute_frac": {
+      "mean": 0.04252667749410557,
+      "min": 0.0,
+      "max": 0.09890396501422359,
+      "stdev": 0.048221466470463305
+     },
+     "copy_frac": {
+      "mean": 2.1550492232007357,
+      "min": 0.8529354524813494,
+      "max": 4.088480684288018,
+      "stdev": 1.255230170309849
+     }
+    },
+    "paged8": {
+     "runtime_s": 1.382707445000051,
+     "windows": [
+      {
+       "used": 0.9860955527959493,
+       "reserved": 0.0027638498399811767,
+       "internal": 2.077458800247011e-05,
+       "external": 0.0,
+       "free": 0.011119822776067049,
+       "running": 364.99360341151385,
+       "steady_iterations": 1876,
+       "iterations": 2747,
+       "preemptions": 18,
+       "recomputed_tokens": 21081,
+       "copied_tokens": 0,
+       "generated_tokens": 746194,
+       "peak_running": 502
+      },
+      {
+       "used": 0.9854492439411294,
+       "reserved": 0.0027845343967578735,
+       "internal": 2.2089897127960697e-05,
+       "external": 0.0,
+       "free": 0.011744131764984756,
+       "running": 367.85996876626757,
+       "steady_iterations": 1921,
+       "iterations": 2551,
+       "preemptions": 5,
+       "recomputed_tokens": 4082,
+       "copied_tokens": 0,
+       "generated_tokens": 766090,
+       "peak_running": 406
+      },
+      {
+       "used": 0.9848142180663987,
+       "reserved": 0.002644822619032545,
+       "internal": 3.16021922121006e-05,
+       "external": 0.0,
+       "free": 0.012509357122356641,
+       "running": 350.7633711507293,
+       "steady_iterations": 1851,
+       "iterations": 2420,
+       "preemptions": 2,
+       "recomputed_tokens": 4511,
+       "copied_tokens": 0,
+       "generated_tokens": 684624,
+       "peak_running": 431
+      },
+      {
+       "used": 0.9850057622690718,
+       "reserved": 0.003027379908964545,
+       "internal": 3.79860211677283e-05,
+       "external": 0.0,
+       "free": 0.011928871800795925,
+       "running": 401.80040458530004,
+       "steady_iterations": 1483,
+       "iterations": 2198,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 659468,
+       "peak_running": 477
+      },
+      {
+       "used": 0.9852919380544651,
+       "reserved": 0.0027806928038047085,
+       "internal": 2.5189554887454296e-05,
+       "external": 0.0,
+       "free": 0.011902179586842736,
+       "running": 367.79159049360146,
+       "steady_iterations": 1641,
+       "iterations": 2494,
+       "preemptions": 11,
+       "recomputed_tokens": 8480,
+       "copied_tokens": 0,
+       "generated_tokens": 678260,
+       "peak_running": 547
+      }
+     ],
+     "used": {
+      "mean": 0.9853313430254028,
+      "min": 0.9848142180663987,
+      "max": 0.9860955527959493,
+      "stdev": 0.00049317618636259
+     },
+     "reserved": {
+      "mean": 0.0028002559137081696,
+      "min": 0.002644822619032545,
+      "max": 0.003027379908964545,
+      "stdev": 0.00013937369002385824
+     },
+     "internal": {
+      "mean": 2.75284506795428e-05,
+      "min": 2.077458800247011e-05,
+      "max": 3.79860211677283e-05,
+      "stdev": 7.187125814779608e-06
+     },
+     "external": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     },
+     "free": {
+      "mean": 0.011840872610209422,
+      "min": 0.011119822776067049,
+      "max": 0.012509357122356641,
+      "stdev": 0.000496901801254541
+     },
+     "running": {
+      "mean": 370.64178768148247,
+      "min": 350.7633711507293,
+      "max": 401.80040458530004,
+      "stdev": 18.800099581939453
+     },
+     "preempt_per_req": {
+      "mean": 0.002377505983509065,
+      "min": 0.0,
+      "max": 0.006278339727938612,
+      "stdev": 0.002566794699081496
+     },
+     "recompute_frac": {
+      "mean": 0.010534264056006786,
+      "min": 0.0,
+      "max": 0.02825136626668132,
+      "stdev": 0.010855956256785688
+     },
+     "copy_frac": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     }
+    },
+    "paged16": {
+     "runtime_s": 1.3008997060001093,
+     "windows": [
+      {
+       "used": 0.9830524290740612,
+       "reserved": 0.005845907817825222,
+       "internal": 0.00010205901383430167,
+       "external": 0.0,
+       "free": 0.01099960409427926,
+       "running": 363.86762360446573,
+       "steady_iterations": 1881,
+       "iterations": 2752,
+       "preemptions": 20,
+       "recomputed_tokens": 22285,
+       "copied_tokens": 0,
+       "generated_tokens": 746194,
+       "peak_running": 499
+      },
+      {
+       "used": 0.9822726942909791,
+       "reserved": 0.005885408491844049,
+       "internal": 0.00010828774255875158,
+       "external": 0.0,
+       "free": 0.011733609474618208,
+       "running": 366.66891541255836,
+       "steady_iterations": 1927,
+       "iterations": 2556,
+       "preemptions": 5,
+       "recomputed_tokens": 4109,
+       "copied_tokens": 0,
+       "generated_tokens": 766090,
+       "peak_running": 405
+      },
+      {
+       "used": 0.98169884974062,
+       "reserved": 0.0055605121480198,
+       "internal": 0.00015561053712364895,
+       "external": 0.0,
+       "free": 0.01258502757423648,
+       "running": 349.6580506192784,
+       "steady_iterations": 1857,
+       "iterations": 2427,
+       "preemptions": 1,
+       "recomputed_tokens": 1342,
+       "copied_tokens": 0,
+       "generated_tokens": 684624,
+       "peak_running": 429
+      },
+      {
+       "used": 0.9816617159982614,
+       "reserved": 0.00635479489046674,
+       "internal": 0.00019095313896964403,
+       "external": 0.0,
+       "free": 0.011792535972302228,
+       "running": 400.42002688172045,
+       "steady_iterations": 1488,
+       "iterations": 2202,
+       "preemptions": 1,
+       "recomputed_tokens": 4110,
+       "copied_tokens": 0,
+       "generated_tokens": 659468,
+       "peak_running": 474
+      },
+      {
+       "used": 0.9821414229067388,
+       "reserved": 0.005869581516863799,
+       "internal": 0.0001233204684516577,
+       "external": 0.0,
+       "free": 0.011865675107945669,
+       "running": 366.59234507897935,
+       "steady_iterations": 1646,
+       "iterations": 2499,
+       "preemptions": 11,
+       "recomputed_tokens": 9000,
+       "copied_tokens": 0,
+       "generated_tokens": 678260,
+       "peak_running": 545
+      }
+     ],
+     "used": {
+      "mean": 0.9821654224021321,
+      "min": 0.9816617159982614,
+      "max": 0.9830524290740612,
+      "stdev": 0.0005635322217348182
+     },
+     "reserved": {
+      "mean": 0.005903240973003922,
+      "min": 0.0055605121480198,
+      "max": 0.00635479489046674,
+      "stdev": 0.0002855267215628537
+     },
+     "internal": {
+      "mean": 0.00013604618018760078,
+      "min": 0.00010205901383430167,
+      "max": 0.00019095313896964403,
+      "stdev": 3.703086638374111e-05
+     },
+     "external": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     },
+     "free": {
+      "mean": 0.011795290444676369,
+      "min": 0.01099960409427926,
+      "max": 0.01258502757423648,
+      "stdev": 0.000562487251416204
+     },
+     "running": {
+      "mean": 369.44139231940045,
+      "min": 349.6580506192784,
+      "max": 400.42002688172045,
+      "stdev": 18.694431017245908
+     },
+     "preempt_per_req": {
+      "mean": 0.0025176804848927397,
+      "min": 0.00024254183846713557,
+      "max": 0.006975933031042902,
+      "stdev": 0.002830763093486458
+     },
+     "recompute_frac": {
+      "mean": 0.01133804628575467,
+      "min": 0.001960200051415083,
+      "max": 0.029864887683363844,
+      "stdev": 0.011143160317080632
+     },
+     "copy_frac": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     }
+    },
+    "paged32": {
+     "runtime_s": 1.2955851120000261,
+     "windows": [
+      {
+       "used": 0.9767849495028557,
+       "reserved": 0.0117623903210593,
+       "internal": 0.00044365816338117733,
+       "external": 0.0,
+       "free": 0.011009002012703866,
+       "running": 361.5634249471459,
+       "steady_iterations": 1892,
+       "iterations": 2764,
+       "preemptions": 16,
+       "recomputed_tokens": 18812,
+       "copied_tokens": 0,
+       "generated_tokens": 746194,
+       "peak_running": 494
+      },
+      {
+       "used": 0.9761448006267038,
+       "reserved": 0.011823365957605402,
+       "internal": 0.0004757958664202369,
+       "external": 0.0,
+       "free": 0.01155603754927061,
+       "running": 364.37080969571946,
+       "steady_iterations": 1939,
+       "iterations": 2567,
+       "preemptions": 6,
+       "recomputed_tokens": 5020,
+       "copied_tokens": 0,
+       "generated_tokens": 766090,
+       "peak_running": 402
+      },
+      {
+       "used": 0.9756695313582332,
+       "reserved": 0.011033162332260853,
+       "internal": 0.0006873861124945061,
+       "external": 0.0,
+       "free": 0.012609920197011388,
+       "running": 347.5002675227394,
+       "steady_iterations": 1869,
+       "iterations": 2439,
+       "preemptions": 4,
+       "recomputed_tokens": 3373,
+       "copied_tokens": 0,
+       "generated_tokens": 684624,
+       "peak_running": 426
+      },
+      {
+       "used": 0.9747251499720982,
+       "reserved": 0.012568151564825148,
+       "internal": 0.0008340236118861607,
+       "external": 0.0,
+       "free": 0.011872674851190477,
+       "running": 397.53333333333336,
+       "steady_iterations": 1500,
+       "iterations": 2211,
+       "preemptions": 0,
+       "recomputed_tokens": 0,
+       "copied_tokens": 0,
+       "generated_tokens": 659468,
+       "peak_running": 471
+      },
+      {
+       "used": 0.9759216715669877,
+       "reserved": 0.011745736521000295,
+       "internal": 0.0005516091640557767,
+       "external": 0.0,
+       "free": 0.01178098274795611,
+       "running": 364.3078313253012,
+       "steady_iterations": 1660,
+       "iterations": 2508,
+       "preemptions": 14,
+       "recomputed_tokens": 9609,
+       "copied_tokens": 0,
+       "generated_tokens": 678260,
+       "peak_running": 540
+      }
+     ],
+     "used": {
+      "mean": 0.9758492206053757,
+      "min": 0.9747251499720982,
+      "max": 0.9767849495028557,
+      "stdev": 0.0007523344127715611
+     },
+     "reserved": {
+      "mean": 0.0117865613393502,
+      "min": 0.011033162332260853,
+      "max": 0.012568151564825148,
+      "stdev": 0.0005436218419739558
+     },
+     "internal": {
+      "mean": 0.0005984945836475715,
+      "min": 0.00044365816338117733,
+      "max": 0.0008340236118861607,
+      "stdev": 0.0001617120603605395
+     },
+     "external": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     },
+     "free": {
+      "mean": 0.01176572347162649,
+      "min": 0.011009002012703866,
+      "max": 0.012609920197011388,
+      "stdev": 0.0005789937622037801
+     },
+     "running": {
+      "mean": 367.05513336484785,
+      "min": 347.5002675227394,
+      "max": 397.53333333333336,
+      "stdev": 18.413484018675334
+     },
+     "preempt_per_req": {
+      "mean": 0.0025911683187819588,
+      "min": 0.0,
+      "max": 0.0055807464248343215,
+      "stdev": 0.0023606638984231777
+     },
+     "recompute_frac": {
+      "mean": 0.010171456489398725,
+      "min": 0.0,
+      "max": 0.025210602068630947,
+      "stdev": 0.00982600337806115
+     },
+     "copy_frac": {
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stdev": 0.0
+     }
+    }
+   }
+  }
+ },
+ "slices": {
+  "code": {
+   "max": {
+    "used": 0.27425694120103034,
+    "reserved": 0.007751970310882505,
+    "internal": 0.7179910884880872,
+    "external": 0.0,
+    "free": 0.0,
+    "running": 56.0,
+    "steady_iterations": 414,
+    "iterations": 1135,
+    "preemptions": 0,
+    "recomputed_tokens": 0,
+    "copied_tokens": 0,
+    "generated_tokens": 27621,
+    "peak_running": 56
+   },
+   "double": {
+    "used": 0.673577957794446,
+    "reserved": 0.011322197793912487,
+    "internal": 0.25361282284520253,
+    "external": 0.05800391445640756,
+    "free": 0.003483107110031513,
+    "running": 142.61764705882354,
+    "steady_iterations": 136,
+    "iterations": 935,
+    "preemptions": 19,
+    "recomputed_tokens": 38497,
+    "copied_tokens": 42384,
+    "generated_tokens": 27621,
+    "peak_running": 181
+   },
+   "paged8": {
+    "used": 0.9846226660242366,
+    "reserved": 0.0014423457823522928,
+    "internal": 0.00015008512628141533,
+    "external": 0.0,
+    "free": 0.013784903067129631,
+    "running": 208.96296296296296,
+    "steady_iterations": 81,
+    "iterations": 895,
+    "preemptions": 0,
+    "recomputed_tokens": 0,
+    "copied_tokens": 0,
+    "generated_tokens": 27621,
+    "peak_running": 228
+   },
+   "paged16": {
+    "used": 0.9830129579681988,
+    "reserved": 0.0026674354728147046,
+    "internal": 0.0007420292607060185,
+    "external": 0.0,
+    "free": 0.013577577298280423,
+    "running": 208.59259259259258,
+    "steady_iterations": 81,
+    "iterations": 895,
+    "preemptions": 0,
+    "recomputed_tokens": 0,
+    "copied_tokens": 0,
+    "generated_tokens": 27621,
+    "peak_running": 229
+   },
+   "paged32": {
+    "used": 0.978854907098963,
+    "reserved": 0.0043796712097805965,
+    "internal": 0.0026018627844621076,
+    "external": 0.0,
+    "free": 0.014163558906794426,
+    "running": 207.9268292682927,
+    "steady_iterations": 82,
+    "iterations": 895,
+    "preemptions": 0,
+    "recomputed_tokens": 0,
+    "copied_tokens": 0,
+    "generated_tokens": 27621,
+    "peak_running": 229
+   }
+  },
+  "conv": {
+   "max": {
+    "used": 0.14068202636653757,
+    "reserved": 0.022000547677346948,
+    "internal": 0.8373174259561155,
+    "external": 0.0,
+    "free": 0.0,
+    "running": 56.0,
+    "steady_iterations": 4293,
+    "iterations": 4712,
+    "preemptions": 0,
+    "recomputed_tokens": 0,
+    "copied_tokens": 0,
+    "generated_tokens": 247262,
+    "peak_running": 56
+   },
+   "double": {
+    "used": 0.5722252869872329,
+    "reserved": 0.08489485869051638,
+    "internal": 0.23874967957440016,
+    "external": 0.06827512423758084,
+    "free": 0.035855050510269694,
+    "running": 231.68930041152262,
+    "steady_iterations": 972,
+    "iterations": 1544,
+    "preemptions": 6945,
+    "recomputed_tokens": 6815891,
+    "copied_tokens": 442640,
+    "generated_tokens": 247262,
+    "peak_running": 347
+   },
+   "paged8": {
+    "used": 0.9879744876060027,
+    "reserved": 0.0030677228090167964,
+    "internal": 2.0291694186786484e-05,
+    "external": 0.0,
+    "free": 0.008937497890793736,
+    "running": 404.732181425486,
+    "steady_iterations": 463,
+    "iterations": 1347,
+    "preemptions": 18,
+    "recomputed_tokens": 21081,
+    "copied_tokens": 0,
+    "generated_tokens": 247262,
+    "peak_running": 502
+   },
+   "paged16": {
+    "used": 0.9847164563355016,
+    "reserved": 0.0064917914637899485,
+    "internal": 0.00010342951715540696,
+    "external": 0.0,
+    "free": 0.008688322683553035,
+    "running": 403.3648068669528,
+    "steady_iterations": 466,
+    "iterations": 1356,
+    "preemptions": 20,
+    "recomputed_tokens": 22285,
+    "copied_tokens": 0,
+    "generated_tokens": 247262,
+    "peak_running": 499
+   },
+   "paged32": {
+    "used": 0.9773968485408971,
+    "reserved": 0.013056029715699247,
+    "internal": 0.0004555420144970301,
+    "external": 0.0,
+    "free": 0.009091579728906488,
+    "running": 400.407249466951,
+    "steady_iterations": 469,
+    "iterations": 1384,
+    "preemptions": 16,
+    "recomputed_tokens": 18812,
+    "copied_tokens": 0,
+    "generated_tokens": 247262,
+    "peak_running": 494
+   }
+  }
+ }
+}
