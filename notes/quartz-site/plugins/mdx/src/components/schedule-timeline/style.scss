@@ -1,0 +1,203 @@
+// The schedule timeline: one row of service per policy over a shared time axis.
+
+figure.st {
+  @include fig-frame(0.8rem 0.9rem 0.7rem);
+
+  .st-controls {
+    display: flex;
+    gap: 0.75rem;
+    align-items: end;
+    margin-bottom: 0.6rem;
+    font-size: 0.88rem;
+
+    &[hidden] {
+      display: none;
+    }
+
+    button {
+      @include fig-button(0.2rem 0.6rem, 0.85rem);
+      @include fig-button-hover;
+    }
+  }
+
+  .st-slider {
+    @include fig-slider;
+    flex: 1;
+    max-width: 22rem;
+  }
+
+  .st-chart {
+    display: grid;
+    gap: 0.4rem;
+  }
+
+  .st-row {
+    display: grid;
+    grid-template-columns: 5.6rem minmax(0, 1fr) 4.6rem;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .st-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--darkgray);
+    white-space: nowrap;
+  }
+
+  .st-stat {
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--darkgray);
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .st-track {
+    position: relative;
+    height: 1.7rem;
+    border-radius: 3px;
+    background: var(--highlight);
+  }
+
+  .st-seg {
+    position: absolute;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-right: 1px solid var(--light);
+    border-radius: 0;
+    color: #fff;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+
+    sub {
+      margin-left: 1px;
+      font-size: 0.62rem;
+      font-weight: 500;
+      opacity: 0.9;
+    }
+
+    &.st-shared {
+      border-bottom: 1px solid var(--light);
+    }
+  }
+
+  button.st-seg {
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      filter: brightness(1.12);
+      outline: 2px solid var(--secondary);
+      outline-offset: -2px;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--secondary);
+      outline-offset: -2px;
+    }
+
+    &:disabled {
+      cursor: default;
+    }
+  }
+
+  .st-c0 { background: var(--fig-blue); }
+  .st-c1 { background: var(--fig-orange); }
+  .st-c2 { background: var(--fig-green); }
+  .st-c3 { background: var(--fig-purple); }
+  .st-c4 { background: var(--fig-red); }
+
+  // A job's completion: a short dark tick under the track.
+  .st-done {
+    position: absolute;
+    bottom: -4px;
+    width: 2px;
+    height: 4px;
+    margin-left: -1px;
+    background: var(--darkgray);
+  }
+
+  .st-arrivals .st-track {
+    height: 1.1rem;
+    background: none;
+    border-bottom: 1px solid var(--lightgray);
+    border-radius: 0;
+  }
+
+  .st-arrive {
+    position: absolute;
+    bottom: 0;
+    transform: translateX(-50%);
+    padding: 0 0.2rem;
+    border-radius: 3px 3px 0 0;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 1.05rem;
+  }
+
+  .st-axis .st-track {
+    height: 1rem;
+    background: none;
+
+    span {
+      position: absolute;
+      top: 0;
+      transform: translateX(-50%);
+      color: var(--gray);
+      font-size: 0.72rem;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .st-readout {
+    margin: 0.6rem 0 0;
+    font-size: 0.85rem;
+    color: var(--darkgray);
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    padding: 0.7rem 0.6rem 0.6rem;
+
+    .st-row {
+      grid-template-columns: 3.9rem minmax(0, 1fr) 3.7rem;
+      gap: 0.35rem;
+    }
+
+    .st-name {
+      font-size: 0.74rem;
+      white-space: normal;
+      line-height: 1.15;
+    }
+
+    .st-stat {
+      font-size: 0.72rem;
+    }
+
+    .st-seg {
+      font-size: 0.68rem;
+
+      sub {
+        display: none;
+      }
+    }
+  }
+}
