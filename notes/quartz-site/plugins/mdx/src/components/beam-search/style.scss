@@ -1,0 +1,184 @@
+// The beam search figure (beam-search). Kept hypotheses in ink, the newest
+// token in bold; finished hypotheses in green; pruned candidates in gray with
+// the dropped token struck through; the chosen output in the accent color.
+figure.bs {
+  --bs-fin: var(--fig-green);
+  @include fig-frame;
+
+  .bs-src {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.15rem 0.8rem;
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+
+    dt {
+      color: var(--gray);
+      font-size: 0.82rem;
+      font-weight: normal;
+      margin: 0;
+      padding-top: 0.08rem;
+    }
+
+    dd {
+      margin: 0;
+    }
+  }
+
+  .bs-label {
+    margin-right: 0.2rem;
+    color: var(--gray);
+    font-size: 0.82rem;
+  }
+
+  .bs-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.4rem;
+    margin-top: 0.6rem;
+  }
+
+  .bs-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+
+  }
+
+  .bs-group button,
+  .bs-steps button {
+    @include fig-button(0.2rem 0.55rem, 0.88rem);
+    @include fig-button-hover;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .bs-group button[aria-pressed="true"] {
+    @include fig-pressed;
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .bs-steps {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+
+    output {
+      min-width: 6rem;
+      color: var(--gray);
+      font-size: 0.88rem;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .bs-narration {
+    margin: 0.5rem 0 0;
+    min-height: 4.4em;
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  .bs-detail {
+    margin-top: 0.5rem;
+  }
+
+  .bs-dim {
+    color: var(--gray);
+    font-size: 0.88rem;
+  }
+
+  .bs-table {
+    @include fig-table;
+    width: 100%;
+    font-size: 0.84rem;
+    line-height: 1.35;
+    font-variant-numeric: tabular-nums;
+
+    th,
+    td {
+      padding: 0.15rem 0.7rem 0.15rem 0;
+      border: 0;
+      text-align: left;
+      vertical-align: top;
+      background: none;
+    }
+
+    td:not(:first-child),
+    th:not(:first-child) {
+      white-space: nowrap;
+      text-align: right;
+    }
+
+    td:last-child,
+    th:last-child {
+      padding-right: 0;
+    }
+
+    th {
+      color: var(--gray);
+      font-weight: 500;
+      border-bottom: 1px solid var(--lightgray);
+    }
+
+    th.bs-sortcol {
+      color: var(--dark);
+      font-weight: 600;
+    }
+
+    tr.bs-kept td:last-child {
+      color: var(--gray);
+    }
+
+    tr.bs-fin td {
+      color: var(--bs-fin);
+    }
+
+    tr.bs-pruned td {
+      color: var(--gray);
+    }
+
+    tr.bs-lead td:first-child {
+      font-weight: 600;
+    }
+
+    tr.bs-best td {
+      color: var(--secondary);
+      font-weight: 600;
+    }
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .bs-src {
+      grid-template-columns: 1fr;
+      gap: 0;
+
+      dd {
+        margin-bottom: 0.3rem;
+      }
+    }
+
+    .bs-group button {
+      padding: 0.2rem 0.42rem;
+    }
+
+    .bs-table {
+      font-size: 0.8rem;
+
+      th,
+      td {
+        padding-right: 0.45rem;
+      }
+    }
+  }
+}
