@@ -8,9 +8,12 @@ tags:
   - triton
   - cuda
 date: 2025-04-02
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: draft
-description: A vector addition kernel written twice, once in Triton and once in CUDA, with launch, timing, and synchronization mechanics for each.
+description: A vector addition kernel written in Triton and in CUDA, with the launch, timing and synchronization mechanics of each.
 sources:
   - title: CSE 599K, LLM Serving Systems, University of Washington, Spring 2025 (lecture notes)
     type: lecture
@@ -22,13 +25,13 @@ sources:
     type: docs
 ---
 
-## Purpose
+Triton and CUDA are two programming models for GPU kernels. In Triton, a Python-embedded language, each program instance operates on a block of data and the compiler maps the block onto threads. CUDA C++ exposes individual threads, explicit memory management and explicit launch configuration.
 
-This note implements the same vector addition kernel in Triton and in CUDA to make the two programming models concrete. Triton exposes the kernel concepts from [[ml/serving-systems/gpu-basics|GPU Architecture and Programming]] at the block level and manages threads for you; [[ml/serving-systems/optimizing-gpu-kernels|Optimizing GPU Kernels]] covers how to tune the resulting programs. The code in the original lecture capture had several transcription bugs; the versions below are corrected.
+The same vector addition kernel is implemented in both. Triton exposes the kernel concepts from [[ml/serving-systems/gpu-basics|GPU Architecture and Programming]] at the block level and manages threads automatically, and [[ml/serving-systems/optimizing-gpu-kernels|Optimizing GPU Kernels]] treats the tuning of the resulting programs. The code in the original lecture capture had several transcription errors, which are corrected in the versions given here.
 
 ## Triton
 
-Triton programs are written per block: you compute which slice of the data your program instance owns, load it with a mask, operate, and store. The compiler handles thread mapping within the block. The runtime also pools memory rather than allocating per call, and temporaries live in the register file.
+Triton programs are written per block. Each program instance computes the slice of the data assigned to it, loads that slice with a mask, operates on it, and stores the result. The compiler handles thread mapping within the block. The runtime also pools memory rather than allocating per call, and temporaries live in the register file.
 
 ```python
 import torch
@@ -78,34 +81,34 @@ print(f'bandwidth: {bandwidth_gbs:.1f} GB/s')
 print(f'total time: {time_total} s')
 ```
 
-Two mechanics worth noticing. The mask handles the ragged final block, so `n_elements` need not divide evenly by `BLOCK_SIZE`. And timing uses CUDA events with an explicit synchronize, because kernel launches return before the GPU finishes.
+The mask handles the ragged final block, so `n_elements` need not be a multiple of `BLOCK_SIZE`. Timing uses CUDA events with an explicit synchronize, because kernel launches return before the GPU finishes.
 
 ## CUDA
 
-CUDA gives the same program with every decision made manually.
+The CUDA version of the program specifies thread mapping, memory management and launch configuration explicitly.
 
 Memory management is explicit: `cudaMalloc`, `cudaFree`, and `cudaMallocHost` for pinned host memory; `cudaMemcpy`/`cudaMemcpyAsync` to move data and `cudaMemset`/`cudaMemsetAsync` to set it.
 
-Kernel basics:
+The basic kernel declarations are:
 
 - Declare a kernel: `__global__ void kernel_name(args...)`
 - Declare a device helper: `__device__ void helper_name(args...)`
 - Arguments live on the host; pointers to device memory are host-side values that the kernel dereferences on the device.
 
-Launching:
+A launch is configured as follows:
 
 - Block shape: `dim3 block(dim_x, dim_y, dim_z)`
 - Thread shape: `dim3 thread(thread_x, thread_y, thread_z)`
 - Launch: `kernel_name<<<block, thread>>>(args...)`
 
-Synchronization and errors:
+Synchronization and error handling use the following:
 
 - Thread synchronization within a block: `__syncthreads()` (device function)
 - Block-to-block synchronization: generally not possible inside a kernel, except with cooperative launch
 - Device synchronization: `cudaDeviceSynchronize()` (host function)
 - Error handling: `cudaGetLastError()`, `cudaGetErrorString()`
 
-The full addition program:
+The full addition program is:
 
 ```cpp
 #include <cuda_runtime.h>
@@ -181,11 +184,11 @@ nvcc addition.cu -o addition
 
 ## Tuning knobs
 
-Things to try when the naive version is slow: larger block sizes, more blocks, and more elements per thread. The systematic treatment of these tradeoffs (coalescing, shared memory, bank conflicts, occupancy) is in [[ml/serving-systems/optimizing-gpu-kernels|Optimizing GPU Kernels]].
+When the naive version is slow, the first parameters to vary are the block size, the number of blocks, and the number of elements per thread. The systematic treatment of these tradeoffs (coalescing, shared memory, bank conflicts, occupancy) is in [[ml/serving-systems/optimizing-gpu-kernels|Optimizing GPU Kernels]].
 
 ## Newer CUDA features
 
-By hardware generation: unified memory addressing and NVLink (P100+), thread block clusters and TMA (H100+), NVLink SHARP (H100+), FP4 and FP6 (B100+).
+CUDA features added by hardware generation include unified memory addressing and NVLink (P100+), thread block clusters and TMA (H100+), NVLink SHARP (H100+), FP4 and FP6 (B100+).
 
 ## Related notes
 

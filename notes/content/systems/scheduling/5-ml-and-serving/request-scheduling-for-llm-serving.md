@@ -9,9 +9,12 @@ tags:
   - latency
   - throughput
 date: 2026-07-31
-updated: 2026-08-01
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Scheduling in autoregressive model serving - the three nested decisions (admission, batch composition, token-step selection), prefill/decode cost models, vLLM's preemption and watermark policies, VTC fairness, and a fuller scheduler loop.
+description: Scheduling in autoregressive model serving, covering the three nested decisions (admission, batch composition, token-step selection), prefill and decode cost models, vLLM's preemption and watermark policies, VTC fairness and a scheduler loop.
 sources:
   - title: "Orca: A Distributed Serving System for Transformer-Based Generative Models"
     url: https://www.usenix.org/system/files/osdi22-yu.pdf
@@ -30,24 +33,22 @@ sources:
     type: paper
 ---
 
-## Purpose
-
-The scheduling problem in LLM serving is not "pick the next request" in the old CPU sense. The scheduler makes three nested decisions on different clocks:
+Request scheduling in LLM serving determines, at each iteration of an autoregressive model's forward pass, which requests are admitted to the running set, which of them are included in the batch, and how much of each request's work the batch carries. A CPU scheduler selects the next job to run; an LLM serving scheduler instead makes three nested decisions on different timescales:
 
 1. **Admission** (per request): does this request enter the running set at all, given KV-cache and SLO headroom? This is the [[systems/scheduling/4-cluster-and-datacenter/admission-control-backpressure-overload|admission-control]] problem with VRAM as the bounded buffer.
-2. **Batch composition** (per iteration, ~tens of ms): which admitted requests run in this forward pass, and how much prefill rides along with the decodes?
-3. **Token-step selection** (inside the iteration): when compute or memory is scarce, whose token is produced — the priority/fairness decision.
+2. **Batch composition** (per iteration, ~tens of ms): which admitted requests run in this forward pass, and how much prefill is included with the decodes?
+3. **Token-step selection** (inside the iteration): when compute or memory is scarce, which request's token is produced; this is the priority and fairness decision.
 
-Keeping the three distinct matters because they fail differently: bad admission overflows the KV cache and forces preemptions, bad batch composition blows the per-token SLO, and bad token-step policy starves someone. The queueing and fairness ideas are familiar; the cost model is not.
+The three decisions fail in different ways. Poor admission overflows the KV cache and forces preemptions, poor batch composition violates the per-token SLO, and a poor token-step policy starves some requests. The queueing and fairness principles are those of other schedulers, but the cost model is specific to LLM serving.
 
-## Two Phases, Two Different Costs
+## Prefill and Decode Costs
 
 Autoregressive serving has two major phases:
 
 - **prefill**: process the input prompt
 - **decode**: generate one token at a time
 
-Prefill wants large matrix multiplies and is compute hungry. Decode is dominated much more by KV-cache reads and memory traffic.
+Prefill consists of large matrix multiplications and is compute-bound. Decode is dominated by KV-cache reads and other memory traffic.
 
 ```mermaid
 flowchart LR
@@ -62,53 +63,53 @@ flowchart LR
     style D fill:#e8f5e9
 ```
 
-The simple cost model that drives everything (constants derived in [[ml/serving-systems/performance-modeling|Performance Modeling]]): a prefill over $p$ prompt tokens costs one pass of compute proportional to $p$ — a 2,000-token prompt is roughly 2,000 tokens' worth of FLOPs in one iteration — while a decode step costs one token of compute per request but must stream the *entire model plus that request's KV cache* through memory. Decode alone is therefore memory-bandwidth-bound at any realistic batch size, and batching decodes is nearly free in time until the batch approaches the compute roofline. The scheduling consequences:
+The scheduling decisions follow from a simple cost model (constants derived in [[ml/serving-systems/performance-modeling|Performance Modeling]]). A prefill over $p$ prompt tokens costs one pass of compute proportional to $p$, so a 2,000-token prompt costs roughly 2,000 tokens' worth of FLOPs in one iteration. A decode step costs one token of compute per request but must stream the *entire model plus that request's KV cache* through memory. Decode alone is therefore memory-bandwidth-bound at any realistic batch size, and adding decodes to a batch adds little time until the batch approaches the compute roofline. Three consequences follow for scheduling:
 
-- A batch of decodes runs at essentially the speed of one decode; filling the batch is pure throughput.
-- One large prefill inserted into a decode batch stretches that iteration for *everyone* — the prompt's tokens all cost compute now, so every co-scheduled request's inter-token latency takes the hit.
-- KV-cache memory, not compute, is usually what limits the running set: each active request holds cache proportional to its live token count for its entire lifetime.
+- A batch of decodes runs at nearly the speed of one decode, so filling the batch increases throughput at little cost in latency.
+- One large prefill inserted into a decode batch lengthens that iteration for *every* request in it, because all of the prompt's tokens require compute in that iteration, so the inter-token latency of every co-scheduled request increases.
+- KV-cache memory, rather than compute, typically limits the size of the running set, since each active request holds cache proportional to its live token count for its entire lifetime.
 
-So one scheduler is implicitly solving two different resource-allocation problems, coupled through a shared memory budget.
+One scheduler therefore solves two different resource-allocation problems, coupled through a shared memory budget.
 
-## Why Batching Is Scheduling
+## Batching as a Scheduling Decision
 
-Batching is not just throughput optimization. It is the serving scheduler's main control knob.
+Batch size is the principal control available to the serving scheduler, and its effects extend beyond throughput:
 
 - Large batches improve hardware utilization.
 - Large batches increase waiting time.
 - Prefill-heavy batches can stall decode-heavy workloads.
 
-That is a scheduling tradeoff, not a library setting.
+The choice of batch size is therefore a scheduling tradeoff.
 
 ## Continuous Batching
 
-The key [Orca](https://www.usenix.org/system/files/osdi22-yu.pdf) idea is **iteration-level scheduling**: the scheduler invokes the engine for a single forward pass at a time, so new work enters at token-step boundaries instead of waiting for an entire request batch to drain, and finished requests exit immediately rather than padding out the batch. The companion mechanism, **selective batching**, is what makes mixed batches executable: element-wise and linear ops batch across requests regardless of their differing lengths, while attention runs per-request. Together these produced Orca's headline 36.9x throughput gain over request-level batching at equivalent latency.
+The central idea of [Orca](https://www.usenix.org/system/files/osdi22-yu.pdf) is **iteration-level scheduling**: the scheduler invokes the engine for a single forward pass at a time, so new work enters at token-step boundaries instead of waiting for an entire request batch to drain, and finished requests exit immediately rather than padding out the batch. The companion mechanism, **selective batching**, allows mixed batches to execute: element-wise and linear ops batch across requests regardless of their differing lengths, while attention runs per-request. Together these give Orca its reported 36.9x throughput improvement over request-level batching at equivalent latency.
 
-That reduces idle slots, but it also creates interference:
+Iteration-level scheduling reduces idle batch slots, but it also introduces interference between requests:
 
 - long prefills can delay many decodes
 - long decodes consume KV-cache capacity for a long time
 
-## Admission and Preemption in a Real System
+## Admission and Preemption in vLLM
 
-[vLLM](https://arxiv.org/abs/2309.06180) is the reference implementation of the admission layer. PagedAttention allocates KV cache in fixed-size blocks on demand (the memory story is in [[ml/serving-systems/memory-management|Memory Management]]), which converts admission into a block-budget problem: admit from the FCFS queue while free blocks remain above a watermark, held back so that running requests — whose future lengths are unknown — have room to grow a few steps without immediate crisis.
+[vLLM](https://arxiv.org/abs/2309.06180) is a widely used implementation of the admission layer. PagedAttention allocates KV cache in fixed-size blocks on demand (memory management is described in [[ml/serving-systems/memory-management|Memory Management]]), which turns admission into a block-budget problem. The scheduler admits requests from the FCFS queue while free blocks remain above a watermark, a reserve kept so that running requests, whose future lengths are unknown, can grow for a few steps before memory is exhausted.
 
-When growth outruns the reserve anyway, the scheduler must **preempt**: evict a running request's KV blocks and either **swap** them to host memory (cheap to write, but re-admission is gated on PCIe bandwidth) or **discard and recompute** the cache later (wastes FLOPs, but recomputation of a whole prompt is one efficient prefill, often faster than paging back in). vLLM preempts newest-first, protecting the requests with the most sunk cost. The design point worth internalizing: because output lengths are unpredictable, *some* preemption mechanism is mandatory — the only choice is which currency (bandwidth or FLOPs) pays for it, the same recompute-versus-store trade as gradient checkpointing.
+When growth exceeds the reserve, the scheduler must **preempt**: it evicts a running request's KV blocks and either **swaps** them to host memory (inexpensive to write, but re-admission is limited by PCIe bandwidth) or **discards and recomputes** the cache later (which spends FLOPs, but recomputation of a whole prompt is one efficient prefill, often faster than paging the cache back in). vLLM preempts the newest request first, which protects the requests in which the most work has been invested. Because output lengths are unpredictable, *some* preemption mechanism is necessary, and the design choice is whether its cost is paid in bandwidth or in FLOPs, the same recompute-versus-store tradeoff as in gradient checkpointing.
 
 ## Chunked Prefill and Disaggregation
 
-Chunked prefill ([Sarathi](https://arxiv.org/abs/2308.16369)) breaks the prompt into bounded pieces so decode latency is less hostage to giant prompts: each iteration carries a capped token budget of prefill chunk alongside the decode batch, piggybacking prompt work into the memory-bound decode iterations' spare compute. Prefill/decode disaggregation ([DistServe](https://arxiv.org/abs/2401.09670)) goes further and places the two phases on different machines or pools, so TTFT and inter-token latency stop competing for the same iteration budget at all — at the cost of shipping KV caches between pools.
+Chunked prefill ([Sarathi](https://arxiv.org/abs/2308.16369)) divides the prompt into bounded pieces so that very long prompts delay decodes less. Each iteration carries a prefill chunk, limited by a token budget, alongside the decode batch, so prompt work uses the spare compute of the memory-bound decode iterations. Prefill/decode disaggregation ([DistServe](https://arxiv.org/abs/2401.09670)) places the two phases on different machines or pools, so that TTFT and inter-token latency no longer compete for the same iteration budget, at the cost of transferring KV caches between pools.
 
-This is another way of saying:
+Both techniques apply two older scheduling principles:
 
-- classify work by service shape
-- stop forcing incompatible work classes through one queue
+- classify work by the shape of its service demand
+- serve incompatible classes of work through separate queues
 
-That is classic scheduling wisdom wearing new clothes — the mice-and-elephants separation of [[systems/scheduling/3-network-and-packet/fair-queueing-wfq-and-drr|fair queueing]] with prompts for elephants.
+The separation of short and long flows in [[systems/scheduling/3-network-and-packet/fair-queueing-wfq-and-drr|fair queueing]] is the same principle, with long prompts in the role of long flows.
 
-## What a Practical Scheduler Optimizes
+## Scheduling Objectives
 
-Common objectives:
+A serving scheduler typically pursues several objectives:
 
 - maximize throughput
 - keep TTFT below a target
@@ -116,13 +117,13 @@ Common objectives:
 - avoid starvation of long prompts
 - share service fairly across users
 
-Those objectives conflict. A scheduler that greedily favors short prompts may look excellent on average and still be unusable for users with long contexts.
+These objectives conflict. A scheduler that greedily favors short prompts can achieve a low mean latency while serving users with long contexts too slowly to be usable.
 
-**Fairness has an LLM-specific twist**: requests differ by orders of magnitude in cost (a 10-token question vs a 100k-token document), so per-request fairness is meaningless. The [Virtual Token Counter](https://arxiv.org/abs/2401.00588) (OSDI 2024) is WFQ transplanted: track a per-client virtual counter that advances with *weighted service received* (their cost function counts input and output tokens with different weights, e.g. output tokens ~2x input, reflecting compute cost), and at each iteration admit work from the client with the lowest counter. Backlogged clients' service difference stays bounded by a constant — the WFQ/DRR fairness guarantee, with tokens as the byte-equivalent — and a client flooding requests only inflates its own counter, so isolation holds without per-request rate caps. Counters freeze while a client is idle (no banked credit), the same no-credit-for-idleness rule as DRR's deficit reset.
+**Fairness in LLM serving** must account for request cost. Requests differ by orders of magnitude in cost (a 10-token question vs a 100k-token document), so fairness counted per request does not equalize service. The [Virtual Token Counter](https://arxiv.org/abs/2401.00588) (OSDI 2024) applies WFQ to this setting. It keeps a per-client virtual counter that advances with *weighted service received* (the cost function weights input and output tokens differently, e.g. output tokens ~2x input, reflecting compute cost), and at each iteration admits work from the client with the lowest counter. The difference in service between backlogged clients remains bounded by a constant, the WFQ/DRR fairness guarantee with tokens in place of bytes, and a client that floods requests increases only its own counter, so clients are isolated without per-request rate limits. Counters do not advance while a client is idle, so an idle client accumulates no credit, as with DRR's deficit reset.
 
 ## Skeleton Scheduler Loop
 
-One iteration of a vLLM-shaped scheduler, showing all three decision layers in their actual order — running requests first (they hold committed cache), then preemption if the cache overflowed, then admission with chunked prefill under a per-iteration token budget:
+The following is one iteration of a scheduler modeled on vLLM, with the three decision layers in the order in which they run: running requests first (they hold committed cache), then preemption if the cache overflowed, then admission with chunked prefill under a per-iteration token budget:
 
 ```python
 def schedule_iteration(running, waiting, free_blocks, watermark,
@@ -156,15 +157,15 @@ def schedule_iteration(running, waiting, free_blocks, watermark,
     return batch                              # one fused forward pass
 ```
 
-Real systems need much more machinery (swapping, priority classes, SLO deadlines, length prediction), but every production scheduler is recognizably this loop: capacity check against the block budget, latency check against the iteration token budget, fairness check via the counter, then admit.
+Production systems add further mechanisms (swapping, priority classes, SLO deadlines, length prediction), but their schedulers follow the structure of this loop: a capacity check against the block budget, a latency check against the iteration token budget, a fairness check by counter, and then admission.
 
-## Scheduling Heuristics That Matter
+## Scheduling Heuristics
 
-- Separate short and long prompts when possible.
-- Do not let giant prefills repeatedly blow up decode latency.
-- Treat KV-cache capacity like a first-class scheduling resource.
-- Track user fairness, not only request fairness.
-- Reject or defer work early if admitting it guarantees SLO failure.
+- Short and long prompts are separated where possible.
+- Very long prefills are bounded so that they do not repeatedly increase decode latency.
+- KV-cache capacity is treated as a first-class scheduling resource.
+- Fairness is tracked per user as well as per request.
+- Work is rejected or deferred early if admitting it would make an SLO violation certain.
 
 ## Related Notes
 

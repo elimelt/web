@@ -9,22 +9,25 @@ tags:
   - breadth-first search
   - depth first search
 date: 2024-04-14
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
 description: How to partition an undirected graph into connected components in O(|V| + |E|) with BFS or DFS, producing a labeling that answers path-existence queries in O(1).
 sources:
   - https://www.cs.princeton.edu/~wayne/kleinberg-tardos/
 ---
 
-## Purpose
+A **connected component** of an undirected graph $G = (V, E)$ is a maximal set $C \subseteq V$ such that every two vertices of $C$ are joined by a path in $G$. The connected components $C_1, C_2, \ldots$ partition $V$.
 
-Given an undirected graph $G = (V, E)$, you can partition $V$ into connected components $C_1, C_2, \ldots$ in $O(|V| + |E|)$ using [[algorithms/BFS|breadth-first search (BFS)]] or [[algorithms/DFS|depth-first search (DFS)]]. The payoff is a data structure built once from $G$ that answers whether a path exists between two vertices $u, v \in V$ in $O(1)$ time and $O(|V|)$ space: two vertices are connected exactly when they carry the same component label.
+[[algorithms/BFS|Breadth-first search (BFS)]] or [[algorithms/DFS|depth-first search (DFS)]] computes this partition in $O(|V| + |E|)$ time. The result is a labeling, built once from $G$, that answers whether a path exists between two vertices $u, v \in V$ in $O(1)$ time and $O(|V|)$ space, since two vertices are connected if and only if they carry the same component label.
 
 ## Algorithm
 
-Scan the vertices in order. Each time you hit a vertex that has no label yet, it starts a new component: run BFS (or DFS) from it and stamp every vertex you reach with the current label, then increment the label. Each traversal stays inside one component because BFS only follows edges, and it covers the whole component because BFS reaches everything connected to its source. Store the labels in an array (if vertices are numbered) or a hash map.
+The algorithm scans the vertices in order. Each vertex that has no label when the scan reaches it begins a new component; a BFS (or DFS) from that vertex assigns the current label to every vertex it reaches, and the label is then incremented. Each traversal remains within one component because BFS follows only edges, and it labels the whole component because BFS reaches every vertex connected to its source. The labels are stored in an array (if vertices are numbered) or a hash map.
 
-On the graph below the scan starts traversals at vertices 0, 3, and 5, and each traversal stamps one box:
+On the following graph, the scan starts traversals at vertices 0, 3 and 5, and each traversal labels one component.
 
 ```mermaid
 flowchart LR
@@ -72,14 +75,14 @@ def component_sets(G):
     return list(component_dict.values())
 ```
 
-The label array doubles as the visited set, so every vertex enters the queue at most once and the total work over all traversals is $O(|V| + |E|)$.
+The label array also serves as the visited set, so every vertex enters the queue at most once and the total work over all traversals is $O(|V| + |E|)$.
 
 > [!warning] Undirected graphs only
-> The labeling argument relies on connectivity being symmetric. In a directed graph reachability is not symmetric, so this scan computes weakly connected components at best. Strongly connected components need Tarjan's or Kosaraju's algorithm.
+> The labeling argument relies on connectivity being symmetric. In a directed graph reachability is not symmetric, and a scan that follows only outgoing edges produces labels that depend on the scan order. The scan computes weakly connected components when every edge is traversed in both directions. Strongly connected components require Tarjan's or Kosaraju's algorithm.
 
 ## Strategy for Unconnected Graphs
 
-When solving a graph problem, first assume the graph is connected. Once you have a solution for connected graphs, run it separately on each connected component.
+When the solution of a graph problem decomposes over connected components, it suffices to solve the problem for connected graphs and to apply that solution separately to each connected component.
 
 ## Related notes
 

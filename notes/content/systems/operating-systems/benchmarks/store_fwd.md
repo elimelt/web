@@ -11,13 +11,14 @@ tags:
   - performance
   - benchmarks
 date: 2025-12-29
-updated: 2026-10-09
+updated: 2026-11-15
 authors:
   - elimelt
   - gpt-5.6-sol
   - gpt-6
+  - claude-opus-5-5
 status: evergreen
-description: Compares exact, partially overlapping, and independent x86-64 store/load pairs with a pinned throughput harness; on one Intel Core i9-13900HK, partial overlap made the loop about 16 times slower.
+description: Exact, partially overlapping, and independent x86-64 store/load pairs compared with a pinned throughput harness; on one Intel Core i9-13900HK, partial overlap made the loop about 16 times slower.
 sources:
   - title: Intel 64 and IA-32 Architectures Optimization Reference Manual
     url: https://cdrdv2-public.intel.com/821612/248966-Optimization-Reference-Manual-V1-050.pdf
@@ -27,15 +28,13 @@ sources:
     type: docs
 ---
 
-## Purpose
+Store-to-load forwarding is the supply of a load's bytes directly from the store buffer when they were written by an older store that has not yet reached cache. Forwarding depends on the address and size relationship between the store and the load.
 
-Measure how three store-then-load address relationships affect the reciprocal throughput of a small x86-64 loop. The cases are an exact address match, a one-byte-shifted partial overlap, and an independent load from another hot cache line.
-
-When a load requests bytes supplied by an older store that has not reached cache, the load/store machinery may forward those bytes from the store buffer. Forwarding depends on the address and size relationship. A partial overlap can prevent forwarding and hold up younger work, as described in the [Intel optimization manual](https://cdrdv2-public.intel.com/821612/248966-Optimization-Reference-Manual-V1-050.pdf) and Agner Fog's [microarchitecture manual](https://www.agner.org/optimize/microarchitecture.pdf). The load/store queue and store buffer fit into the wider [[hardware/computer-architecture/out-of-order-execution|out-of-order execution pipeline]].
+The benchmark measures how three store-then-load address relationships affect the reciprocal throughput of a small x86-64 loop. The cases are an exact address match, a one-byte-shifted partial overlap, and an independent load from another hot cache line. A partial overlap can prevent forwarding and hold up younger work, as described in the [Intel optimization manual](https://cdrdv2-public.intel.com/821612/248966-Optimization-Reference-Manual-V1-050.pdf) and Agner Fog's [microarchitecture manual](https://www.agner.org/optimize/microarchitecture.pdf). The load/store queue and store buffer fit into the wider [[hardware/computer-architecture/out-of-order-execution|out-of-order execution pipeline]].
 
 ## Setup
 
-The reproducible run recorded here used this environment:
+The recorded run used the following environment.
 
 | Field | Value |
 | --- | --- |
@@ -92,7 +91,7 @@ The plotting source is [available beside the benchmark](plot_store_fwd_bench.py)
 
 ### Historical results without provenance
 
-An earlier version of this note recorded the following numbers:
+The following numbers were recorded earlier, without provenance.
 
 | Pattern | Historical ns/op | Historical ratio |
 | --- | ---: | ---: |
@@ -100,7 +99,7 @@ An earlier version of this note recorded the following numbers:
 | Independent | 0.70 ns | 1.3x |
 | Partial overlap | 3.64 ns | 7.0x |
 
-No CPU model, compiler version, flags, source revision, raw samples, or run date survived with those numbers. They remain here as historical data with missing provenance. They cannot establish a cross-machine comparison, a cycle count, or a claim about forwarding latency.
+No CPU model, compiler version, flags, source revision, raw samples, or run date survived with those numbers. They are retained as historical data. They cannot establish a cross-machine comparison, a cycle count, or a claim about forwarding latency.
 
 ## Interpretation
 

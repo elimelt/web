@@ -8,7 +8,10 @@ tags:
   - multinomial logistic regression
   - machine-learning
 date: 2025-01-05
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: incomplete
 description: Notation and probabilistic setup for classification, plus the definition of the multinomial logistic regression model. Training, gradients, and regularization are not covered yet.
 sources:
@@ -17,9 +20,9 @@ sources:
     type: textbook
 ---
 
-## Purpose
+Multinomial logistic regression is a discriminative classifier that models the conditional distribution of a class label given an input as the softmax of class-specific linear functions of the input's features. The treatment follows Jurafsky & Martin, [SLP3](https://web.stanford.edu/~jurafsky/slp3/).
 
-Sets up the probabilistic framing for classification and defines the multinomial logistic regression model. This extends the [[ml/nlp/reading/classification|classification]] framework with a discriminative linear model, and [[ml/nlp/reading/neural-networks|feedforward neural networks]] generalize it further with nonlinear layers. Training, gradients, and regularization are still missing from this note.
+The model extends the [[ml/nlp/reading/classification|classification]] framework with a discriminative linear model, and [[ml/nlp/reading/neural-networks|feedforward neural networks]] generalize it with nonlinear layers. Training, gradients and regularization are not yet covered.
 
 ## Classification setup
 
@@ -33,7 +36,7 @@ $\mathcal{V}$ is the vocabulary, so $\mathcal{V}^*$ is the set of all possible t
 
 $X$ is a random variable over inputs, taking values in $\mathcal{V}^*$. $Y$ is a random variable over outputs, taking values in $\mathcal{L}$.
 
-$p(X, Y)$ is the true distribution of labeled texts, and $p(Y)$ is the marginal distribution of labels. We don't know either without looking at data.
+$p(X, Y)$ is the true distribution of labeled texts, and $p(Y)$ is the marginal distribution of labels. Neither is known in advance, and both must be estimated from data.
 
 ## The model
 
@@ -45,7 +48,7 @@ $$
 
 Prediction takes the argmax over classes. The model is discriminative. It estimates $p(Y \mid X)$ directly, while Naive Bayes models the joint $p(X, Y)$ through a generative story about how documents arise.
 
-Training maximizes the conditional log-likelihood of the labeled data, which is the same as minimizing cross-entropy loss. See [SLP3](https://web.stanford.edu/~jurafsky/slp3/) for the gradient derivation this note still needs.
+Training maximizes the conditional log-likelihood of the labeled data, which is the same as minimizing cross-entropy loss. [SLP3](https://web.stanford.edu/~jurafsky/slp3/) gives the derivation of the gradient.
 
 ## Sources
 

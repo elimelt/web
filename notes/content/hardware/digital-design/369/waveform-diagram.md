@@ -9,7 +9,10 @@ tags:
   - bus
   - circuit timing behavior
 date: 2024-04-03
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: draft
 description: Reading waveform diagrams and bus values over time, plus the Verilog syntax for buses, multi-bit constants, concatenation, and test benches.
 sources:
@@ -17,24 +20,24 @@ sources:
     type: lecture
 ---
 
-## Purpose
+A waveform diagram plots the value of each signal in a circuit against time, so that the circuit's timing behavior, including propagation delays, can be read from it.
 
-Notes on reading waveform diagrams, along with the Verilog syntax from the same lecture for buses, constants, concatenation, and test benches.
+The material is from a CSE 369 lecture that also introduced the Verilog syntax for buses, multi-bit constants, concatenation and test benches.
 
 ## Buses and waveforms
 
-Group related bits into a **bus**, also called a **bit vector**. A waveform diagram shows each signal's value over time. Slice the diagram at any time point and you get the full state of the system, with each bus's bits at that slice reading as a number.
+Related bits are grouped into a **bus**, also called a **bit vector**. A waveform diagram shows each signal's value over time. A slice of the diagram at any time point gives the full state of the system, with each bus's bits at that slice reading as a number.
 
 ## Circuit timing behavior
 
-Every gate has some fixed delay. In reality you look delays up in the part's data sheet. For hand analysis in this course, assume every gate has a delay of 1 ns, which corresponds to 3 simulation ticks.
+Every gate has some fixed delay. In practice the delays are taken from the part's data sheet. For hand analysis in the course, every gate is assumed to have a delay of 1 ns, which corresponds to 3 simulation ticks.
 
 > [!warning] Outputs can glitch before settling
-> Different paths through a circuit have different delays, so after an input change the output can pass through wrong intermediate values before the longest path settles. Expect brief pulses in a waveform that the truth table never predicts, and read the output value only after every path has had time to propagate.
+> Different paths through a circuit have different delays, so after an input change the output can pass through wrong intermediate values before the longest path settles. A waveform can therefore show brief pulses that the truth table does not predict, and the output value is valid only after every path has had time to propagate.
 
 ## Verilog buses
 
-`[n-1:0]` declares an $n$-bit bus. Access individual bits with array syntax, and take a slice of the bus with `bus[msb:lsb]`.
+`[n-1:0]` declares an $n$-bit bus. Individual bits are accessed with array syntax, and `bus[msb:lsb]` takes a slice of the bus.
 
 ```verilog
 // SystemVerilog code for AND-OR-INVERT circuit

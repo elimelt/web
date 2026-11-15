@@ -12,9 +12,12 @@ tags:
   - ann
   - candidate generation
 date: 2026-07-31
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Why two-tower retrieval became the default first-stage architecture for large recommenders, how it is trained, and what it gives up in exchange for fast approximate nearest-neighbor serving.
+description: Two-tower retrieval as the first stage of large recommenders, the dot-product architecture and its training as sampled softmax or contrastive learning, and the feature interactions it cannot express in return for approximate nearest-neighbor serving.
 sources:
   - title: Covington, Adams, and Sargin (2016), Deep Neural Networks for YouTube Recommendations
     url: https://research.google.com/pubs/archive/45530.pdf
@@ -24,9 +27,9 @@ sources:
     type: paper
 ---
 
-## Purpose
+Two-tower retrieval is a candidate-generation architecture with two encoders. One tower maps the user or query to an embedding, the other maps each item to an embedding in the same space, and the retrieval score is a similarity between the two embeddings, typically their dot product.
 
-Two-tower retrieval is the workhorse first stage in large recommendation systems. One tower encodes the user or query. The other encodes the item. The score is usually a dot product. That sounds restrictive. It is restrictive. The reason people use it anyway is that the restriction buys a serving path that scales.
+The score depends on the user and the item only through embeddings computed separately, so it cannot represent interactions between user features and item features. In return, the item embeddings can be computed offline and indexed for approximate nearest-neighbor (ANN) search, and the cost of serving a request grows sublinearly with the size of the catalog. Large recommendation systems use the architecture as their first stage for this reason.
 
 ## The Basic Form
 
@@ -38,13 +41,13 @@ $$
 
 or a nearby similarity such as cosine similarity.
 
-At training time, both towers are learned jointly from historical interactions. At serving time, item embeddings are precomputed and indexed. A request only has to:
+At training time, both towers are learned jointly from historical interactions. At serving time, item embeddings are precomputed and indexed, and each request requires three steps:
 
 1. build the user embedding
 2. query an ANN index
 3. return the top $k$ items
 
-That turns catalog-sized search into sublinear nearest-neighbor search.
+A search over the full catalog is thereby replaced by a sublinear nearest-neighbor search.
 
 ```mermaid
 flowchart TD
@@ -66,41 +69,38 @@ flowchart TD
     style IT fill:#e8f5e9,stroke:#2e7d32
 ```
 
-## Why It Became the Default
+## Decomposition and Serving Cost
 
-The main gain is decomposition. The user and item encoders can be evaluated separately. Since the item tower is offline, online retrieval costs almost nothing beyond user encoding and ANN lookup.
+The score decomposes into a user encoder and an item encoder that are evaluated independently. Because the item tower runs offline, the online cost of retrieval consists of one user-tower evaluation and one ANN lookup, with negligible additional computation.
 
-That is the key systems trade:
+The architecture forgoes cross-feature interactions between user and item, and in exchange retrieval over the full catalog becomes feasible within a serving budget.
 
-- richer cross-feature interactions are sacrificed
-- catalog-scale retrieval becomes feasible
-
-If the item tower had to read user features at scoring time, or the user tower had to read item features for every candidate, the whole trick would collapse.
+If the item tower read user features at scoring time, or the user tower read item features for every candidate, the item embeddings could no longer be precomputed and indexed, and the decomposition would provide no reduction in serving cost.
 
 ## Training
 
-There are two common training views, and they are closer than they look.
+Training is commonly described in two formulations, which optimize closely related objectives.
 
 ### Softmax View
 
-The YouTube paper frames candidate generation as multiclass classification over the video vocabulary. The model predicts which next item the user will consume, usually with sampled softmax because the full catalog is too large.
+The YouTube paper frames candidate generation as multiclass classification over the video vocabulary. The model predicts which item the user will consume next, and is trained with sampled softmax because a softmax over the full catalog is too expensive to compute.
 
 ### Contrastive View
 
-The same setup can be read as contrastive learning. Given a positive pair $(u,i^+)$ and sampled negatives $\{i^-\}$, make the positive item's dot product larger than the negatives'.
+The same setup can be read as contrastive learning. Given a positive pair $(u,i^+)$ and sampled negatives $\{i^-\}$, training increases the positive item's dot product relative to those of the negatives.
 
-In both cases the model learns an embedding space where relevant items sit near the user vector.
+In both formulations the model learns an embedding space in which relevant items lie near the user vector.
 
 ## Feature Design
 
-The user tower often absorbs:
+The user tower typically takes as input:
 
 - recent interactions
 - search queries
 - demographics or locale
 - device and temporal context
 
-The item tower often absorbs:
+The item tower typically takes as input:
 
 - item ID
 - metadata
@@ -108,24 +108,24 @@ The item tower often absorbs:
 - image or audio features
 - creator or taxonomy information
 
-The tension is always the same. The more context you want in the score, the more pressure there is to break the tower decomposition. Once you break it too much, retrieval stops being cheap.
+Context that depends jointly on the user and the item can enter the score only by breaking the tower decomposition. A model whose score is not a function of separately computed embeddings cannot be served from a precomputed ANN index, and its retrieval cost grows with the number of candidates scored.
 
 ## What It Gives Up
 
-Two-tower models cannot express arbitrary user-item feature crosses at retrieval time. The score is bottlenecked through the embedding dimension and the similarity function. That means:
+Two-tower models cannot express arbitrary user-item feature crosses at retrieval time. All information about the pair passes through the embedding dimension and the similarity function, which limit what the score can represent. As a consequence:
 
-- memorized exception rules are hard
-- calibration is usually poor
+- memorized exception rules are difficult to represent
+- the scores are typically poorly calibrated
 - business constraints are awkward to encode directly
 - exposure balancing and multi-objective tradeoffs are usually deferred to later stages
 
-This is why first-stage retrieval and final ranking are almost never the same model.
+For these reasons, large systems use a separate and more expressive model for final ranking.
 
 ## Hard Negatives Matter
 
-A weak negative sampler teaches the model only coarse separation. The embeddings become good at telling a watched item from random catalog junk, while still failing to separate one plausible item from another plausible item.
+A weak negative sampler teaches the model only coarse separation. The embeddings learn to separate a watched item from random catalog items, but not to separate one plausible item from another.
 
-The common fix is to train with harder negatives:
+Training with harder negatives addresses this. Common sources of hard negatives are:
 
 - in-batch negatives
 - co-exposed but skipped items
@@ -135,13 +135,13 @@ The common fix is to train with harder negatives:
 > [!warning] Very hard negatives become false negatives
 > Items that are semantically close to the positive, or co-exposed and skipped, are often items the user would have liked if they had noticed them. Training against them as negatives pushes apart pairs that should stay close.
 
-The downside is that very hard negatives can become false negatives. You can end up pushing apart items the user would have liked if they had seen them.
+Very hard negatives can, however, be false negatives, and training against them pushes apart items the user would have liked had they seen them.
 
 ## How It Fits the Pipeline
 
-Two-tower retrieval is usually not asked to produce the final order. Its job is recall. A good retrieval stage finds most of the items the ranker would have wanted, while staying inside the latency budget.
+Two-tower retrieval does not determine the final order of results, and its objective is recall. An effective retrieval stage returns most of the items the ranker would place highly while remaining within the latency budget.
 
-That changes how you judge it. Absolute calibration barely matters here. Candidate recall, diversity of candidate sources, and tail coverage matter a lot more.
+The stage is evaluated accordingly. Absolute calibration has little effect on its output, and the relevant measures are candidate recall, diversity of candidate sources and coverage of the tail of the catalog.
 
 ## Executable Experiment
 
@@ -151,7 +151,7 @@ The companion notebook turns MovieLens 100K ratings into implicit positives, tra
 
 ## When Not to Use It
 
-Do not force a two-tower model into places where the business needs rich slate-level reasoning or precise feature interactions. If the catalog is small enough to score directly with a richer model, or if every decision depends on inventory, auction dynamics, or complex constraints, the tower decomposition may cost more than it saves.
+A two-tower model is poorly suited to applications that require slate-level reasoning or precise feature interactions. If the catalog is small enough to score directly with a richer model, or if every decision depends on inventory, auction dynamics or complex constraints, the accuracy lost to the tower decomposition may outweigh its reduction in serving cost.
 
 ## Related Notes
 

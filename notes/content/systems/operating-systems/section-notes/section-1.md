@@ -11,17 +11,18 @@ tags:
   - extern
   - debugging
 date: 2024-01-04
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: draft
-description: Short review notes on C linkage, pointer basics, and a few core GDB commands.
+description: Review of C linkage (static and extern), pointer basics and a few core GDB commands.
 sources:
   - https://sourceware.org/gdb/current/onlinedocs/gdb.html
   - https://en.cppreference.com/w/c/language/storage_duration
 ---
 
-## Purpose
-
-Capture the small set of C and GDB ideas that came up in section. This is a compact memory aid, not a full language reference.
+The first section meeting of the operating systems course reviewed C linkage through the `static` and `extern` keywords, pointers passed by address, and basic debugging with GDB. The summary is brief and omits most of the language.
 
 
 ## C Review
@@ -33,7 +34,7 @@ Capture the small set of C and GDB ideas that came up in section. This is a comp
 **extern**: declares variable without allocating any memory for it
 
 - variables must be defined somewhere else
-- allows you to use variables from other files
+- allows a file to use variables defined in other files
 
 
 
@@ -49,14 +50,14 @@ int main() {
 }
 ```
 
-When you use an uninitialized pointer, the address that the pointer stores is the uninitialized part, and will probably lead to errors when it is interpreted as an address.
+An uninitialized pointer holds an indeterminate value, and dereferencing it interprets that value as an address, which is likely to cause an error.
 
 
 ## GDB Review
 
-`printf` debugging is useful, but limited once the program state changes quickly or multiple threads are involved.
+`printf` debugging is of limited use when program state changes rapidly or when multiple threads are involved.
 
-Enter `gdb`.
+The GNU debugger, `gdb`, inspects a running program directly. Its basic commands are the following.
 
 `run <...args>`: start execution
 

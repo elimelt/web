@@ -9,7 +9,10 @@ tags:
   - digital electronics
   - hardware description languages
 date: 2024-04-02
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
 description: SystemVerilog basics from CSE 369, covering nets and variables, signal values, modules, the hardware execution model, and structural design shown through an AOI circuit and a 2:1 mux.
 sources:
@@ -17,19 +20,19 @@ sources:
     type: lecture
 ---
 
-## Purpose
+SystemVerilog is a hardware description language (HDL). A SystemVerilog program describes a digital circuit, as an interconnection of components or as behavior, for simulation and synthesis.
 
-Working notes on the SystemVerilog primitives and the structural style used in CSE 369. The examples build the same AND-OR-INVERT circuit three ways, then compose it into a mux.
+The primitives and the structural style are those used in CSE 369. The examples implement one AND-OR-INVERT circuit in three structural styles and compose it into a 2:1 multiplexer.
 
 ## What Verilog is
 
-Verilog is a language for describing hardware. You describe the behavior you want programmatically, which lets you test a design in simulation before it ever touches real hardware. The syntax can look like C, but the execution model is different. SystemVerilog is a superset of the older Verilog, and this note says Verilog for both.
+Verilog is a language for describing hardware. A design is described programmatically, so it can be tested in simulation before it is implemented in hardware. The syntax resembles C, but the execution model is different. SystemVerilog is a superset of the older Verilog, and the name Verilog is used for both.
 
 ## Nets and variables
 
-A net (`wire`) transmits the value of a connected source. Think of it as a split wire, since it can connect to many places. Connecting two different voltage sources to the same net is a problem.
+A net (`wire`) transmits the value of a connected source. It behaves as a branching wire, since it can connect to many places. Connecting two different voltage sources to the same net causes contention.
 
-A variable (`reg`) acts as a voltage source you can assign arbitrary values to. `logic` can also be used as a variable.
+A variable (`reg`) acts as a voltage source to which arbitrary values can be assigned. `logic` can also be used as a variable.
 
 ## Signal values
 
@@ -40,15 +43,15 @@ A variable (`reg`) acts as a voltage source you can assign arbitrary values to. 
 
 ## Modules
 
-Modules are the "classes" of Verilog. They define blocks with a boundary. Inputs are signals passed from outside the block to inside, and outputs are signals passed from inside to outside.
+Modules are the unit of design in Verilog, comparable to classes in software. They define blocks with a boundary. Inputs are signals passed from outside the block to inside, and outputs are signals passed from inside to outside.
 
 ## Execution model
 
-You can't turn wires off. They transmit voltages near instantly, and every gate and module computes constantly, which takes some getting used to if you come from software. Pure hardware also has no notion of initialization. A wire can pick up voltage from its environment before you drive it.
+A wire cannot be turned off. Wires transmit voltages almost instantly, and every gate and module computes continuously, unlike the sequential execution of a software program. Hardware also has no inherent notion of initialization, and a wire can pick up voltage from its environment before it is driven.
 
 ## Structural Verilog
 
-The same AND-OR-INVERT circuit, written three ways. First with a single continuous assignment:
+The same AND-OR-INVERT circuit can be written in three ways. The first uses a single continuous assignment:
 
 ```verilog
 // SystemVerilog code for AND-OR-INVERT circuit
@@ -60,7 +63,7 @@ module AOI (F, A, B, C, D);
 endmodule
 ```
 
-Equivalently with intermediate signals:
+The second uses intermediate signals:
 
 ```verilog
 // SystemVerilog code for AND-OR-INVERT circuit
@@ -76,7 +79,7 @@ module AOI (F, A, B, C, D);
 endmodule
 ```
 
-Equivalently with gate primitives:
+The third uses gate primitives:
 
 ```verilog
 // SystemVerilog code for AND-OR-INVERT circuit
@@ -96,7 +99,7 @@ endmodule
 
 ## 2-input MUX from AOI
 
-A 2:1 multiplexer built by instantiating the AOI module above:
+The following 2:1 multiplexer instantiates the AOI module:
 
 ```verilog
 // 2:1 multiplexer built on top of AOI module

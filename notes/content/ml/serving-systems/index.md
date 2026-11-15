@@ -7,9 +7,12 @@ tags:
   - gpu
   - batching
 date: 2026-07-31
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Overview of the model-serving notes, focused on inference bottlenecks, GPU behavior, and large-model optimization.
+description: Index of the model-serving notes, on inference bottlenecks, GPU behavior and the optimization of large models.
 sources:
   - title: "LoRA: Low-Rank Adaptation of Large Language Models"
     url: https://arxiv.org/abs/2106.09685
@@ -22,11 +25,9 @@ sources:
     type: docs
 ---
 
-## Purpose
+Model serving systems execute trained models, large language models in particular, on GPU hardware under latency and throughput objectives. Their analysis concerns where execution time and memory are spent and which optimization changes the binding bottleneck. [[ml/serving-systems/gpu-basics|GPU basics]] and [[ml/serving-systems/performance-modeling|performance modeling]] supply the hardware model and the bottleneck analysis on which the later optimization notes rely.
 
-These notes are about making large models run well. The recurring questions are simple: where the time goes, where the memory goes, and which optimization changes the real bottleneck. [[ml/serving-systems/gpu-basics|GPU basics]] and [[ml/serving-systems/performance-modeling|performance modeling]] are the best entry points because they make the later optimization notes easier to judge.
-
-The rest of the section clusters around a few themes. [[ml/serving-systems/batching|Batching]], [[ml/serving-systems/parallelism|parallelism]], [[ml/serving-systems/gpu-interconnects|GPU interconnects]], and [[ml/serving-systems/memory-management|memory management]] are system design questions. [[ml/serving-systems/optimizing-gpu-kernels|Optimizing GPU kernels]], [[ml/serving-systems/triton|Triton]], and [[ml/serving-systems/how-to-write-a-fast-kernel|how to write a fast kernel]] are implementation questions. [[ml/serving-systems/transformers|Transformers]] and [[ml/serving-systems/speculative-decoding|speculative decoding]] tie the systems work back to model structure. [[ml/serving-systems/peft-and-preference-optimization|PEFT and preference optimization]] covers the adaptation side: how a base model gets fine-tuned and preference-tuned cheaply, and how the resulting adapters get served.
+The remaining notes fall into several groups. [[ml/serving-systems/batching|Batching]], [[ml/serving-systems/parallelism|parallelism]], [[ml/serving-systems/gpu-interconnects|GPU interconnects]], and [[ml/serving-systems/memory-management|memory management]] concern system design. [[ml/serving-systems/optimizing-gpu-kernels|Optimizing GPU kernels]], [[ml/serving-systems/triton|Triton]], and [[ml/serving-systems/how-to-write-a-fast-kernel|how to write a fast kernel]] concern implementation. [[ml/serving-systems/transformers|Transformers]] and [[ml/serving-systems/speculative-decoding|speculative decoding]] relate the systems work to model structure. [[ml/serving-systems/peft-and-preference-optimization|PEFT and preference optimization]] covers adaptation, the fine-tuning and preference tuning of a base model with a small fraction of its parameters trained, and the serving of the resulting adapters.
 
 ## Entry points
 

@@ -11,7 +11,10 @@ tags:
   - feedforward
   - backpropagation
 date: 2025-01-14
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
 description: Feedforward neural networks for NLP, covering activation functions, the XOR problem, layer notation and dimensionality, cross-entropy loss, and backpropagation.
 sources:
@@ -20,9 +23,9 @@ sources:
     type: textbook
 ---
 
-## Purpose
+A feedforward neural network is a multilayer network of computational units in which the output of each layer is the input to the next and the connections form no cycles. Each unit applies a nonlinear activation function to a weighted sum of its inputs plus a bias. Chapter 7 of [SLP3](https://web.stanford.edu/~jurafsky/slp3/7.pdf) treats these networks as classifiers for NLP.
 
-Covers feedforward neural networks as classifiers for NLP. It works through units and activation functions, why nonlinearity is needed at all (the XOR problem), the matrix notation for multi-layer computation, and training with cross-entropy loss and backpropagation. These networks generalize the linear decision boundaries of [[ml/nlp/reading/multinomial-logistic-regression|multinomial logistic regression]] on the same [[ml/nlp/reading/classification|classification]] problems, and they can learn complex patterns without hand-crafted features. Follows [SLP3 ch. 7](https://web.stanford.edu/~jurafsky/slp3/7.pdf).
+On the same [[ml/nlp/reading/classification|classification]] problems, the nonlinear hidden layers generalize the linear decision boundaries of [[ml/nlp/reading/multinomial-logistic-regression|multinomial logistic regression]], and the network learns representations of the input from data in place of hand-crafted features.
 
 ## Activation Functions
 
@@ -32,7 +35,7 @@ $$
 y = \sigma(w \cdot x + b) = \frac{1}{1 + e^{-(w \cdot x + b)}}
 $$
 
-In practice $\sigma$ is rarely the best choice. SLP3 notes that $\tanh$, a scaled version of $\sigma$ ranging from $-1$ to $1$, is similar and almost always works better.
+SLP3 notes that $\sigma$ is rarely the preferred activation in practice, and that $\tanh$, a scaled version of $\sigma$ ranging from $-1$ to $1$, is similar and almost always works better.
 
 $$
 y = \tanh(w \cdot x + b) = \frac{e^{w \cdot x + b} - e^{-(w \cdot x + b)}}{e^{w \cdot x + b} + e^{-(w \cdot x + b)}}
@@ -44,7 +47,7 @@ $$
 y = \text{ReLU}(w \cdot x + b) = \max(0, w \cdot x + b)
 $$
 
-ReLU is cheap to compute, and it doesn't saturate for large positive inputs the way $\sigma$ and $\tanh$ do. Saturation causes the vanishing gradient problem, where gradients near $0$ stop the network from learning.
+ReLU has a low computational cost, and it does not saturate for large positive inputs as $\sigma$ and $\tanh$ do. Saturation causes the vanishing gradient problem, in which gradients near $0$ leave the weights nearly unchanged during training.
 
 ## The XOR Problem
 
@@ -57,11 +60,11 @@ y = \begin{cases}
 \end{cases}
 $$
 
-To see why XOR is not linearly separable, look at the four inputs. $(x_1, x_2) = (0, 0)$ and $(1, 1)$ are in one class, while $(0, 1)$ and $(1, 0)$ are in the other. No straight line separates the two classes.
+Of the four inputs to XOR, $(x_1, x_2) = (0, 0)$ and $(1, 1)$ are in one class, while $(0, 1)$ and $(1, 0)$ are in the other, and no straight line separates the two classes.
 
 ## Feedforward Neural Networks
 
-A feedforward NN is a multi-layer network where the output of each layer is the input to the next layer, with no cycles. They are sometimes called multilayer perceptrons (MLPs), although that term technically applies only to networks whose units use a step function as the activation.
+A feedforward NN is a multi-layer network where the output of each layer is the input to the next layer, with no cycles. Such networks are sometimes called multilayer perceptrons (MLPs), although that term technically applies only to networks whose units use a step function as the activation.
 
 The network has three types of nodes.
 
@@ -71,9 +74,9 @@ The vector of input units is $x$, with one node for each feature of the input.
 
 ### Hidden layers
 
-One or more layers of hidden units, each with a non-linear activation function. In the standard architecture, each node is connected to all nodes in the previous layer, so each hidden unit sums over all input values.
+A network has one or more layers of hidden units, each with a non-linear activation function. In a fully connected layer, each node is connected to all nodes in the previous layer, so each hidden unit sums over all input values.
 
-For a given hidden layer, combine the weights $w$ and bias $b$ for each computational unit into a weight matrix $W$ and bias vector $b$. Each element $W_{ji}$ of the weight matrix is the weight from the $i$th input unit $x_i$ to the $j$th hidden unit $h_j$.
+For a given hidden layer, the weights $w$ and biases $b$ of its computational units are combined into a weight matrix $W$ and bias vector $b$. Each element $W_{ji}$ of the weight matrix is the weight from the $i$th input unit $x_i$ to the $j$th hidden unit $h_j$.
 
 The output of a hidden layer with activation function $f$ is:
 
@@ -83,7 +86,7 @@ $$
 
 #### Dimensionality
 
-Call the input layer, layer $0$, and let $n_0$ be the number of input units, so the input is a column vector $x \in \mathbb{R}^{n_0}$ with dimension $n_0 \times 1$.
+The input layer is layer $0$, and $n_0$ is the number of input units, so the input is a column vector $x \in \mathbb{R}^{n_0}$ with dimension $n_0 \times 1$.
 
 The first hidden layer $h^{(1)}$ has $n_1$ hidden units, so $W \in \mathbb{R}^{n_1 \times n_0}$ and $b \in \mathbb{R}^{n_1}$.
 
@@ -97,7 +100,7 @@ The output layer is the final layer of the network. Its output $y$, with $\dim(y
 
 #### Normalization
 
-To get a probability distribution, normalize the output of the network with the softmax function:
+The softmax function normalizes the output of the network into a probability distribution:
 
 $$
 y = \text{softmax}(W \cdot h + b)
@@ -109,11 +112,11 @@ $$
 
 ### Comparison with MLR
 
-A NN is like MLR with a few differences:
+A feedforward network differs from MLR in three respects:
 
-- many layers, since a deep NN is like layer after layer of MLR classifiers
-- intermediate layers have non-linear activation functions. Without these, the network would just be a linear classifier, since the composition of linear functions is still linear
-- instead of feature selection, previous layers build up a representation of the input that is useful for the final layer
+- It has many layers, and a deep network resembles a stack of MLR classifiers.
+- Its intermediate layers have non-linear activation functions. Without them the network would be a linear classifier, since a composition of linear functions is linear.
+- In place of selected features, its earlier layers build a representation of the input that is useful to the final layer.
 
 ### Details/Notation
 
@@ -167,9 +170,9 @@ $$
 
 ## FF networks for NLP: Classification
 
-Instead of manually designed features, use word embeddings (e.g. word2vec, GloVe). This constitutes "pre-training", i.e. relying on already computed values/embeddings. One simple way to represent a sentence is to sum the embeddings of its words, or to average them.
+In place of manually designed features, the input can be represented with word embeddings such as word2vec or GloVe. Using embeddings computed in advance in this way is a form of pretraining. A sentence can be represented by the sum or the average of the embeddings of its words.
 
-To classify many examples at once, pack the inputs into a single matrix $X$ where each row $i$ is an input vector $x^{(i)}$. If each input has $d$ features, then $X \in \mathbb{R}^{m \times d}$ where $m$ is the number of examples.
+To classify many examples at once, the inputs are packed into a single matrix $X$ where each row $i$ is an input vector $x^{(i)}$. If each input has $d$ features, then $X \in \mathbb{R}^{m \times d}$ where $m$ is the number of examples.
 
 $W \in \mathbb{R}^{d_h \times d}$ is the weight matrix for the hidden layer, $b \in \mathbb{R}^{d_h}$ is the bias vector, and $U$ is the output layer weight matrix. $Y \in \mathbb{R}^{m \times n_{\text{output}}}$ is the output matrix.
 
@@ -183,11 +186,11 @@ $$
 
 ## Training Neural Nets
 
-We want to learn the parameters $W^{[i]}$ and $b^{[i]}$ for each layer $i$ that make $\hat{y}$ as close as possible to the true $y$.
+Training learns the parameters $W^{[i]}$ and $b^{[i]}$ for each layer $i$ that make $\hat{y}$ as close as possible to the true $y$.
 
 ### Loss Function
 
-Same as the one used for MLR, the cross-entropy loss.
+The loss is the cross-entropy loss, as for MLR.
 
 For binary classification:
 
@@ -209,11 +212,11 @@ $$
 
 ### Backpropagation
 
-Gradients pass backward through the network to update the weights, using the chain rule. Each node in a computation graph takes an **upstream** gradient and computes its **local** gradient, multiplying the two to get the **downstream** gradient. A node may have multiple local gradients, one for each incoming edge.
+Backpropagation computes the gradient of the loss with respect to each weight by applying the chain rule backward through the network. Each node in a computation graph takes an **upstream** gradient and computes its **local** gradient, multiplying the two to get the **downstream** gradient. A node may have multiple local gradients, one for each incoming edge.
 
-#### A very simple example
+#### Example
 
-Consider the function $L(a, b, c) = c(a + 2b)$. Create a computation graph with nodes $a, b, c$ for the inputs, and $d = 2b, e = a + d, L = ce$ for the intermediate computations.
+For the function $L(a, b, c) = c(a + 2b)$, the computation graph has nodes $a, b, c$ for the inputs, and $d = 2b, e = a + d, L = ce$ for the intermediate computations.
 
 ```mermaid
 flowchart LR
@@ -236,7 +239,7 @@ $$
 
 ### Learning details
 
-NN optimization is a non-convex problem, so it needs a few techniques to work well:
+The optimization problem for a neural network is non-convex, and training relies on the following practices:
 
 - Initialize weights and biases to small random values instead of all zeros
 - Normalize input values to $\mu = 0, \sigma = 1$

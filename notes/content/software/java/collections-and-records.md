@@ -9,9 +9,12 @@ tags:
   - immutability
   - java records
 date: 2024-12-08
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Creating immutable collections with Arrays.asList and the Java 9 factory methods, and defining data types with records.
+description: Creating fixed-size lists with Arrays.asList and immutable collections with the Java 9 factory methods, and defining data types with records.
 sources:
   - title: "JEP 269: Convenience Factory Methods for Collections"
     url: https://openjdk.org/jeps/269
@@ -21,15 +24,13 @@ sources:
     type: docs
 ---
 
-## Motivation
+Java provides concise constructs for creating a collection whose elements are fixed at construction (`Arrays.asList` and the factory methods `List.of`, `Set.of` and `Map.of`) and for defining a data type that holds structured data (the `record` keyword).
 
-Often while testing your code or implementing common algorithms, you'll want to specify an immutable collection of elements. The UW intro series (as far as I'm aware) doesn't teach some pretty useful Java features that make this a lot easier.
-
-Java is also verbose when it comes to defining new data types to hold structured data. The `record` keyword fixes that.
+Collections of fixed elements are frequently needed in tests and in implementations of algorithms. A conventional class for structured data requires a constructor and hand-written `toString`, `equals` and `hashCode` methods, which a record generates automatically. To my knowledge, the UW introductory series does not cover these features.
 
 ## Arrays.asList
 
-The most basic way to create a list in Java is the `Arrays.asList` method. It takes a variable number of arguments and returns a fixed-size list backed by the underlying array. You can't add or remove elements, but you can modify the elements themselves.
+The `Arrays.asList` method creates a list from its arguments. It takes a variable number of arguments and returns a fixed-size list backed by the underlying array. Elements cannot be added or removed, but the elements themselves can be modified.
 
 ```java
 List<Integer> list = Arrays.asList(1, 2, 3, 4, 5);
@@ -37,7 +38,7 @@ List<Integer> list = Arrays.asList(1, 2, 3, 4, 5);
 
 ## Java 9+ Factory Methods
 
-Java 9 introduced factory methods for creating immutable collections ([JEP 269](https://openjdk.org/jeps/269)). They're available on the `List`, `Set`, and `Map` interfaces:
+Java 9 introduced factory methods for creating immutable collections ([JEP 269](https://openjdk.org/jeps/269)). They are available on the `List`, `Set`, and `Map` interfaces:
 
 ```java
 List<Integer> list = List.of(1, 2, 3, 4, 5);
@@ -51,7 +52,7 @@ Map<Integer, String> map = Map.of(
 
 ## Records
 
-Records let you define simple data classes with minimal boilerplate. They shipped as a preview in Java 14 and became standard in Java 16 ([JEP 395](https://openjdk.org/jeps/395)). On top of being far more concise than traditional classes, records provide `toString`, `equals`, and `hashCode` methods by default.
+Records define simple data classes with minimal boilerplate. They shipped as a preview in Java 14 and became standard in Java 16 ([JEP 395](https://openjdk.org/jeps/395)). In addition to being more concise than traditional classes, records provide `toString`, `equals`, and `hashCode` methods by default.
 
 ```java
 // With classes
@@ -84,9 +85,9 @@ class Point {
 record Point(int x, int y) {}
 ```
 
-## Using this in Practice
+## Example: a playing card
 
-Say we're implementing a poker game and we want to represent a card. With introductory Java knowledge, you might define a class like this:
+Consider the representation of a card in a poker game. Written with the features of introductory Java, the class is as follows.
 
 ```java
 enum Suit {
@@ -127,7 +128,7 @@ class Card {
 }
 ```
 
-With records, you can define the same class in a much more concise way:
+A record defines the same type more concisely:
 
 ```java
 enum Suit {
@@ -137,7 +138,7 @@ enum Suit {
 record Card(Suit suit, int rank) {}
 ```
 
-We can even add methods to records, like so:
+Records can also declare methods and implement interfaces:
 
 ```java
 record Card(Suit suit, int rank) implements Comparable<Card> {
@@ -147,7 +148,7 @@ record Card(Suit suit, int rank) implements Comparable<Card> {
 }
 ```
 
-Now say we wanted to test our new `Card` object:
+The following test sorts a list of cards and compares the result with the expected order.
 
 ```java
 public static void main(String[] args) {
@@ -173,7 +174,7 @@ public static void main(String[] args) {
 }
 ```
 
-The sort has to produce a new list, since `List.of` gives us an immutable one. The comparison works because `Card` implements `Comparable`, and the equality check works because records generate `equals` for us. Run with `java -ea` so the assert actually fires.
+The sort produces a new list, since `List.of` returns an immutable one. The comparison works because `Card` implements `Comparable`, and the equality check works because records generate `equals`. Run the program with `java -ea` so that the assertion is checked.
 
 ## Related
 

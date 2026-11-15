@@ -8,24 +8,25 @@ tags:
   - contradiction
   - cycle detection
 date: 2024-04-14
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: needs-review
 archive: true
-description: Two graph theory proof exercises, one complete and one cleaned up from partial notes.
+description: Two graph theory proof exercises, a complete inductive bound on the number of leaves of a tree and a proof by contradiction, reconstructed from partial notes, that a graph with n vertices and at least n edges has a cycle.
 sources:
   - https://www.cs.princeton.edu/~wayne/kleinberg-tardos/
 ---
 
-## Purpose
-
-Work through a pair of short graph theory exercises. The first is a full [[algorithms/induction|inductive proof]]. The second is now written as a compact contradiction argument instead of stopping mid-proof.
+The first exercise is an [[algorithms/induction|inductive proof]] that a tree has at least as many leaves as vertices of degree at least $3$. The second is a proof by contradiction that a graph with $n$ vertices and at least $n$ edges contains a cycle.
 
 ## Problem 1
 Let $G$ be a tree. Use induction to prove that the number of leaves of $G$ is at least the number of vertices of degree at least $3$ in $G$.
 
 #### Solution
 
-$P(n)$: The number of leaves of any graph $G$ with $n$ vertices is at least the number of vertices of degree at least $3$ in $G$.
+$P(n)$: The number of leaves of any tree $G$ with $n$ vertices is at least the number of vertices of degree at least $3$ in $G$.
 
 #### Base Case: $P(1)$
 
@@ -41,11 +42,11 @@ Choose some arbitrary leaf $l \in V$, and $(l, p) \in E$. Removing $l$ (and its 
 
 **Case 1**: $p$ has degree $1$ in $G'$.
 
-Then $p$ is a leaf in $G'$, and $G'$ has the same number of leaves and vertices with degree 3 as $G$ (since we didn't remove any vertices of degree 3). Thus, $G$ has at least as many leaves as vertices of degree 3.
+Then $p$ is a leaf in $G'$, and $G'$ has the same number of leaves and vertices of degree at least 3 as $G$ (since no vertex of degree at least 3 was removed). Thus, $G$ has at least as many leaves as vertices of degree at least 3.
 
 **Case 2**: $p$ has degree $2$ in $G'$.
 
-Then $p$ is not a leaf in $G'$, and $G'$ has one fewer leaf than $G$ (since we removed a leaf). However, we also removed a vertex of degree 3 from $G$, so the number of vertices of degree 3 in $G$ is still at least the number of leaves in $G$ (both increased by 1 from $G' \to G$).
+Then $p$ is not a leaf in $G'$, and $G'$ has one fewer leaf than $G$ (since we removed a leaf). The vertex $p$ has degree 3 in $G$ and degree 2 in $G'$, so $G'$ also has one fewer vertex of degree at least 3. Both counts increase by 1 from $G'$ to $G$, so the number of leaves in $G$ is still at least the number of vertices of degree at least 3 in $G$.
 
 **Case 3**: $p$ has degree at least $3$ in $G'$.
 
@@ -61,13 +62,13 @@ Let $G$ be a [[algorithms/graphs-intro|graph]] with $n$ vertices and at least $n
 
 Let $G$ be a graph with $n$ vertices and at least $n$ edges. Suppose for the sake of contradiction that $G$ has no cycles.
 
-Since $G$ has no cycles, it is a tree.
+Since $G$ has no cycles, it is a forest.
 
 Claim: The sum of the degrees of all vertices in a graph is equal to twice the number of edges.
 
 Proof: Each edge contributes $1$ to the degree of two vertices, so the sum of the degrees of all vertices is twice the number of edges.
 
-Now use the standard fact that every acyclic graph is a forest, and every forest on $n$ vertices has at most $n - 1$ edges. One way to see this is to sum the edge counts of each tree component. If the components have $n_1, \ldots, n_k$ vertices, then the total number of edges is
+Every forest on $n$ vertices has at most $n - 1$ edges, which follows from summing the edge counts of its tree components. If the components have $n_1, \ldots, n_k$ vertices, then the total number of edges is
 
 $$
 \sum_{i=1}^{k}(n_i - 1) = \left(\sum_{i=1}^{k} n_i\right) - k = n - k \le n - 1.

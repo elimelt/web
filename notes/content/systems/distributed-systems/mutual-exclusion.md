@@ -9,25 +9,26 @@ tags:
   - locking
   - ordering
 date: 2024-04-24
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: draft
-description: Lamport's distributed mutual exclusion algorithm, which builds a lock out of timestamped request, release, and acknowledge messages with no central coordinator.
+description: Lamport's distributed mutual exclusion algorithm, which implements a lock from timestamped request, release, and acknowledge messages without a central coordinator.
 sources:
   - title: "Time, Clocks, and the Ordering of Events in a Distributed System (Lamport, 1978)"
     url: https://lamport.azurewebsites.net/pubs/time-clocks.pdf
     type: paper
 ---
 
-## Purpose
-
-This note records [Lamport's distributed mutual exclusion algorithm](https://lamport.azurewebsites.net/pubs/time-clocks.pdf), which provides locking across a distributed system with no central lock server.
+Distributed mutual exclusion is the problem of guaranteeing that at most one of a set of nodes, which share no memory and communicate only by messages, holds a lock at any time, and that every request for the lock is eventually granted. [Lamport's algorithm](https://lamport.azurewebsites.net/pubs/time-clocks.pdf) solves it without a central lock server.
 
 ## Core idea
 
-We want the same old mutual exclusion via locking, but across nodes that share no memory. The trick is to keep a consistent ordering of locking events on every node in the system, using [[systems/distributed-systems/clocks|logical clock]] timestamps. Every node maintains the same queue of outstanding requests, ordered by timestamp, so every node independently agrees on who holds the lock.
+Each node maintains a consistent ordering of locking events, derived from [[systems/distributed-systems/clocks|logical clock]] timestamps. Every node holds the same queue of outstanding requests, ordered by timestamp, so all nodes independently reach the same conclusion about which node holds the lock.
 
 > [!tip] There is no lock server
-> No node grants the lock. Every node runs the same deterministic rule over the same totally ordered request queue, so each one *computes* who holds the lock locally — and they all get the same answer. This is the replicated state machine idea in miniature.
+> No node grants the lock. Every node applies the same deterministic rule to the same totally ordered request queue, so each node *computes* locally which node holds the lock, and all nodes obtain the same result. The construction is a small instance of the replicated state machine approach.
 
 ## The algorithm
 
@@ -50,12 +51,12 @@ Message handling:
 - On receiving `release`: record its $T_m$ and remove the sender's request from the queue
 - On receiving `acknowledge`: record its $T_m$
 
-To acquire the lock, broadcast a `request`. You hold the lock once both of these are true:
+To acquire the lock, a node broadcasts a `request`. The node holds the lock once both of these conditions hold:
 
-- your `request` is at the head of your queue
-- you have received some message timestamped later than your request from every other node, so no earlier request can still be in flight
+- its `request` is at the head of its own queue
+- it has received from every other node some message timestamped later than its request, so no earlier request can still be in flight
 
-To release the lock, broadcast `release`, and every node removes your request from its queue.
+To release the lock, the node broadcasts `release`, and every node removes that node's request from its queue.
 
 ```mermaid
 sequenceDiagram
@@ -79,10 +80,10 @@ sequenceDiagram
 
 ## Limits
 
-> [!warning] Zero fault tolerance
-> Acquiring the lock requires hearing a later-timestamped message from *every* other node, so a single crashed node halts all acquisitions system-wide. The algorithm's value is the idea, not the deployment.
+> [!warning] No fault tolerance
+> Acquiring the lock requires a later-timestamped message from *every* other node, so a single crashed node halts all acquisitions in the system.
 
-The algorithm tolerates no failures: one crashed node stops every acquisition, since progress requires hearing from every other node. It also costs a broadcast round trip per acquisition. Its value is the idea, using logical timestamps to make every node compute the same total order of lock events, which is the same foundation that replicated state machines build on.
+The algorithm tolerates no failures, since progress requires a message from every other node. Each acquisition also requires a broadcast round trip. The algorithm's significance lies in its use of logical timestamps to make every node compute the same total order of lock events, the same foundation on which replicated state machines are built.
 
 ## Related notes
 

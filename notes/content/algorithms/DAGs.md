@@ -8,16 +8,19 @@ tags:
   - acyclic graphs
   - proofs
 date: 2024-04-14
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Proves the equivalence between DAGs and topological orderings, shows every DAG has a source vertex, and gives Kahn's algorithm for computing a topological order.
+description: The equivalence between DAGs and directed graphs that admit a topological ordering, the existence of a source vertex in every DAG, and Kahn's algorithm for computing a topological order.
 sources:
   - https://www.cs.princeton.edu/~wayne/kleinberg-tardos/
 ---
 
-## Purpose
+A **directed acyclic graph** (DAG) is a directed graph that contains no directed cycle.
 
-A directed acyclic graph (DAG) is a directed graph with no cycles. DAGs model any dependency structure where work must happen in a legal order: build systems, course prerequisites, and the subproblem structure of [[algorithms/dynamic-programming|dynamic programming]]. This note proves the basic facts about topological orderings and gives the standard algorithm for computing one.
+A directed graph is a DAG if and only if its vertices can be listed in an order in which every edge points from an earlier vertex to a later one. DAGs therefore model dependency structures in which tasks must be performed in an order consistent with their dependencies, such as build systems, course prerequisites and the subproblem structure of [[algorithms/dynamic-programming|dynamic programming]].
 
 ## Topological Orderings
 
@@ -40,10 +43,10 @@ flowchart LR
 
 **Lemma**: If $G$ is a DAG, then $G$ has a source vertex, i.e. a vertex with $indeg(v) = 0$.
 
-**Proof**: Suppose for contradiction that every vertex has $indeg(v) \ge 1$. Start at an arbitrary vertex $v_1$ and repeatedly step backward along some incoming edge. Every vertex has an incoming edge, so this walk never gets stuck. The graph has finitely many vertices, so the walk must eventually revisit a vertex, and the segment between the two visits is a cycle. This contradicts $G$ being acyclic. $\blacksquare$
+**Proof**: Suppose for contradiction that every vertex has $indeg(v) \ge 1$. Start at an arbitrary vertex $v_1$ and repeatedly step backward along some incoming edge. Every vertex has an incoming edge, so the walk can always continue. The graph has finitely many vertices, so the walk must eventually revisit a vertex, and the segment between the two visits is a cycle. This contradicts $G$ being acyclic. $\blacksquare$
 
-> [!tip] The source lemma does the algorithmic work
-> Removing a source from a DAG leaves a DAG, so sources never run out until the graph is empty. Kahn's algorithm below is this lemma applied repeatedly.
+> [!tip] The source lemma is the basis of the algorithm
+> Removing a source from a DAG leaves a DAG, so a source exists at every step until the graph is empty. [[#Algorithm|Kahn's algorithm]] applies this lemma repeatedly.
 
 **Lemma**: If $G$ is a DAG, then $G$ has a topological ordering.
 
@@ -51,7 +54,7 @@ flowchart LR
 
 ## Algorithm
 
-The proof above is the algorithm, known as Kahn's algorithm: repeatedly remove a source and append it to the order. Track indegrees so that finding new sources is cheap. Each vertex and edge is processed once, so the runtime is $O(|V| + |E|)$.
+The inductive proof is constructive. The procedure it describes, known as Kahn's algorithm, repeatedly removes a source and appends it to the order. Maintaining the indegree of every vertex identifies each new source when its last incoming edge is removed, without a search. Each vertex and edge is processed once, so the runtime is $O(|V| + |E|)$.
 
 ```python
 def topological_sort(G):
@@ -74,7 +77,7 @@ def topological_sort(G):
     return order
 ```
 
-If the loop ends before all vertices are ordered, the remaining vertices all have positive indegree, which means the graph contains a cycle. That makes this algorithm a cycle detector too.
+If the loop ends before all vertices are ordered, the remaining vertices all have positive indegree, which means the graph contains a cycle. Kahn's algorithm therefore also detects cycles.
 
 ## Related notes
 

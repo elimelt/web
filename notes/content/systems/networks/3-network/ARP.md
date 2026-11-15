@@ -9,9 +9,12 @@ tags:
   - discovery-protocols
   - link-layer
 date: 2024-02-23
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: How ARP maps IP addresses to MAC addresses on a local network, covering the ARP table and the broadcast request and unicast reply exchange.
+description: The mapping of IP addresses to MAC addresses on a local network by ARP, covering the ARP table and the exchange of a broadcast request and a unicast reply.
 sources:
   - title: "RFC 826: An Ethernet Address Resolution Protocol"
     url: https://datatracker.ietf.org/doc/html/rfc826
@@ -21,23 +24,21 @@ sources:
     type: textbook
 ---
 
-## Purpose
-
-Explain how a host turns an IP address into a MAC address so it can deliver a packet over the local link. Covers the ARP table and the request and reply exchange that fills it.
+The Address Resolution Protocol (ARP, [RFC 826](https://datatracker.ietf.org/doc/html/rfc826)) maps an IP address to the MAC address of the interface on the local link that holds it, so that a host can address the link-layer frame that carries an IP packet. Hosts cache the mappings in an ARP table, which they fill by broadcasting requests and receiving unicast replies.
 
 ## Core idea
 
-ARP ([RFC 826](https://datatracker.ietf.org/doc/html/rfc826)) maps IP addresses to MAC addresses. IP forwarding decides which machine on the local network should get the packet, and ARP supplies the link layer address the frame needs to actually reach it (see [[systems/networks/3-network/internetworking|internetworking]] for the forwarding side). ARP sits directly on top of the link layer and uses no servers or routers, which it can't anyway, since a host needs ARP working before it can talk to anything by IP.
+IP forwarding determines which machine on the local network should receive the packet, and ARP supplies the link-layer address the frame needs to reach it (see [[systems/networks/3-network/internetworking|internetworking]] for the forwarding side). ARP runs directly over the link layer and uses no servers or routers. It could not depend on them, since a host needs ARP before it can communicate with anything by IP.
 
-ARP is one example of a discovery protocol, meaning a protocol for finding devices on a network. Zeroconf and Apple's Bonjour are others. Discovery protocols usually rely on broadcast, because broadcast is the only way to reach a device whose address you don't know yet.
+ARP is one example of a discovery protocol, meaning a protocol for finding devices on a network. Zeroconf and Apple's Bonjour are others. Discovery protocols typically rely on broadcast, because broadcast is the only means of reaching a device whose address is not yet known.
 
-This slide shows where the fields of an outgoing frame come from. The NIC provides the source MAC, ARP provides the destination MAC, and [[systems/networks/3-network/DHCP|DHCP]] provided the host's own IP in the first place.
+The figure shows the origin of each field of an outgoing frame. The NIC provides the source MAC, ARP provides the destination MAC, and [[systems/networks/3-network/DHCP|DHCP]] assigned the host's own IP address.
 
 ![Where each header field of an outgoing packet comes from](ARP-packet.png)
 
 ## ARP table
 
-Each host caches the mappings it has learned in an ARP table held in memory. You can inspect yours:
+Each host caches the mappings it has learned in an ARP table held in memory. The table can be inspected with:
 
 ```bash
 arp -a
@@ -45,13 +46,13 @@ arp -a
 
 ## ARP request
 
-When a device wants to send a packet to another device on the same network, it first checks its ARP table for the destination IP. On a miss, it broadcasts an ARP request to the MAC address `FF:FF:FF:FF:FF:FF`, asking who owns the destination IP.
+When a device has a packet for another device on the same network, it first checks its ARP table for the destination IP. On a miss, it broadcasts an ARP request to the MAC address `FF:FF:FF:FF:FF:FF`, asking who owns the destination IP.
 
 ## ARP reply
 
-The request reaches every node on the link, but only some act on it. The node that owns the requested IP sends back an ARP reply carrying its MAC address. Nodes that already have an entry for the sender can use the request to refresh that entry. Everyone else drops the request.
+The request reaches every node on the link, but only some nodes act on it. The node that owns the requested IP sends back an ARP reply carrying its MAC address. Nodes that already have an entry for the sender can use the request to refresh that entry. All other nodes drop the request.
 
-The full exchange, with the request broadcast to the link and the reply unicast back:
+In the full exchange the request is broadcast to the link and the reply is unicast back:
 
 ```mermaid
 sequenceDiagram

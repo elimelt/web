@@ -14,42 +14,43 @@ tags:
   - syscall
   - address-space
 date: 2024-01-15
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Chapter notes on OSPP chapter 4. The thread abstraction and life cycle, thread control blocks, how kernel and user-level threads are implemented (including context switching and scheduler activations), and alternatives like event-driven programming and data parallelism.
+description: Chapter 4 of OSPP on the thread abstraction and life cycle, thread control blocks, the implementation of kernel and user-level threads (including context switching and scheduler activations), and the alternatives of event-driven programming and data parallelism.
 sources:
   - title: "Operating Systems: Principles and Practice (2nd ed.), Anderson and Dahlin, chapter 4"
     url: https://ospp.cs.washington.edu/
     type: textbook
 ---
 
-## Purpose
-
-Notes on chapter 4 of [Operating Systems: Principles and Practice](https://ospp.cs.washington.edu/). The core question is what a thread actually is, how the OS implements one, and when you would reach for threads versus events or data parallelism.
+Chapter 4 of [Operating Systems: Principles and Practice](https://ospp.cs.washington.edu/) treats the thread abstraction, its implementation by the operating system, and the conditions under which threads, event-driven programming or data parallelism is the appropriate structure for a concurrent program.
 
 ## Thread Use Cases
 
-- **Program structure: expressing logically concurrent tasks.** Many applications are naturally concurrent, and threads let you model that concurrency directly in code.
-- **Responsiveness: shifting work to run in the background.** Move slow or blocking operations to a background thread so the main event loop stays responsive.
-- **Performance: exploiting multiple processors.** Do more work in the same amount of time.
+- **Program structure: expressing logically concurrent tasks.** Many applications are naturally concurrent, and threads express that concurrency directly in code.
+- **Responsiveness: shifting work to run in the background.** Slow or blocking operations run on a background thread, so the main event loop remains responsive.
+- **Performance: exploiting multiple processors.** Threads running on several processors complete more work in the same amount of time.
 - **Performance: managing I/O devices.** If one thread blocks waiting for I/O, another thread can run on the CPU instead.
 
-Processors are much faster than I/O devices. Disk I/O latency is measured in milliseconds, enough time for a CPU to execute millions of instructions. I/O like user input or network requests also has unpredictable latency, which is what makes overlapping I/O with computation worth the trouble.
+Processors are much faster than I/O devices. Disk I/O latency is measured in milliseconds, enough time for a CPU to execute millions of instructions. I/O such as user input or network requests also has unpredictable latency. Both properties motivate overlapping I/O with computation.
 
 A common pattern in I/O bound applications is to have multiple threads fetching different resources simultaneously. A media player might have one thread fetching the highest quality video, another fetching the highest quality audio, and a third fetching a low quality video stream for previews.
 
 ### Threads vs. Processes
 
-Some scenarios for how threads and processes combine:
+Threads and processes combine in four configurations.
 
-- **One thread per process.** One sequence of instructions, executing from beginning to end. The kernel runs those instructions in user mode, and the process uses system calls to request privileged operations.
-- **Many threads per process.** Several concurrent threads, each executing within the restricted rights of the process. A subset of the process's threads run while the rest are suspended. Any thread in the process can make a system call, blocking itself without blocking its siblings. When an I/O interrupt arrives, the processor preempts one running thread so the kernel can run the handler, then resumes it afterward.
-- **Many single-threaded processes.** Each process looks like a thread: a separate sequence of instructions, executing sometimes in the kernel and sometimes at user level. Concurrent processes can have concurrent system calls, even parallel ones on a multiprocessor.
+- **One thread per process.** The process is one sequence of instructions, executed from beginning to end. The kernel runs those instructions in user mode, and the process uses system calls to request privileged operations.
+- **Many threads per process.** The process contains several concurrent threads, each executing within the restricted rights of the process. A subset of the process's threads run while the rest are suspended. Any thread in the process can make a system call, blocking itself without blocking its siblings. When an I/O interrupt arrives, the processor preempts one running thread so the kernel can run the handler, then resumes it afterward.
+- **Many single-threaded processes.** Each process resembles a thread: a separate sequence of instructions, executing sometimes in the kernel and sometimes at user level. Concurrent processes can have concurrent system calls, even parallel ones on a multiprocessor.
 - **Many kernel threads.** The kernel itself uses the thread abstraction for its own work, running separate threads in kernel mode.
 
 ## Thread Abstraction
 
-A thread is two things:
+A thread has two defining properties:
 
 - **A single execution sequence.** Each thread has its own stream of instructions it is executing.
 - **Separately schedulable.** The kernel can run, suspend, and resume each thread independently of the others.
@@ -60,11 +61,11 @@ Threads provide the illusion of infinite processors. The OS uses a _thread sched
 
 #### Cooperative vs. preemptive multithreading
 
-Early versions of MacOS used cooperative multithreading, where the kernel switched threads only when the running thread made a system call relinquishing control. A thread that never yields hogs the CPU and starves everyone else. Modern operating systems use preemptive multithreading, where the kernel can preempt a thread at any point.
+Early versions of MacOS used cooperative multithreading, where the kernel switched threads only when the running thread made a system call relinquishing control. A thread that never yields keeps the CPU and starves every other thread. Modern operating systems use preemptive multithreading, where the kernel can preempt a thread at any point.
 
 ### Why "Unpredictable Speed"?
 
-Never reason about the relative speed of threads when arguing your code is correct. Scheduling, cache state, interrupts, and load all make thread speed unpredictable, so a correct program has to work under every possible interleaving.
+A correctness argument for concurrent code cannot rely on the relative speed of threads. Scheduling, cache state, interrupts, and load all make thread speed unpredictable, so a correct program has to work under every possible interleaving.
 
 ## POSIX Thread API
 
@@ -112,7 +113,7 @@ Threads enable **asynchronous procedure calls**, where the called function runs 
 
 ### Fork-Join Parallelism
 
-Example: zero a block of memory using multiple threads. Operating systems zero memory constantly, for instance after a process exits so its data does not leak to the next process. The textbook's numbers make the case for parallelizing: zeroing 1 GB of memory takes about 50 ms on modern hardware, while creating a thread costs on the order of 10 microseconds.
+A simple example zeroes a block of memory using multiple threads. Operating systems zero memory frequently, for instance after a process exits so its data does not leak to the next process. The textbook's figures indicate that parallelization is worthwhile: zeroing 1 GB of memory takes about 50 ms on modern hardware, while creating a thread costs on the order of 10 microseconds.
 
 ```c
  // To pass two arguments, we need a struct to hold them.
@@ -145,11 +146,11 @@ Example: zero a block of memory using multiple threads. Operating systems zero m
  }
 ```
 
-You can also zero memory lazily with a background thread that runs while another process executes. When the memory is needed again, join on the background thread.
+Memory can also be zeroed lazily by a background thread that runs while another process executes. When the memory is needed again, the kernel joins on the background thread.
 
 ## Thread Data Structures and Life Cycle
 
-The important split is between shared and per-thread state. Shared state consists of code, global variables, and heap-allocated memory. Per-thread state consists of the thread's stack, registers, and metadata, tracked in a **thread control block (TCB)** per thread.
+The state of a multithreaded program divides into shared state and per-thread state. Shared state consists of code, global variables, and heap-allocated memory. Per-thread state consists of the thread's stack, registers, and metadata, tracked in a **thread control block (TCB)** per thread.
 
 ### Thread Control Block
 
@@ -163,19 +164,19 @@ The TCB also needs the processor registers. Some systems store them at the top o
 
 #### How big of a stack?
 
-Kernel stacks live in physical memory, so it pays to keep them small. Kernel code keeps procedure call nesting shallow and allocates all large data structures on the heap by convention, which is what makes small kernel stacks workable. Allocating a large structure as a local variable in kernel code is how you blow one up.
+Kernel stacks reside in physical memory, so they are kept small. By convention, kernel code keeps procedure call nesting shallow and allocates all large data structures on the heap, which makes small kernel stacks workable. Allocating a large structure as a local variable in kernel code can overflow the kernel stack.
 
-User-level stacks live in virtual memory, so they are less constrained. Multithreaded programs still cannot grow stacks indefinitely (Go is an exception, growing stacks automatically), and stack overflow is easy to hit in multithreaded programs. POSIX lets you configure stack size. Most implementations try to detect overflow by placing known values at the ends of the stack and checking them, which catches many overflows without being foolproof.
+User-level stacks reside in virtual memory, so they are less constrained. Multithreaded programs still cannot grow stacks indefinitely (Go is an exception, growing stacks automatically), and stack overflow occurs readily in multithreaded programs. POSIX allows the stack size to be configured. Most implementations try to detect overflow by placing known values at the ends of the stack and checking them, which catches many overflows without being foolproof.
 
 #### Per-thread Metadata
 
-Thread id, scheduling priority, status, and similar bookkeeping.
+Per-thread metadata includes the thread id, scheduling priority, status and similar bookkeeping.
 
-Per-thread metadata also includes thread-local variables, which span function calls like globals do while staying private to each thread. `errno` is the classic example: a macro that expands to a thread-local variable holding the error code of the last system call. Heap allocators also lean on thread-local state, subdividing the heap into per-thread regions so parallel allocation avoids contention.
+Per-thread metadata also includes thread-local variables, which span function calls like globals do while staying private to each thread. `errno` is the classic example: a macro that expands to a thread-local variable holding the error code of the last system call. Heap allocators also use thread-local state, subdividing the heap into per-thread regions so parallel allocation avoids contention.
 
 ### Shared State
 
-Program code, statically allocated global variables, and dynamically allocated heap variables. The kernel does not enforce protection between threads for per-thread state, so you have to know which variables are meant to be shared (globals, heap objects) and which are meant to be private (locals).
+Shared state consists of program code, statically allocated global variables, and dynamically allocated heap variables. The kernel does not enforce protection between threads for per-thread state, so the programmer must know which variables are meant to be shared (globals, heap objects) and which are meant to be private (locals).
 
 ## Thread Life Cycle
 
@@ -231,7 +232,7 @@ A system with k processors keeps exactly k threads in the RUNNING state. When a 
 
 #### Where is the TCB stored?
 
-On a multiprocessor this takes some thought. x86 has hardware support for fetching the ID of the current processor, so the TCB pointer can live in a global array indexed by processor. Without hardware support, you can exploit the fact that the stack pointer is unique per thread: store a pointer to the TCB at the base of the thread's stack, below the procedure frames, and mask the stack pointer to find it.
+On a multiprocessor, each processor runs a different thread, so the current TCB must be located per processor. x86 has hardware support for fetching the ID of the current processor, so the TCB pointer can live in a global array indexed by processor. Without hardware support, the kernel can use the fact that the stack pointer is unique per thread: store a pointer to the TCB at the base of the thread's stack, below the procedure frames, and mask the stack pointer to find it.
 
 ## Implementing Kernel Threads
 
@@ -267,7 +268,7 @@ On a multiprocessor this takes some thought. x86 has hardware support for fetchi
  }
 ```
 
-Creating a thread runs `func` asynchronously with the calling thread. The steps:
+Creating a thread runs `func` asynchronously with the calling thread, in three steps.
 
 1. **Allocate per-thread state.** Space for the new thread's TCB and stack.
 2. **Initialize per-thread state.** Set up the TCB registers for the RUNNING state, and arrange for `func` to return into a stub that calls `thread_exit`.
@@ -277,13 +278,13 @@ Creating a thread runs `func` asynchronously with the calling thread. The steps:
 
 When a thread calls `thread_exit`, it must come off the ready lists so it stops being scheduled, and its per-thread state must be freed.
 
-A thread cannot free its own resources. If it were interrupted mid-cleanup, it would never be scheduled again to finish, leaking memory. So the exiting thread sets its state to FINISHED and puts itself on the finished list for some _other_ thread to clean up.
+A thread cannot free its own resources. If it were interrupted mid-cleanup, it would never be scheduled again to finish, leaking memory. The exiting thread therefore sets its state to FINISHED and puts itself on the finished list for some _other_ thread to clean up.
 
 ### Thread Context Switch
 
 To move a thread from RUNNING to READY, the OS saves its register values into its TCB, then loads the next thread's register values from that thread's TCB.
 
-Interrupts must be disabled during the switch (OSPP p. 47 works through this). The problem case: a low priority thread checks the ready list, finds a high priority thread, and voluntarily yields to it. If an interrupt lands between the check and the switch and the handler moves things around, the high priority thread can end up parked on the ready list while a lower priority one keeps the processor.
+Interrupts must be disabled during the switch (OSPP p. 47 works through this). In the failure case, a low priority thread checks the ready list, finds a high priority thread, and voluntarily yields to it. If an interrupt arrives between the check and the switch and the handler modifies the ready list, the high priority thread can remain on the ready list while a lower priority thread keeps the processor.
 
 ```c
 // We enter as oldThread, but we return as newThread.
@@ -330,9 +331,9 @@ Interrupts must be disabled during the switch (OSPP p. 47 works through this). T
 
 #### Separating mechanism from policy
 
-Separate the mechanics of performing an action from the rules deciding when to perform it. `thread_switch` is a mechanism for switching threads; the policy for when to switch lives in the scheduler. Different systems can then take their own approach to scheduling without touching the switch code. Virtual memory splits the same way: the MMU is the mechanism for translating addresses, while the page replacement algorithm is the policy for what stays in memory.
+The principle separates the mechanics of performing an action from the rules that decide when to perform it. `thread_switch` is a mechanism for switching threads; the policy for when to switch lives in the scheduler. Different systems can then take their own approach to scheduling without touching the switch code. Virtual memory splits the same way: the MMU is the mechanism for translating addresses, while the page replacement algorithm is the policy for what stays in memory.
 
-Switches come in two flavors:
+Context switches are of two kinds:
 
 - **Voluntary switch**: the thread calls a library function that triggers the switch (`thread_yield`, and similarly `thread_exit` and `thread_join`).
 - **Involuntary switch**: the OS preempts the thread via an interrupt or exception. The interrupt hardware saves the current thread's state, then the handler runs (a timer interrupt switching to another thread, or user I/O like keyboard input).
@@ -342,7 +343,7 @@ Switches come in two flavors:
 ### Switching between kernel threads and kernel handlers
 
 - **Entering the handler**: the hardware checks the eflags register to see whether it is already in kernel mode. If so, it pushes only the instruction pointer and eflags onto the current stack. If it was in user mode, it also pushes the stack pointer and switches to the interrupt stack.
-- **Returning from the handler**: inspect the saved eflags to see whether the return goes back to user mode. If so, pop the stack pointer along with the instruction pointer and eflags; if it stays in the kernel, pop only the instruction pointer and eflags.
+- **Returning from the handler**: the saved eflags are inspected to determine whether the return goes back to user mode. If so, pop the stack pointer along with the instruction pointer and eflags; if it stays in the kernel, pop only the instruction pointer and eflags.
 
 ## Implementing Multi-threaded Processes
 
@@ -354,11 +355,11 @@ A thread in a process has a user-level stack, a kernel interrupt stack, and a ke
 
 Threading can be added to an OS with no kernel support at all. Early versions of the JVM did this with _green threads_. The process implements the kernel's data structures and scheduling policies in user space, so threading operations become plain procedure calls instead of system calls.
 
-The limits: the user-level scheduler is invisible to the OS scheduler and cannot use multiple processors, and if the process blocks on I/O, every thread inside it blocks.
+The user-level scheduler is invisible to the OS scheduler and cannot use multiple processors, and when the process blocks on I/O, every thread in it blocks.
 
 ### Preemptive User-Level Threads
 
-Preemption at user level rides on **signals**. To preempt within process **P**:
+Preemption at user level is implemented with **signals**. To preempt within process **P**:
 
 1. The user-level thread library makes a system call to register a timer signal handler and signal stack with the kernel.
 2. When a hardware timer interrupt occurs, the hardware saves P's register state and runs the kernel's handler.
@@ -369,7 +370,7 @@ Preemption at user level rides on **signals**. To preempt within process **P**:
 
 ### User-Level Threads with Kernel Support
 
-A process uses $M$ kernel threads, each with its own user-level scheduler multiplexing $N$ user-level threads. The kernel schedules the kernel threads, and the user-level scheduler schedules its threads on top of them. The problem remains that a kernel thread blocked on I/O takes its whole user-level scheduler down with it for the duration.
+A process uses $M$ kernel threads, each with its own user-level scheduler multiplexing $N$ user-level threads. The kernel schedules the kernel threads, and the user-level scheduler schedules its threads on top of them. A kernel thread that blocks on I/O still blocks every user-level thread that its scheduler multiplexes, for the duration of the I/O.
 
 ```mermaid
 flowchart TD
@@ -399,7 +400,7 @@ flowchart TD
 
 #### Scheduler Activations
 
-Let the user and kernel level schedulers coordinate with each other. This costs system calls and upcalls in both directions, but it keeps the kernel unaware of individual user-level threads and optimizes the common case.
+Scheduler activations allow the user-level and kernel-level schedulers to coordinate. Coordination requires system calls and upcalls in both directions, but the kernel remains unaware of individual user-level threads, and the common case is optimized.
 
 - The user-level scheduler makes system calls to request or free processors.
 - The kernel upcalls the user-level scheduler to notify it of events:
@@ -414,7 +415,7 @@ A **scheduler activation** replaces the kernel thread as the execution context. 
 
 ### Asynchronous I/O and Event-Driven Programming
 
-Instead of dedicating threads to I/O, use asynchronous I/O. The process issues an I/O request via system call, the call returns immediately, and the process keeps running. When the I/O completes, the kernel notifies the process by one of:
+Asynchronous I/O is an alternative to dedicating threads to I/O. The process issues an I/O request via system call, the call returns immediately, and the process keeps running. When the I/O completes, the kernel notifies the process by one of:
 
 - calling a signal handler (callback)
 - placing the result in a queue in the process's address space
@@ -428,9 +429,9 @@ The pattern extends to requests that involve a sequence of I/O operations. Handl
 
 #### Event-Driven Programming vs. Threads
 
-The two are close relatives. In either case the program blocks until a task can proceed, restores that task's state, executes its next step, and blocks again. The difference is where the state lives: in a continuation managed by the program, or in a thread managed by the OS.
+The two models are closely related. In either case the program blocks until a task can proceed, restores that task's state, executes its next step, and blocks again. The difference is where the state lives: in a continuation managed by the program, or in a thread managed by the OS.
 
-For example, a web server that reads from multiple clients and stores the data in a table of buffers:
+A web server that reads from multiple clients and stores the data in a table of buffers can be written in either style:
 
 ```c
 
@@ -455,18 +456,18 @@ For example, a web server that reads from multiple clients and stores the data i
 
 ##### Performance
 
-The usual argument for event-driven programming is speed, for two reasons:
+The performance argument for event-driven programming rests on two points.
 
-1. **No context switch overhead.** Context switches cost time, arrive unpredictably, and trash caches and the TLB.
+1. **No context switch overhead.** Context switches take time, occur unpredictably, and evict the contents of caches and the TLB.
 2. **No memory overhead.** Thread stacks take space. On modern systems this matters less than it used to: 1000 threads with 8 KB stacks on a 1 GB machine is under 1% of memory.
 
-On the other side, a purely event-driven program cannot use multiple processors, so in practice events get combined with threads: a process runs $N$ threads, each multiplexing tasks with an event-driven model. Event-driven code is also harder to reason about, and when there is real background work to do, threads are often simpler.
+Conversely, a purely event-driven program cannot use multiple processors, so in practice events are combined with threads: a process runs $N$ threads, each multiplexing tasks with an event-driven model. Event-driven code is also harder to reason about, and for substantial background work, threads often give simpler code.
 
 ### Data Parallel Programming
 
-SIMD instructions perform the same operation on multiple pieces of data at once. The x86 `addps` instruction adds 4 single precision floats in one go, which is exactly the shape of work in image processing, where the same operation applies to every pixel. In data parallel programming you specify the operation on one piece of data and the hardware applies it across many.
+SIMD instructions perform the same operation on multiple pieces of data at once. The x86 `addps` instruction adds 4 single precision floats in one instruction, which matches the structure of image processing, where the same operation applies to every pixel. In data parallel programming the programmer specifies the operation on one piece of data and the hardware applies it across many.
 
-This shows up all over. SQL databases identify which parts of a query can run in parallel. Multimedia streaming uses SIMD to encode and decode video. GPUs are the specialized-hardware version of the same idea. At datacenter scale, MapReduce splits a large dataset into pieces, applies a function to each piece in parallel, and combines the results.
+Data parallelism appears in many systems. SQL databases identify which parts of a query can run in parallel. Multimedia streaming uses SIMD to encode and decode video. GPUs implement the same idea in specialized hardware. At datacenter scale, MapReduce splits a large dataset into pieces, applies a function to each piece in parallel, and combines the results.
 
 ## Related notes
 

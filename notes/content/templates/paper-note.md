@@ -14,10 +14,9 @@ sources:
     type: paper
 ---
 
-## Purpose
-
-Say what this note is for. It can be a study aid, a design reference, or a
-record of what the paper got right and wrong.
+Open with the paper's problem and contribution stated precisely, before any
+heading. Then explain them in plain terms. Do not outline the note or refer to
+it as "this note"; see `notes/.notes/style-guide.md`.
 
 ## Citation
 

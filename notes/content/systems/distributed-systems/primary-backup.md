@@ -11,18 +11,21 @@ tags:
   - view-service
   - split-brain
 date: 2024-03-29
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: State machine replication and the primary-backup scheme, including the view service that decides who the primary is, failure handling, and the split brain problem.
+description: State machine replication and the primary-backup scheme, including the view service that designates the primary, failure handling, and the split brain problem.
 sources:
   - title: The Design of a Practical System for Fault-Tolerant Virtual Machines (Scales et al., 2010)
     url: https://pdos.csail.mit.edu/6.824/papers/vm-ft.pdf
     type: paper
 ---
 
-## Purpose
+Primary-backup replication is a form of state machine replication in which clients send operations to a single designated server, the primary, which orders them and forwards them to a backup before replying. If the primary fails, the backup becomes the primary. A view service determines which server is the primary at any time.
 
-A single node keeps itself consistent by applying operations in one well-defined (serializable) order. The hard part is staying available and consistent at the same time: the system has to look like a single machine even while servers inside it fail. This note covers state machine replication, the primary-backup scheme, and the view service that decides who the primary is.
+A single node remains consistent by applying operations in one well-defined (serializable) order. A replicated system must also remain available while preserving that consistency, so that it behaves as a single machine even while servers within it fail.
 
 ## Single node KV store
 
@@ -30,17 +33,17 @@ Consider an instance of redis with multiple clients reading and writing to it. A
 
 ### State machine replication
 
-Replicate the state machine across multiple servers. If every server applies the same operations in the same order, every server ends in the same state. This holds as long as the effect of each operation is deterministic.
+State machine replication runs a copy of the state machine on each of several servers. If every server applies the same operations in the same order, every server ends in the same state. This holds as long as the effect of each operation is deterministic.
 
 #### Example: virtual machine replication
 
-Take a single VM running a single application. Create $n$ copies of the VM and feed each copy exactly the same inputs (packets, interrupts, instructions). All $n$ VMs then behave identically. VMware built a production fault tolerance system on this idea; the [VM-FT paper](https://pdos.csail.mit.edu/6.824/papers/vm-ft.pdf) describes it.
+Consider a single VM running a single application. If $n$ copies of the VM each receive exactly the same inputs (packets, interrupts, instructions), all $n$ VMs behave identically. VMware built a production fault tolerance system on this idea; the [VM-FT paper](https://pdos.csail.mit.edu/6.824/papers/vm-ft.pdf) describes it.
 
 Any randomness in the system has to be made deterministic, for example by fixing seeds. This replication mechanism also assumes a single core, since multi-core interleavings are a source of nondeterminism.
 
 ### Two servers (primary-backup)
 
-At any given time, clients speak to only one server, the primary. Data is replicated on the primary and backup servers, and if the primary fails, the backup becomes the new primary. The point is to keep the system available and reliable through failures.
+At any given time, clients communicate with only one server, the primary. Data is replicated on the primary and backup servers, and if the primary fails, the backup becomes the new primary. The scheme keeps the system available and reliable through failures.
 
 #### Basic operations
 
@@ -69,9 +72,9 @@ At any given time, clients speak to only one server, the primary. Data is replic
 The view service is a server that provides a consistent view of the system. Clients ask it for the primary's address to find out where to send operations. Even if the view service misjudges a failure, the system stays consistent, because the view service is the single authority on who the primary is.
 
 > [!tip] One authority on who is primary
-> The key insight is that the view service is the single authority on who the primary is. Failure detection can be wrong (a slow or partitioned server is not dead), but wrong detection only costs availability, never consistency: servers and clients act on views, not on their own guesses about liveness.
+> The view service is the single authority on which server is the primary. Failure detection can be wrong (a slow or partitioned server has not necessarily failed), but an incorrect detection reduces availability without violating consistency, because servers and clients act on views rather than on their own estimates of liveness.
 
-That authority makes it a single point of failure. The hard part is guaranteeing only one primary at a time without making every operation check in with the view service.
+Because it is the single authority, the view service is also a single point of failure. The central difficulty of the design is to guarantee a single primary at a time without requiring every operation to consult the view service.
 
 ```mermaid
 flowchart LR
@@ -114,12 +117,12 @@ When the view service detects a failure, it creates a new view, which is the sys
 - It declares a new view with the backup as the new primary, and an idle server as the new backup if one is available.
     - In-flight client requests eventually time out, and the client checks back in with the view service.
 - The view service sends the new view in all subsequent ping responses.
-- The new primary hears the new view and sends its state to the new backup.
+- The new primary receives the new view and sends its state to the new backup.
 - The backup initializes its state and acknowledges the new primary.
 - The new primary acknowledges the current view to the view service.
-- The client hears about the new view and starts sending operations to the new primary, resending any operations that were lost.
+- The client learns of the new view and starts sending operations to the new primary, resending any operations that were lost.
 
-If the primary dies with no idle servers available, the backup becomes the primary and there is no backup.
+If the primary fails with no idle servers available, the backup becomes the primary and there is no backup.
 
 ```mermaid
 sequenceDiagram
@@ -149,14 +152,14 @@ sequenceDiagram
 
 ### Managing servers
 
-Keep a pool of idle servers that can be promoted. If the primary dies, the new view has the old backup as primary and an idle server as backup. If the backup dies, the new view has an idle server as the new backup.
+The system keeps a pool of idle servers that can be promoted. If the primary fails, the new view has the old backup as primary and an idle server as backup. If the backup fails, the new view has an idle server as the new backup.
 
 ## Split brain
 
-A primary that appears offline may really just be partitioned from the view service, which will elect a new primary anyway. Now two servers each believe they are the primary. This is split brain. Correctness survives it as long as believing is all they do: the protocol must ensure that at most one server can ever act as primary. The rules below arrange that, since the old primary cannot complete operations without the backup accepting its forwarded requests.
+A primary that appears to have failed may only be partitioned from the view service, which then designates a new primary. Two servers then each hold a view in which they are the primary, a condition called split brain. Correctness is preserved provided that at most one server can act as primary. The [[#Rules]] ensure this, since the old primary cannot complete operations unless the backup accepts its forwarded requests.
 
 > [!danger] Split brain
-> A partitioned primary keeps serving clients that can still reach it, while the view service promotes the backup. Two servers now believe they are the primary. The rules below make believing harmless: the old primary must forward every operation to its backup before replying (rule 2), and the backup rejects forwarded requests once its view has moved on (rule 3). So the old primary can no longer complete any operation, and at most one server ever *acts* as primary.
+> A partitioned primary continues to serve clients that can still reach it, while the view service promotes the backup. Two servers then each hold a view in which they are the primary. The old primary must forward every operation to its backup before replying (rule 2), and the backup rejects forwarded requests once its view has advanced (rule 3). The old primary therefore cannot complete any operation, and at most one server *acts* as primary.
 
 ## Rules
 

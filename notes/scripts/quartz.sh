@@ -109,6 +109,7 @@ install_plugins() {
   patch_google_font_fetch
   patch_component_css
   patch_search_loading
+  patch_content_meta_dates
 }
 
 sync_plugins() {
@@ -121,6 +122,7 @@ sync_plugins() {
   patch_google_font_fetch
   patch_component_css
   patch_search_loading
+  patch_content_meta_dates
 }
 
 # Mermaid only wraps sequence-diagram note/message text when the client
@@ -180,6 +182,14 @@ patch_search_loading() {
   python3 "$ROOT/scripts/patch_search_loading.py" \
     "$QUARTZ_DIR/node_modules/@quartz-community/search/dist/index.js" \
     "$QUARTZ_DIR/node_modules/@quartz-community/search/dist/components/index.js"
+}
+
+# Upstream ContentMeta shows one date. Show the created and the updated date
+# from frontmatter, so a site-wide edit does not give every note one date.
+patch_content_meta_dates() {
+  python3 "$ROOT/scripts/patch_content_meta_dates.py" \
+    "$QUARTZ_DIR/node_modules/@quartz-community/content-meta/dist/index.js" \
+    "$QUARTZ_DIR/node_modules/@quartz-community/content-meta/dist/components/index.js"
 }
 
 prepare_notebooks() {

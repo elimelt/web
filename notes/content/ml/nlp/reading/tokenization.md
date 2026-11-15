@@ -13,7 +13,10 @@ tags:
   - regex
   - byte-pair encoding
 date: 2025-02-12
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: draft
 description: Ways to split text into tokens, from Unix one-liners and regex tokenizers to byte-pair encoding, plus sentence segmentation with NLTK and minimum edit distance.
 sources:
@@ -25,13 +28,13 @@ sources:
     type: book
 ---
 
-## Purpose
+Tokenization is the segmentation of running text into tokens, the words, subwords and punctuation marks on which later processing operates. Methods range from Unix one-liners and regular-expression tokenizers to byte-pair encoding, which learns a subword vocabulary from a corpus. Sentence segmentation and minimum edit distance are treated alongside it, following [SLP3](https://web.stanford.edu/~jurafsky/slp3/), and the material consists mostly of code kept for reference.
 
-A reference for splitting text into tokens, from Unix one-liners to byte-pair encoding, plus sentence segmentation and minimum edit distance. Mostly code I want to be able to grab quickly. Tokenization defines the terms consumed by [[ml/nlp/reading/information-retrieval|information retrieval]] systems and the model inputs used throughout [[ml/nlp/prompting|prompting]]. The material follows [SLP3](https://web.stanford.edu/~jurafsky/slp3/).
+Tokenization defines the terms consumed by [[ml/nlp/reading/information-retrieval|information retrieval]] systems and the model inputs used throughout [[ml/nlp/prompting|prompting]].
 
-## Old-School Unix
+## Unix Tokenization
 
-A crude word tokenizer in one pipeline. `tr -sc 'A-Za-z' '\n'` squeezes every run of non-letters into a single newline, which puts one word per line. The rest is sorting and counting.
+A single Unix pipeline implements a crude word tokenizer. `tr -sc 'A-Za-z' '\n'` squeezes every run of non-letters into a single newline, which puts one word per line. The remaining commands sort and count the words.
 
 ```bash
 # output all words in a file, one per line
@@ -49,7 +52,7 @@ tr -sc 'A-Za-z' '\n' < input.txt | tr A-Z a-z | sort | uniq -c | sort -n -r
 
 ## Top-Down Regex Tokenization
 
-Write the token grammar explicitly as alternations in a verbose regex and let NLTK apply it. This pattern (adapted from the [NLTK book, ch. 3](https://www.nltk.org/book/ch03.html)) handles abbreviations, hyphenated words, currency, percentages, and ellipses.
+A top-down tokenizer states the token grammar explicitly as alternations in a verbose regular expression, which NLTK applies to the text. The following pattern (adapted from the [NLTK book, ch. 3](https://www.nltk.org/book/ch03.html)) handles abbreviations, hyphenated words, currency, percentages, and ellipses.
 
 ```python
 import nltk
@@ -114,7 +117,7 @@ def bpe(C: List[str], k: int) -> List[Tuple[str, str]]:
     return merges
 ```
 
-In my experience, it doesn't start working well until you use a lot of data and a lot of merges. I've only tried once though, using ~100MB of text and 10,000 merges.
+I have trained BPE once, on ~100MB of text with 10,000 merges, and in that experiment it produced useful segmentations only with a large corpus and a large number of merges.
 
 ```python
 corpus = ["low", "lowest", "newer", "wider", "new", "width"]
@@ -128,7 +131,7 @@ for i, pair in enumerate(merge_operations, 1):
 ```
 
 > [!example] Tracing the first merges on this corpus
-> Every word starts as single characters. Each round counts adjacent pairs across the whole corpus and merges the most frequent one (ties go to the pair seen first, since `max` keeps the first maximum in insertion order):
+> Each word is initially a sequence of single characters. Each round counts adjacent pairs across the whole corpus and merges the most frequent one. Ties are broken in favor of the pair counted first, since `max` keeps the first maximum in insertion order.
 >
 > | Round | Best pair | Count | New symbol | Affected words |
 > | --- | --- | --- | --- | --- |
@@ -139,11 +142,11 @@ for i, pair in enumerate(merge_operations, 1):
 > | 5 | `e` + `r` | 2 | `er` | `new er`, `w i d er` |
 > | 6 | `w` + `i` | 2 | `wi` | `wi d er`, `wi d t h` |
 >
-> After six merges, `low` and `new` are single tokens, and `newer` and `wider` share the suffix token `er`. That shared suffix is the point: merges learned from frequent words transfer to segmenting rarer ones.
+> After six merges, `low` and `new` are single tokens, and `newer` and `wider` share the suffix token `er`. Merges learned from frequent words in this way also apply to the segmentation of rarer words.
 
 ## Segmentation and Tokenization
 
-NLTK's built-ins. Segment into sentences first, then tokenize and POS-tag the words within each sentence.
+NLTK's built-in functions segment text into sentences, after which the words within each sentence are tokenized and POS-tagged.
 
 ```python
 import nltk
@@ -158,7 +161,7 @@ for sentence in sent_text:
 
 ## Edit Distance
 
-The standard dynamic program. `dp[i][j]` is the edit distance between the first $i$ characters of `w1` and the first $j$ characters of `w2`, built up from insertions, deletions, and substitutions. This version charges 1 for every operation; SLP3 also presents a variant where substitution costs 2.
+Minimum edit distance is computed by dynamic programming. `dp[i][j]` is the edit distance between the first $i$ characters of `w1` and the first $j$ characters of `w2`, built up from insertions, deletions, and substitutions. This version assigns cost 1 to every operation; SLP3 also presents a variant where substitution costs 2.
 
 ```python
 def min_edit_distance(w1, w2):

@@ -9,27 +9,26 @@ tags:
   - conflict-resolution
   - eventual-consistency
 date: 2024-12-08
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: How systems keep accepting writes while offline, using Coda, Git, and offline-capable web apps as examples, and the conflict resolution strategies that make merging possible.
+description: How systems accept writes while disconnected, with Coda, Git and offline-capable web apps as examples, and the conflict resolution strategies used to merge divergent copies.
 sources:
   - title: Coda File System project page (CMU)
     url: https://coda.cs.cmu.edu/
     type: docs
 ---
 
-## Purpose
+**Disconnected operation** is the continued reading and writing of data by a client that cannot communicate with the rest of the system. The client writes to a local copy and synchronizes with the rest of the system when connectivity returns. Since two clients can modify the same data while apart, writes can conflict, and conflicts are resolved either automatically or by a human.
 
-This note explains how systems support writes while disconnected from the network, and what it costs. The pattern shows up in file syncing, source control, and offline-capable apps, and the hard part is always the same merge and conflict resolution problem.
+Writes that remain available during disconnection are incompatible with a single authoritative copy of the data. The pattern appears in file synchronization, source control and offline-capable applications, and in each the central problem is merging and conflict resolution.
 
-## Core idea
+Systems follow one of two communication models.
 
-Always-available writes conflict with keeping a single authoritative copy of the data. To operate while disconnected, a client writes to a local copy and synchronizes with the rest of the system when connectivity returns. Since two clients can modify the same data while apart, writes can conflict, and conflicts get resolved either automatically or by a human.
-
-There are two communication models:
-
-- Clients only talk to a central service (Coda, SVN). Changes are logged locally and applied on reconnection.
-- Clients talk to the service and to each other (Git). Changes are logged and exchanged with whatever peer you connect to, and merges happen again on each new connection.
+- Clients communicate only with a central service (Coda, SVN). Changes are logged locally and applied on reconnection.
+- Clients communicate with the service and with each other (Git). Changes are logged and exchanged with whichever peer a client connects to, and merges happen again on each new connection.
 
 ## Coda
 
@@ -59,15 +58,15 @@ sequenceDiagram
 Apps like Gmail and Google Docs support offline editing with a local cache plus a log of changes. On reconnection the log is sent to the server and merged, with conflicts resolved by application-level rules.
 
 > [!info] Version vectors
-> A common building block is the **version vector**: each client has a unique ID, each change is tagged with it, and comparing vectors during a merge tells you which changes are newer and which are concurrent. This is the same mechanism as [[systems/distributed-systems/clocks|vector clocks]].
+> A common building block is the **version vector**: each client has a unique ID, each change is tagged with it, and comparing vectors during a merge determines which changes are newer and which are concurrent. This is the same mechanism as [[systems/distributed-systems/clocks|vector clocks]].
 
 ## Source code control
 
-Source control is disconnected operation as the normal mode, permanently. Each client reads and writes its own local copy, and syncs are occasional and manual. The system tracks the full history of changes plus metadata, which is what makes late merging tractable.
+In source control, disconnected operation is the normal mode. Each client reads and writes its own local copy, and syncs are occasional and manual. The system tracks the full history of changes plus metadata, which is what makes late merging tractable.
 
 ## Building apps around local storage
 
-A useful application model: write to a local storage engine (SQLite, LevelDB) and sync with the server when online. The synchronization mechanism carries all the difficulty, specifically how it resolves conflicts.
+In one application model, the application writes to a local storage engine (SQLite, LevelDB) and syncs with the server when online. The synchronization mechanism, and in particular its conflict resolution, carries all of the difficulty.
 
 ### Conflict resolution
 

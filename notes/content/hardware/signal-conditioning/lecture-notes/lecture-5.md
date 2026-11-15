@@ -12,17 +12,18 @@ tags:
   - current source
   - kirchhoff's laws
 date: 2024-01-17
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: How to reduce any linear two-terminal circuit to a Thevenin equivalent (voltage source plus series resistor) or Norton equivalent (current source plus parallel resistor), and how the two relate.
+description: Lecture 5 of the signal conditioning course, on the reduction of a linear two-terminal circuit to a Thevenin equivalent (voltage source plus series resistor) or a Norton equivalent (current source plus parallel resistor), and the relation between the two.
 sources:
   - title: Signal conditioning course, lecture 5
     type: lecture
 ---
 
-## Purpose
-
-Thevenin's and Norton's theorems collapse any linear two-terminal circuit into a single source and a single resistor. That equivalent circuit makes whatever you attach at the terminals much easier to analyze.
+Thevenin's and Norton's theorems state that any linear two-terminal circuit is equivalent, at its terminals, to a single source and a single resistor: a voltage source in series with a resistor (Thevenin) or a current source in parallel with a resistor (Norton). Lecture 5 of the signal conditioning course gives the procedure for computing each equivalent. Replacing a circuit by its equivalent simplifies the analysis of any load attached at the terminals.
 
 ## Thevenin's theorem
 
@@ -38,7 +39,7 @@ To find the equivalent between terminals A and B:
 Any two-terminal circuit with only linear elements (resistors) and sources can be replaced by an equivalent circuit consisting of a current source in parallel with a resistor. The current source is written $I_{no}$ and the resistor $R_{no}$.
 
 1. Find $I_{no}$, the short-circuit current from A to B, using KCL and KVL.
-2. Find $R_{no}$, the equivalent shunt (parallel with the source) resistance between A and B, by the same replacement of sources as above.
+2. Find $R_{no}$, the equivalent shunt (parallel with the source) resistance between A and B, by the same replacement of sources as for $R_{th}$.
 
 ## The two equivalents describe the same circuit
 

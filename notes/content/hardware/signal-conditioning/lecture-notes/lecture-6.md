@@ -11,17 +11,18 @@ tags:
   - phasors
   - energy storage
 date: 2024-01-17
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: draft
-description: Lecture 6 notes on capacitors and inductors as energy storage elements, complex number representation of AC signals, impedance, and phasors.
+description: Lecture 6 of the signal conditioning course, on capacitors and inductors as energy storage elements, the complex representation of AC signals, impedance and phasors.
 sources:
   - title: Signal conditioning course, lecture 6
     type: lecture
 ---
 
-## Purpose
-
-Capacitors and inductors store energy, and their behavior depends on frequency. This note records their defining relations, then the complex number machinery (impedance and phasors) that lets you analyze AC circuits with the same rules you use for resistors.
+Lecture 6 of the signal conditioning course treats capacitors and inductors, which store energy and whose behavior depends on frequency, and the complex representation of AC signals. With impedances and phasors, AC circuits containing these elements are analyzed with the same rules that apply to resistive circuits.
 
 ## Capacitors
 
@@ -47,7 +48,7 @@ $$
 
 ## Inductors
 
-An inductor stores energy in the magnetic field around a coil of wire, built up by the current flowing through it. Units are Henrys (H). It passes DC and blocks AC, acting as a low pass filter in series.
+An inductor stores energy in the magnetic field around a coil of wire, built up by the current flowing through it. Inductance is measured in Henrys (H). It passes DC and blocks AC, acting as a low pass filter in series.
 
 The energy stored in an inductor is
 
@@ -71,7 +72,7 @@ $$
 
 ## Complex numbers for AC signals
 
-Pretend signals are complex during analysis, then take the real part at the end. Multiplying by a real number scales the amplitude. Multiplying by a unit complex number $e^{j\phi}$ shifts the phase. Multiplying by a general complex number does both.
+During analysis, signals are represented as complex quantities, and the physical signal is the real part of the result. Multiplying by a real number scales the amplitude. Multiplying by a unit complex number $e^{j\phi}$ shifts the phase. Multiplying by a general complex number does both.
 
 For example, a shifted cosine is the real part of a complex exponential:
 
@@ -87,14 +88,14 @@ $$
 Z_{cap} = \frac{1}{j\omega C}, \qquad Z_{ind} = j\omega L, \qquad Z_{res} = R
 $$
 
-The capacitor's impedance shrinks as frequency grows, which matches "passes AC, blocks DC" above. The inductor's impedance grows with frequency, matching "passes DC, blocks AC".
+The capacitor's impedance decreases as frequency increases, consistent with a capacitor passing AC and blocking DC. The inductor's impedance increases with frequency, consistent with an inductor passing DC and blocking AC.
 
 > [!tip] Sanity check at the frequency extremes
-> As $\omega \to 0$, $Z_{cap} \to \infty$ (open circuit) and $Z_{ind} \to 0$ (short circuit). As $\omega \to \infty$ the roles flip. Evaluating a derived transfer function at these two limits catches most algebra mistakes before you plot anything.
+> As $\omega \to 0$, $Z_{cap} \to \infty$ (open circuit) and $Z_{ind} \to 0$ (short circuit). As $\omega \to \infty$ the roles are reversed. Evaluating a derived transfer function at these two limits detects many algebraic errors before any plot is made.
 
 ## Phasors
 
-A phasor is a complex number that represents the amplitude and phase of a sinusoidal signal. Since impedances obey Ohm's law with phasors, the differential equations from $I_C = C\,dV/dt$ and $V_L = L\,dI/dt$ turn into algebra, and series and parallel combination rules carry over from resistors.
+A phasor is a complex number that represents the amplitude and phase of a sinusoidal signal. Since impedances obey Ohm's law with phasors, the differential equations from $I_C = C\,dV/dt$ and $V_L = L\,dI/dt$ become algebraic equations, and series and parallel combination rules carry over from resistors.
 
 ## Related
 

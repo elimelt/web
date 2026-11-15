@@ -8,18 +8,19 @@ tags:
   - queueing
   - fairness
 date: 2026-07-31
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Runnable simulators for queueing, CPU scheduling, packet fairness, work stealing, and LLM request scheduling.
+description: Runnable simulators for queueing, CPU scheduling, packet fairness, work stealing and LLM request scheduling.
 sources:
   - title: "Operating Systems: Principles and Practice"
     url: https://www.kea.nu/files/textbooks/ospp/
     type: textbook
 ---
 
-## Purpose
-
-These are not microbenchmarks against kernel schedulers. They are small simulators for checking the math and building intuition:
+The scheduling simulators are small Python programs that model queues and scheduling policies, used to check analytical results against simulation. They are not microbenchmarks of kernel schedulers. They measure:
 
 - queue growth versus utilization
 - mean and tail latency under different scheduling policies
@@ -27,7 +28,7 @@ These are not microbenchmarks against kernel schedulers. They are small simulato
 - load balance and steal counts under task schedulers
 - TTFT/throughput tradeoffs under simple LLM-serving schedulers
 
-The point is to preserve the pathways for grokking the models, not to pretend these scripts reproduce production systems exactly.
+The scripts illustrate and check the models; they do not reproduce the behavior of production systems.
 
 ## Files
 

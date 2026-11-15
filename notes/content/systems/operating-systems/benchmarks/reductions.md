@@ -12,9 +12,12 @@ tags:
   - memory-bandwidth
   - benchmarks
 date: 2025-12-29
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: needs-review
-description: Benchmarks array reduction variants (single accumulator, multiple accumulators, AVX2, threads, and combinations) across array sizes, with the generated assembly showing what the compiler actually emitted.
+description: Array reduction variants (single accumulator, multiple accumulators, AVX2, threads, and combinations) benchmarked across array sizes, with the assembly the compiler generated for each.
 sources:
   - title: Original benchmark measurements by Elijah Melton
     type: experiment
@@ -23,9 +26,7 @@ sources:
     type: tool
 ---
 
-## Purpose
-
-Measure how much a large array reduction speeds up when you break its dependency chain with more accumulators, SIMD, and threads, and figure out where the bottleneck actually sits. The naive version looks like it should starve the ALUs, and the assembly plus the numbers show whether it does.
+A reduction combines the elements of an array into a single value with an associative operator, here 64-bit addition. A reduction with a single accumulator forms a dependency chain in which each addition depends on the previous one. The variants measured break that chain with additional accumulators, SIMD and threads, and the timings together with the generated assembly locate the bottleneck of a large reduction.
 
 The naive reduction chains every addition on the previous one:
 
@@ -36,11 +37,11 @@ for (size_t i = 0; i < n; i++) {
 }
 ```
 
-A modern core can execute 4 or more adds per cycle, so a serial chain of adds leaves most of the execution units idle. In principle.
+A modern core can execute 4 or more adds per cycle, so in principle a serial chain of adds leaves most of the execution units idle.
 
 ## Setup
 
-Compiled with `gcc -O3 -march=native` on an x86-64 CPU with AVX2. Threaded variants use 8 pthreads. The exact CPU model was not recorded with these results, which is why the note is marked needs-review. The runs use the same `./bench` harness as the other notes in this directory.
+The benchmarks were compiled with `gcc -O3 -march=native` on an x86-64 CPU with AVX2. Threaded variants use 8 pthreads. The exact CPU model was not recorded with these results, and for that reason the results are marked needs-review. The runs use the same `./bench` harness as the other benchmarks in this directory.
 
 ## Workload
 
@@ -82,7 +83,7 @@ Speedup vs naive at 1024 MB:
 
 ## Interpretation
 
-The 8-accumulator version was supposed to break the dependency chain:
+The 8-accumulator version is intended to break the dependency chain.
 
 ```c
 // 8 independent chains - maybe CPU can execute in parallel?
@@ -91,13 +92,13 @@ sum1 += array[i+1];
 sum2 += array[i+2];
 ```
 
-It gains 1.3x rather than anything close to 8x. At these sizes the loop is limited by memory bandwidth rather than by the add units, so extra ILP has little to push against. SIMD lands in the same place as scalar ILP for the same reason. Both break the dependency chain, and an AVX2 load moves 32 bytes per instruction, but memory can't feed the core fast enough for the ALU width to matter.
+It is 1.3x faster, far short of 8x. At these sizes the loop is limited by memory bandwidth rather than by the add units, so additional ILP has little effect. SIMD performs the same as scalar ILP for the same reason. Both break the dependency chain, and an AVX2 load moves 32 bytes per instruction, but memory cannot supply data to the core fast enough for the ALU width to affect throughput.
 
-Array size flips which strategy wins. At 1-4 MB the data fits in cache, single-thread variants are fast, and threading actively hurts (0.37-1.70 ns/elem vs 0.21-0.41 for naive) because thread startup and joining dominate such a short run. From 16 MB up the data lives in DRAM and threading takes over, holding 0.15-0.19 ns/elem while every single-thread variant sits around 0.3-0.4. Multiple threads keep more memory requests in flight and draw from multiple channels at once, which is the same effect measured directly in [[systems/operating-systems/benchmarks/bandwidth|memory bandwidth]].
+Array size determines which strategy is fastest. At 1-4 MB the data fits in cache, single-thread variants are fast, and threading increases the time per element (0.37-1.70 ns/elem vs 0.21-0.41 for naive) because thread startup and joining dominate such a short run. From 16 MB up the data resides in DRAM and threading is fastest, at 0.15-0.19 ns/elem against about 0.3-0.4 for every single-thread variant. Multiple threads keep more memory requests in flight and draw from multiple channels at once, which is the same effect measured directly in [[systems/operating-systems/benchmarks/bandwidth|memory bandwidth]].
 
 ## Assembly
 
-The compiler auto-vectorizes every variant, which explains several results that look odd at first.
+The compiler auto-vectorizes every variant, which explains several otherwise anomalous results.
 
 `red_naive`, single accumulator in the source:
 
@@ -114,7 +115,7 @@ The compiler auto-vectorizes every variant, which explains several results that 
     vpaddq  %xmm1, %xmm0, %xmm0       ; final sum
 ```
 
-The compiler turned the scalar loop into one AVX2 accumulator doing 4 parallel adds. So "naive" was never actually serial.
+The compiler converted the scalar loop into one AVX2 accumulator performing 4 parallel adds, so the "naive" variant was never serial.
 
 `red_ilp`, 8 scalar accumulators in the source:
 
@@ -140,7 +141,7 @@ The compiler recognized the 8 independent accumulators and converted them to 2 A
     jne     .L54
 ```
 
-Identical to what the compiler produced for the naive loop. Hand-writing the intrinsics bought nothing.
+This loop is identical to the one the compiler produced for the naive source, so the hand-written intrinsics gave no improvement.
 
 `red_ilp_simd`, 4 AVX2 accumulators:
 
@@ -155,9 +156,9 @@ Identical to what the compiler produced for the naive loop. Hand-writing the int
     jne     .L79
 ```
 
-16 parallel 64-bit adds per iteration. `red_opt` compiles to the same loop as `red_naive`, and the thread workers each auto-vectorize their own chunk the same way.
+The loop performs 16 parallel 64-bit adds per iteration. `red_opt` compiles to the same loop as `red_naive`, and the thread workers each auto-vectorize their own chunk the same way.
 
-Summing up what each main loop actually runs:
+The table summarizes the main loop of each variant.
 
 | Variant | Main Loop Instruction | Accumulators | Elements/Iteration |
 |---------|----------------------|--------------|-------------------|
@@ -167,7 +168,7 @@ Summing up what each main loop actually runs:
 | `red_ilp_simd` | 4 x `vpaddq` | 4 x ymm | 16 |
 | `red_opt` | `vpaddq (%rax), %ymm0, %ymm0` | 1 x ymm | 4 |
 
-Every variant runs `vpaddq`, so the only real difference is accumulator count. More accumulators mean fewer stalls waiting on the previous add, and at 256 MB and up that difference vanishes because memory bandwidth caps all of them. That is why `red_naive` and `red_ilp_simd` tie at large sizes, and why threading, which raises the memory throughput ceiling itself, is the only change that moves the number much.
+Every variant runs `vpaddq`, so the variants differ only in accumulator count. More accumulators mean fewer stalls waiting on the previous add, and at 256 MB and up that difference vanishes because memory bandwidth limits all of them. This is the reason `red_naive` and `red_ilp_simd` tie at large sizes, and the reason threading, which raises the memory throughput ceiling itself, is the only change that substantially reduces the time per element.
 
 ## Reproduction
 

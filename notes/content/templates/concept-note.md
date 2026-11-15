@@ -14,9 +14,9 @@ sources:
     type: paper
 ---
 
-## Purpose
-
-State why this note exists. Name the exact question, mechanism, or concept.
+Open with the formal definition of the concept, before any heading. Then
+explain the definition in plain terms. Do not outline the note or refer to it
+as "this note"; see `notes/.notes/style-guide.md`.
 
 ## Core idea
 

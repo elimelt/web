@@ -7,9 +7,12 @@ tags:
   - ranking
   - personalization
 date: 2026-07-31
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Overview of the recommender systems notes, organized around pipeline stages, objectives, and the papers that shaped modern production systems.
+description: Index of the recommender systems notes, organized by pipeline stage and objective, with notes on the YouTube recommendations and Facebook ads CTR papers.
 sources:
   - title: Covington, Adams, and Sargin (2016), Deep Neural Networks for YouTube Recommendations
     url: https://research.google.com/pubs/archive/45530.pdf
@@ -22,13 +25,11 @@ sources:
     type: paper
 ---
 
-## Purpose
-
-These notes are organized around the shape that most production recommenders eventually take. First define the objective. Then retrieve a tractable candidate set. Then rank those candidates with a richer model. Then measure what happened without lying to yourself about feedback loops. The section is built around that order.
+A recommender system selects and orders items from a catalog for a user on the basis of past behavior and of user and item features. Many production recommenders share a common structure. An objective is defined over the available feedback, a retrieval stage reduces the catalog to a tractable candidate set, a ranking stage orders those candidates with a richer model, and evaluation accounts for the feedback loop between the deployed model and the data it generates. The reading path follows that order.
 
 ## Reading Path
 
-If I wanted to rebuild the area from scratch, I would read it in this order:
+The following order introduces the material from the foundations up:
 
 1. [[ml/recommender-systems/recommender-systems|Recommender Systems]]
 2. [[ml/recommender-systems/ranking-objectives|Ranking Objectives and Implicit Feedback]]
@@ -38,7 +39,7 @@ If I wanted to rebuild the area from scratch, I would read it in this order:
 6. [[ml/recommender-systems/sequential-recommendation|Sequential and Graph Recommenders]]
 7. [[ml/recommender-systems/bias-and-marketplace-effects|Bias, Marketplace Effects, and Counterfactual Evaluation]]
 
-After that, the paper notes land better:
+The paper notes assume the material above:
 
 - [[ml/recommender-systems/deep-neural-networks-for-youtube-recommendations|Deep Neural Networks for YouTube Recommendations]]
 - [[ml/recommender-systems/predicting-clicks-on-ads-at-facebook|Practical Lessons from Predicting Clicks on Ads at Facebook]]

@@ -1,9 +1,13 @@
-version: 1
+version: 2
+
+# style-guide.md is the readable version of these rules, with examples.
+guide: style-guide.md
 
 voice:
-  register: spoken
-  tone: direct
+  register: written_technical
+  tone: dry_precise_academic
   enthusiasm: none
+  use_field_vocabulary: true
   prefer_plain_verbs: true
   prefer_repeat_over_synonym_cycling: true
 
@@ -33,6 +37,15 @@ disallowed_patterns:
   - corporate_register_verbs
   - hedging_qualifiers
   - performed_enthusiasm
+  - purpose_sections
+  - self_reference_to_the_note
+  - theatrical_framing
+  - anthropomorphizing_jobs_or_systems
+  - informal_economic_metaphor
+  - unqualified_generalities
+  - evaluative_good_bad_lists
+  - aphorisms
+  - second_person_outside_run_instructions
 
 humanizer_additions:
   - no_significance_inflation
@@ -55,8 +68,11 @@ preferred_patterns:
   - repeat_the_same_term_when_it_is_the_right_term
   - cut_explanatory_scaffolding_and_start_with_the_claim
   - let_the_heading_do_its_job
+  - open_with_the_formal_definition_then_explain_it
+  - state_the_condition_scope_or_number_behind_a_general_claim
 
 exceptions:
   - exact_quoted_source_text
   - theorem_or_definition_language_when_precision_requires_it
   - code_or_command_snippets
+  - personal_essays_under_content_thoughts

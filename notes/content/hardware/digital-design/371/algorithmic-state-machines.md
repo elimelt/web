@@ -11,21 +11,22 @@ tags:
   - hardware design
   - datapath
 date: 2025-05-07
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: How Algorithmic State Machines split a clocked digital design into a control FSM and a datapath, how ASM diagrams notate them, and skeleton SystemVerilog for both halves.
+description: The division of a clocked digital design into a control FSM and a datapath under the Algorithmic State Machine method, the ASM diagram notation, and skeleton SystemVerilog for both parts.
 sources:
   - title: UW CSE/EE 371 lecture notes
     type: lecture
 ---
 
-## Purpose
-
-Algorithmic State Machines (ASMs) are the standard recipe for turning a sequential algorithm into clocked hardware. This note reviews FSMs, defines the control/datapath split, walks the ASM diagram notation, and ends with SystemVerilog skeletons for the controller and datapath.
+An Algorithmic State Machine (ASM) is a method for implementing a sequential algorithm as a synchronous (clocked) digital system. The design is divided into a control unit, usually a finite state machine, and a datapath that performs the operations the control unit selects. An ASM diagram is the flowchart notation in which such a design is specified.
 
 ## Review: Finite State Machines (FSMs)
 
-A state machine is a set of states, transitions, and outputs. You use them to model systems with **finite, discrete states**. They are the bread and butter of hardware design, and they show up in software too (the state machine pattern).
+A state machine is a set of states, transitions, and outputs. State machines model systems with **finite, discrete states**. They are a basic construct of hardware design and also appear in software as the state machine pattern.
 
 ### Mealy vs. Moore
 
@@ -34,7 +35,7 @@ A state machine is a set of states, transitions, and outputs. You use them to mo
 
 ### Mathematical definition
 
-More concisely, a finite state machine is a 5-tuple:
+Formally, a finite state machine is a 5-tuple:
 
 $$
 FSM = (S, I, O, T, s_0)
@@ -50,7 +51,7 @@ Where:
 
 ## What an Algorithmic State Machine is
 
-An ASM is an extended framework for designing and implementing synchronous (clocked) digital systems around an FSM. At the highest level you divide the design into two parts:
+An ASM is an extended framework for designing and implementing synchronous (clocked) digital systems around an FSM. At the highest level the design is divided into two parts:
 
 1. **Control**: Manages state transitions and controls the flow of the algorithm.
    - Typically implemented as an FSM.
@@ -61,11 +62,11 @@ An ASM is an extended framework for designing and implementing synchronous (cloc
    - Consists of registers, multiplexers, arithmetic units, and other components that carry out the operations.
    - Processes data according to the signals the control unit generates.
 
-If you come from software, the datapath is roughly the model and the control unit is the controller. Don't push the analogy far.
+In software terms, the datapath corresponds roughly to the model and the control unit to the controller of the model-view-controller pattern, although the correspondence is loose.
 
 ## Register Transfer Level (RTL) design
 
-A sequential algorithm uses variables as symbolic memory locations, and sequential execution dictates the ordering of operations. The hardware implementation mirrors this. Registers store the intermediate data (the variables), the datapath implements every register operation as combinational logic attached to register inputs, and a control FSM sequences the register operations. This scheme is what people mean by register-transfer level (RTL) design.
+A sequential algorithm uses variables as symbolic memory locations, and sequential execution dictates the ordering of operations. The hardware implementation mirrors this. Registers store the intermediate data (the variables), the datapath implements every register operation as combinational logic attached to register inputs, and a control FSM sequences the register operations. This scheme is called register-transfer level (RTL) design.
 
 The basic RTL operation is
 
@@ -97,10 +98,10 @@ An ASM diagram is a graphical representation of an algorithmic state machine. It
 - **State boxes**: Rectangular boxes representing the states, containing the state name and the Moore-type output signals.
 - **Transition arrows**: The transitions between states.
 - **Decision boxes**: Diamond-shaped boxes containing a condition with a $0$ and a $1$ transition. These determine state transitions.
-- **Conditional output boxes**: Rounded boxes containing Mealy-type outputs, which depend on the current state and input conditions. A conditional output box must hang off a decision box.
-- **ASM block**: A single state box grouped with all the decision and conditional output boxes that belong to that state. ASM blocks must not overlap, and a block must not contain an internal feedback loop (shrink the block until the loop goes outside it). All changes in an ASM block happen in a single clock cycle, **particularly at state exit** rather than entrance. That exit-time convention matters when you trace register updates.
+- **Conditional output boxes**: Rounded boxes containing Mealy-type outputs, which depend on the current state and input conditions. A conditional output box must be attached to a decision box.
+- **ASM block**: A single state box grouped with all the decision and conditional output boxes that belong to that state. ASM blocks must not overlap, and a block must not contain an internal feedback loop (shrink the block until the loop goes outside it). All changes in an ASM block happen in a single clock cycle, **particularly at state exit** rather than entrance. The exit-time convention determines when register updates take effect in a trace.
 
-One ASM block, with a state box feeding a decision box and a conditional output box hanging off the taken branch:
+The following diagram shows one ASM block, in which a state box feeds a decision box and a conditional output box is attached to the taken branch:
 
 ```mermaid
 flowchart TD
@@ -118,13 +119,13 @@ flowchart TD
 The Moore outputs in the state box hold for the whole cycle spent in S0. The Mealy outputs in the conditional output box assert only when `x = 1` while in S0. Everything inside the subgraph executes in one clock cycle.
 
 > [!warning] Register updates land at state exit
-> An RTL operation written in an ASM block, say $r \leftarrow r + 1$, does not change $r$ during that state. The datapath computes $r + 1$ over the cycle and the register captures it on the clock edge that exits the block, so any decision box in the same block still sees the old value of $r$.
+> An RTL operation written in an ASM block, such as $r \leftarrow r + 1$, does not change $r$ during that state. The datapath computes $r + 1$ over the cycle and the register captures it on the clock edge that exits the block, so any decision box in the same block still reads the old value of $r$.
 
 ## ASMD design procedure
 
-Given some sequential algorithm:
+The procedure for a given sequential algorithm has three steps:
 
-1. Identify **datapath** components and **operations**. Registers, ALUs, multiplexers, and the additions, subtractions, comparisons, and so on that run through them.
+1. Identify **datapath** components and **operations**. These are registers, ALUs and multiplexers, and the additions, subtractions, comparisons and other operations performed on them.
 2. Identify **states** and the **signals** that cause state transitions. These come from external inputs and status signals, based on the required sequence of operations.
 3. Name the control signals. These are the outputs of the control unit and the inputs to the datapath.
 

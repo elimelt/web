@@ -12,9 +12,12 @@ tags:
   - binary-exponential-backoff
   - ethernet
 date: 2024-02-05
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: How multiple senders share one link. Covers TDM and FDM, centralized versus distributed access control, ALOHA, CSMA/CD, binary exponential backoff with the expected-wait derivation, and classic Ethernet.
+description: The sharing of one link by multiple senders, covering TDM and FDM, centralized versus distributed access control, ALOHA, CSMA/CD, binary exponential backoff with the expected-wait derivation, and classic Ethernet.
 sources:
   - title: "Computer Networks: A Systems Approach (Peterson and Davie)"
     url: https://book.systemsapproach.org/
@@ -24,13 +27,13 @@ sources:
     type: course
 ---
 
-## Purpose
+A multiple-access protocol determines how several senders share a single transmission channel. Access may follow a fixed allocation of time or frequency (TDM, FDM), a schedule set by a central controller, or a distributed random-access rule (ALOHA, CSMA) under which senders transmit independently and recover from collisions.
 
-A link often has more than one sender. This note covers how senders share it, from fixed schedules (TDM, FDM) to distributed random access (ALOHA, CSMA), and how classic Ethernet put the pieces together.
+Classic Ethernet combined carrier sensing, collision detection and binary exponential backoff into one such rule.
 
 ## Multiplexing
 
-**Multiplexing** shares one resource among multiple clients. Network traffic is bursty, so the shared capacity can be much smaller than the sum of the peaks. Two users who each burst at 1 Mbps might share 1.5 Mbps comfortably.
+**Multiplexing** shares one resource among multiple clients. Network traffic is bursty, so the shared capacity can be much smaller than the sum of the peaks. Two users who each send bursts at 1 Mbps can share a 1.5 Mbps link with little contention.
 
 ### Time division multiplexing (TDM)
 
@@ -38,7 +41,7 @@ Users take turns on a fixed schedule, often round-robin. Each user sends at a hi
 
 ### Frequency division multiplexing (FDM)
 
-Users get different frequency bands and transmit at the same time with minimal interference. Each user sends at a low rate constantly.
+Users are assigned different frequency bands and transmit simultaneously with minimal interference. Each user sends continuously at a low rate.
 
 ### TDM vs. FDM
 
@@ -46,7 +49,7 @@ For a fixed set of users, TDM suits bursty traffic and FDM suits constant traffi
 
 ## Controlling access
 
-Fixed schedules need someone to set the schedule. There are two classes of access control, centralized and distributed.
+A fixed schedule must be set by some party. There are two classes of access control, centralized and distributed.
 
 ### Centralized
 
@@ -54,23 +57,23 @@ A privileged scheduler allocates the resource. Overhead is low and the scheduler
 
 ### Distributed
 
-The participants figure it out among themselves. Distributed access holds up well under low load, sets up easily, and tolerates faults, though scaling it is hard. WiFi and Ethernet work this way.
+The participants coordinate access among themselves. Distributed access performs well under low load, requires little setup, and tolerates faults, but it is difficult to scale. WiFi and Ethernet work this way.
 
 ## Random access protocols
 
-Random access assumes no one is in charge and collisions will happen.
+Random access protocols assume no central controller and accept that collisions occur.
 
-**ALOHA**: send whenever you want. If there's a collision (no ACK), wait a random time and retry. Simple, and wasteful under load. The classic analysis puts pure ALOHA's peak utilization at about 18% of capacity, and slotting time (senders start only on slot boundaries) doubles that to about 36%.
+In **ALOHA**, a node sends whenever it has a frame. If a collision occurs (no ACK arrives), the node waits a random time and retries. ALOHA is simple and wastes capacity under load. The classic analysis puts pure ALOHA's peak utilization at about 18% of capacity, and slotting time (senders start only on slot boundaries) doubles that to about 36%.
 
 ### Carrier sense multiple access (CSMA)
 
-Listen to the channel before sending, and wait if it's busy. Carrier sensing only really works on wired links (see [[systems/networks/2-direct-links/wireless|wireless]] for why it fails over the air). CSMA beats ALOHA, but collisions still happen because a competing transmission takes a propagation delay to become audible. That makes CSMA a good idea only when the bandwidth-delay product is small, so the vulnerable window is short.
+A CSMA sender listens to the channel before sending and waits if it is busy. Carrier sensing works reliably only on wired links (see [[systems/networks/2-direct-links/wireless|wireless]] for why it fails over the air). CSMA achieves higher utilization than ALOHA, but collisions still occur because a competing transmission becomes audible only after a propagation delay. CSMA is therefore effective only when the bandwidth-delay product is small, so that the vulnerable window is short.
 
 #### CSMA/CD (collision detection)
 
-Classic Ethernet adds collision detection. A sender that detects a collision stops immediately and retries after a random wait. The complication is that every node involved in the collision must be able to detect it.
+Classic Ethernet adds collision detection. A sender that detects a collision stops immediately and retries after a random wait. Every node involved in the collision must be able to detect it.
 
-A collision can take up to $2 \cdot D_{\text{propagation}}$ to detect (the signal crosses the wire, collides at the far end, and the interference crosses back). If a sender could finish its frame before that window closes, it would never learn about the collision. So the standard imposes a minimum frame length that takes at least $2 \cdot D_{\text{propagation}}$ to transmit, plus a maximum network length. That is why Ethernet has a 64-byte minimum frame, a 500 m limit for coaxial Ethernet, and a 100 m limit for twisted pair.
+A collision can take up to $2 \cdot D_{\text{propagation}}$ to detect (the signal crosses the wire, collides at the far end, and the interference crosses back). If a sender could finish its frame before that window closes, it would not detect the collision. So the standard imposes a minimum frame length that takes at least $2 \cdot D_{\text{propagation}}$ to transmit, plus a maximum network length. These constraints account for Ethernet's 64-byte minimum frame, a 500 m limit for coaxial Ethernet, and a 100 m limit for twisted pair.
 
 The worst case, with D standing for the one-way propagation delay:
 
@@ -90,11 +93,11 @@ sequenceDiagram
 
 #### CSMA persistence
 
-Waiting for the channel to go free and then sending immediately fails, because every queued sender does the same thing and they all collide the moment the channel clears. The design goal instead is that with $N$ queued senders, each sends with probability about $1/N$.
+Sending immediately once the channel becomes free leads to repeated collisions, because every queued sender does the same and all of them collide as soon as the channel clears. The design goal is instead that with $N$ queued senders, each sends with probability about $1/N$.
 
 ### Binary exponential backoff
 
-Ethernet approximates that probability without knowing $N$ by widening the retry window after each collision. Given a base time quantum $q$, after collision $i$ the sender waits
+Ethernet approximates that probability, with $N$ unknown, by widening the retry window after each collision. Given a base time quantum $q$, after collision $i$ the sender waits
 
 $$t_i = q \cdot \text{rand}(0, 2^i - 1)$$
 
@@ -107,15 +110,15 @@ def send(frame):
         t *= 2
 ```
 
-The expected wait after the $k$-th collision follows directly. $W_k$ is uniform over $\{0, q, 2q, \dots, (2^k - 1)q\}$, and the mean of a uniform distribution over $0$ to $M$ is $M/2$, so
+The expected wait after the $k$-th collision follows. $W_k$ is uniform over $\{0, q, 2q, \dots, (2^k - 1)q\}$, and the mean of a uniform distribution over $0$ to $M$ is $M/2$, so
 
 $$E[W_k] = \frac{q(2^k - 1)}{2}$$
 
-Each collision doubles the expected wait, which backs the senders off fast enough to thin out the contention.
+Each collision approximately doubles the expected wait, which reduces the rate at which contending senders retry.
 
 ## Ethernet
 
-Classic Ethernet (IEEE 802.3) ran at 10 Mbps over shared coaxial cable and was everywhere in the 80s and 90s. Its multiple access scheme is 1-persistent CSMA/CD with binary exponential backoff. Modern Ethernet is built on [[systems/networks/2-direct-links/switching|switches]], which give each host a point-to-point link and remove the need for CSMA/CD.
+Classic Ethernet (IEEE 802.3) ran at 10 Mbps over shared coaxial cable and was widely deployed in the 1980s and 1990s. Its multiple access scheme is 1-persistent CSMA/CD with binary exponential backoff. Modern Ethernet is built on [[systems/networks/2-direct-links/switching|switches]], which give each host a point-to-point link and remove the need for CSMA/CD.
 
 ### Ethernet frames
 

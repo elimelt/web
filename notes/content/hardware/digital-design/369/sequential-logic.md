@@ -10,23 +10,24 @@ tags:
   - flip-flops
   - clock signals
 date: 2024-05-17
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: How feedback gives circuits state, how D flip-flops and registers synchronize signals with a clock, and the timing constraints that set maximum clock frequency.
+description: Feedback as the source of state in circuits, the D flip-flops and registers that synchronize signals with a clock, and the timing constraints that set the maximum clock frequency.
 sources:
   - title: UW CSE 369 lecture notes
     type: lecture
 ---
 
-## Purpose
+Sequential logic is logic whose outputs depend on its present inputs and on stored state. The state is held through *feedback*, in contrast to [[hardware/digital-design/369/combinational-logic|combinational logic]], whose outputs are functions of the present inputs alone. Stored state is the basis of memory and computation in digital systems.
 
-In [[hardware/digital-design/369/combinational-logic|combinational logic]] the outputs are direct functions of the inputs. Sequential logic adds *feedback*, which gives circuits the ability to store state. That state is the basis for memory and computation in digital systems, and this note covers the flip-flop that stores it and the timing rules it imposes.
-
-Sequential logic controls the flow of information through blocks of combinational logic, usually synchronized with a clock signal. One major use case is the **Finite State Machine (FSM)**. Without sequential logic, the output of a combinational circuit would change with every change in input, including glitches through intermediate states, so downstream logic could see unpredictable values.
+Sequential logic controls the flow of information through blocks of combinational logic, usually synchronized with a clock signal. One major application is the **Finite State Machine (FSM)**. Without sequential logic, the output of a combinational circuit would change with every change in input, including glitches through intermediate states, so downstream logic could observe unpredictable values.
 
 ## Positive edge-triggered D flip-flop
 
-On the rising edge of the clock, the flip-flop samples its input and transfers it to the output. At all other times it ignores changes on the input and holds the previously sampled value. This *synchronizes* the input with the clock, quantizing input changes so that they only take effect on rising clock edges.
+On the rising edge of the clock, the flip-flop samples its input and transfers it to the output. At all other times its output does not respond to changes on the input and holds the previously sampled value. This *synchronizes* the input with the clock, quantizing input changes so that they only take effect on rising clock edges.
 
 ## Registers
 
@@ -48,7 +49,7 @@ The lower bound keeps the input stable long enough after the edge for the old va
 
 ### Minimum delay
 
-If the shortest path to a register input is too short, the input can change before the state is locked in, violating $t_{hold}$. The shortest path either starts at another register (clock-to-Q plus the shortest combinational delay) or comes straight from an external input (just the combinational delay):
+If the shortest path to a register input is too short, the input can change before the state is locked in, violating $t_{hold}$. The shortest path either starts at another register (clock-to-Q plus the shortest combinational delay) or comes straight from an external input (the combinational delay alone):
 
 ```plaintext
 min_delay = min(clk_to_q + min_cl_delay, min_cl_delay)
@@ -56,7 +57,7 @@ min_delay >= t_hold
 ```
 
 > [!warning] A slower clock never fixes a hold violation
-> The hold constraint compares `min_delay` against $t_{hold}$, and the clock period appears nowhere in it. If the shortest path is too fast, the only fix is adding delay to that path or using a flip-flop with a smaller hold time. Slowing the clock only buys margin for setup violations.
+> The hold constraint compares `min_delay` against $t_{hold}$, and the clock period appears nowhere in it. If the shortest path is too fast, the only fix is adding delay to that path or using a flip-flop with a smaller hold time. Slowing the clock adds margin only against setup violations.
 
 ### Maximum clock frequency
 

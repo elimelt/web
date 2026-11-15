@@ -11,9 +11,12 @@ tags:
   - two-tower
   - wide and deep
 date: 2026-07-31
-updated: 2026-08-01
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Why large recommendation systems split into candidate generation and ranking, what each stage optimizes, and which design mistakes usually show up at the boundary between them.
+description: Why large recommendation systems split into candidate generation and ranking, what each stage optimizes, and the design errors that commonly appear at the boundary between them.
 sources:
   - title: Covington, Adams, and Sargin (2016), Deep Neural Networks for YouTube Recommendations
     url: https://research.google.com/pubs/archive/45530.pdf
@@ -32,25 +35,25 @@ sources:
     type: paper
 ---
 
-## Purpose
+A retrieval-and-ranking pipeline is a cascade of models in which a retrieval stage with low per-item cost selects $k \ll N$ candidates from a catalog of $N$ items, and a ranking stage with higher per-item cost orders them. A re-ranking stage may then apply diversity, business and policy constraints.
 
-This note describes the backbone of a modern recommender. Once the catalog is large enough, the system stops looking like one model and starts looking like a cascade.
+Large recommender systems use this structure because scoring the full catalog with the most accurate model would exceed the latency budget of a request.
 
 ## Why the Pipeline Splits
 
-Suppose the catalog has $N$ items and your best ranker costs $c_r$ to score one item. Full scoring costs
+Suppose the catalog has $N$ items and the most accurate ranker costs $c_r$ to score one item. Full scoring costs
 
 $$
 N c_r
 $$
 
-per request. If a cheap first stage cuts the catalog to $k \ll N$ candidates, the expensive stage now costs
+per request. If a first stage of low cost reduces the catalog to $k \ll N$ candidates, the expensive stage costs
 
 $$
 k c_r
 $$
 
-That is the basic economic reason the split exists.
+This reduction in cost per request is the reason for the split.
 
 ```mermaid
 flowchart TD
@@ -63,13 +66,13 @@ flowchart TD
     style S fill:#e8f5e9,stroke:#2e7d32
 ```
 
-The retrieval stage spends little compute per item and tries to preserve good options. The ranking stage spends much more compute per item and tries to order those options well.
+The retrieval stage spends little computation per item and is designed to retain relevant candidates. The ranking stage spends much more computation per item and is designed to order those candidates accurately.
 
 ## Retrieval Is a Recall Problem
 
-Retrieval does not need a perfectly calibrated score. It needs to avoid prematurely discarding items the ranker would have liked.
+Retrieval requires no calibrated score. Its objective is to avoid discarding items that the ranker would have scored highly.
 
-Common candidate sources:
+Common candidate sources include:
 
 - recent popularity
 - item-item or user-item collaborative signals
@@ -78,29 +81,29 @@ Common candidate sources:
 - two-tower embedding retrieval with ANN
 - rule-based pools such as new items or inventory-constrained buckets
 
-Real systems usually union candidates from several sources because each source fails in a different way.
+Production systems usually take the union of candidates from several sources, because each source has a different failure mode:
 
 - popularity misses niche intent
-- collaborative filtering struggles with cold start
-- content similarity misses cross-topic jumps
-- ANN retrieval inherits whatever blind spots the embedding space has
+- collaborative filtering performs poorly under cold start
+- content similarity misses cross-topic transitions
+- ANN retrieval inherits the gaps in coverage of its embedding space
 
 ## Cold Start and Side-Information Bootstrapping
 
-Every retrieval source in the list above depends on interaction history that a new item or a new user does not have yet. Popularity signals need past exposure. Collaborative signals need past co-occurrence. A brand-new item has neither, and a system that only trusts interaction data will simply never surface it.
+Most of the retrieval sources above depend on interaction history that a new item or a new user does not yet have. Popularity signals require past exposure, and collaborative signals require past co-occurrence. A new item has neither, and a system that relies only on interaction data never retrieves it.
 
-Schein, Popescul, Ungar, and Pennock frame the fix as folding side information into the same latent-variable model used for warm items rather than bolting on a separate cold-start path. Their two-way aspect model shares latent classes between a person/movie interaction matrix and item content (such as cast or genre), so a new movie can be placed into the latent space by its content alone, then scored against every user's latent preferences as if it had interaction history. The mechanism generalizes past that specific model: any retrieval or ranking component that learns an embedding space can bootstrap a cold item by encoding its content features into that same space, rather than waiting for behavioral signal to accumulate.
+Schein, Popescul, Ungar, and Pennock address the problem by incorporating side information into the same latent-variable model used for warm items, instead of adding a separate cold-start path. Their two-way aspect model shares latent classes between a person/movie interaction matrix and item content (such as cast or genre), so a new movie can be placed into the latent space by its content alone, then scored against every user's latent preferences as if it had interaction history. The mechanism generalizes beyond that model. Any retrieval or ranking component that learns an embedding space can place a cold item in that space by encoding its content features, without waiting for behavioral signal to accumulate.
 
 Two consequences follow for pipeline design:
 
-- retrieval should keep a dedicated content-similarity or metadata-based source specifically so new items have a path into the candidate set at all, independent of the collaborative sources
-- ranking features for a cold item should degrade gracefully rather than silently defaulting to zero or to the population mean, since a mean-imputed quality score for a brand-new item is indistinguishable from a genuinely mediocre one
+- retrieval should keep a dedicated content-similarity or metadata-based source, so that new items can enter the candidate set independently of the collaborative sources
+- ranking features for a cold item should be designed for missing history instead of silently defaulting to zero or to the population mean, since a mean-imputed quality score for a new item is indistinguishable from the score of an item of average quality
 
-Cold start for users is the mirror problem: a new user has no history for collaborative retrieval to key off of, so early sessions typically lean on registration-time signals (stated interests, device, referral source) until enough interaction accumulates to make behavioral retrieval useful.
+User cold start is the symmetric problem. A new user has no history on which collaborative retrieval can operate, so early sessions typically rely on registration-time signals (stated interests, device, referral source) until enough interactions accumulate for behavioral retrieval to be useful.
 
 ## Ranking Is a Precision Problem
 
-Ranking runs after the candidate set is small enough to justify richer features. It often consumes:
+Ranking runs once the candidate set is small enough to justify richer features, which often include:
 
 - detailed user history
 - contextual features
@@ -109,32 +112,32 @@ Ranking runs after the candidate set is small enough to justify richer features.
 - business constraints
 - calibrated historical statistics
 
-The objective may be click probability, conversion, watch time, revenue, or some weighted combination. The score only has to be good enough for the downstream decision rule. Sometimes that means calibrated probabilities. Sometimes it only means the top of the list is right.
+The objective may be click probability, conversion, watch time, revenue, or some weighted combination. The score must be adequate for the downstream decision rule, which in some systems requires calibrated probabilities and in others only a correct order at the top of the list.
 
-## Retrieval and Ranking Want Different Models
+## Model Requirements of Retrieval and Ranking
 
-The same architecture rarely wins both jobs.
+One architecture rarely suits both stages.
 
-Retrieval likes models with:
+Retrieval requires models with:
 
 - decomposable scoring
 - precomputable item representations
-- cheap ANN serving
+- low-cost ANN serving
 
-Ranking likes models with:
+Ranking benefits from models with:
 
 - rich cross features
 - calibration
 - constraint handling
 - interpretability for debugging and business logic
 
-That is why systems often pair a two-tower retriever with a feature-rich ranker.
+Systems therefore often pair a two-tower retriever with a feature-rich ranker.
 
 ## Candidate Blending and Source-Budget Allocation
 
-Retrieval almost always returns too many candidates from some sources and too few from others. Candidate blending is the guardrail.
+Retrieval commonly returns too many candidates from some sources and too few from others, and candidate blending controls the mix.
 
-A practical retriever often reserves some budget for:
+A retriever often reserves part of its candidate budget for:
 
 - head items
 - fresh items
@@ -142,27 +145,27 @@ A practical retriever often reserves some budget for:
 - follow-graph items
 - advertiser or supplier obligations
 
-The word "budget" is literal, not metaphorical: a common implementation caps how many of the final $k$ candidates each source may contribute, for example at most 40% from popularity, at least 10% reserved for items younger than some age threshold, and a fixed floor for any source tied to a business obligation such as a paid placement or a supplier commitment. Without an explicit cap, whichever source has the cheapest and highest-precision scoring function will crowd out the others, because a naive union-then-truncate-by-score step implicitly favors the source whose scores are best calibrated to look good in that comparison, not necessarily the source the ranker most needs.
+A common implementation caps the number of the final $k$ candidates that each source may contribute, for example at most 40% from popularity, at least 10% reserved for items younger than some age threshold, and a fixed floor for any source tied to a business obligation such as a paid placement or a supplier commitment. Without an explicit cap, the source with the least expensive and highest-precision scoring function displaces the others, because a step that takes the union and truncates by score favors the source whose scores are highest on that common scale, which need not be the source the ranker most needs.
 
-This is also where explore/exploit tension resurfaces from [[ml/recommender-systems/bias-and-marketplace-effects|Bias, Marketplace Effects, and Counterfactual Evaluation]]: the long-tail exploration budget is the retrieval-stage mechanism that keeps $\pi_0(a\mid x) > 0$ for actions a purely exploitative retriever would otherwise starve, which is a precondition for later being able to counterfactually evaluate a change that favors those items.
+The exploration-exploitation tradeoff described in [[ml/recommender-systems/bias-and-marketplace-effects|Bias, Marketplace Effects, and Counterfactual Evaluation]] also appears here. The long-tail exploration budget is the retrieval-stage mechanism that keeps $\pi_0(a\mid x) > 0$ for actions that a purely exploitative retriever would never select, which is a precondition for later counterfactual evaluation of a change that favors those items.
 
-If you do not manage source blending explicitly, the candidate set will usually collapse toward the same narrow region of the catalog.
+Without explicit management of source blending, the candidate set tends to concentrate in a narrow region of the catalog.
 
 ## Calibration versus Rank-Order Quality
 
-A ranker can be excellent at ordering candidates and still be badly miscalibrated, and the two failures have different symptoms. Rank-order quality (measured by something like NDCG or AUC) only asks whether higher-relevance items are scored above lower-relevance ones. Calibration asks whether the predicted score means what it claims to mean in absolute terms, for example whether a predicted 5% click probability actually converts to clicks 5% of the time.
+A ranker can order candidates accurately and still be badly miscalibrated, and the two failures have different symptoms. Rank-order quality (measured by a metric such as NDCG or AUC) concerns only whether higher-relevance items score above lower-relevance ones. Calibration concerns whether the predicted score is correct in absolute terms, for example whether impressions with a predicted 5% click probability are clicked 5% of the time.
 
-He et al. define calibration for ad click prediction as the ratio of the average predicted CTR to the average empirical CTR, with 1.0 being perfect. The reason this matters beyond ranking: many downstream systems consume the score as a probability, not just an order. An ad auction multiplies predicted CTR by bid to rank ads and to set the price the winner pays. A budget pacer divides a spend target by predicted CTR to decide how aggressively to bid. A content quality gate might filter out anything below a fixed predicted-engagement threshold. All three break if the score is well-ordered but systematically inflated or deflated, even though a pure ranking metric like NDCG would report no problem at all.
+He et al. define calibration for ad click prediction as the ratio of the average predicted CTR to the average empirical CTR, with 1.0 indicating perfect calibration. Calibration matters because many downstream systems use the score as a probability as well as an order. An ad auction multiplies predicted CTR by bid to rank ads and to set the price the winner pays. A budget pacer divides a spend target by predicted CTR to decide how aggressively to bid. A content quality gate might filter out anything below a fixed predicted-engagement threshold. All three fail if the score is well ordered but systematically inflated or deflated, although a pure ranking metric such as NDCG would show no change.
 
-Two consequences for pipeline design:
+Three consequences follow for pipeline design:
 
-- retrieval only needs rank-order quality, since it is discarding items, not pricing anything
-- ranking needs calibration whenever its output feeds an auction, a budget system, or a hard threshold, and needs it in addition to, not instead of, rank-order quality
+- retrieval needs only rank-order quality, since it discards items and prices nothing
+- ranking needs calibration whenever its output feeds an auction, a budget system, or a hard threshold, and needs it in addition to rank-order quality
 - calibration typically needs periodic recalibration (such as a monotonic recalibration curve fit on held-out data) because background rates drift with seasonality, inventory mix, and the model's own retraining cadence, while rank-order quality is comparatively stable to those drifts
 
 ## Post-Ranking Reranking for Diversity, Policy, and Supply Constraints
 
-Ranking still does not end the story. After the main score is computed, systems often add:
+After the main score is computed, systems often apply further steps:
 
 - duplicate suppression
 - diversity heuristics
@@ -170,42 +173,42 @@ Ranking still does not end the story. After the main score is computed, systems 
 - supplier exposure constraints
 - hard filters for policy or safety
 
-Diversity reranking has a standard formalization. Carbonell and Goldstein's Maximal Marginal Relevance selects items one at a time, at each step picking the candidate that maximizes
+Carbonell and Goldstein's Maximal Marginal Relevance (MMR) formalizes diversity reranking. It selects items one at a time, at each step picking the candidate that maximizes
 
 $$
 \mathrm{MMR} = \arg\max_{D_i \in R \setminus S} \Bigl[ \lambda \cdot \mathrm{Sim}_1(D_i, Q) - (1-\lambda) \max_{D_j \in S} \mathrm{Sim}_2(D_i, D_j) \Bigr]
 $$
 
-where $R$ is the ranked candidate set, $S$ is what has already been selected for the slate, $\mathrm{Sim}_1$ measures relevance to the query or user profile, and $\mathrm{Sim}_2$ measures similarity between two candidates. At $\lambda = 1$ this reduces to the plain ranked list. At $\lambda = 0$ it greedily maximizes diversity and ignores relevance. Recommenders typically run this at $\lambda$ between roughly 0.5 and 0.8: reranking should not undo most of what the ranker got right, but it should stop the slate from placing five near-duplicates in the top five slots.
+where $R$ is the ranked candidate set, $S$ is what has already been selected for the slate, $\mathrm{Sim}_1$ measures relevance to the query or user profile, and $\mathrm{Sim}_2$ measures similarity between two candidates. At $\lambda = 1$ this reduces to the plain ranked list. At $\lambda = 0$ it greedily maximizes diversity and ignores relevance. Recommenders typically use $\lambda$ between roughly 0.5 and 0.8, so that reranking preserves most of the ranker's ordering while preventing near-duplicates from occupying the top five slots of the slate.
 
-Supplier exposure constraints and policy filters compose with MMR-style reranking rather than replacing it: a typical pipeline first removes hard-filtered items (policy violations, out-of-stock inventory), then applies exposure floors or caps as constraints on which items are eligible at each slot, then runs diversity reranking over what remains. Getting the order of operations wrong, for example diversifying before applying hard filters, wastes reranking budget on items that will be removed anyway.
+Supplier exposure constraints and policy filters are composed with MMR-style reranking. A typical pipeline first removes hard-filtered items (policy violations, out-of-stock inventory), then applies exposure floors or caps as constraints on the items eligible for each slot, and then runs diversity reranking over the remainder. Applying the steps in the wrong order, for example diversifying before applying hard filters, spends reranking computation on items that are later removed.
 
-This layering is a sign that recommendation is not only prediction. It is also allocation under constraints.
+The layering reflects that recommendation is allocation under constraints as well as prediction.
 
 ## Failure Modes at the Boundary
 
 > [!warning] The boundary hides failures
-> A ranker can only order what retrieval hands it. If recall drops or the candidate mix collapses toward popular items, end-to-end metrics degrade with nothing visibly wrong in either stage's own dashboards.
+> A ranker can order only the candidates that retrieval supplies. If recall drops or the candidate mix concentrates on popular items, end-to-end metrics degrade while the dashboards of each stage show no fault.
 
-The boundary between retrieval and ranking is where many silent failures show up.
+Many undetected failures occur at the boundary between retrieval and ranking.
 
-- Retrieval recall is low, so the ranker never even sees good items.
-- The retrieval embedding space collapses around popularity.
+- Retrieval recall is low, so relevant items never reach the ranker.
+- The retrieval embedding space concentrates around popular items.
 - The ranker optimizes a metric that the retriever did not preserve.
-- The candidate mix is too homogeneous, so downstream ranking has no room to fix diversity.
+- The candidate mix is too homogeneous, so downstream ranking cannot restore diversity.
 - Logged training data reflects old retrieval decisions, so both stages reinforce the same bias.
 
-When a recommender feels inexplicably stale, the problem is often here rather than inside the final ranker.
+When a recommender's output becomes stale without an evident cause, the problem often lies at this boundary and not in the final ranker.
 
 ### A Concrete Failure Case
 
-Suppose a two-tower retriever is trained purely on click logs and the ranker is trained on the same logs to predict conversion given a click. Six months in, an ops team ships a promotion that boosts one category's exposure for two weeks. Clicks on that category spike, so the next retriever refresh (trained on logs that now include the promo period) pulls the item and user embeddings for that category closer together in the shared embedding space, since the model has no way to know the extra clicks were promo-induced rather than preference-induced.
+Suppose a two-tower retriever is trained purely on click logs and the ranker is trained on the same logs to predict conversion given a click. Six months after launch, an operations team runs a promotion that increases one category's exposure for two weeks. Clicks on that category rise sharply, and the next retriever refresh, trained on logs that include the promotion period, moves the item and user embeddings for that category closer together in the shared embedding space, since nothing in the training data distinguishes clicks caused by the promotion from clicks caused by preference.
 
-After the promo ends, the retriever keeps over-retrieving that category, because the embedding shift persists past the event that caused it. The ranker, seeing more of that category in its candidate set, learns from the resulting impressions that the category ranks reasonably well, since it is competing mostly against other candidates the retriever chose to send it. End-to-end CTR looks flat or even slightly up, because the ranker is doing a locally reasonable job on the candidates it receives. Category-level recall against a held-out relevance judgment, or a source-coverage metric tracked at the retrieval stage, would have shown the collapse immediately; end-to-end CTR does not, because it never sees what got excluded.
+After the promotion ends, the retriever continues to over-retrieve that category, because the shift in the embeddings persists beyond the event that caused it. The ranker receives more candidates from that category and learns from the resulting impressions that the category performs adequately, since it competes mostly against other candidates the retriever selected. End-to-end CTR stays flat or rises slightly, because the ranker orders the candidates it receives reasonably well. Category-level recall against a held-out relevance judgment, or a source-coverage metric tracked at the retrieval stage, would have shown the concentration immediately. End-to-end CTR does not, because it is computed only over the items that were retrieved.
 
 ## What to Measure
 
-Useful stage-specific metrics usually look different, and each one should have an owner and a threshold, not just a dashboard:
+Each stage has its own metrics, and each metric should have an owner and an alert threshold in addition to a dashboard:
 
 | Stage | Metric | What it catches | Blind to |
 |---|---|---|---|
@@ -217,7 +220,7 @@ Useful stage-specific metrics usually look different, and each one should have a
 | Ranking | top-k engagement, watch time, conversion | whether the final ordering serves the actual objective | upstream candidate quality |
 | Ranking | business metrics (revenue, supplier exposure balance) | allocation failures invisible to engagement metrics alone | user-side relevance |
 
-If you measure only end-to-end CTR, you lose the ability to tell which stage got worse, exactly as in the failure case above.
+A system that measures only end-to-end CTR cannot determine which stage degraded, as in [the failure case above](#a-concrete-failure-case).
 
 ## Related Notes
 

@@ -8,7 +8,10 @@ tags:
   - system-programming
   - c
 date: 2024-01-11
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
 description: Reference for the BSD sockets API in C and Python, covering socket creation, bind, listen, accept, connect, send, recv, close, and a minimal client and server.
 sources:
@@ -20,9 +23,9 @@ sources:
     type: textbook
 ---
 
-Quick reference for the BSD sockets API, with each call shown in C and Python side by side. The C signatures follow the [socket(2) man pages](https://man7.org/linux/man-pages/man2/socket.2.html), and the full client and server at the bottom come from [Computer Networks: A Systems Approach](https://book.systemsapproach.org/). For what TCP and UDP do underneath these calls, see [[systems/networks/4-transport/TCP|TCP]] and [[systems/networks/4-transport/UDP|UDP]].
+The BSD sockets API is the system call interface through which a program creates communication endpoints, binds or connects them to network addresses, and sends and receives data over them. Each call is shown here in C and Python side by side. The C signatures follow the [socket(2) man pages](https://man7.org/linux/man-pages/man2/socket.2.html), and the full client and server at the end come from [Computer Networks: A Systems Approach](https://book.systemsapproach.org/). [[systems/networks/4-transport/TCP|TCP]] and [[systems/networks/4-transport/UDP|UDP]] describe the protocols beneath these calls.
 
-The lifecycle the calls below implement, with the server's passive open on the left and the client's active open on the right:
+The diagram shows the lifecycle these calls implement, with the server's passive open on the left and the client's active open on the right.
 
 ```mermaid
 flowchart TD

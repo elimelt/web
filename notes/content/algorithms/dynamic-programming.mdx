@@ -9,11 +9,12 @@ tags:
   - sequence alignment
   - topological sorting
 date: 2024-05-10
-updated: 2026-11-13
+updated: 2026-11-15
 status: evergreen
-description: How to design a dynamic program and when it pays, with worked problems (weighted interval scheduling, knapsack, string counting, post office placement, RNA folding, sequence alignment, longest paths, LIS, Bellman-Ford and three practice problems), an alignment table you can step through, and measurements of memoization, table memory and RNA folding on a real tRNA.
+description: The design of a dynamic program (subproblem, recurrence, evaluation order, base cases, recovery) and its time and memory costs, with worked problems (weighted interval scheduling, knapsack, string counting, post office placement, RNA folding, sequence alignment, longest paths, LIS, Bellman-Ford and three practice problems), an interactive alignment table, and measurements of memoization, table memory and RNA folding on yeast phenylalanine tRNA.
 authors:
   - elimelt
+  - claude-opus-5-5
 sources:
   - title: Kleinberg and Tardos (2005), Algorithm Design, chapter 6
     url: https://www.cs.princeton.edu/~wayne/kleinberg-tardos/
@@ -50,35 +51,33 @@ sources:
     type: paper
 ---
 
-## Purpose
+**Dynamic programming** solves an optimization or counting problem by expressing its solution through a recurrence over subproblems, solving each distinct subproblem once, and storing the solution for reuse. When a problem has only polynomially many distinct subproblems but its plain recursion tree is exponential, storing the solutions reduces the running time from exponential to polynomial.
 
-A recursive solution often asks the same question many times. Dynamic programming answers each distinct question once, stores the answer, and looks it up after that. When a problem has only polynomially many distinct subproblems but an exponential recursion tree, that one change turns an exponential algorithm into a polynomial one.
+Richard Bellman named the method in the early 1950s for multistage decision problems ([Bellman 1954](https://www.ams.org/bull/1954-60-06/S0002-9904-1954-09848-8/S0002-9904-1954-09848-8.pdf)); "programming" meant planning, as in linear programming. The algorithmic treatment here follows [Kleinberg and Tardos, chapter 6](https://www.cs.princeton.edu/~wayne/kleinberg-tardos/pdf/06DynamicProgrammingI.pdf). The design of a dynamic program parallels a proof by [[algorithms/induction|induction]], which assumes that every smaller instance can be solved and shows how to solve the given instance from those solutions. The difference is that each smaller solution is computed once and stored.
 
-Richard Bellman named the method in the early 1950s for multistage decision problems ([Bellman 1954](https://www.ams.org/bull/1954-60-06/S0002-9904-1954-09848-8/S0002-9904-1954-09848-8.pdf)); "programming" meant planning, as in linear programming. The algorithmic view used here comes from [Kleinberg and Tardos, chapter 6](https://www.cs.princeton.edu/~wayne/kleinberg-tardos/pdf/06DynamicProgrammingI.pdf). You design a dynamic program the way you write a proof by [[algorithms/induction|induction]]: assume you can solve every smaller instance, then show how to solve this one from them. The difference is bookkeeping. Each smaller answer is computed once and stored.
-
-This note opens with the general method and its costs, then works through problems, each with a recurrence, a correctness argument and code. Every Python block below runs as written: a harness extracts the blocks from this page and checks each against a brute-force solver on thousands of small random inputs ([how](#how-this-was-measured)).
+Each Python implementation runs as written. A harness extracts the code blocks from the source file and checks each against a brute-force solver on thousands of small random inputs ([method](#how-this-was-measured)).
 
 ## The method
 
-Two properties make a problem a good fit. With **optimal substructure**, an optimal solution is assembled from optimal solutions to smaller instances, so a recurrence can take a max or min over smaller cases. With **overlapping subproblems**, the plain recursion reaches the same smaller instances again and again, so storing answers saves work. [[algorithms/divide-and-conquer|Divide and conquer]] has the first property without the second: merge sort's halves never overlap, so a cache would never hit.
+Dynamic programming applies to problems with two properties. A problem has **optimal substructure** if an optimal solution is composed of optimal solutions to smaller instances, so that a recurrence can take a maximum or minimum over smaller cases. It has **overlapping subproblems** if the plain recursion reaches the same smaller instances repeatedly, so that storing their solutions reduces the work. Merge sort and other [[algorithms/divide-and-conquer|divide and conquer]] algorithms rely on the first property without the second; the two halves in merge sort are disjoint, so a cache of subproblem solutions would never be reused.
 
-The design work comes in five decisions:
+The design of a dynamic program consists of five decisions:
 
-1. **The subproblem.** Usually a prefix ("the first $j$ jobs"), an interval ("bases $i$ through $j$"), a pair of prefixes ("the first $i$ letters of $x$ and the first $j$ of $y$"), or a vertex with a budget. A good choice makes the answer to the whole problem one of the subproblems, or a simple combination of a few.
-2. **The recurrence.** Guess one thing about the optimal solution (is the last job in it, what does the last base pair with), and write the answer for each guess in terms of smaller subproblems. Correctness is the induction step: the guesses cover every possibility, and each case is solved optimally.
-3. **The order.** The subproblems and the "depends on" edges between them form a [[algorithms/DAGs|directed acyclic graph]]. Any topological order of that DAG works. A table filled row by row is one; a recursive function with a cache finds one on its own.
-4. **The base cases**, the sources of the DAG.
-5. **Recovery.** The table holds optimal *values*. To get the solution itself, walk back from the final entry, at each step redoing the comparison to see which case won.
+1. **The subproblem.** Subproblems are indexed by a prefix ("the first $j$ jobs"), an interval ("bases $i$ through $j$"), a pair of prefixes ("the first $i$ letters of $x$ and the first $j$ of $y$"), or a vertex with a budget, among other choices. The choice should make the solution of the whole problem one of the subproblems, or a simple combination of a few.
+2. **The recurrence.** The recurrence conditions on one property of the optimal solution (whether the last job belongs to it, or which base the last base pairs with) and expresses the solution for each case in terms of smaller subproblems. Its correctness proof is the induction step, which shows that the cases cover every possibility and that each case is solved optimally.
+3. **The order.** The subproblems and the "depends on" edges between them form a [[algorithms/DAGs|directed acyclic graph]]. Any topological order of that DAG is a valid evaluation order. Filling a table row by row is one such order, and a recursive function with a cache follows one implicitly.
+4. **The base cases.** The base cases are the sources of the DAG.
+5. **Recovery.** The table holds optimal *values*. The solution itself is recovered by tracing back from the final entry and repeating, at each step, the comparison that determined which case attained the optimum.
 
-Running time is the number of subproblems times the work per subproblem. That count is also the memory, unless the order lets you forget old entries.
+The running time is the number of subproblems multiplied by the work per subproblem. The memory is proportional to the number of subproblems, unless the evaluation order allows old entries to be discarded.
 
-The DAG view is literal. Each subproblem is a vertex, each case of the recurrence an edge, and the optimum is a shortest or longest path through that graph. [Longest path in a DAG](#longest-path-in-a-dag) below is the purest example; [Bellman-Ford](#shortest-paths-with-negative-edge-weights-bellman-ford) is the same idea where the graph has cycles and the DP unrolls it by path length.
+In the dependency DAG, each subproblem is a vertex and each case of the recurrence an edge. When each case refers to a single smaller subproblem, the optimum is a shortest or longest path through that graph. [Longest path in a DAG](#longest-path-in-a-dag) is the direct instance of this formulation; [Bellman-Ford](#shortest-paths-with-negative-edge-weights-bellman-ford) applies it to a graph with cycles, which the DP unrolls by path length.
 
 ### Top down or bottom up
 
-There are two ways to visit the DAG. **Top down** (memoization) keeps the natural recursion and caches each result; Python's [`functools.cache`](https://docs.python.org/3/library/functools.html#functools.cache) does it in one line. **Bottom up** (tabulation) fills an array in an order you choose so that every dependency is ready before it is needed.
+The DAG can be evaluated in two ways. **Top down** (memoization) keeps the natural recursion and caches each result; Python's [`functools.cache`](https://docs.python.org/3/library/functools.html#functools.cache) adds the cache in one line. **Bottom up** (tabulation) fills an array in an explicit order in which every dependency is computed before it is needed.
 
-They compute the same answers, but they cost different amounts in practice. I timed the two knapsack implementations below and two one-row variants on 100 random items, five runs each ([numbers and setup](#how-this-was-measured)):
+The two compute the same values, but their running times differ. I timed the two knapsack implementations of [[#Knapsack Problem]] and two one-row variants on 100 random items, five runs each ([numbers and setup](#how-this-was-measured)):
 
 | Version | $W = 1{,}000$ | $W = 10{,}000$ |
 | --- | --- | --- |
@@ -89,15 +88,15 @@ They compute the same answers, but they cost different amounts in practice. I ti
 
 Each cell is the median of five runs, with the fastest and slowest in parentheses. All four versions returned the same value on every run.
 
-Top down pays for a function call and a cache lookup per subproblem, and only visits subproblems the recursion can reach, which here is 80% at $W = 1{,}000$ and 65% at $W = 10{,}000$ of the table. Bottom up visits every cell but each visit is a few list operations, and a bottom-up order makes the one-row and vectorized versions possible. Recursion depth is the other cost. CPython stops at a fixed depth (the default limit is 1000 frames, see [`sys.getrecursionlimit`](https://docs.python.org/3/library/sys.html#sys.getrecursionlimit)), so `knapsack_rec` with 2,000 items raised `RecursionError` in this run while `knapsack_it` finished. Prototype top down, where the recurrence reads straight off the page, then switch to bottom up when inputs grow.
+Top down incurs a function call and a cache lookup per subproblem, and it visits only the subproblems reachable from the top-level call, which here are 80% of the table at $W = 1{,}000$ and 65% at $W = 10{,}000$. Bottom up visits every cell, but each visit costs a few list operations, and an explicit order permits the one-row and vectorized versions. Recursion depth imposes a further limit. CPython stops at a fixed depth (the default limit is 1000 frames, see [`sys.getrecursionlimit`](https://docs.python.org/3/library/sys.html#sys.getrecursionlimit)), so `knapsack_rec` with 2,000 items raised `RecursionError` in this run while `knapsack_it` finished. A top-down implementation transcribes the recurrence directly, which makes it convenient for a first version; for large inputs, a bottom-up implementation avoids both the call overhead and the recursion limit.
 
 ## Weighted Interval Scheduling
 
 **Problem**: Given jobs with start times $s_i$, finish times $f_i > s_i$ and weights $w_i$, find a set of mutually compatible jobs (none overlap; $f_i \le s_j$ or $f_j \le s_i$) of maximum total weight.
 
-With all weights equal, earliest finish time first is optimal ([[algorithms/greedy-algorithms|greedy algorithms]]). With weights, every greedy rule fails on some input, and the first recursion that comes to mind is exponential: "either job $n$ is out, so recurse on the others, or it is in, so delete everything it overlaps and recurse on what's left". The sets left after deleting are arbitrary subsets of the jobs, and there are $2^n$ of them, so caching them buys nothing. In graph terms the jobs and their overlaps form an interval graph and we want a maximum-weight independent set. That problem is NP-hard in general graphs, and the subset recursion is the general-graph algorithm. Interval graphs have extra structure, and sorting exposes it.
+With all weights equal, earliest finish time first is optimal ([[algorithms/greedy-algorithms|greedy algorithms]]). With weights, the greedy rules for the unweighted problem fail on some inputs, and the most direct recursion is exponential. It either excludes job $n$ and recurses on the other jobs, or includes job $n$, deletes every job that overlaps it, and recurses on the remainder. The sets that remain after deletion can be arbitrary subsets of the jobs, of which there are $2^n$, so caching their solutions does not make the recursion polynomial. In graph terms, the jobs and their overlaps form an interval graph, and the problem asks for a maximum-weight independent set. That problem is NP-hard in general graphs, and the subset recursion is the algorithm for general graphs. Sorting the jobs by finish time exposes the additional structure of interval graphs.
 
-Sort the jobs by finish time, so $f_1 \le f_2 \le \dots \le f_n$. Let $p(j)$ be the largest index $i < j$ with $f_i \le s_j$, or 0 if there is none. The jobs compatible with $j$ that come before it are exactly jobs $1, \dots, p(j)$, a prefix. So every subproblem is a prefix: let $OPT(j)$ be the best weight using jobs $1, \dots, j$. Either job $j$ is in the optimum, and then the rest of the optimum is an optimal schedule of jobs $1, \dots, p(j)$, or it is not, and the optimum is $OPT(j - 1)$:
+Sort the jobs by finish time, so $f_1 \le f_2 \le \dots \le f_n$. Let $p(j)$ be the largest index $i < j$ with $f_i \le s_j$, or 0 if there is none. The jobs that precede $j$ and are compatible with it are exactly jobs $1, \dots, p(j)$, which form a prefix. Every subproblem is therefore a prefix, and $OPT(j)$ denotes the maximum weight of a compatible set of jobs among $1, \dots, j$. Either job $j$ is in the optimum, and then the rest of the optimum is an optimal schedule of jobs $1, \dots, p(j)$, or it is not, and the optimum is $OPT(j - 1)$:
 
 $$
 OPT(j) = \begin{cases}
@@ -130,7 +129,7 @@ def max_weight_schedule(jobs):
 
 Sorting and the $n$ binary searches for $p$ cost $O(n \log n)$; after that each of the $n + 1$ subproblems takes constant time.
 
-Without the cache the same recursion is exponential. Each call makes two calls, and both branches rederive the same prefixes. When every job overlaps only its predecessor, $p(j) = j - 2$ and the call count grows like the Fibonacci numbers, about $1.618^n$. I counted calls of the uncached recursion:
+Without the cache the same recursion is exponential. Each call makes two calls, and both branches recompute the same prefixes. When every job overlaps only its predecessor, $p(j) = j - 2$ and the call count grows like the Fibonacci numbers, about $1.618^n$. I counted calls of the uncached recursion:
 
 | Jobs $n$ | No overlaps, $p(j) = j - 1$ | Chain, $p(j) = j - 2$ | 5 random instances | With the cache |
 | --- | --- | --- | --- | --- |
@@ -139,9 +138,9 @@ Without the cache the same recursion is exponential. Each call makes two calls, 
 | 25 | *67,108,863* | 392,835 | 203,519 to 820,799 | 51 |
 | 30 | *2,147,483,647* | 4,356,617 | 971,999 to 4,991,999 | 61 |
 
-The worst case is jobs that never overlap: then $p(j) = j - 1$, both branches call the same subproblem, and the count doubles with every job, to $2^{n+1} - 1$. I measured it up to $n = 20$; the italic entries are that formula. When each job overlaps only its neighbors, $p(j) = j - 2$ and the count grows like the Fibonacci numbers, about $1.618^n$. Random instances (starts uniform in $[0, 1000]$, lengths in $[1, 100]$) land in between. The chain at $n = 30$ took 0.27 seconds to make its 4.4 million calls; the no-overlap case at $n = 30$ would make 490 times as many.
+The worst case occurs when no two jobs overlap. Then $p(j) = j - 1$, both branches call the same subproblem, and the count doubles with every job, to $2^{n+1} - 1$. I measured it up to $n = 20$; the italic entries are computed from that formula. When each job overlaps only its neighbors, $p(j) = j - 2$ and the count grows like the Fibonacci numbers, about $1.618^n$. Random instances (starts uniform in $[0, 1000]$, lengths in $[1, 100]$) lie between the two. The chain at $n = 30$ took 0.27 seconds to make its 4.4 million calls; the no-overlap case at $n = 30$ would make 490 times as many.
 
-With the cache, the count is $2n + 1$ calls for every input: one real computation per prefix plus one cache hit per edge of the dependency DAG. For a 5-job instance with $p(5) = 3$, $p(4) = 2$, $p(3) = 1$ and $p(2) = 0$:
+With the cache, every input requires $2n + 1$ calls, one computation per prefix and one cache hit per edge of the dependency DAG. For a 5-job instance with $p(5) = 3$, $p(4) = 2$, $p(3) = 1$ and $p(2) = 0$:
 
 ```mermaid
 flowchart TD
@@ -160,7 +159,7 @@ flowchart TD
 
 ### Recovering the schedule
 
-The table says how much the best schedule is worth, not which jobs are in it. Walk back from $j = n$: if taking job $j$ is at least as good as skipping it, job $j$ is in an optimal schedule and the walk jumps to $p(j)$; otherwise it steps to $j - 1$. This costs $O(n)$ more and needs the whole table, or a stored decision per entry.
+The table holds the weight of an optimal schedule but does not record which jobs it contains. The traceback starts at $j = n$. If including job $j$ yields at least the value of excluding it, job $j$ belongs to an optimal schedule and the traceback continues at $p(j)$; otherwise it continues at $j - 1$. The traceback takes $O(n)$ additional time and requires the whole table, or a stored decision per entry.
 
 ```python
 def chosen_jobs(jobs):
@@ -185,7 +184,7 @@ def chosen_jobs(jobs):
 
 **Problem**: Given $n$ items with positive integer weights $w_1, \ldots, w_n$ and values $v_1, \ldots, v_n$, and a knapsack of capacity $W$, find the most valuable subset of items whose total weight is at most $W$.
 
-Prefixes of the items are not enough here. Whether item $i$ fits depends on how much room the earlier choices left, so the subproblem needs a second index for the remaining capacity. Let $OPT(i, w)$ be the best value using items $1, \ldots, i$ with capacity $w$. Item $i$ is either left out, or taken, which uses $w_i$ of the capacity:
+Prefixes of the items alone do not suffice as subproblems. Whether item $i$ fits depends on the capacity that the earlier choices leave, so the subproblem requires a second index for the remaining capacity. Let $OPT(i, w)$ be the best value using items $1, \ldots, i$ with capacity $w$. Item $i$ is either left out, or taken, which uses $w_i$ of the capacity:
 
 $$
 OPT(i, w) = \begin{cases}
@@ -195,7 +194,7 @@ OPT(i - 1, w) & w_i > w \\
 \end{cases}
 $$
 
-The induction is on $i$: assume $OPT(i - 1, w)$ is right for every $w \in [0, W]$, and the recurrence gives row $i$ for every $w$.
+The induction is on $i$. If $OPT(i - 1, w)$ is correct for every $w \in [0, W]$, the recurrence gives row $i$ correctly for every $w$.
 
 ```python
 def knapsack_rec(W: int, w: list[int], v: list[int]) -> int:
@@ -229,7 +228,7 @@ def knapsack_it(W: int, w: list[int], v: list[int]) -> int:
 ```
 
 > [!info]- One row is enough
-> Row $i$ reads only row $i - 1$, and only at capacities $\le w$. Sweep the capacities from high to low and you can overwrite a single array in place: when you write `best[c]`, the entry `best[c - wi]` you read still holds row $i - 1$. Sweeping low to high would let an item be taken twice, which is the recurrence for the unbounded knapsack instead.
+> Row $i$ reads only row $i - 1$, and only at capacities $\le w$. If the capacities are swept from high to low, a single array can be overwritten in place, because when `best[c]` is written, the entry `best[c - wi]` that it reads still holds row $i - 1$. A sweep from low to high would allow an item to be taken more than once, which is the recurrence for the unbounded knapsack.
 >
 > ```python
 > def knapsack_one_row(W, w, v):
@@ -240,10 +239,10 @@ def knapsack_it(W: int, w: list[int], v: list[int]) -> int:
 >     return best[W]
 > ```
 >
-> The same update vectorizes, because every entry of a new row depends only on the old row: `best[wi:] = np.maximum(best[wi:], vi + best[:-wi])`, where NumPy evaluates the right-hand side in full before assigning. That is the NumPy row of the timing table above. You lose the ability to recover which items were taken, unless you also keep one bit per cell recording whether item $i$ was taken at capacity $c$.
+> The same update vectorizes, because every entry of a new row depends only on the old row: `best[wi:] = np.maximum(best[wi:], vi + best[:-wi])`, where NumPy evaluates the right-hand side in full before assigning. This is the NumPy row of the timing table in [[#Top down or bottom up]]. The one-row versions cannot recover which items were taken unless they also store one bit per cell recording whether item $i$ was taken at capacity $c$.
 
 > [!warning] The running time is pseudo-polynomial
-> The table has $(n + 1)(W + 1)$ entries, and $W$ is a number, not a length. Writing $W$ takes $\log W$ bits, so $O(nW)$ is exponential in the size of the input, and knapsack stays NP-complete despite this algorithm. Rounding the values down to multiples of a scale factor and running a value-indexed version of the same DP gives a $(1 - \varepsilon)$-approximation in time polynomial in $n$ and $1/\varepsilon$ ([Ibarra and Kim 1975](https://dblp.org/rec/journals/jacm/IbarraK75)). [[#P1 - Knapsack Approximation|P1 below]] asks for something simpler: a 2-approximation in time polynomial in $n$ and $\log W$.
+> The table has $(n + 1)(W + 1)$ entries, and $W$ is a number, not a length. Writing $W$ takes $\log W$ bits, so $O(nW)$ is exponential in the size of the input, and knapsack remains NP-complete. Rounding the values down to multiples of a scale factor and running a value-indexed version of the same DP gives a $(1 - \varepsilon)$-approximation in time polynomial in $n$ and $1/\varepsilon$ ([Ibarra and Kim 1975](https://dblp.org/rec/journals/jacm/IbarraK75)). [[#P1 - Knapsack Approximation|P1]] asks for a weaker guarantee, a 2-approximation in time polynomial in $n$ and $\log W$.
 
 ## String Building
 
@@ -257,7 +256,7 @@ $$
 OPT(i, c) = [\,i \le k_c\,] + \sum_{r = 1}^{\min(k_c,\, i - 1)} OPT(i - r, c')
 $$
 
-where $[\,i \le k_c\,]$ is 1 when the whole string can be a single run and 0 otherwise. The code below computes the same numbers with a shortcut for $i \le k_c$: when the run limit can't be reached, appending $c$ to any valid string of length $i - 1$ is valid, so $OPT(i, c) = OPT(i - 1, A) + OPT(i - 1, B)$.
+where $[\,i \le k_c\,]$ is 1 when the whole string can be a single run and 0 otherwise. The implementation computes the same numbers with a shortcut for $i \le k_c$. When the run limit cannot be reached, appending $c$ to any valid string of length $i - 1$ yields a valid string, so $OPT(i, c) = OPT(i - 1, A) + OPT(i - 1, B)$.
 
 ```python
 A, B = 0, 1
@@ -281,21 +280,21 @@ def num_strings(n, ka, kb):
     return f(n, A) + f(n, B)
 ```
 
-**Running time**: there are $2n$ subproblems. Those ending in $A$ cost $O(k_A)$ each and those ending in $B$ cost $O(k_B)$, so the total is $O(n(k_A + k_B))$. Keeping running sums of the last $k_c$ values of $OPT(\cdot, c')$ removes the inner loop and brings it to $O(n)$ arithmetic operations. The count itself grows exponentially with $n$, so for large $n$ the big-integer additions dominate.
+**Running time**: there are $2n$ subproblems. Those ending in $A$ cost $O(k_A)$ each and those ending in $B$ cost $O(k_B)$, so the total is $O(n(k_A + k_B))$. Keeping running sums of the last $k_c$ values of $OPT(\cdot, c')$ removes the inner loop and brings it to $O(n)$ arithmetic operations. The count itself grows exponentially with $n$, so for large $n$ the cost of the big-integer additions dominates.
 
 ## Post Office
 
-**Problem**: $n$ villages sit at distinct integer positions $x_1 < x_2 < \dots < x_n$ along a straight highway. Place $k \le n$ post offices, each in a village, to minimize the sum over villages of the distance to the nearest post office.
+**Problem**: $n$ villages lie at distinct integer positions $x_1 < x_2 < \dots < x_n$ along a straight highway. Place $k \le n$ post offices, each in a village, to minimize the sum over villages of the distance to the nearest post office.
 
-This is the $k$-median problem on a line. In general metrics $k$-median is NP-hard, but on a line the offices split the villages into contiguous groups, and contiguous groups are what DP needs.
+This is the $k$-median problem on a line. In general metrics $k$-median is NP-hard, but on a line the offices partition the villages into contiguous groups, which admit a recurrence over prefixes.
 
-Let $f(n, k)$ be the minimum total distance for villages $1, \dots, n$ using $k$ offices, given that the $k$-th office sits in village $n$. The answer guesses where the last office goes, at some village $i \ge k$; villages after $i$ all walk back to it:
+Let $f(n, k)$ be the minimum total distance for villages $1, \dots, n$ using $k$ offices, given that the $k$-th office is in village $n$. The answer conditions on the village $i \ge k$ of the last office, which serves every village after $i$:
 
 $$
 \text{answer} = \min_{k \le i \le n} \Big( f(i, k) + \sum_{i < j \le n} (x_j - x_i) \Big)
 $$
 
-To compute $f(n, k)$, guess the village $i$ of the $(k-1)$-th office. Villages strictly between $i$ and $n$ go to whichever of the two is nearer:
+The recurrence for $f(n, k)$ conditions on the village $i$ of the $(k-1)$-th office. Each village strictly between $i$ and $n$ is served by the nearer of the two offices:
 
 $$
 f(n, k) = \begin{cases}
@@ -305,7 +304,7 @@ f(n, k) = \begin{cases}
 \end{cases}
 $$
 
-The base case $n \le k$ is 0 because each village can have its own office. Correctness is induction on $k$ and $n$: the guess $i$ ranges over every possible position of the previous office, the villages left of $i$ are served optimally by $f(i, k - 1)$, and each village between the two offices is assigned to the nearer one.
+The base case $n \le k$ is 0 because each village can have its own office. Correctness follows by induction on $k$ and $n$. The index $i$ ranges over every possible position of the previous office, the villages left of $i$ are served optimally by $f(i, k - 1)$, and each village between the two offices is assigned to the nearer one.
 
 ```python
 def min_dist_td(X, K):
@@ -343,19 +342,19 @@ def min_dist_td(X, K):
 **Running time**: there are $O(nk)$ values of $f$, each a minimum over $O(n)$ choices of $i$ with an $O(n)$ sum inside, so $O(kn^3)$. The final minimum adds $O(n^2)$.
 
 > [!info]- Faster: precompute the group costs
-> The inner sum depends only on $i$ and $n$, so it can be tabulated once. A cleaner formulation splits the sorted villages into $k$ contiguous groups, each served by one office. The best office for a group is its median village, and with prefix sums the cost of any group $x_a, \dots, x_b$ is an $O(1)$ lookup. Then $g(n, k) = \min_{i < n} \big(g(i, k-1) + \text{cost}(i + 1, n)\big)$ runs in $O(kn^2)$. The group cost satisfies the quadrangle inequality, which makes the best $i$ move monotonically with $n$; the divide-and-conquer optimization uses that to bring the time to $O(kn \log n)$.
+> The inner sum depends only on $i$ and $n$, so it can be tabulated once. A simpler formulation partitions the sorted villages into $k$ contiguous groups, each served by one office. The best office for a group is its median village, and with prefix sums the cost of any group $x_a, \dots, x_b$ is an $O(1)$ lookup. Then $g(n, k) = \min_{i < n} \big(g(i, k-1) + \text{cost}(i + 1, n)\big)$ runs in $O(kn^2)$. The group cost satisfies the quadrangle inequality, which implies that the optimal $i$ is monotone in $n$; the divide-and-conquer optimization uses this monotonicity to reduce the time to $O(kn \log n)$.
 
 ## RNA Secondary Structure
 
 **Problem**: An RNA molecule is a string $B = b_1 b_2 \ldots b_n$ over $\{A, C, G, U\}$. It folds back on itself, and some bases pair. Find a set $S$ of pairs of maximum size subject to:
 
 - *Pairing*: each pair is $A$–$U$ or $C$–$G$ (Watson–Crick), and each base is in at most one pair.
-- *No sharp turns*: if $(i, j) \in S$ then $i < j - 4$, so at least four bases sit inside the loop the pair closes.
+- *No sharp turns*: if $(i, j) \in S$ then $i < j - 4$, so at least four bases lie inside the loop the pair closes.
 - *No crossing*: if $(i, j)$ and $(k, l)$ are in $S$, then not $i < k < j < l$.
 
 This is the maximum-pairing model of [Nussinov and Jacobson (1980)](https://doi.org/10.1073/pnas.77.11.6309), the version in [Kleinberg and Tardos section 6.5](https://www.cs.princeton.edu/~wayne/kleinberg-tardos/pdf/06DynamicProgrammingI.pdf).
 
-Prefixes fail here: if base $j$ pairs with base $t$, the bases inside the pair can only pair with each other, which leaves an interval in the middle. So the subproblems are intervals. Let $OPT(i, j)$ be the most pairs in a structure on $b_i \ldots b_j$. Guess what $b_j$ does:
+Prefixes do not suffice as subproblems. If base $j$ pairs with base $t$, the bases inside the pair can pair only with each other, which leaves an interval in the middle, so the subproblems are intervals. Let $OPT(i, j)$ be the maximum number of pairs in a structure on $b_i \ldots b_j$. The recurrence conditions on the role of $b_j$:
 
 - $b_j$ is unpaired: $OPT(i, j) = OPT(i, j - 1)$.
 - $b_j$ pairs with $b_t$ for some $i \le t < j - 4$: by the no-crossing rule nothing pairs across $t$, so the structure splits into $b_i \ldots b_{t-1}$ and $b_{t+1} \ldots b_{j-1}$, giving $1 + OPT(i, t - 1) + OPT(t + 1, j - 1)$.
@@ -367,7 +366,7 @@ OPT(i, j) = \begin{cases}
 \end{cases}
 $$
 
-Each case reads intervals strictly shorter than $[i, j]$, so filling the table in order of increasing length works.
+Each case reads intervals strictly shorter than $[i, j]$, so filling the table in order of increasing length is a valid order.
 
 ```python
 WC = { 'A': 'U', 'U': 'A', 'C': 'G', 'G': 'C' }
@@ -389,11 +388,11 @@ def ssi(B):
 
 **Running time**: $O(n^2)$ intervals, each a maximum over $O(n)$ choices of $t$, so $O(n^3)$ time and $O(n^2)$ space.
 
-### Counting pairs is a poor model of folding
+### Maximum pairing as a model of folding
 
-Real RNA folds toward low free energy, and most of that energy comes from *stacking*: two adjacent pairs, one inside the other, contribute far more than two isolated pairs, and loops cost energy that grows with their size. Counting pairs ignores both, and G–U "wobble" pairs, which are common in real structures, aren't allowed at all. The model that replaced it, [Zuker and Stiegler (1981)](https://doi.org/10.1093/nar/9.1.133), uses the same interval DP with experimentally measured energies for stacks and loops, and it is what [ViennaRNA](https://doi.org/10.1186/1748-7188-6-26) and similar tools compute today.
+RNA folds into structures of low free energy, and most of the stabilizing free energy comes from *stacking*. Two adjacent pairs, one inside the other, contribute far more than two isolated pairs. Loops are destabilizing, by an amount that grows with their size. The pair-counting objective ignores both effects, and it excludes G–U "wobble" pairs, which occur frequently in natural structures. The model of [Zuker and Stiegler (1981)](https://doi.org/10.1093/nar/9.1.133), which superseded it, uses the same interval DP with experimentally measured energies for stacks and loops, and [ViennaRNA](https://doi.org/10.1186/1748-7188-6-26) and similar tools compute that model today.
 
-I tested the difference on yeast phenylalanine tRNA, a 76-base molecule whose structure is known from its crystal structure ([PDB 1EHZ](https://www.rcsb.org/structure/1EHZ)). Its secondary structure is the cloverleaf: four stems with 21 base pairs in all.
+I compared the two models on yeast phenylalanine tRNA, a 76-base molecule whose structure is known from crystallography ([PDB 1EHZ](https://www.rcsb.org/structure/1EHZ)). Its secondary structure is the cloverleaf, which consists of four stems with 21 base pairs in all.
 
 | Structure | Pairs | Cloverleaf pairs it has | Free energy (kcal/mol) |
 | --- | --- | --- | --- |
@@ -403,10 +402,10 @@ I tested the difference on yeast phenylalanine tRNA, a 76-base molecule whose st
 | Maximum pairing, the closest of 8,594 tied optima | 25 | 6 | −1.2 |
 | Maximum pairing with G–U allowed, closest of 96,423 tied optima | 27 | 7 | −2.7 |
 
-Every row is an exact optimum of its own objective. ViennaRNA's energy minimization recovers the cloverleaf pair for pair. Maximizing pairs finds four more pairs than the real molecule has, and they belong to a different fold: the thousands of structures that tie for the maximum share at most 6 of the 21 real pairs, and the energy model rates them barely more stable than the unfolded chain (0 kcal/mol). Finding "the closest of the tied optima" needs a second DP: maximize pairs, and break ties by the number of cloverleaf pairs, which is the same interval recurrence on a pair of numbers compared lexicographically.
+Every row is an exact optimum of its own objective. ViennaRNA's energy minimization recovers the cloverleaf pair for pair. Maximizing pairs yields four more pairs than the natural structure contains, arranged in a different fold. The 8,594 structures that tie for the maximum share at most 6 of the 21 cloverleaf pairs, and the two in the table have free energies of +5.1 and −1.2 kcal/mol, close to the 0 kcal/mol of the unfolded chain. The closest of the tied optima is found by a second DP that maximizes pairs and breaks ties by the number of cloverleaf pairs; it is the same interval recurrence on pairs of numbers compared lexicographically.
 
 > [!note]- The tRNA structures side by side
-> Dot-bracket notation: matching parentheses are a pair, a dot is unpaired. Positions are 1 to 76 from left to right.
+> In dot-bracket notation, matching parentheses denote a pair and a dot denotes an unpaired base. Positions are 1 to 76 from left to right.
 >
 > ```text
 > sequence     GCGGAUUUAGCUCAGUUGGGAGAGCGCCAGACUGAAGAUCUGGAGGUCCUGUGUUCGAUCCACAGAAUUCGCACCA
@@ -416,15 +415,15 @@ Every row is an exact optimum of its own objective. ViennaRNA's energy minimizat
 > max + G-U    ((((((((((((((((((((....).)))).)))).).).)((.((((..(....)))))).)).)))))))....
 > ```
 >
-> The two maximum-pairing rows are the tied optima closest to the cloverleaf. Both build one long, irregular stem from the two ends of the molecule inward, where the real tRNA has four short stems.
+> The two maximum-pairing rows are the tied optima closest to the cloverleaf. Both form one long, irregular stem from the two ends of the molecule inward, whereas the natural tRNA has four short stems.
 
 ## Sequence Alignment
 
 **Problem**: Given strings $x = x_1 \ldots x_m$ and $y = y_1 \ldots y_n$, line them up with gaps so they agree as much as possible. Formally, an alignment is a set of pairs $(i, j)$, each position of $x$ and of $y$ in at most one pair, with no crossings: if $(i, j)$ and $(i', j')$ are both in it and $i < i'$, then $j < j'$. Each position left out of every pair costs a gap penalty $\delta$, and each pair $(i, j)$ with $x_i \ne y_j$ costs a mismatch penalty $\alpha$. Find an alignment of minimum cost.
 
-With $\delta = \alpha = 1$ the cost is the Levenshtein edit distance: the fewest single-character insertions, deletions and substitutions that turn $x$ into $y$. Biology uses the same DP with a scoring matrix in place of $\alpha$, after [Needleman and Wunsch (1970)](https://pubmed.ncbi.nlm.nih.gov/5420325/), and `diff`-style tools use special cases of it.
+With $\delta = \alpha = 1$ the cost is the Levenshtein edit distance, the minimum number of single-character insertions, deletions and substitutions that transform $x$ into $y$. Biological sequence comparison uses the same DP with a scoring matrix in place of $\alpha$, after [Needleman and Wunsch (1970)](https://pubmed.ncbi.nlm.nih.gov/5420325/), and `diff`-style tools use special cases of it.
 
-Let $OPT(i, j)$ be the minimum cost of aligning the prefixes $x_1 \ldots x_i$ and $y_1 \ldots y_j$. In an optimal alignment of these prefixes, either $x_i$ and $y_j$ are paired, or $x_i$ is in no pair, or $y_j$ is in no pair. If both were paired, but not with each other, say $x_i$ with $y_{j'}$ and $x_{i'}$ with $y_j$, then $i' < i$ and $j' < j$, and those two pairs would cross. So the three cases cover everything:
+Let $OPT(i, j)$ be the minimum cost of aligning the prefixes $x_1 \ldots x_i$ and $y_1 \ldots y_j$. In an optimal alignment of these prefixes, either $x_i$ and $y_j$ are paired, or $x_i$ is in no pair, or $y_j$ is in no pair. If both were paired, but not with each other, say $x_i$ with $y_{j'}$ and $x_{i'}$ with $y_j$, then $i' < i$ and $j' < j$, and those two pairs would cross. The three cases are therefore exhaustive:
 
 $$
 OPT(i, j) = \begin{cases}
@@ -434,13 +433,13 @@ i\delta & j = 0 \\
 \end{cases}
 $$
 
-where $\alpha_{x_i y_j}$ is 0 when $x_i = y_j$ and $\alpha$ otherwise. Each cell reads the cell diagonally above-left, the cell above and the cell to the left, so filling row by row works. The figure runs exactly this recurrence:
+where $\alpha_{x_i y_j}$ is 0 when $x_i = y_j$ and $\alpha$ otherwise. Each cell reads the cell diagonally above-left, the cell above and the cell to the left, so a row-by-row fill is a valid order. The figure evaluates this recurrence with the following controls.
 
-- **Step** fills one cell and shows the three candidates. The winning move is the arrow in the cell.
-- **Play** fills the rest; **Fill** jumps to the end, where the shaded path is the traceback and the alignment appears underneath.
-- **The sliders** change $\delta$ and $\alpha$. A mismatch competes with the two gaps that could replace it, so once $\alpha > 2\delta$ the alignment trades every mismatch for a pair of gaps.
+- **Step** fills one cell and shows the three candidates. The arrow in the cell marks the candidate that attains the minimum.
+- **Play** fills the remaining cells; **Fill** completes the table at once, after which the shaded path is the traceback and the alignment appears below the table.
+- **The sliders** change $\delta$ and $\alpha$. A mismatch costs $\alpha$ and the two gaps that could replace it cost $2\delta$, so once $\alpha > 2\delta$ the optimal alignment replaces every mismatch with a pair of gaps.
 - **Selecting a cell** shows the three candidates that produced its value.
-- **Keep two rows** greys out every cell a two-row implementation would have discarded. The final cost survives; the path to it does not.
+- **Keep two rows** greys out every cell a two-row implementation would have discarded. The final cost remains available, but the path to it cannot be recovered.
 
 <AlignmentTable />
 
@@ -483,9 +482,9 @@ Both take $O(mn)$ time and the table takes $O(mn)$ space.
 
 ### When the table doesn't fit
 
-Space is the problem for long sequences. Two $100{,}000$-base sequences give $10^{10}$ cells. At 4 bytes a cell that is 40 GB, and Python's list of lists is worse: it measured 34 to 39 bytes per cell, because each cell is an 8-byte pointer and every cost above 256 is its own heap-allocated integer object.
+For long sequences, memory is the limiting resource. Two $100{,}000$-base sequences give $10^{10}$ cells, which occupy 40 GB at 4 bytes per cell. A Python list of lists requires more; it measured 34 to 39 bytes per cell, because each cell is an 8-byte pointer and every cost above 256 is a separate heap-allocated integer object.
 
-The cost alone needs only the previous row:
+Computing the cost alone requires only the previous row:
 
 ```python
 def align_cost_two_rows(x, y, gap=1, mismatch=1):
@@ -503,7 +502,7 @@ def align_cost_two_rows(x, y, gap=1, mismatch=1):
     return prev[n]
 ```
 
-That drops the alignment, since the traceback needs the whole table. [Hirschberg (1975)](https://ics.uci.edu/~dhirschb/pubs/p341-hirschberg.pdf) gets it back in linear space by combining DP with [[algorithms/divide-and-conquer|divide and conquer]]. Run the two-row DP forward over the top half of $x$ and backward over the bottom half. The column $j$ that minimizes the sum of the two final rows is where an optimal alignment crosses the middle row, so recurse on the two quadrants it defines. The work halves at each level, so the total is about twice one full pass ([Kleinberg and Tardos 6.7](https://www.cs.princeton.edu/~wayne/kleinberg-tardos/pdf/06DynamicProgrammingII.pdf)).
+The two-row version cannot produce the alignment, since the traceback requires the whole table. [Hirschberg (1975)](https://ics.uci.edu/~dhirschb/pubs/p341-hirschberg.pdf) recovers it in linear space by combining DP with [[algorithms/divide-and-conquer|divide and conquer]]. The two-row DP runs forward over the top half of $x$ and backward over the bottom half. The column $j$ that minimizes the sum of the two final rows is a column at which an optimal alignment crosses the middle row, and the algorithm recurses on the two quadrants that this column defines. The work halves at each level, so the total is about twice that of one full pass ([Kleinberg and Tardos 6.7](https://www.cs.princeton.edu/~wayne/kleinberg-tardos/pdf/06DynamicProgrammingII.pdf)).
 
 I measured all three in C on random DNA, with the second sequence a mutated copy of the first, three seeds each:
 
@@ -513,22 +512,22 @@ I measured all three in C on random DNA, with the second sequence a mutated copy
 | Two rows, cost only | 0.08 to 0.12 s | 0.71 to 0.77 s | 8.29 to 8.33 s | 2.3 MiB at $n = 100{,}000$ |
 | Hirschberg, full alignment | 0.15 to 0.16 s | 1.40 to 1.47 s | 16.3 to 16.6 s | 2.7 MiB at $n = 100{,}000$ |
 
-The two-row pass over $100{,}000 \times 100{,}000$ cells took 8.3 seconds, about 0.83 ns per cell. So $10^{10}$ operations is fine in C. The same loop in Python ran at about 120 ns per cell (117 to 139 across six runs), which projects to about 20 minutes for the two-row version; the full table would need about 380 GB of memory first. Hirschberg's alignment took 2.0 times as long as the cost-only pass, as the analysis predicts, and never held more than 2.7 MiB. The full table was slower per cell than two rows (2.4 to 2.7 ns), because it streams gigabytes through memory instead of reusing two rows that stay in cache.
+The two-row pass over $100{,}000 \times 100{,}000$ cells took 8.3 seconds, about 0.83 ns per cell, so $10^{10}$ cell updates are feasible in C on this hardware. The same loop in Python ran at about 120 ns per cell (117 to 139 across six runs), which projects to about 20 minutes for the two-row version; the full table would also require about 380 GB of memory. Hirschberg's alignment took 2.0 times as long as the cost-only pass, as the analysis predicts, and its peak memory was 2.7 MiB. The full table was slower per cell than two rows (2.4 to 2.7 ns), because it streams gigabytes through memory instead of reusing two rows that stay in cache.
 
 > [!info]- When the strings are similar: banded alignment
-> If the edit distance is at most $d$, an optimal path never strays more than $d$ cells from the main diagonal, since each step off it costs a gap. Filling only the band of width $2d + 1$ gives $O(nd)$ time ([Ukkonen 1985](https://doi.org/10.1016/S0019-9958(85)80046-2)), and doubling a guessed $d$ until the answer fits inside the band removes the need to know $d$ in advance. Myers' $O(ND)$ algorithm, behind GNU `diff` and git's default diff, is a greedy refinement of the same idea for the insert/delete-only case ([Myers 1986](https://doi.org/10.1007/BF01840446)).
+> If the edit distance is at most $d$, an optimal path does not depart by more than $d$ cells from the main diagonal, since each step off it costs a gap. Filling only the band of width $2d + 1$ gives $O(nd)$ time ([Ukkonen 1985](https://doi.org/10.1016/S0019-9958(85)80046-2)), and doubling a guessed $d$ until the answer fits inside the band removes the need to know $d$ in advance. Myers' $O(ND)$ algorithm, which GNU `diff` and git's default diff use, is a greedy refinement of the same idea for the insert/delete-only case ([Myers 1986](https://doi.org/10.1007/BF01840446)).
 
 ## Longest Path in a DAG
 
-**Problem**: Given a directed acyclic graph $G$, find the most edges on any path.
+**Problem**: Given a directed acyclic graph $G$, find the maximum number of edges on any path.
 
-In a general directed graph this is NP-hard, since a path with $n - 1$ edges is a Hamiltonian path. A DAG has a topological order (see [[algorithms/DAGs|DAGs]]), and in that order every edge into $v$ comes from an earlier vertex. Let $OPT(v)$ be the length of the longest path that ends at $v$. Guess the last edge $u \to v$ of that path:
+In a general directed graph this is NP-hard, since a path with $n - 1$ edges is a Hamiltonian path. A DAG has a topological order (see [[algorithms/DAGs|DAGs]]), and in that order every edge into $v$ comes from an earlier vertex. Let $OPT(v)$ be the length of the longest path that ends at $v$. The recurrence conditions on the last edge $u \to v$ of that path:
 
 $$
 OPT(v) = \max\Big(0,\ \max_{u \to v} \big(OPT(u) + 1\big)\Big)
 $$
 
-The answer is $\max_v OPT(v)$. Processing vertices in topological order means every $OPT(u)$ on the right is already known, and the whole thing runs in $O(n + m)$.
+The answer is $\max_v OPT(v)$. In topological order, every $OPT(u)$ on the right-hand side is computed before $OPT(v)$, and the algorithm runs in $O(n + m)$ time.
 
 ```python
 from graphlib import TopologicalSorter
@@ -544,13 +543,13 @@ def longest_path(n, edges):
     return max(opt.values(), default=0)
 ```
 
-Every DP in this note is this algorithm on its own dependency DAG, with weights on the edges and min or max in place of "+1".
+A dynamic program whose cases each refer to a single smaller subproblem is this algorithm applied to its own dependency DAG, with weights on the edges and min or max in place of "+1".
 
 ## Longest Increasing Subsequence
 
 **Problem**: Given $x_1, \ldots, x_n$, find the longest strictly increasing subsequence (not necessarily contiguous).
 
-Let $OPT(j)$ be the length of the longest increasing subsequence that ends at $x_j$. Guess the element before $x_j$; if no earlier element is smaller, $x_j$ starts a new subsequence:
+Let $OPT(j)$ be the length of the longest increasing subsequence that ends at $x_j$. The recurrence conditions on the element that precedes $x_j$; if no earlier element is smaller, $x_j$ begins a new subsequence:
 
 $$
 OPT(j) = 1 + \max\big(\{0\} \cup \{ OPT(k) : k < j,\ x_k < x_j \}\big)
@@ -572,10 +571,10 @@ def LIS(X):
     return max(f(i) for i in range(1, n + 1)) if n else 0
 ```
 
-That is $O(n^2)$.
+The running time is $O(n^2)$.
 
 > [!info]- $O(n \log n)$ with a different table
-> Index the table by length instead of by end position. Keep `tails[k]`, the smallest value that ends an increasing subsequence of length $k + 1$ seen so far. The list is always increasing, so each new element finds its place by binary search: it either extends the longest subsequence or lowers the tail of an existing length.
+> A table indexed by length instead of by end position gives a faster algorithm. The entry `tails[k]` holds the smallest value that ends an increasing subsequence of length $k + 1$ among the elements seen so far. The list is always increasing, so the position of each new element is found by binary search, and the element either extends the longest subsequence or lowers the tail of an existing length.
 >
 > ```python
 > from bisect import bisect_left
@@ -597,9 +596,9 @@ That is $O(n^2)$.
 
 **Problem**: Given a directed graph with $n$ vertices, $m$ edges and edge costs $c_{uv}$ that may be negative, find the shortest path from a source $s$ to every vertex.
 
-If a cycle of negative total cost is reachable from $s$, going around it again always helps, and some distances are $-\infty$. Assume for now there is none. Then some shortest path to each vertex is simple, so it has at most $n - 1$ edges. Dijkstra's algorithm fails with negative edges because a vertex it has finalized can still be improved through a negative edge found later; the DP avoids committing early by organizing paths by their number of edges.
+If a cycle of negative total cost is reachable from $s$, each further traversal of the cycle lowers the cost of a path, and some distances are $-\infty$. Assume first that no such cycle exists. Then some shortest path to each vertex is simple, so it has at most $n - 1$ edges. Dijkstra's algorithm can return incorrect distances when edges are negative, because the distance of a vertex it has finalized can still be reduced through a negative edge examined later; the DP does not finalize distances early, since it organizes paths by their number of edges.
 
-Let $OPT(i, v)$ be the cost of the cheapest path from $s$ to $v$ that uses at most $i$ edges. Either that path uses fewer than $i$ edges, or its last edge is some $u \to v$ and the rest is a cheapest path to $u$ with at most $i - 1$ edges:
+Let $OPT(i, v)$ be the minimum cost of a path from $s$ to $v$ that uses at most $i$ edges. Either that path uses fewer than $i$ edges, or its last edge is some $u \to v$ and the rest is a minimum-cost path to $u$ with at most $i - 1$ edges:
 
 $$
 OPT(i, v) = \begin{cases}
@@ -631,7 +630,7 @@ def bellman_ford(n, edges, s):
     return dist
 ```
 
-Updating in place can only make `dist[v]` smaller sooner, so after round $i$ it is at most $OPT(i, v)$ and never below the true distance. The stop when a round changes nothing is safe for the same reason. If a negative cycle is reachable, some edge on it can always be relaxed, and the extra round catches it ([Kleinberg and Tardos 6.8 and 6.10](https://www.cs.princeton.edu/~wayne/kleinberg-tardos/pdf/06DynamicProgrammingII.pdf)). The distance-vector routing protocols in [[systems/networks/3-network/routing|routing]] run the same relaxation, with each router doing its own vertex's update from its neighbors' tables.
+Updating in place can only decrease `dist[v]` earlier, so after round $i$ it is at most $OPT(i, v)$ and never below the true distance. Stopping when a round changes nothing is correct for the same reason. If a negative cycle is reachable, some edge on it can always be relaxed, and the extra round detects it ([Kleinberg and Tardos 6.8 and 6.10](https://www.cs.princeton.edu/~wayne/kleinberg-tardos/pdf/06DynamicProgrammingII.pdf)). The distance-vector routing protocols in [[systems/networks/3-network/routing|routing]] perform the same relaxation, with each router computing its own vertex's update from its neighbors' tables.
 
 ## P1 - Knapsack Approximation
 
@@ -665,13 +664,13 @@ def A(weights, values, W):
 
 Together, $OPT \le v(S) + r\rho < 2\, v(S)$.
 
-The assumption $w_i \le W/2$ matters. With items $(w, v) = (1, 2)$ and $(W, W)$, greedy takes the first item, finds the second doesn't fit, and returns 2 against an optimum of $W$. The standard repair returns the better of the greedy set and the single most valuable item, which is a 2-approximation for any weights. On 4,000 random small instances satisfying the assumption, the worst ratio the harness found was 2/3, short of the bound of 1/2.
+The assumption $w_i \le W/2$ is necessary for this algorithm. With items $(w, v) = (1, 2)$ and $(W, W)$, greedy takes the first item, cannot fit the second, and returns 2 against an optimum of $W$. Returning the better of the greedy set and the single most valuable item gives a 2-approximation for any weights. On 4,000 random small instances satisfying the assumption, the worst ratio the harness found was 2/3, above the guaranteed bound of 1/2.
 
 ## P2 - Maximum Sub-Rectangle
 
 **Problem**: Given an $n \times n$ array $A$ of integers, possibly negative, find in $O(n^3)$ time the largest sum of a rectangle $\sum_{i = x_1}^{x_2} \sum_{j = y_1}^{y_2} A_{ij}$. The empty rectangle counts, with value 0.
 
-Fix the columns $y_1 \le y_2$. Each row then contributes one number, its sum across those columns, and the best rectangle with exactly those columns is the best contiguous run of rows: the maximum subarray problem on $n$ numbers, which [Kadane's algorithm](https://en.wikipedia.org/wiki/Maximum_subarray_problem) solves in one pass with its own one-variable DP. Prefix sums along each row make each row's sum $O(1)$, so each column pair costs $O(n)$, and there are $O(n^2)$ column pairs.
+For fixed columns $y_1 \le y_2$, each row contributes one number, its sum across those columns, and the best rectangle with exactly those columns is the best contiguous run of rows. This is the maximum subarray problem on $n$ numbers, which [Kadane's algorithm](https://en.wikipedia.org/wiki/Maximum_subarray_problem) solves in one pass with a one-variable DP. Prefix sums along each row make each row's sum $O(1)$, so each column pair costs $O(n)$, and there are $O(n^2)$ column pairs.
 
 ```python
 def max_rectangle(A):
@@ -710,9 +709,9 @@ def max_rectangle(A):
 
 ## P3 - Count Connected Subsets of Size k
 
-**Problem**: Given a tree $T$ with $n$ vertices, each of degree at most 3, and an integer $k \ge 1$, count the sets $S$ of $k$ vertices that are connected: for any $u, v \in S$, the path between them in $T$ stays in $S$.
+**Problem**: Given a tree $T$ with $n$ vertices, each of degree at most 3, and an integer $k \ge 1$, count the sets $S$ of $k$ vertices that are connected, meaning that for any $u, v \in S$ the path between them in $T$ lies in $S$.
 
-Root the tree anywhere. A connected set has a unique vertex closest to the root, its top. Let $f(v, j)$ be the number of connected sets of size $j$ whose top is $v$, meaning they contain $v$ and otherwise only descendants of $v$, with $f(v, 0) = 1$ standing for "take nothing below here". Such a set is $v$ plus, for each child $u$, either nothing from $u$'s subtree or a connected set with top $u$. So the sizes taken from the children add up to $j - 1$:
+The tree is rooted at an arbitrary vertex. A connected set has a unique vertex closest to the root, its top. Let $f(v, j)$ be the number of connected sets of size $j$ whose top is $v$, meaning they contain $v$ and otherwise only descendants of $v$, with $f(v, 0) = 1$ representing the choice of no vertices from the subtree of $v$. Such a set consists of $v$ together with, for each child $u$, either nothing from $u$'s subtree or a connected set with top $u$, so the sizes taken from the children sum to $j - 1$:
 
 $$
 f(v, j) = \sum_{\substack{j_1 + \dots + j_c = j - 1 \\ j_i \ge 0}} \ \prod_{i = 1}^{c} f(u_i, j_i)
@@ -766,24 +765,24 @@ The BFS levels serve only to orient the tree: a neighbor one level deeper is a c
 **Running time**: The BFS is $O(n)$. There are $O(nk)$ pairs $(v, j)$. A vertex has at most 3 neighbors, so every vertex except the root has at most 2 children and its sum has $O(k)$ terms; only the root can have 3 children, with $O(k^2)$ terms. Each term needs subproblems with smaller $j$, so the total is $O(nk^2)$, which is polynomial.
 
 > [!info]- Without the degree bound
-> For a vertex with many children, don't enumerate all splits of $j - 1$ at once. Fold the children in one at a time, keeping a table $F[s]$ = the number of ways to pick $s$ vertices from the children seen so far, and combine it with the next child's table by a convolution truncated at $k$. Bounding each convolution by the smaller of the two subtree sizes (and $k$) gives $O(nk)$ total, a standard "tree knapsack" argument.
+> For a vertex with many children, the splits of $j - 1$ need not be enumerated at once. The children are instead folded in one at a time. A table $F[s]$ holds the number of ways to pick $s$ vertices from the children seen so far, and it is combined with the next child's table by a convolution truncated at $k$. Bounding the cost of each convolution by the smaller of the two subtree sizes (and $k$) gives $O(nk)$ in total, by the "tree knapsack" argument.
 
 ## Potentially interesting ideas
 
 > [!question]- Potentially interesting ideas
-> These came up while measuring for this note. None of them was tested here; each is a question, not a result.
+> The following questions arose during the measurements and were not tested.
 >
-> - **Closing the full-table gap.** In C the full alignment table cost 2.4 to 2.7 ns per cell against 0.83 for two rows, which points at memory traffic rather than arithmetic. Storing a 2-bit traceback direction per cell instead of a 4-byte cost would cut the table 16 times, and filling it in cache-sized tiles might recover much of the two-row speed. How close either gets to two rows, and whether that beats Hirschberg's factor of two, would take a measurement.
-> - **Ties as a sign of a weak objective.** On one tRNA, 8,594 structures tie for the most base pairs. Counting tied optima is cheap with the same DP, so the count might work as a quick check of how much an objective underdetermines its answer. A related question is how little of the energy model is needed to recover the cloverleaf: a bonus for stacked pairs alone might be enough, but that is a guess.
-> - **When top down wins.** Here the top-down knapsack touched 65 to 80% of the table and still ran about twice as slow as bottom up. With weights that share a large common factor, or a few very heavy items, it would reach far fewer cells, so there may be a crossover worth locating.
-> - **Affine gaps in the figure.** Real aligners charge more to open a gap than to extend one ([Gotoh 1982](https://doi.org/10.1016/0022-2836(82)90398-9)), which needs three tables instead of one. Adding that mode to the figure would show why long gaps then win over scattered ones.
+> - **Closing the full-table gap.** In C the full alignment table cost 2.4 to 2.7 ns per cell against 0.83 for two rows, which suggests that memory traffic, rather than arithmetic, limits the full-table version. Storing a 2-bit traceback direction per cell instead of a 4-byte cost would reduce the table by a factor of 16, and filling it in cache-sized tiles might recover much of the two-row speed. Whether either approaches the two-row speed, and whether either outperforms Hirschberg's factor of two, is untested.
+> - **Ties as a measure of an underdetermined objective.** On one tRNA, 8,594 structures tie for the most base pairs. The same DP counts tied optima at little additional cost, so the count might serve as a quick measure of how far an objective underdetermines its optimum. A related question is how much of the energy model is needed to recover the cloverleaf; a bonus for stacked pairs alone might suffice, but this is a conjecture.
+> - **When top down is faster.** In the measurements, the top-down knapsack visited 65 to 80% of the table and still took about twice as long as bottom up. With weights that share a large common factor, or with a few very heavy items, it would visit far fewer cells, and there may be a point at which it becomes faster than bottom up.
+> - **Affine gaps in the figure.** Production aligners charge more to open a gap than to extend one ([Gotoh 1982](https://doi.org/10.1016/0022-2836(82)90398-9)), which requires three tables instead of one. Adding that mode to the figure would show why long gaps are then preferred to scattered ones.
 
 ## How this was measured
 
 > [!note]- How this was measured
-> Everything ran on a cloud VM with 4 vCPUs of an Intel Xeon at 2.30 GHz and 15 GiB of RAM, under Linux 6.18, with Python 3.13.18 and NumPy 2.5.3. Every timing is single-threaded. The harness lives beside this note in [`dp-harness/`](https://github.com/elimelt/web/tree/main/notes/content/algorithms/dp-harness), with the raw results in [`experiments_results.json`](dp-harness/experiments_results.json), [`check_results.json`](dp-harness/check_results.json) and [`align_runs.txt`](dp-harness/align_runs.txt).
+> Everything ran on a cloud VM with 4 vCPUs of an Intel Xeon at 2.30 GHz and 15 GiB of RAM, under Linux 6.18, with Python 3.13.18 and NumPy 2.5.3. Every timing is single-threaded. The harness is in the [`dp-harness/`](https://github.com/elimelt/web/tree/main/notes/content/algorithms/dp-harness) directory, with the raw results in [`experiments_results.json`](dp-harness/experiments_results.json), [`check_results.json`](dp-harness/check_results.json) and [`align_runs.txt`](dp-harness/align_runs.txt).
 >
-> - **Code checks.** [`check_samples.py`](dp-harness/check_samples.py) reads this page, runs every Python block and compares each function with a brute-force solver on random small inputs: subset enumeration for scheduling, knapsack, LIS and P1; all $2^n$ strings for string building; all placements for the post office; backtracking over pair sets for RNA; breadth-first search over edit operations for alignment; path enumeration for DAGs and Bellman-Ford; all rectangles for P2; all vertex subsets for P3. All 12 checks pass on 25,100 inputs.
+> - **Code checks.** [`check_samples.py`](dp-harness/check_samples.py) reads the source file `dynamic-programming.mdx`, runs every Python block and compares each function with a brute-force solver on random small inputs: subset enumeration for scheduling, knapsack, LIS and P1; all $2^n$ strings for string building; all placements for the post office; backtracking over pair sets for RNA; breadth-first search over edit operations for alignment; path enumeration for DAGs and Bellman-Ford; all rectangles for P2; all vertex subsets for P3. All 12 checks pass on 25,100 inputs.
 > - **Memoization and knapsack timing.** [`experiments.py`](dp-harness/experiments.py) counts calls of the uncached scheduling recursion and times the knapsack variants (100 items with weights uniform between $W/20$ and $W/4$ and values between 1 and 1,000; five runs per version, timed with `time.perf_counter`).
 > - **Alignment.** [`align.c`](dp-harness/align.c), compiled with `gcc -O2` (GCC 13.3), times the full table with traceback, two rows and Hirschberg on random DNA; [`run_align.sh`](dp-harness/run_align.sh) runs the sweep. The second sequence copies the first with each position independently substituted (1.7%), deleted (1.7%) or followed by an inserted base (1.6%). Times are wall clock for the DP alone; memory is peak resident set size. The Python per-cell figures come from `align_cost` and `align_cost_two_rows` above on random DNA pairs of length 1,000 and 2,000, three seeds each, with memory measured in a separate run because `tracemalloc` slows allocation.
 > - **RNA.** The tRNA sequence is chain A of [PDB 1EHZ](https://www.rcsb.org/structure/1EHZ) with modified bases written as their parent bases. The reference structure is the standard cloverleaf in Sprinzl numbering (acceptor stem 1–7 with 66–72, D stem 10–13 with 22–25, anticodon stem 27–31 with 39–43, T stem 49–53 with 61–65). Free energies are from ViennaRNA 2.8.0 with its default Turner 2004 parameters at 37 °C.
@@ -797,9 +796,9 @@ The BFS levels serve only to orient the tree: a neighbor one level deeper is a c
 
 ## Related notes
 
-- [[algorithms/induction|induction]], the proof technique every recurrence here rests on
-- [[algorithms/DAGs|directed acyclic graphs]], the shape of every DP's dependencies
-- [[algorithms/divide-and-conquer|divide and conquer]], for subproblems that don't overlap, and Hirschberg's mix of the two
+- [[algorithms/induction|induction]], the proof technique on which the correctness of each recurrence rests
+- [[algorithms/DAGs|directed acyclic graphs]], the structure of a dynamic program's dependencies
+- [[algorithms/divide-and-conquer|divide and conquer]], for subproblems that do not overlap, and Hirschberg's combination of the two
 - [[algorithms/greedy-algorithms|greedy algorithms]], which solve the unweighted interval problems that need DP once weights appear
 - [[algorithms/approximation-algorithms|approximation algorithms]]
 - [[algorithms/practice/4|problem set 4]]

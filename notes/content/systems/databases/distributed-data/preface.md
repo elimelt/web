@@ -9,36 +9,37 @@ tags:
   - fault-tolerance
   - shared-nothing-architecture
 date: 2023-12-26
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Reading notes on the preface to part 2 of Designing Data-Intensive Applications. Contrasts shared memory, shared disk, and shared nothing architectures for distributing data across machines.
+description: The preface to part 2 of Designing Data-Intensive Applications, which gives the reasons for distributing data across machines and contrasts shared memory, shared disk, and shared nothing architectures.
 sources:
   - title: Designing Data-Intensive Applications, Martin Kleppmann
     url: https://dataintensive.net/
     type: book
 ---
 
-## Purpose
-
-Reading notes on the preface to part 2 of [Designing Data-Intensive Applications](https://dataintensive.net/) by Martin Kleppmann. It sets up why data gets distributed across machines and which hardware architecture the rest of the book assumes.
+Part 2 of [Designing Data-Intensive Applications](https://dataintensive.net/) by Martin Kleppmann treats data systems that run on multiple machines. Its preface gives the reasons for distributing data and contrasts three hardware architectures for doing so, of which the rest of the part assumes the shared nothing architecture.
 
 ## Why distribute data
 
-Moving up a level to data systems that run on multiple machines, the motivations echo the single-machine concerns:
+The motivations for running a data system on multiple machines parallel the concerns of a single-machine system:
 
-- **Scalability.** Split load between multiple machines.
-- **Fault tolerance.** Keep serving when one or more machines fail.
-- **Latency.** Put data geographically close to users, via CDNs, caching, and regional replicas.
+- **Scalability.** Load is split between multiple machines.
+- **Fault tolerance.** The system continues to serve requests when one or more machines fail.
+- **Latency.** Data is placed geographically close to users, via CDNs, caching, and regional replicas.
 
 ## Scaling up
 
-A **[[systems/research/barrelfish|shared memory architecture]]** is a single computer with many CPUs sharing memory over a common bus. Doubling the power of one machine costs far more than double the price, and the shared bus becomes a bottleneck anyway.
+A **[[systems/research/barrelfish|shared memory architecture]]** is a single computer with many CPUs sharing memory over a common bus. Its cost grows faster than linearly with capacity, since a machine with twice the resources costs more than twice as much, and the shared bus becomes a bottleneck regardless of cost.
 
-A **shared disk architecture** gives each machine its own CPU and memory while all machines access the same disks over the network. This stretches further, and then the shared disks and the locking needed to coordinate access become the bottleneck.
+A **shared disk architecture** gives each machine its own CPU and memory while all machines access the same disks over the network. It scales further than shared memory, until the shared disks and the locking needed to coordinate access to them become the bottleneck.
 
 ## Scaling out
 
-In a **shared nothing architecture**, each machine has its own CPU, memory, and disk. Each machine, physical or virtual, is a **node**, and nodes coordinate purely by sending messages over the network in software. This is the most [[systems/databases/foundations/ch1-reliable-scalable-and-maintainable-applications|scalable]] arrangement, and it pushes all the coordination problems into software, which is what the rest of part 2 is about.
+In a **shared nothing architecture**, each machine has its own CPU, memory, and disk. Each machine, physical or virtual, is a **node**, and nodes coordinate purely by sending messages over the network in software. Of the three architectures it is the most [[systems/databases/foundations/ch1-reliable-scalable-and-maintainable-applications|scalable]], and it moves every coordination problem into software.
 
 Part 2 of the book focuses on shared nothing architectures.
 

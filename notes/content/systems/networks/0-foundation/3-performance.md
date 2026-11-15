@@ -9,14 +9,17 @@ tags:
   - latency
   - delay
 date: 2024-01-12
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: incomplete
-description: Stub on network performance metrics. Defines bandwidth and latency, then points to the notes that actually work the material.
+description: Stub defining bandwidth and latency as network performance metrics, with links to the notes that treat each in detail.
 ---
 
-This note was meant to cover how network performance is measured and never got past the first definition. The two headline metrics are **bandwidth** (or throughput), the number of bits per second a link or path can move, and **latency** (or delay), the time a message takes to cross it.
+Network performance is described chiefly by two metrics. **Bandwidth** (or throughput) is the number of bits per second a link or path can carry, and **latency** (or delay) is the time a message takes to cross it.
 
 > [!abstract] Bandwidth vs. latency
-> Bandwidth is how wide the pipe is, latency is how long it is, and the two are independent. A satellite link can be high-bandwidth and high-latency at once, and a short serial cable low-bandwidth and low-latency. More parallelism (more channels, wider signals) buys bandwidth, but only a shorter path or a faster medium cuts propagation latency.
+> Bandwidth and latency are independent quantities. A satellite link can have high bandwidth and high latency at once, and a short serial cable low bandwidth and low latency. Parallelism (more channels, wider signals) increases bandwidth, whereas only a shorter path or a faster medium reduces propagation latency.
 
-Until this gets written, [[systems/networks/0-foundation/2-physical-layer|the physical layer]] works a latency example with the transmission and propagation delay formulas, [[systems/networks/1-physical/coding-and-modulation|coding and modulation]] covers the bandwidth-delay product, and [[systems/networks/0-foundation/information-theory|information theory]] covers the hard limits on link capacity.
+[[systems/networks/0-foundation/2-physical-layer|The physical layer]] works a latency example with the transmission and propagation delay formulas, [[systems/networks/1-physical/coding-and-modulation|coding and modulation]] covers the bandwidth-delay product, and [[systems/networks/0-foundation/information-theory|information theory]] covers the theoretical limits on link capacity.

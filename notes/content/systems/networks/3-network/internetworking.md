@@ -12,9 +12,12 @@ tags:
   - icmp
   - ttl
 date: 2024-02-16
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: How IP connects networks that differ in service model, addressing, and packet size, covering IPv4 addressing, prefixes and CIDR, and datagram forwarding with longest prefix match.
+description: The interconnection by IP of networks that differ in service model, addressing, and packet size, covering IPv4 addressing, prefixes and CIDR, and datagram forwarding with longest prefix match.
 sources:
   - title: "RFC 791: Internet Protocol"
     url: https://datatracker.ietf.org/doc/html/rfc791
@@ -27,9 +30,9 @@ sources:
     type: textbook
 ---
 
-## Purpose
+Internetworking is the interconnection of networks built on different technologies into a single internet. Routers join the networks and forward datagrams between them using a common protocol, IP, and a common address space.
 
-Explain how networks built on different technologies get connected into one internet. Covers what networks can differ on, how IP addressing and prefixes work, and how a router forwards an IP datagram.
+The constituent networks may differ in service model, addressing, quality of service, packet size and security. IP requires little of each and defines a global addressing scheme in which blocks of addresses, called prefixes, determine how routers forward each datagram.
 
 ## How networks may differ
 
@@ -43,7 +46,7 @@ Internetworking hides these differences behind a common protocol (IP) and a comm
 
 ### Connecting datagram and virtual circuit networks
 
-Sending a datagram across a virtual circuit network means mapping a destination address to a VC and back again. One way to do it is to set up a VC between two routers and carry datagrams over that circuit:
+Sending a datagram across a virtual circuit network requires mapping a destination address to a VC and back. One method is to set up a VC between two routers and carry datagrams over that circuit:
 
 ```plaintext
 +--------+   802.11   +--------+ <---- MPLS ----> +--------+  Ethernet  +--------+
@@ -54,7 +57,7 @@ Sending a datagram across a virtual circuit network means mapping a destination 
 
 ## IP addressing
 
-IP is the lowest common denominator of the internet. It lets networks that support entirely different services communicate, by asking very little of the underlying network and providing very little in return.
+IP is the single protocol that every network in the internet supports. It allows networks that offer entirely different services to communicate, by requiring very little of the underlying network and providing very little in return.
 
 - IPv4 uses 32-bit addresses written in "dotted quad" notation, four 8-bit numbers separated by dots.
   - Ex: `192.168.1.1`
@@ -63,7 +66,7 @@ IP is the lowest common denominator of the internet. It lets networks that suppo
 
 ### IPv4 header
 
-The header format below is from [RFC 791](https://datatracker.ietf.org/doc/html/rfc791). The TTL and protocol fields matter later: TTL expiry is what [[systems/networks/3-network/ICMP|ICMP]] Time Exceeded messages report, and the protocol field says whether the payload is TCP, UDP, or something else.
+The header format below is from [RFC 791](https://datatracker.ietf.org/doc/html/rfc791). TTL expiry is the event that [[systems/networks/3-network/ICMP|ICMP]] Time Exceeded messages report, and the protocol field identifies the payload as TCP, UDP, or another protocol.
 
 ```plaintext
 <--------------------------------------- 32 bits --------------------------------------->
@@ -110,7 +113,7 @@ For `128.13.0.0/16`, the first 16 bits name the network and the rest name the ho
 
 ## IP datagram forwarding
 
-When a host wants to send a packet, it first checks whether the destination IP is on the same network by matching the subnet. If it is, the host sends the packet directly over the link layer, using [[systems/networks/3-network/ARP|ARP]] to resolve the IP address to a MAC address. Otherwise it hands the packet to its default gateway, a router.
+Before sending a packet, a host checks whether the destination IP is on the same network by matching the subnet. If it is, the host sends the packet directly over the link layer, using [[systems/networks/3-network/ARP|ARP]] to resolve the IP address to a MAC address. Otherwise it sends the packet to its default gateway, a router.
 
 The router then forwards the packet to its next hop based on the destination IP and the router's forwarding table. In pseudocode:
 
@@ -125,7 +128,7 @@ else:
 
 ### Longest prefix match
 
-With CIDR, several forwarding table entries can match the same destination. A `/16` and a more specific `/24` inside it can both contain the address. The rule is to pick the longest matching prefix, meaning the most specific one, and forward to its next hop:
+With CIDR, several forwarding table entries can match the same destination. A `/16` and a more specific `/24` inside it can both contain the address. The router selects the longest matching prefix, which is the most specific one, and forwards to its next hop:
 
 ```text
 best = default route
@@ -137,7 +140,7 @@ deliver packet to best.NextHop
 ```
 
 > [!example] Longest prefix match
-> Suppose the table holds `128.13.0.0/16 -> A` and `128.13.42.0/24 -> B`. A packet for `128.13.42.7` matches both entries, and the `/24` wins because it is more specific, so the packet goes to B. A packet for `128.13.7.9` matches only the `/16` and goes to A.
+> Suppose the table holds `128.13.0.0/16 -> A` and `128.13.42.0/24 -> B`. A packet for `128.13.42.7` matches both entries, and the `/24` is selected because it is more specific, so the packet goes to B. A packet for `128.13.7.9` matches only the `/16` and goes to A.
 
 ## Related notes
 

@@ -11,9 +11,12 @@ tags:
   - memory management
   - storage
 date: 2024-03-26
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: "Quick links for the Operating Systems: Principles and Practice textbook series."
+description: "Links to the four volumes of the Operating Systems: Principles and Practice textbook."
 sources:
   - https://www.kea.nu/files/textbooks/ospp/osppv1.pdf
   - https://www.kea.nu/files/textbooks/ospp/osppv2.pdf
@@ -21,9 +24,7 @@ sources:
   - https://www.kea.nu/files/textbooks/ospp/osppv4.pdf
 ---
 
-## Purpose
-
-Keep the four OSPP volumes in one place so the rest of the operating systems notes can link back to a stable reference.
+*Operating Systems: Principles and Practice* (OSPP) is an operating systems textbook published in four volumes, on kernels and processes, concurrency, memory management and persistent storage. The other operating systems notes link to these volumes as a stable reference.
 
 ## Textbook
 

@@ -15,9 +15,12 @@ tags:
   - silly-window-syndrome
   - window-scaling
 date: 2024-02-25
-updated: 2026-11-13
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: How a sliding window keeps a path full without overrunning the receiver. Sliding window ARQ (Go-Back-N, Selective Repeat, sequence number limits), TCP's receive window, zero windows and persist probes, silly window syndrome, window scaling and Linux receive buffers, with a simulation to drive and measurements from a real Linux stack.
+description: Sliding window flow control, which keeps a path full without overrunning the receiver, covering sliding window ARQ (Go-Back-N, Selective Repeat, sequence number limits), TCP's receive window, zero windows and persist probes, silly window syndrome, window scaling and Linux receive buffers, with an interactive simulation and measurements from the Linux TCP stack.
 sources:
   - title: "CSE 461: Computer Networks, University of Washington"
     url: https://courses.cs.washington.edu/courses/cse461/
@@ -63,9 +66,9 @@ sources:
     type: spec
 ---
 
-## Purpose
+Flow control is the mechanism by which a receiver bounds the amount of data a sender may transmit ahead of acknowledgement, so that data does not arrive faster than the receiver can buffer it. In a sliding window protocol the bound is a window, the maximum amount of data sent but not yet acknowledged. In TCP the receiver sets the window through the receive window it advertises in every segment, and "flow control" in TCP refers to this receive window.
 
-A sender that waits for each acknowledgement before sending again leaves a long path idle most of the time. Letting it run ahead fixes that, and then something has to decide how far ahead it may run. This note covers both halves. Sliding window ARQ keeps several packets in flight and recovers the ones that get lost. TCP's receive window is the number the receiver uses to tell the sender how much more it can take, and it is what "flow control" means in TCP.
+A sender that waits for each acknowledgement before transmitting again leaves a path with a long round-trip time idle for most of each round trip. A window of several packets keeps the path occupied, and sliding window ARQ recovers the packets that are lost. The receive window then determines how far ahead of the acknowledgements the sender may run.
 
 The measurements come from the Linux 6.18 TCP stack running between two network namespaces joined by an emulated 200 Mbit/s link. The [measurement record](#measurement-record) has the setup.
 
@@ -75,23 +78,23 @@ A sliding window sender may have at most $W$ bytes sent but not yet acknowledged
 
 $$\text{throughput} \le \frac{W}{RTT}$$
 
-In TCP two parties set $W$. The receiver advertises a receive window, rwnd, in every segment it sends: how much buffer it has left. The sender's congestion control keeps a congestion window, cwnd: its estimate of what the network can take. [RFC 5681 §3.1](https://www.rfc-editor.org/rfc/rfc5681#section-3.1) puts it in one line: "The minimum of cwnd and rwnd governs data transmission." Flow control is the rwnd half and protects the receiver. Congestion control is the cwnd half, protects the network, and is covered in the [[systems/networks/4-transport/TCP#Congestion|TCP note]]. Inside whichever window is smaller, the [[systems/networks/4-transport/ACK-clocking|ACK clock]] sets the pace.
+In TCP two parties set $W$. The receiver advertises a receive window, rwnd, in every segment it sends, giving the buffer space it has free. The sender's congestion control maintains a congestion window, cwnd, its estimate of the amount of data the network can carry. As [RFC 5681 §3.1](https://www.rfc-editor.org/rfc/rfc5681#section-3.1) states, "The minimum of cwnd and rwnd governs data transmission." Flow control concerns rwnd and protects the receiver. Congestion control concerns cwnd and protects the network; [[systems/networks/4-transport/TCP#Congestion|TCP]] treats it. Within the smaller of the two windows, the [[systems/networks/4-transport/ACK-clocking|ACK clock]] sets the transmission rate.
 
 ## Sizing the window
 
 To keep a path busy, the window has to cover everything the path holds in one round trip, the [[systems/networks/1-physical/coding-and-modulation#Bandwidth-delay product|bandwidth-delay product]] (BDP).
 
-Worked example. Take $10$ kb packets, a rate of $R = 1$ Mbps and a one-way delay of $50$ ms, so $RTT = 100$ ms. The path holds
+As a worked example, consider $10$ kb packets, a rate of $R = 1$ Mbps and a one-way delay of $50$ ms, so $RTT = 100$ ms. The path holds
 
 $$R \times RTT = 10^6 \times 0.1 = 100{,}000 \text{ bits}$$
 
 which is $w = 100{,}000 / 10{,}000 = 10$ packets. With $w \geq 10$ the sender never stalls waiting for ACKs. A smaller window caps throughput at $w \times 10{,}000$ bits per round trip.
 
-The figure runs the same arithmetic as a simulation. Its top chart is a time-sequence plot, the view tcptrace and Wireshark's "Stevens" graph use. Each blue tick is a segment leaving the sender, drawn at the height of the bytes it carries. The green line is the cumulative ACK, and the dashed orange line is the right edge of the window, ACK plus advertised window, which no tick may cross. With a 64 KiB window on a 100 Mbit/s, 40 ms path the sender emits a short burst and then waits, flat, for the rest of the round trip. Pick "Window covers BDP" and the bursts merge into a straight line at link rate.
+The figure runs the same arithmetic as a simulation. Its top chart is a time-sequence plot, the view tcptrace and Wireshark's "Stevens" graph use. Each blue tick is a segment leaving the sender, drawn at the height of the bytes it carries. The green line is the cumulative ACK, and the dashed orange line is the right edge of the window, ACK plus advertised window, which no tick may cross. With a 64 KiB window on a 100 Mbit/s, 40 ms path the sender emits a short burst and then remains idle for the rest of the round trip. In the "Window covers BDP" scenario the bursts merge into a straight line at link rate.
 
 <WindowSim preset="small" />
 
-The simulation's throughput lands within 3% of $\min(\text{link rate}, W/RTT)$ for every setting its tests check. A real stack does the same. The table is Linux sending as fast as it can to a receiver that set its buffer with `SO_RCVBUF` and read everything at once, over a 200 Mbit/s link at three round-trip times. Each cell is the median of three 6-second runs measured over their last 3 seconds; the three runs of a cell never differed by more than 1%.
+The simulation's throughput is within 3% of $\min(\text{link rate}, W/RTT)$ for every setting its tests check, and a real stack behaves the same way. The table shows Linux sending at its maximum rate to a receiver that set its buffer with `SO_RCVBUF` and read all data immediately, over a 200 Mbit/s link at three round-trip times. Each cell is the median of three 6-second runs measured over their last 3 seconds; the three runs of a cell never differed by more than 1%.
 
 | `SO_RCVBUF` asked for | Window Linux advertised | 10 ms RTT | 40 ms RTT | 100 ms RTT |
 | --- | --- | --- | --- | --- |
@@ -102,9 +105,9 @@ The simulation's throughput lands within 3% of $\min(\text{link rate}, W/RTT)$ f
 | 4 MiB | 5,241,472 B | 193.0 | 193.0 | 193.1 |
 | not set (autotuning) | grew to 4.3, 11.4 and 15.4 MB | 193.1 | 193.1 | 193.1 |
 
-Below the bandwidth-delay product (250 KB at 10 ms, 1 MB at 40 ms, 2.5 MB at 100 ms), goodput is the advertised window divided by the measured round trip. An 80,480-byte window over a 40.4 ms round trip predicts 15.9 Mbit/s, and 15.9 arrived. Above the BDP every run reaches 193 Mbit/s, the 200 Mbit/s link times 1448 payload bytes per 1500-byte packet. The record below has all ten buffer sizes.
+Below the bandwidth-delay product (250 KB at 10 ms, 1 MB at 40 ms, 2.5 MB at 100 ms), goodput is the advertised window divided by the measured round trip. An 80,480-byte window over a 40.4 ms round trip predicts 15.9 Mbit/s, and 15.9 Mbit/s was measured. Above the BDP every run reaches 193 Mbit/s, the 200 Mbit/s link times 1448 payload bytes per 1500-byte packet. The [measurement record](#measurement-record) lists all ten buffer sizes.
 
-Two things in the table are particular to Linux. The window column is not what the application asked for, which [Linux receive buffers](#linux-receive-buffers) explains. And the autotuned windows grew to 6 to 17 times the BDP. That cost no throughput, but the round trip rose from 10 to 13 ms, 40 to 47 ms and 100 to 170 ms. Once rwnd stops binding, the congestion controller (BBR, this kernel's default) decides how much data waits in the bottleneck queue, and the emulated bottleneck had 16 MiB of queue to fill.
+Two features of the table are specific to Linux. First, the window column is not what the application asked for, which [Linux receive buffers](#linux-receive-buffers) explains. Second, the autotuned windows grew to 6 to 17 times the BDP. Throughput was unaffected, but the round trip rose from 10 to 13 ms, 40 to 47 ms and 100 to 170 ms. Once rwnd no longer binds, the congestion controller (BBR, this kernel's default) determines how much data is queued at the bottleneck, and the emulated bottleneck had 16 MiB of queue capacity.
 
 ## Sliding window ARQ
 
@@ -112,13 +115,13 @@ The sender buffers up to $w$ frames until they are acknowledged. [Peterson and D
 
 $$LFS - LAR \leq w$$
 
-so at most $w$ frames are unacknowledged at a time. The receiver keeps LFR, the last frame received in order, and LAF, the largest frame it will accept, with $LAF - LFR$ no more than its receive window. What the receiver does with a frame that arrives out of order decides how loss is recovered, and the two classic answers trade receiver memory against retransmissions. [[systems/networks/2-direct-links/retransmission|Retransmission]] covers stop-and-wait, the one-frame case both generalize.
+so at most $w$ frames are unacknowledged at a time. The receiver keeps LFR, the last frame received in order, and LAF, the largest frame it will accept, with $LAF - LFR$ no more than its receive window. The receiver's treatment of a frame that arrives out of order determines how loss is recovered, and the two classical schemes, Go-Back-N and Selective Repeat, trade receiver memory against retransmissions. [[systems/networks/2-direct-links/retransmission|Retransmission]] covers stop-and-wait, the one-frame case both generalize.
 
 ### Go-Back-N
 
 The receiver keeps no out-of-order frames; its window is one frame. When the frame after LFR arrives, the receiver accepts it and ACKs it. Anything else is discarded even though it arrived intact, and the receiver repeats its last ACK.
 
-The sender keeps one timer, for the oldest unacknowledged frame. On timeout it resends every frame from LAR + 1 onward, so one loss can cost a full window of retransmissions. That is the price of the receiver's one-frame buffer.
+The sender keeps one timer, for the oldest unacknowledged frame. On timeout it resends every frame from LAR + 1 onward, so one loss can cause a full window of retransmissions, a consequence of the receiver's one-frame buffer.
 
 ```mermaid
 sequenceDiagram
@@ -144,7 +147,7 @@ sequenceDiagram
 
 The receiver buffers any frame inside its window, after LFR and up to LAF. When the frame after LFR arrives, the receiver moves LFR past any buffered frames that are now in order and ACKs the new LFR. An out-of-order frame is buffered, and the receiver repeats its last in-order ACK, which tells the sender where the gap starts.
 
-The sender keeps a timer per frame and resends only the frame whose timer expired. One loss costs one retransmission, paid for with receiver buffering and per-frame bookkeeping.
+The sender keeps a timer per frame and resends only the frame whose timer expired. One loss causes one retransmission, at the cost of receiver buffering and per-frame bookkeeping.
 
 ```mermaid
 sequenceDiagram
@@ -166,7 +169,7 @@ sequenceDiagram
     R-->>S: ACK 4
 ```
 
-TCP sits between the two. Its ACKs are cumulative like Go-Back-N's, but receivers keep out-of-order data like Selective Repeat. The sender retransmits after three repeated ACKs instead of waiting for a timer (fast retransmit, [RFC 5681 §3.2](https://www.rfc-editor.org/rfc/rfc5681#section-3.2)), and the SACK option ([RFC 2018](https://www.rfc-editor.org/rfc/rfc2018)) lets the receiver report exactly which blocks it holds. Pick "Lost segment" in the figure. The red mark is the retransmission, and the receiver's buffer (bottom chart) fills with the data that arrived behind the hole. That data is held but cannot be read, so the advertised right edge stops moving until the hole is filled. A loss shrinks the usable window for a round trip even with no congestion control at all.
+TCP combines elements of both. Its ACKs are cumulative like Go-Back-N's, but receivers keep out-of-order data like Selective Repeat. The sender retransmits after three repeated ACKs instead of waiting for a timer (fast retransmit, [RFC 5681 §3.2](https://www.rfc-editor.org/rfc/rfc5681#section-3.2)), and the SACK option ([RFC 2018](https://www.rfc-editor.org/rfc/rfc2018)) lets the receiver report exactly which blocks it holds. In the figure's "Lost segment" scenario, the red mark is the retransmission, and the receiver's buffer (bottom chart) fills with the data that arrived behind the hole. That data is held but cannot be read, so the advertised right edge stops moving until the hole is filled. A loss shrinks the usable window for a round trip even with no congestion control at all.
 
 ### Sequence numbers
 
@@ -176,29 +179,29 @@ Sequence numbers wrap, so the receiver has to tell a retransmitted old frame fro
 - Go-Back-N can use a window of up to $2^k - 1$. Its receiver accepts only the frame it expects next, and one spare value keeps "the next window" distinct from "the same window again".
 - Selective Repeat with equal send and receive windows needs $w \le 2^{k-1}$, half the sequence space.
 
-The Selective Repeat limit is easiest to see where it breaks. [Peterson and Davie](https://book.systemsapproach.org/direct/reliable.html) use 3-bit numbers, 0 to 7, and a window of 7. The sender sends 0 through 6. All arrive, so the receiver now accepts 7, 0, 1, 2, 3, 4 and 5. All seven ACKs are lost. The sender times out and resends the old 0 through 6, and the receiver files old frames 0 through 5 as new data. With a window of at most half the space the two possible windows never overlap.
+The Selective Repeat limit is clearest in a case that violates it. [Peterson and Davie](https://book.systemsapproach.org/direct/reliable.html) use 3-bit numbers, 0 to 7, and a window of 7. The sender sends 0 through 6. All arrive, so the receiver now accepts 7, 0, 1, 2, 3, 4 and 5. All seven ACKs are lost. The sender times out and resends the old 0 through 6, and the receiver accepts old frames 0 through 5 as new data. With a window of at most half the space the two possible windows never overlap.
 
-TCP numbers bytes with 32 bits and obeys the same rule at a larger scale. [RFC 7323 §2.3](https://www.rfc-editor.org/rfc/rfc7323#section-2.3) requires the left edge of the sender's window to stay within $2^{31}$ of the right edge of the receiver's, which keeps the window below $2^{30}$ bytes. That is why the window scale shift stops at 14, as [Window scaling](#window-scaling) explains.
+TCP numbers bytes with 32 bits and obeys the same rule at a larger scale. [RFC 7323 §2.3](https://www.rfc-editor.org/rfc/rfc7323#section-2.3) requires the left edge of the sender's window to stay within $2^{31}$ of the right edge of the receiver's, which keeps the window below $2^{30}$ bytes. This limit is the reason the window scale shift is capped at 14 ([Window scaling](#window-scaling)).
 
 ## TCP's receive window
 
-Every TCP segment carries a 16-bit Window field: how many bytes, counting from the acknowledgement number, the receiver will accept. The receiver sets it from its free buffer space. The sender's usable window is what remains after the bytes already in flight ([RFC 9293 §3.8.6.2.1](https://www.rfc-editor.org/rfc/rfc9293#section-3.8.6.2.1)):
+Every TCP segment carries a 16-bit Window field, the number of bytes, counting from the acknowledgement number, that the receiver will accept. The receiver sets it from its free buffer space. The sender's usable window is what remains after the bytes already in flight ([RFC 9293 §3.8.6.2.1](https://www.rfc-editor.org/rfc/rfc9293#section-3.8.6.2.1)):
 
 $$U = SND.UNA + SND.WND - SND.NXT$$
 
 Here SND.UNA is the oldest unacknowledged byte, SND.WND the last advertised window and SND.NXT the next byte to send.
 
-- **The window counts bytes.** A receiver with 3 KB free gets 3 KB, whether that arrives as two segments or thirty small ones.
+- **The window counts bytes.** A receiver with 3 KB free advertises 3 KB, whether that arrives as two segments or thirty small ones.
 - **The right edge should not move left.** A receiver that has offered bytes up to some sequence number "SHOULD NOT shrink the window", and a sender "MUST be robust against window shrinking" ([RFC 9293 §3.8.6](https://www.rfc-editor.org/rfc/rfc9293#section-3.8.6)). Linux never shrinks it by default. The `tcp_shrink_window` sysctl, [added by Cloudflare in 2023](https://github.com/torvalds/linux/commit/b650d953cd391595e536153ce30b4aab385643ac), lets it shrink to stay inside the socket's memory limit.
 - **A slow reader sets the rate.** Data the application has not read stays in the buffer, so the window opens only as fast as the application reads. In the figure's "Slow reader" scenario the buffer fills, and goodput settles close to the application's 1 MB/s.
 
 ### Zero windows and the persist timer
 
-When the application stops reading, the buffer fills and the receiver advertises a window of zero. The sender stops. When the application reads again, the receiver sends a window update, a pure ACK carrying the new window. TCP does not retransmit pure ACKs, so if that update is lost the receiver waits for data and the sender waits for a window, forever.
+When the application stops reading, the buffer fills and the receiver advertises a window of zero. The sender stops. When the application reads again, the receiver sends a window update, a pure ACK carrying the new window. TCP does not retransmit pure ACKs, so if that update is lost the receiver waits for data and the sender waits for a window indefinitely.
 
-The persist timer breaks that deadlock. Probing a zero window "MUST be supported": the sender probes after one retransmission timeout and "SHOULD increase exponentially the interval between successive probes" ([RFC 9293 §3.8.6.1](https://www.rfc-editor.org/rfc/rfc9293#section-3.8.6.1)). Each probe makes the receiver answer with its current window, so a lost update costs at most one probe interval. While the probes are answered the connection stays open indefinitely, even if the window never opens.
+The persist timer breaks that deadlock. Probing a zero window "MUST be supported": the sender probes after one retransmission timeout and "SHOULD increase exponentially the interval between successive probes" ([RFC 9293 §3.8.6.1](https://www.rfc-editor.org/rfc/rfc9293#section-3.8.6.1)). Each probe makes the receiver answer with its current window, so a lost update delays the transfer by at most one probe interval. While the probes are answered the connection stays open indefinitely, even if the window never opens.
 
-Linux's probe ([`tcp_xmit_probe_skb`](https://github.com/torvalds/linux/blob/v6.18/net/ipv4/tcp_output.c)) carries no data and uses sequence number SND.UNA − 1, a byte already acknowledged, which the receiver has to answer with an ACK. Here is a captured one: a receiver with a 64 KiB `SO_RCVBUF` stopped reading for 20 seconds on a 40 ms path.
+Linux's probe ([`tcp_xmit_probe_skb`](https://github.com/torvalds/linux/blob/v6.18/net/ipv4/tcp_output.c)) carries no data and uses sequence number SND.UNA − 1, a byte already acknowledged, which the receiver must answer with an ACK. The table records a captured exchange in which a receiver with a 64 KiB `SO_RCVBUF` stopped reading for 20 seconds on a 40 ms path.
 
 | Event | Time after the window closed |
 | --- | --- |
@@ -211,22 +214,22 @@ Linux's probe ([`tcp_xmit_probe_skb`](https://github.com/torvalds/linux/blob/v6.
 | application reads; window update to 76,160 bytes | 19.51 s |
 | sender resumes | as the update arrives |
 
-The gaps between probes were 0.58, 1.06, 2.08, 4.10 and 8.19 s. Linux's `tcp_probe0_when` doubles the timeout per probe and caps it at 120 s. The next probe was due at 32.7 s, so the update saved 13 seconds; had it been lost, the transfer would have sat idle that long. The run was repeated and the probe times matched to within 4 ms.
+The gaps between probes were 0.58, 1.06, 2.08, 4.10 and 8.19 s. Linux's `tcp_probe0_when` doubles the timeout per probe and caps it at 120 s. The next probe was due at 32.7 s, so the update arrived 13 seconds earlier; had the update been lost, the transfer would have remained idle for those 13 seconds. The run was repeated and the probe times matched to within 4 ms.
 
-The first row shows the sender half of silly window avoidance, covered next: with less than a segment of window open, Linux's sender waited, and when the persist timer fired, [`tcp_write_wakeup`](https://github.com/torvalds/linux/blob/v6.18/net/ipv4/tcp_output.c) sent the partial window as data instead of an empty probe.
+The first row shows the sender's half of [silly window](#silly-window-syndrome) avoidance. With less than a segment of window open, Linux's sender waited, and when the persist timer fired, [`tcp_write_wakeup`](https://github.com/torvalds/linux/blob/v6.18/net/ipv4/tcp_output.c) sent the partial window as data instead of an empty probe.
 
-This copy of the figure starts with the reader paused for the middle second. Pick "Lost window update" to watch the flow wait for a probe instead.
+In this instance of the figure the reader is paused for the middle second. The "Lost window update" scenario shows the flow stalled until a probe.
 
 <WindowSim preset="pause" />
 
 > [!note]- Deep dive: when does Linux give up on a zero window?
-> Never, while probes are answered. The comment in [`tcp_timer.c`](https://github.com/torvalds/linux/blob/v6.18/net/ipv4/tcp_timer.c) says "RFC 1122 4.2.2.17 requires the sender to stay open indefinitely as long as the receiver continues to respond probes", and every incoming ACK resets the probe count. Linux aborts the connection only after `tcp_retries2` (default 15) probes in a row go unanswered, or sooner if the application set `TCP_USER_TIMEOUT`. A peer that is alive but never reads can therefore hold a connection, and the sender's buffered data, as long as it likes. Servers that care put their own idle timeout above TCP.
+> Linux does not give up while probes are answered. The comment in [`tcp_timer.c`](https://github.com/torvalds/linux/blob/v6.18/net/ipv4/tcp_timer.c) says "RFC 1122 4.2.2.17 requires the sender to stay open indefinitely as long as the receiver continues to respond probes", and every incoming ACK resets the probe count. Linux aborts the connection only after `tcp_retries2` (default 15) probes in a row go unanswered, or sooner if the application set `TCP_USER_TIMEOUT`. A peer that is alive but never reads can therefore hold a connection, and the sender's buffered data, indefinitely. Servers that must bound this implement their own idle timeout above TCP.
 
 ### Silly window syndrome
 
-Suppose the buffer is full and the application reads 200 bytes. A naive receiver advertises a 200-byte window, and a naive sender fills it with a 200-byte segment carrying 40 bytes of headers. The buffer is full again, the next read frees another 200 bytes, and the transfer settles into tiny segments for good. [Clark (1982)](https://www.rfc-editor.org/rfc/rfc813) named this silly window syndrome, "a degeneration in the throughput which develops over time". The figure's "Silly window" scenario runs it with avoidance turned off, and segments average about 250 bytes. Turn on "Silly window avoidance" and they are full-sized, with the same goodput.
+Suppose the buffer is full and the application reads 200 bytes. A naive receiver advertises a 200-byte window, and a naive sender fills it with a 200-byte segment carrying 40 bytes of headers. The buffer is full again, the next read frees another 200 bytes, and the transfer settles permanently into small segments. [Clark (1982)](https://www.rfc-editor.org/rfc/rfc813) named this silly window syndrome, "a degeneration in the throughput which develops over time". The figure's "Silly window" scenario runs it with avoidance turned off, and segments average about 250 bytes. With "Silly window avoidance" enabled, segments are full-sized and goodput is unchanged.
 
-The fix has a rule at each end, both required by [RFC 9293 §3.8.6.2](https://www.rfc-editor.org/rfc/rfc9293#section-3.8.6.2).
+The remedy consists of one rule at each end, both required by [RFC 9293 §3.8.6.2](https://www.rfc-editor.org/rfc/rfc9293#section-3.8.6.2).
 
 - **Receiver.** Keep the right edge where it is until it can move by at least $\min(\tfrac12 \times \text{buffer}, \text{MSS})$, and until then advertise only what is left of the old window.
 - **Sender.** Send a segment only if it is a full MSS, or at least half the largest window the receiver has offered, or the application pushed and nothing is outstanding. That last condition is [Nagle's algorithm (RFC 896)](https://www.rfc-editor.org/rfc/rfc896), which also coalesces small writes on interactive connections.
@@ -235,33 +238,33 @@ Linux's receiver rule ([`__tcp_select_window`](https://github.com/torvalds/linux
 
 ### Window scaling
 
-The Window field is 16 bits, so the largest window it can express is 65,535 bytes. At a 100 ms round trip that caps a connection at 5.2 Mbit/s however fast the path is. [RFC 1323](https://www.rfc-editor.org/rfc/rfc1323) called such paths "long, fat" networks and added the window scale option, now in [RFC 7323](https://www.rfc-editor.org/rfc/rfc7323). Each side announces a shift count, and the other side multiplies every later window from it by $2^{\text{shift}}$. The shift is capped at 14, so the largest window is $65{,}535 \times 2^{14}$, about 1 GiB, which stays below the $2^{30}$ limit from [Sequence numbers](#sequence-numbers).
+The Window field is 16 bits, so the largest window it can express is 65,535 bytes. At a 100 ms round trip that caps a connection at 5.2 Mbit/s regardless of the path's capacity. [RFC 1323](https://www.rfc-editor.org/rfc/rfc1323) called such paths "long, fat" networks and added the window scale option, now in [RFC 7323](https://www.rfc-editor.org/rfc/rfc7323). Each side announces a shift count, and the other side multiplies every later window from it by $2^{\text{shift}}$. The shift is capped at 14, so the largest window is $65{,}535 \times 2^{14}$, about 1 GiB, which stays below the $2^{30}$ limit from [Sequence numbers](#sequence-numbers).
 
-The option "is sent only in a &lt;SYN&gt; segment" ([§2.1](https://www.rfc-editor.org/rfc/rfc7323#section-2.1)), so the shift is fixed for the life of the connection. Linux picks it from the buffer it expects to need. In the experiment, a receiver that set `SO_RCVBUF` to 64 KiB before `listen()` announced a shift of 1 and sent its 80,480-byte window as 40,240 in the header. That connection can never advertise more than $65{,}535 \times 2$ bytes, whatever the buffer grows to later. Set the buffer before `connect()` or `listen()`.
+The option "is sent only in a &lt;SYN&gt; segment" ([§2.1](https://www.rfc-editor.org/rfc/rfc7323#section-2.1)), so the shift is fixed for the life of the connection. Linux picks it from the buffer it expects to need. In the experiment, a receiver that set `SO_RCVBUF` to 64 KiB before `listen()` announced a shift of 1 and sent its 80,480-byte window as 40,240 in the header. That connection can never advertise more than $65{,}535 \times 2$ bytes, whatever the buffer grows to later, so the buffer must be set before `connect()` or `listen()`.
 
 ## Linux receive buffers
 
 The table's `SO_RCVBUF` column and window column disagree because of three Linux behaviors.
 
 - **The kernel doubles the request.** [socket(7)](https://man7.org/linux/man-pages/man7/socket.7.html): "The kernel doubles this value (to allow space for bookkeeping overhead)". The request is first capped at `net.core.rmem_max`, 4 MiB on the test machine.
-- **The window is a fraction of the buffer.** The buffer pays for each packet's kernel memory as well as its payload, so Linux advertises only part of it. Since Linux 6.6 the fraction is measured per socket from the packets actually received (`scaling_ratio`, from [Dumazet's 2023 patch](https://github.com/torvalds/linux/commit/dfa2f0483360d4d6f2324405464c9f281156bd87), which replaced the fixed `tcp_adv_win_scale`). Here the window was 57 to 62% of the doubled buffer, so the application got about 1.2 times what it asked for.
+- **The window is a fraction of the buffer.** The buffer is charged for each packet's kernel memory as well as its payload, so Linux advertises only part of it. Since Linux 6.6 the fraction is measured per socket from the packets actually received (`scaling_ratio`, from [Dumazet's 2023 patch](https://github.com/torvalds/linux/commit/dfa2f0483360d4d6f2324405464c9f281156bd87), which replaced the fixed `tcp_adv_win_scale`). Here the window was 57 to 62% of the doubled buffer, so the application got about 1.2 times what it asked for.
 - **Setting `SO_RCVBUF` turns off autotuning.** The [kernel's sysctl documentation](https://docs.kernel.org/networking/ip-sysctl.html) says so under `tcp_rmem`: "Calling setsockopt() with SO_RCVBUF disables automatic tuning of that socket's receive buffer size". Every fixed row of the table kept its window for the whole run.
 
-Autotuning (`tcp_moderate_rcvbuf`, on by default) starts the buffer at `tcp_rmem[1]`, 128 KiB, and grows it up to `tcp_rmem[2]`, 32 MiB here. Each round trip it measures how much the application consumed and sizes the buffer to twice that, an idea from [Fisk and Feng's Dynamic Right-Sizing](https://www.osti.gov/servlets/purl/786912), which `tcp_input.c` credits. With a fast reader that gives the table's last row, full link rate at every round-trip time. On long real paths the ceiling matters: [Cloudflare (2022)](https://blog.cloudflare.com/optimizing-tcp-for-high-throughput-and-low-latency) raised `tcp_rmem[2]` to 512 MiB and measured a 121 ms path go from 276 to 6600 Mbit/s and a 282 ms path from 120 to 3800 Mbit/s.
+Autotuning (`tcp_moderate_rcvbuf`, on by default) starts the buffer at `tcp_rmem[1]`, 128 KiB, and grows it up to `tcp_rmem[2]`, 32 MiB here. Each round trip it measures how much the application consumed and sizes the buffer to twice that, an idea from [Fisk and Feng's Dynamic Right-Sizing](https://www.osti.gov/servlets/purl/786912), which `tcp_input.c` credits. With a fast reader that gives the table's last row, full link rate at every round-trip time. On long paths the ceiling limits throughput. [Cloudflare (2022)](https://blog.cloudflare.com/optimizing-tcp-for-high-throughput-and-low-latency) raised `tcp_rmem[2]` to 512 MiB and measured a 121 ms path go from 276 to 6600 Mbit/s and a 282 ms path from 120 to 3800 Mbit/s.
 
-On Linux, then, leave `SO_RCVBUF` alone unless you mean to cap a connection's memory, and raise `tcp_rmem[2]` to raise the ceiling.
+On Linux, setting `SO_RCVBUF` is therefore appropriate only to cap a connection's memory, and the ceiling is raised through `tcp_rmem[2]`.
 
 > [!note]- Deep dive: why the window is a fraction of the buffer
 > A receive buffer holds packets, not bytes. Each received segment sits in an `sk_buff`, and the socket is charged its `truesize`: the payload plus the structure and the memory block the driver allocated for it. `scaling_ratio` is payload over `truesize` for recent packets, and Linux advertises the buffer times that ratio, so a full window of data fits in the memory the buffer allows. The 57 to 62% measured here belongs to this path's TUN device; drivers allocate packet memory differently, so other NICs give other ratios. Before 6.6 the kernel assumed a fixed fraction from `tcp_adv_win_scale` (by default, half). Dumazet's patch says the measured ratio "can double TCP receive performance when receivers are too slow to drain their receive queue". A [2024 follow-up](https://github.com/torvalds/linux/commit/697a6c8cec03c2299f850fa50322641a8bf6b915) raised the starting ratio from about 25% to 50% after it found a 10 MB transfer into a 64 KiB `SO_RCVBUF` taking 40 s instead of 22 s.
 
 ## The same idea above TCP
 
-QUIC and HTTP/2 run their own flow control because they carry many streams over one connection, and one stream's slow reader should not stall the rest.
+QUIC and HTTP/2 run their own flow control because they carry many streams over one connection, and a stream whose reader is slow should not stall the others.
 
-- **QUIC** ([RFC 9000 §4](https://www.rfc-editor.org/rfc/rfc9000#section-4)) gives the receiver two limits, per stream (`MAX_STREAM_DATA`) and per connection (`MAX_DATA`). A limit is an absolute byte offset rather than a window relative to an ACK, so a smaller limit than one already sent has no effect and a stale update cannot shrink anything. A sender stuck at a limit should say so with `DATA_BLOCKED` or `STREAM_DATA_BLOCKED`, and lost limit updates are sent again ([§13.3](https://www.rfc-editor.org/rfc/rfc9000#section-13.3)), so the lost-update deadlock TCP needs a persist timer for cannot happen.
+- **QUIC** ([RFC 9000 §4](https://www.rfc-editor.org/rfc/rfc9000#section-4)) gives the receiver two limits, per stream (`MAX_STREAM_DATA`) and per connection (`MAX_DATA`). A limit is an absolute byte offset rather than a window relative to an ACK, so a smaller limit than one already sent has no effect and a stale update cannot shrink anything. A sender stuck at a limit should say so with `DATA_BLOCKED` or `STREAM_DATA_BLOCKED`, and lost limit updates are sent again ([§13.3](https://www.rfc-editor.org/rfc/rfc9000#section-13.3)), so the lost-update deadlock that TCP resolves with a persist timer does not arise.
 - **HTTP/2** ([RFC 9113 §5.2](https://www.rfc-editor.org/rfc/rfc9113#section-5.2)) is credit-based too, per stream and per connection, and applies only to DATA frames. Both windows start at 65,535 bytes and grow through `WINDOW_UPDATE` frames. HTTP/2 runs on TCP, so a transfer is limited by whichever of its own window and TCP's receive window is smaller. A receiver that never raises the HTTP/2 window past its default caps each stream at 65,535 bytes per round trip, the same ceiling window scaling removed from TCP.
 
-The [[systems/networks/5-application/quic-http2-http3|QUIC and HTTP/2 note]] covers the rest of those protocols.
+[[systems/networks/5-application/quic-http2-http3|QUIC, HTTP/2 and HTTP/3]] treats those protocols in full.
 
 ## Measurement record
 

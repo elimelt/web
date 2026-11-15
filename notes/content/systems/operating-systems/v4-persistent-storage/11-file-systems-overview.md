@@ -10,20 +10,21 @@ tags:
   - executable files
   - file streams
 date: 2024-01-08
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Chapter notes on OSPP chapter 11. What a file system has to provide, the properties of nonvolatile storage, and the core abstractions of files, directories, links, and volumes.
+description: Notes on chapter 11 of OSPP, covering the requirements a file system must meet, the properties of nonvolatile storage, and the abstractions of files, directories, links and volumes.
 sources:
   - title: "Operating Systems: Principles and Practice (2nd ed.), Anderson and Dahlin, chapter 11"
     url: https://ospp.cs.washington.edu/
     type: textbook
 ---
 
-## Purpose
+Chapter 11 of [Operating Systems: Principles and Practice](https://ospp.cs.washington.edu/) introduces the file system abstraction; its implementation is treated in [[systems/operating-systems/v4-persistent-storage/13-files-and-directories|files and directories]].
 
-Notes on chapter 11 of [Operating Systems: Principles and Practice](https://ospp.cs.washington.edu/). This chapter sets up the file system abstraction; the implementation details live in [[systems/operating-systems/v4-persistent-storage/13-files-and-directories|files and directories]].
-
-A file system has to deliver several things at once:
+A file system is expected to provide the following properties simultaneously:
 
 - **Reliability**
 - **Large capacity and low cost**
@@ -33,7 +34,7 @@ A file system has to deliver several things at once:
 
 ## Nonvolatile Storage
 
-Unlike DRAM, nonvolatile storage is persistent, and it is generally cheaper with higher capacity. The price is speed. A magnetic disk access takes on the order of milliseconds against DRAM's nanoseconds, roughly 5 orders of magnitude slower. Current nonvolatile storage technologies also do not allow random access to individual words. Data must be read and written in fixed-size blocks (e.g. 512 bytes). Both properties shape everything a file system does: it batches work into blocks and fights hard to avoid touching the device at all.
+Unlike DRAM, nonvolatile storage is persistent, and it generally has a lower cost per byte and a higher capacity. It is also slower. A magnetic disk access takes on the order of milliseconds against DRAM's nanoseconds, roughly 5 orders of magnitude slower. Current nonvolatile storage technologies also do not allow random access to individual words. Data must be read and written in fixed-size blocks (e.g. 512 bytes). These two properties determine much of file system design. File systems transfer data in whole blocks and minimize the number of device accesses.
 
 ## The File System Abstraction
 
@@ -43,11 +44,11 @@ Files can be *executable*. Executable binaries on Linux begin with a magic numbe
 
 A traditional file is a single logical stream of bytes. MacOS's HFS+ and Windows NTFS support multiple streams (forks) per file, and in those systems the read and write system calls take an argument naming which stream to touch.
 
-Terms worth having down cold: **directory**, **root directory**, **home directory**, **current working directory**, **path**, **absolute path**, **relative path**.
+The abstraction also defines the terms **directory**, **root directory**, **home directory**, **current working directory**, **path**, **absolute path**, **relative path**.
 
 ### Links
 
-The mapping between a name and a file is a **hard link**. A file system that allows multiple hard links to one file stops being a tree and becomes a directed acyclic graph. A **symbolic link** maps a name to another file name instead of to the file itself, which lets you reference files on other volumes or systems. Some operating systems layer similar features above the file system. Windows has **shortcuts**, ordinary files that Windows recognizes and redirects through. MacOS has **aliases**, which behave like symbolic links and also fix themselves up when the target file moves.
+The mapping between a name and a file is a **hard link**. A file system that allows multiple hard links to one file stops being a tree and becomes a directed acyclic graph. A **symbolic link** maps a name to another file name instead of to the file itself, which allows a name to refer to files on other volumes or systems. Some operating systems layer similar features above the file system. Windows has **shortcuts**, ordinary files that Windows recognizes and redirects through. MacOS has **aliases**, which behave like symbolic links and continue to resolve to the target file when it moves.
 
 ```mermaid
 flowchart LR

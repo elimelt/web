@@ -6,16 +6,19 @@ tags:
   - asymptotic notation
   - efficiency
 date: 2024-03-29
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Definitions of O, Omega, and Theta notation, growth-rate facts for common function families, and why polynomial time is the standard bar for an efficient algorithm.
+description: Definitions of O, Omega, and Theta notation, growth-rate facts for common function families, and the definition of an efficient algorithm as one with polynomial running time.
 sources:
   - https://www.cs.princeton.edu/~wayne/kleinberg-tardos/
 ---
 
-## Purpose
+Asymptotic notation classifies functions of the input size $n$ by their growth rate, disregarding constant factors and the values of the function below some threshold $n_0$. $O$, $\Omega$ and $\Theta$ express upper, lower and tight bounds.
 
-Running time is roughly proportional to the number of simple operations performed, so counting operations as a function of input size is how we compare algorithms without benchmarking them. This note pins down the three asymptotic notations and the growth-rate facts worth memorizing.
+Running time is roughly proportional to the number of simple operations performed, so expressing the operation count as a function of input size in this notation allows algorithms to be compared without benchmarking them.
 
 ## O-Notation
 
@@ -53,7 +56,7 @@ $$
 \log_a n \in O(\log_b n) \text{ for all } a, b > 1
 $$
 
-Base changes only shift a logarithm by a constant factor, since $\log_a n = \frac{\log_b n}{\log_b a}$.
+A change of base alters a logarithm only by a constant factor, since $\log_a n = \frac{\log_b n}{\log_b a}$.
 
 ### Exponential
 
@@ -69,9 +72,9 @@ $$
 
 ## "Efficient" Algorithms
 
-A single CPU core executes on the order of $10^9$ simple operations per second. That budget makes exponential algorithms useless beyond tiny inputs: $2^{60}$ operations is decades of compute, and $n!$ blows past that at $n = 20$.
+A single CPU core executes on the order of $10^9$ simple operations per second. At that rate an exponential algorithm is impractical on all but small inputs. $2^{60}$ operations take decades, and $n!$ exceeds that count at $n = 20$.
 
-Polynomial time is the standard bar for an efficient algorithm, and it has a useful scaling property: if the input size grows by a constant factor, the running time of a polynomial time algorithm also grows by a constant factor.
+Kleinberg and Tardos define an efficient algorithm as one whose running time is polynomial in the input size. Under this definition, if the input size grows by a constant factor, the running time of a polynomial time algorithm also grows by a constant factor.
 
 ## Related notes
 

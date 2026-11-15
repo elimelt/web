@@ -7,36 +7,39 @@ tags:
   - recursive algorithms
   - computational-geometry
 date: 2024-04-24
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Why balanced splits beat peeling off one element, with two worked examples, bisection for root finding and the closest pair of points, including correctness arguments and Python implementations.
+description: The recurrences for balanced splits and for one-element reductions with a linear merge step, and two worked examples, bisection for root finding and the closest pair of points in the plane, with correctness arguments and Python implementations.
 ---
 
-## Purpose
+**Divide and conquer** is an algorithm design technique that reduces a problem to one or more subproblems of the same form, solves each recursively, and combines their solutions into a solution of the original problem.
 
-Divide and conquer reduces a problem to multiple sub-problems, solves each recursively, and merges the solutions. In plain [[algorithms/induction|induction]] you typically shrink the problem by one element. Divide and conquer instead shrinks it to a constant fraction of the original size, and that difference is where the speedup comes from. Merge sort, binary search, and Strassen's algorithm all follow this shape. This note works through two examples in full: bisection for root finding and the closest pair of points.
+An algorithm designed by [[algorithms/induction|induction]] typically reduces the problem by one element at each step. Divide and conquer reduces it to subproblems whose size is a constant fraction of the original, and this difference accounts for its lower running time ([[#Why Balanced Partitioning?]]). Merge sort, binary search and Strassen's algorithm have this structure.
 
 ## Why Balanced Partitioning?
 
-Say the merge step costs $O(n)$ and the brute force algorithm costs $O(n^2)$. Peeling off one element at a time gives
+Suppose the merge step costs $O(n)$ and the brute force algorithm costs $O(n^2)$. Reducing the problem by one element at each step gives
 
 $$
 T(n) = T(n - 1) + O(n) = O(n^2)
 $$
 
-which buys nothing over brute force. Now split into two halves and solve each half by brute force:
+which is no improvement over brute force. Splitting the input into two halves and solving each half by brute force costs
 
 $$
 2 \cdot \left(\frac{n}{2}\right)^2 + n = \frac{n^2}{2} + n
 $$
 
-One level of splitting cut the work roughly in half. A second level makes it roughly 4 times faster, a third almost 8, and so on. Recursing all the way down gives
+One level of splitting reduces the work by roughly a factor of 2. A second level reduces it by roughly a factor of 4, and a third by almost 8. Recursing until the subproblems reach constant size gives
 
 $$
 T(n) = 2T\left(\frac{n}{2}\right) + O(n) = O(n \log n)
 $$
 
-The recursion tree makes the bound visible. Subproblems shrink geometrically, but their count doubles at each level, so every level does the same total merge work:
+In the recursion tree, subproblem sizes decrease geometrically while their number doubles at each level, so the total merge work is the same at every level.
 
 ```mermaid
 flowchart TD
@@ -65,9 +68,9 @@ flowchart TD
     C4 --> D4["⋮"]
 ```
 
-Halving continues for $\log_2 n$ levels before subproblems hit constant size, and each level sums to $n$, giving the $O(n \log n)$ total.
+Halving continues for $\log_2 n$ levels before subproblems reach constant size, and each level sums to $n$, giving the $O(n \log n)$ total.
 
-In practice the best approach is often to recurse down to a small problem size and finish with the iterative brute force algorithm, which avoids recursion overhead on tiny inputs. Quick sort with random splitters is implemented this way.
+The iterative brute force algorithm incurs no recursive-call overhead and can be faster on small inputs, so an implementation may stop the recursion at a cutoff size and solve the remaining subproblems by brute force. Quick sort with random splitters is implemented this way.
 
 ## Finding the Root of a Function
 
@@ -117,7 +120,7 @@ Either way the recursive call returns a valid answer by the inductive hypothesis
 
 ## Closest Pair of Points
 
-Given $n$ points in the plane, find the pair with the smallest Euclidean distance between them. Checking every pair costs $O(n^2)$. The geometry lets us skip almost all of those comparisons.
+Given $n$ points in the plane, find the pair with the smallest Euclidean distance between them. Checking every pair takes $O(n^2)$ time. A packing argument in the plane eliminates all but $O(n)$ of the comparisons between the two halves at each level of the recursion.
 
 ### 1 Dimensional Version
 
@@ -130,18 +133,18 @@ Given $n$ points on the real line, sort them and compare each consecutive pair. 
 
 Let $\delta$ be the smaller of the two one-side minimum distances. The only remaining candidates are pairs that straddle $L$, and both endpoints of such a pair must lie within $\delta$ of $L$.
 
-Partition each side of the strip into $\frac{\delta}{2} \times \frac{\delta}{2}$ squares. Each square holds at most one point: two points in the same square would be at distance at most $\frac{\delta}{\sqrt{2}} < \delta$ on the same side of $L$, contradicting the minimality of $\delta$ on that side.
+Partition each side of the strip into $\frac{\delta}{2} \times \frac{\delta}{2}$ squares. Each square holds at most one point, since two points in the same square would be at distance at most $\frac{\delta}{\sqrt{2}} < \delta$ on the same side of $L$, contradicting the minimality of $\delta$ on that side.
 
-Now sort the points in the strip $x \in [L - \delta, L + \delta]$ by $y$-coordinate to get $s_1, s_2, \ldots$.
+The points in the strip $x \in [L - \delta, L + \delta]$, sorted by $y$-coordinate, are $s_1, s_2, \ldots$.
 
 **Claim**: $\forall s_i, s_j$, if $|i - j| > 11$, then $d(s_i, s_j) > \delta$.
 
 **Proof**: The strip is $2\delta$ wide, so each row of squares in the strip contains 4 squares, each holding at most one point. Any point more than two rows away from $s_i$ has vertical distance greater than $\delta$ from $s_i$. Within two rows of $s_i$ there are at most 3 other points in its own row and 8 in the two rows above (or below), so any point more than $8 + 3 = 11$ positions away in $y$-sorted order is more than two rows away, and thus at distance greater than $\delta$. $\blacksquare$
 
-So the merge step only compares each strip point to its 11 neighbors in $y$-sorted order, which keeps the merge linear after sorting and gives $T(n) = 2T(\frac{n}{2}) + O(n \log n)$, which is $O(n \log^2 n)$. Presorting by $y$ tightens this to $O(n \log n)$.
+The merge step therefore compares each strip point only with its 11 neighbors in $y$-sorted order, which keeps the merge linear after sorting and gives $T(n) = 2T(\frac{n}{2}) + O(n \log n)$, which is $O(n \log^2 n)$. Presorting by $y$ tightens this to $O(n \log n)$.
 
-> [!tip] The constant 11 is not tunable downward
-> The neighbor bound comes from the packing argument, not from profiling. Shrinking the window below 11 can miss the closest straddling pair on adversarial inputs, while enlarging it only wastes comparisons. The implementation below checks indices $i - 11$ through $i + 11$, matching the claim exactly. It also switches to brute force at $n \le 10$, the small-input cutoff discussed under [[#Why Balanced Partitioning?|balanced partitioning]].
+> [!tip] The constant 11 comes from the packing argument
+> The neighbor bound is a consequence of the packing argument and holds for every input. A window smaller than the proven bound has no correctness guarantee from this argument, although finer packing arguments prove smaller constants, so 11 is sufficient but not the least possible. Enlarging the window adds comparisons without changing the result. The implementation in [[#Implementation]] checks indices $i - 11$ through $i + 11$, as the claim requires. It also switches to brute force at $n \le 10$, the small-input cutoff discussed under [[#Why Balanced Partitioning?|balanced partitioning]].
 
 ### Implementation
 

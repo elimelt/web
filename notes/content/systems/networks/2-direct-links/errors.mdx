@@ -16,9 +16,12 @@ tags:
   - secded
   - fec
 date: 2024-01-26
-updated: 2026-11-14
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: How links and protocols notice corrupted bits, and sometimes repair them, by adding redundancy. Covers Hamming distance, parity, the Internet checksum (RFC 1071), CRCs and Hamming codes, with a measurement of which bit errors each code misses in real captured frames.
+description: The detection, and in some codes the correction, of corrupted bits by means of added redundancy, covering Hamming distance, parity, the Internet checksum (RFC 1071), CRCs and Hamming codes, with a measurement of the bit errors each code misses in real captured frames.
 sources:
   - title: "RFC 1071: Computing the Internet Checksum"
     url: https://www.rfc-editor.org/rfc/rfc1071
@@ -46,13 +49,11 @@ sources:
     type: textbook
 ---
 
-## Purpose
+An error-detecting or error-correcting code adds redundant check bits, computed from the data, to each transmission, so that the receiver can determine whether bits were corrupted in transit and, for a correcting code, recover the bits that were sent. The code is designed so that the errors a channel produces seldom transform one valid transmission into another.
 
-Some received bits will be wrong. Noise, interference and weak signals flip bits on the wire (see [[systems/networks/1-physical/coding-and-modulation|coding and modulation]]), and bugs in network cards, router memory and drivers corrupt bits that were fine on the wire. A receiver that hands corrupted data upward without noticing is worse than one that drops it.
+Noise, interference and weak signals flip bits on the wire (see [[systems/networks/1-physical/coding-and-modulation|coding and modulation]]), and bugs in network cards, router memory and drivers corrupt bits that were transmitted correctly. A receiver that passes corrupted data to the layer above without detecting it does more harm than one that drops it. **Detection** identifies a corrupted frame and discards it, leaving recovery to [[systems/networks/2-direct-links/retransmission|retransmission]]. **Correction** adds enough redundancy for the receiver to determine what was sent and repair the frame in place. Both rely on extra bits chosen so that most corruptions produce a string the sender could not have sent.
 
-There are two responses. **Detection** notices that something is wrong and throws the frame away, leaving recovery to [[systems/networks/2-direct-links/retransmission|retransmission]]. **Correction** adds enough redundancy to work out what was sent and fix it in place. Both work the same way at heart: send extra bits computed from the data, so that most corruptions produce something the sender could never have sent.
-
-This note builds from that idea up to the codes in daily use: parity, the 16-bit Internet checksum in IP, TCP and UDP, the 32-bit CRC on every Ethernet frame, and Hamming codes, the simplest codes that correct. A measurement on real captured frames shows what each one misses.
+The codes in common use are parity, the 16-bit Internet checksum of IP, TCP and UDP, the 32-bit CRC carried by every Ethernet frame, and Hamming codes, the simplest codes that correct errors. The [measurements](#measured-what-each-code-misses) compare their miss rates on bit errors injected into captured Ethernet frames.
 
 ## Codewords and redundancy
 
@@ -64,9 +65,9 @@ $$
 \frac{2^D}{2^{D+R}} = 2^{-R},
 $$
 
-so each check bit halves the odds that garbage passes. Real errors are not uniformly random, though. They are usually a few flipped bits, often close together. A good code is one whose codewords are far apart in exactly the directions real errors move.
+so each check bit halves the probability that a random string is accepted. Errors on real links are not uniformly random. They tend to consist of a few flipped bits, often close together, so an effective code places its codewords far apart along the error patterns that real channels produce.
 
-The simplest code repeats every bit, $1 \to 11$ and $0 \to 00$, so $101110 \to 101110101110$. One flip breaks a pair and is caught. Two flips in the same pair turn $11$ into $00$, a valid pair, and pass. The code doubles the message to catch every single error and guarantees nothing for two: weak protection at a high price.
+A simple code repeats every bit, $1 \to 11$ and $0 \to 00$, so $101110 \to 101110101110$. A single flip breaks a pair and is detected. Two flips in the same pair turn $11$ into $00$, a valid pair, and go undetected. The code doubles the message length, detects every single-bit error and guarantees nothing for two-bit errors, so its overhead is high relative to the protection it provides.
 
 ## Hamming distance
 
@@ -76,33 +77,33 @@ $$
 d_{\min} = \min_{x, y \in C,\ x \neq y} d(x, y).
 $$
 
-That one number sets the guarantees:
+The minimum distance determines the code's guarantees.
 
-- A code with $d_{\min} = t + 1$ detects every error of up to $t$ flips, because $t$ flips can't reach another codeword.
-- A code with $d_{\min} = 2t + 1$ corrects every error of up to $t$ flips: decode to the nearest codeword, which is still the original, since every other codeword is at least $t + 1$ flips away.
+- A code with $d_{\min} = t + 1$ detects every error of up to $t$ flips, because $t$ flips cannot reach another codeword.
+- A code with $d_{\min} = 2t + 1$ corrects every error of up to $t$ flips by decoding to the nearest codeword, which is still the original, since every other codeword is at least $t + 1$ flips away.
 
-The same distance can be spent either way, but not both at once. A distance-3 code detects 2 flips *or* corrects 1. If the receiver corrects, a 2-flip error lands nearer to some other codeword and gets "corrected" into the wrong data.
+A given distance can be used for detection or for correction, and the two guarantees do not hold simultaneously. A distance-3 code detects 2 flips *or* corrects 1. If the receiver corrects, a 2-flip error can lie nearer to another codeword and is then "corrected" into the wrong data.
 
-> [!example] Distance 3 in miniature
-> Take the code $\{000, 111\}$, repeating each bit three times. Its distance is 3. Receive $001$ and the nearest codeword is $000$: one flip, corrected. Receive $011$, two flips away from $000$: a receiver that only detects knows something is wrong, but a receiver that corrects picks $111$, the wrong answer. Three flips land silently on the other codeword.
+> [!example] A distance-3 code
+> The code $\{000, 111\}$ repeats each bit three times, and its distance is 3. If $001$ is received, the nearest codeword is $000$, one flip away, and the error is corrected. If $011$ is received, two flips away from $000$, a receiver that only detects recognizes an error, but a receiver that corrects chooses $111$, which is wrong. Three flips turn one codeword into the other and go undetected.
 
-The doubling code above has distance 2: it detects one flip and corrects nothing.
+The doubling code has distance 2, so it detects one flip and corrects none.
 
 ## Parity
 
-A single **parity bit** is the XOR of all the data bits, so every codeword has an even number of 1s. Any odd number of flips makes the count odd and is caught; any even number cancels out and passes. Its distance is 2. Against random bursts of corruption it is a coin toss: in the measurement below it missed exactly half.
+A single **parity bit** is the XOR of all the data bits, so every codeword has an even number of 1s. Any odd number of flips makes the count odd and is detected, and any even number cancels and goes undetected. Its distance is 2. In the [measurement](#measured-what-each-code-misses) it missed half of all random bursts.
 
-Parity survives because it is one XOR gate. It appears per byte on old serial links and memory buses, and it is the building block of every code below: a CRC and a Hamming code are both sets of parity checks over cleverly chosen subsets of bits.
+Parity remains in use because it can be computed with XOR gates alone. It appears per byte on older serial links and memory buses, and it is the building block of CRCs and Hamming codes, both of which are sets of parity checks over chosen subsets of bits.
 
 ## The Internet checksum
 
 IP, TCP, UDP and ICMP use a 16-bit checksum defined in [RFC 1071](https://www.rfc-editor.org/rfc/rfc1071). The sender treats the data as a sequence of 16-bit words and adds them up in **ones' complement** arithmetic, where a carry out of the top bit is added back in at the bottom (the "end-around carry"). It sends the bitwise complement of the sum. The receiver adds up every word, checksum included, and if nothing changed the result is all ones, `0xFFFF`.
 
-Here is a real IPv4 header, captured from a TCP connection, as a receiver sees it after one bit of the TTL flipped on the way. The last column adds the words in one at a time. Click any bit to flip it and watch the final sum.
+The figure shows a real IPv4 header, captured from a TCP connection, as a receiver sees it after one bit of the TTL flipped in transit. The last column accumulates the words one at a time. Clicking any bit flips it and updates the final sum.
 
 <ChecksumSum scenario="flip" />
 
-A single flip changes one word by $\pm 2^i$, which always changes the ones' complement sum, so one flip is always caught: the checksum has distance 2. The whole algorithm is short:
+A single flip changes one word by $\pm 2^i$, which always changes the ones' complement sum, so every single flip is detected and the checksum has distance 2. The algorithm is short:
 
 ```python
 def ones_complement_sum(data: bytes) -> int:
@@ -124,28 +125,28 @@ def checksum_ok(data_with_checksum: bytes) -> bool:
     return ones_complement_sum(data_with_checksum) == 0xFFFF
 ```
 
-It is tested against RFC 1071's worked example and against the checksums real senders wrote into 299 captured IPv4 headers ([`codes.py`](https://github.com/elimelt/web/blob/main/notes/content/systems/networks/2-direct-links/error-detection-harness/codes.py), [`test_codes.py`](https://github.com/elimelt/web/blob/main/notes/content/systems/networks/2-direct-links/error-detection-harness/test_codes.py)). Production code adds 32 or 64 bits at a time and folds once at the end, which gives the same answer.
+The implementation is tested against RFC 1071's worked example and against the checksums real senders wrote into 299 captured IPv4 headers ([`codes.py`](https://github.com/elimelt/web/blob/main/notes/content/systems/networks/2-direct-links/error-detection-harness/codes.py), [`test_codes.py`](https://github.com/elimelt/web/blob/main/notes/content/systems/networks/2-direct-links/error-detection-harness/test_codes.py)). Production implementations add 32 or 64 bits at a time and fold once at the end, which gives the same result.
 
 ### What it misses
 
-Addition only sees totals. Two flips in the same bit column of different words, one $0 \to 1$ and one $1 \to 0$, add $+2^i$ and $-2^i$ and cancel. In this header, that pair turns the destination address 172.16.5.10 into 172.16.5.11 and nudges the identification field, and the header still passes.
+The checksum depends only on the sum of the words. Two flips in the same bit column of different words, one $0 \to 1$ and one $1 \to 0$, add $+2^i$ and $-2^i$ and cancel. In this header, that pair turns the destination address 172.16.5.10 into 172.16.5.11 and changes the identification field, and the header still passes the check.
 
 <ChecksumSum scenario="cancel" />
 
-For two random flips that happens when both land in the same of the 16 columns (about 1 in 16) with opposite values (about 1 in 2), roughly 3% of the time; the measurement below found 2.99%. Reordering whole words changes nothing at all, so swapping the source and destination addresses, or any two 16-bit words, always passes. A word changing from `0x0000` to `0xFFFF` passes too, because those are ones' complement's two representations of zero.
+Two random flips cancel when both land in the same one of the 16 columns (about 1 in 16) with opposite values (about 1 in 2), roughly 3% of the time; the measurement found 2.99%. Reordering whole words does not change the sum, so swapping the source and destination addresses, or any two 16-bit words, always passes. A word changing from `0x0000` to `0xFFFF` also passes, because those are the two ones' complement representations of zero.
 
-Besides every single flip, the checksum does guarantee to catch every burst of up to 15 adjacent bits ([Maxino and Koopman, 2009](https://users.ece.cmu.edu/~koopman/pubs/maxino09_checksums.pdf)).
+In addition to every single flip, the checksum detects every burst of up to 15 adjacent bits ([Maxino and Koopman, 2009](https://users.ece.cmu.edu/~koopman/pubs/maxino09_checksums.pdf)).
 
-> [!note]- Why ones' complement, and why it survives
+> [!note]- Why ones' complement, and why it persists
 > Ones' complement addition had properties that suited the software of the 1970s and 1980s, which [RFC 1071](https://www.rfc-editor.org/rfc/rfc1071) lists:
 >
 > - **Byte-order independence.** Swapping the bytes of every word swaps the bytes of the sum, so a little-endian machine can add words in its native order and swap once at the end.
 > - **Wider adds.** Adding 32-bit words and folding the halves together gives the same 16-bit result, so a 64-bit CPU checksums eight bytes per add.
 > - **Incremental update.** A router that decrements the TTL can patch the checksum from the old and new word values without re-adding the header. [RFC 1624](https://www.rfc-editor.org/rfc/rfc1624) gives the exact formula, fixing a corner case with the two zeros in the earlier RFC 1141.
 >
-> It is weak, and everyone knows it. It persists because the link below is supposed to run a strong CRC, so the checksum's real job is to catch what goes wrong *inside* hosts and routers, where no CRC is watching. [Stone and Partridge (2000)](https://doi.org/10.1145/347059.347561) studied real traffic and found that between 1 packet in 1,100 and 1 in 32,000 failed the TCP checksum even though every link CRC had passed. The causes were mostly not line noise: faulty network cards, host software bugs, router memory errors and DMA errors. They estimated that the checksum then lets through somewhere between 1 in 16 million and 1 in 10 billion packets, which is why applications that care, like file transfer and storage, add their own end-to-end checks.
+> Its error detection is weak. It persists because the link layer below is expected to apply a strong CRC, so the checksum's role is to detect corruption *inside* hosts and routers, which no link CRC covers. [Stone and Partridge (2000)](https://doi.org/10.1145/347059.347561) studied real traffic and found that between 1 packet in 1,100 and 1 in 32,000 failed the TCP checksum even though every link CRC had passed. Most of the causes were faulty network cards, host software bugs, router memory errors and DMA errors rather than line noise. They estimated that the checksum then lets through somewhere between 1 in 16 million and 1 in 10 billion packets, which is why applications that require data integrity, such as file transfer and storage, add their own end-to-end checks.
 >
-> Later protocols chose differently. IPv6 has no header checksum at all ([RFC 8200, section 3](https://www.rfc-editor.org/rfc/rfc8200#section-3)) and makes the UDP checksum mandatory instead (section 8.1). SCTP replaced its Adler-32 checksum with the CRC-32C polynomial because Adler-32 detects errors poorly in the small packets SCTP carries ([RFC 3309](https://www.rfc-editor.org/rfc/rfc3309)).
+> Later protocols made different choices. IPv6 has no header checksum at all ([RFC 8200, section 3](https://www.rfc-editor.org/rfc/rfc8200#section-3)) and makes the UDP checksum mandatory instead (section 8.1). SCTP replaced its Adler-32 checksum with the CRC-32C polynomial because Adler-32 detects errors poorly in the small packets SCTP carries ([RFC 3309](https://www.rfc-editor.org/rfc/rfc3309)).
 
 ## Cyclic redundancy checks
 
@@ -157,29 +158,29 @@ The check bits come from long division:
 2. Divide by the generator, with XOR in place of subtraction.
 3. Replace the zeros with the $k$-bit remainder.
 
-Step through it for the 8-bit message 11010011 and the generator 1011, which is $x^3 + x + 1$:
+The figure steps through the division for the 8-bit message 11010011 and the generator 1011, which is $x^3 + x + 1$:
 
 <CrcDivide scenario="send" />
 
-The receiver runs the same division on all 11 bits, and a codeword leaves remainder 000. Here three adjacent bits were flipped on the way:
+The receiver runs the same division on all 11 bits, and a codeword leaves remainder 000. In the next figure three adjacent bits were flipped in transit:
 
 <CrcDivide scenario="burst" />
 
-### Why CRCs catch what they catch
+### Error patterns a CRC detects
 
-A corrupted codeword is the original plus an error pattern $E(x)$, and the original divides evenly, so the receiver's remainder is the remainder of $E(x)$ alone. **An error passes exactly when $E(x)$ is a multiple of $G(x)$**, whatever the data was. Every CRC guarantee comes from choosing $G(x)$ so that the errors real links produce are never multiples:
+A corrupted codeword is the original plus an error pattern $E(x)$, and the original divides evenly, so the receiver's remainder is the remainder of $E(x)$ alone. **An error passes exactly when $E(x)$ is a multiple of $G(x)$**, whatever the data was. Each CRC guarantee follows from choosing $G(x)$ so that common error patterns on real links are not multiples of it.
 
-- **Every burst of length $k$ or less is caught.** A burst confined to $k$ adjacent bits is $x^i B(x)$ with $\deg B < k$ and $B$ nonzero. If $G$ has a constant term it shares no factor with $x^i$, and it can't divide $B(x)$, whose degree is smaller. The figure above flips a burst of 3 against a degree-3 generator.
+- **Every burst of length $k$ or less is caught.** A burst confined to $k$ adjacent bits is $x^i B(x)$ with $\deg B < k$ and $B$ nonzero. If $G$ has a constant term it shares no factor with $x^i$, and it cannot divide $B(x)$, whose degree is smaller. The figure above flips a burst of 3 against a degree-3 generator.
 - **Every odd number of flips is caught if $x + 1$ divides $G$**, because then every multiple of $G$ has an even number of terms. The generator $x + 1$ by itself is exactly the parity bit.
 - **Every single and double flip is caught** as long as no $x^j + 1$, for $j$ up to the codeword length, is a multiple of $G$.
 
-Errors that are multiples of $G$ pass. The pattern 1011 shifted into the middle of the codeword is one:
+Errors that are multiples of $G$ go undetected. The pattern 1011 shifted into the middle of the codeword is one such error:
 
 <CrcDivide scenario="missed" />
 
-A real generator makes such patterns rare and long. [Koopman's exhaustive search](https://users.ece.cmu.edu/~koopman/crc/crc32.html) gives the guarantees of Ethernet's CRC-32 (generator `0x04C11DB7`, degree 32) by data length: it catches every error of up to 3 flips in up to 91,607 data bits, up to 4 flips in up to 2,974 bits, and up to 5 in up to 268 bits. A full-size Ethernet frame is 12,112 bits, so it gets the 3-flip guarantee, plus every burst of up to 32 bits. The polynomial is not divisible by $x + 1$, so unlike a parity bit it doesn't catch every odd number of flips, and [Koopman (2002)](https://users.ece.cmu.edu/~koopman/networks/dsn02/dsn02_koopman.pdf) found better 32-bit generators: the one he writes as `0xBA0DC66B` catches every error of up to 5 flips in up to 16,360 data bits, two more flips than Ethernet's at full frame size. The 16-bit CCITT generator `0x1021` does have $x + 1$ as a factor, and catches up to 3 flips in up to 32,751 data bits ([CRC zoo](https://users.ece.cmu.edu/~koopman/crc/crc16.html)).
+For generators used in practice, such patterns are rare and long. [Koopman's exhaustive search](https://users.ece.cmu.edu/~koopman/crc/crc32.html) gives the guarantees of Ethernet's CRC-32 (generator `0x04C11DB7`, degree 32) by data length: it catches every error of up to 3 flips in up to 91,607 data bits, up to 4 flips in up to 2,974 bits, and up to 5 in up to 268 bits. A full-size Ethernet frame is 12,112 bits, so the 3-flip guarantee applies, as does detection of every burst of up to 32 bits. The polynomial is not divisible by $x + 1$, so unlike a parity bit it does not detect every odd number of flips. [Koopman (2002)](https://users.ece.cmu.edu/~koopman/networks/dsn02/dsn02_koopman.pdf) identified 32-bit generators with stronger guarantees; the one he writes as `0xBA0DC66B` detects every error of up to 5 flips in up to 16,360 data bits, two more flips than Ethernet's at full frame size. The 16-bit CCITT generator `0x1021` does have $x + 1$ as a factor, and detects up to 3 flips in up to 32,751 data bits ([CRC zoo](https://users.ece.cmu.edu/~koopman/crc/crc16.html)).
 
-In software a CRC is a shift register. This is Ethernet's, one bit at a time; real implementations handle a byte or more per step with lookup tables, or use the CPU's carry-less multiply instruction:
+In software a CRC is computed as a shift register. The function below computes Ethernet's CRC one bit at a time; production implementations handle a byte or more per step with lookup tables, or use the CPU's carry-less multiply instruction:
 
 ```python
 def crc32_ieee(data: bytes) -> int:
@@ -191,22 +192,22 @@ def crc32_ieee(data: bytes) -> int:
     return reg ^ 0xFFFFFFFF               # and complement the result
 ```
 
-It matches Python's `zlib.crc32` and the published check value `0xCBF43926` for the ASCII string `123456789`.
+The function matches Python's `zlib.crc32` and the published check value `0xCBF43926` for the ASCII string `123456789`.
 
-> [!note]- Deep dive: what real CRCs add to the textbook version
+> [!note]- Deep dive: deployed CRCs and plain polynomial division
 > Ethernet's CRC differs from plain polynomial division in three ways, and none of them changes which errors are caught.
 >
 > - **Reflection.** Ethernet sends each byte least significant bit first, so the polynomial's first bit is bit 0 of the first byte. Implementations shift right with the bit-reversed generator `0xEDB88320` instead of reversing every byte. That keeps the burst guarantee in terms of bits as they travel on the wire.
-> - **Preset to all ones.** With a zero register, leading zero bytes don't change the CRC, so a receiver couldn't tell `00 00 41` from `41`. Starting at all ones makes extra or missing leading zeros visible.
+> - **Preset to all ones.** With a zero register, leading zero bytes do not change the CRC, so a receiver could not distinguish `00 00 41` from `41`. Starting at all ones makes extra or missing leading zeros visible.
 > - **Inverted output.** The sender complements the remainder, so an all-zero frame doesn't carry an all-zero CRC and trailing zeros are caught too.
 >
-> These add the same constant to every codeword, and a constant cancels when the receiver compares, so the analysis above, and the experiment below, can treat the CRC as plain division of the error pattern.
+> These add the same constant to every codeword, and a constant cancels when the receiver compares, so the analysis of error patterns, and the [measurement](#measured-what-each-code-misses), can treat the CRC as plain division of the error pattern.
 
 ## Measured: what each code misses
 
-The guarantees say what a code always catches. To compare the codes on errors outside their guarantees, I protected 328 real Ethernet frames four ways and flipped bits in them.
+The guarantees state which errors a code always detects. To compare the codes on errors outside their guarantees, I protected 328 real Ethernet frames with each of four codes and flipped bits in them.
 
-The frames come from four packet captures in Wireshark's test suite (a TLS session, two HTTP/2 transfers and a QUIC connection): 107 KB of real headers and payloads, in frames of 60 to 1,514 bytes. Each frame got an even parity bit, the Internet checksum, a 16-bit CRC (generator `0x1021`) or Ethernet's CRC-32. Then it took one of three kinds of damage: $k$ bits flipped at random; a **burst** of length $b$, where the first and last bits flip and each bit between flips with probability 1/2; or two different 16-bit words swapped. Each cell counts the corrupted frames the receiver accepted, per million tries, over 5 seeds of 200,000 tries each, with the range across seeds in parentheses.
+The frames come from four packet captures in Wireshark's test suite (a TLS session, two HTTP/2 transfers and a QUIC connection): 107 KB of real headers and payloads, in frames of 60 to 1,514 bytes. Each frame was protected by an even parity bit, the Internet checksum, a 16-bit CRC (generator `0x1021`) or Ethernet's CRC-32, and then subjected to one of three kinds of damage: $k$ bits flipped at random; a **burst** of length $b$, where the first and last bits flip and each bit between flips with probability 1/2; or two different 16-bit words swapped. Each cell counts the corrupted frames the receiver accepted, per million tries, over 5 seeds of 200,000 tries each, with the range across seeds in parentheses.
 
 | Error | Parity | Internet checksum | CRC-16 | CRC-32 |
 | :-- | --: | --: | --: | --: |
@@ -222,13 +223,11 @@ The frames come from four packet captures in Wireshark's test suite (a TLS sessi
 | bursts of 24 to 128 | half | 6 to 19 | 9 to 21 | 0 |
 | two words swapped | all | all | 2 of 97,702 | 0 of 97,754 |
 
-What it shows:
-
-- **Same 16 bits, different guarantees.** On long random bursts, the checksum and the 16-bit CRC both let through about the 1 in 65,536 (15 per million) that any 16-bit check must. The difference is in the small errors: the CRC caught every error of up to 3 flips and every burst of up to 16 bits, while the checksum let through 3% of all 2-flip errors and every word swap.
-- **Theory predicts the numbers.** A CRC of degree $k$ should miss bursts of length $k + 1$ at a rate of $2^{-(k-1)}$, which for the CRC-16 is 31 per million; it missed 32. The checksum's first misses appear at bursts of 16, one past its 15-bit guarantee.
-- **CRC-32 never missed.** Not one of 16 million bit-flip trials, and none of the swaps. That fits its guarantees plus a $2^{-32}$ (one in 4 billion) miss rate on everything else. At a million tries per row, the 95% upper bound is 3 misses per million.
-- **Parity misses every even number of flips** and half of all bursts, as its algebra says.
-- **Real data barely mattered.** The checksum's verdict depends on the data, unlike a CRC's, but rerunning it on random bytes of the same lengths gave nearly the same rates: 3.12% of 2-flip errors against 2.99% on real frames.
+- **Same 16 bits, different guarantees.** On long random bursts, the checksum and the 16-bit CRC both accept about 1 in 65,536 (15 per million) corrupted frames, the rate expected of any 16-bit check. They differ on small errors. The CRC detected every error of up to 3 flips and every burst of up to 16 bits, while the checksum accepted 3% of all 2-flip errors and every word swap.
+- **Agreement with theory.** A CRC of degree $k$ should miss bursts of length $k + 1$ at a rate of $2^{-(k-1)}$, which for the CRC-16 is 31 per million; it missed 32. The checksum's first misses appear at bursts of 16, one bit beyond its 15-bit guarantee.
+- **No misses for CRC-32.** It accepted none of 16 million bit-flip trials and none of the swaps, which is consistent with its guarantees plus a $2^{-32}$ (one in 4 billion) miss rate on other errors. At a million tries per row, the 95% upper bound is 3 misses per million.
+- **Parity misses every even number of flips** and half of all bursts, as its algebra predicts.
+- **Little dependence on real data.** The checksum's result depends on the data, unlike a CRC's, but rerunning it on random bytes of the same lengths gave nearly the same rates: 3.12% of 2-flip errors against 2.99% on real frames.
 
 > [!note]- How this was measured
 > - **Frames.** `rsasnakeoil2.pcap`, `http2-data-reassembly.pcap`, `http2_follow_multistream.pcapng` and `quic-with-secrets.pcapng` from Wireshark's `test/captures`, pinned to commit `6815438e` and checked by SHA-256. Frames longer than 1,514 bytes, which the capturing host recorded before its network card split them into wire-size frames, are left out. Odd-length frames get one zero byte, so all four codes protect the same bytes.
@@ -240,21 +239,21 @@ What it shows:
 
 ## Hamming codes
 
-Detection needs distance 2. Correction needs distance 3, and [Hamming (1950)](https://doi.org/10.1002/j.1538-7305.1950.tb00463.x) found the cheapest way to get it.
+Detection of single errors requires distance 2, and their correction requires distance 3. [Hamming (1950)](https://doi.org/10.1002/j.1538-7305.1950.tb00463.x) constructed codes that achieve distance 3 with the fewest check bits.
 
-Number the codeword's positions from 1. Put check bits at the powers of two (1, 2, 4, 8, ...) and data bits everywhere else. Check bit $p$ is the parity of every position whose binary index has bit $p$ set: $p_1$ covers 1, 3, 5, 7, ..., $p_2$ covers 2, 3, 6, 7, ..., and $p_4$ covers 4 to 7, then 12 to 15, and so on. Each position is covered by a different set of checks, the set its binary index spells out.
+The codeword's positions are numbered from 1. Check bits occupy the powers of two (1, 2, 4, 8, ...), and data bits occupy the remaining positions. Check bit $p$ is the parity of every position whose binary index has bit $p$ set: $p_1$ covers 1, 3, 5, 7, ..., $p_2$ covers 2, 3, 6, 7, ..., and $p_4$ covers 4 to 7, then 12 to 15, and so on. Each position is covered by a different set of checks, the set its binary index spells out.
 
-The receiver recomputes each check. If position $i$ flipped, exactly the checks in $i$'s binary index fail, so adding up the failing checks' positions, the **syndrome**, gives $i$. A zero syndrome means no single flip.
+The receiver recomputes each check. If position $i$ flipped, exactly the checks in $i$'s binary index fail, so adding up the failing checks' positions, the **syndrome**, gives $i$. A zero syndrome indicates that no single flip occurred.
 
-With $k$ check bits there are $2^k - 1$ positions, so the code carries $2^k - k - 1$ data bits: 4 with 3 check bits (Hamming(7,4)), 57 with 6, 120 with 7. Here is Hamming(7,4) carrying 1011, with position 6 flipped in transit. Checks $p_2$ and $p_4$ fail, $2 + 4 = 6$, and the decoder flips position 6 back:
+With $k$ check bits there are $2^k - 1$ positions, so the code carries $2^k - k - 1$ data bits: 4 with 3 check bits (Hamming(7,4)), 57 with 6, 120 with 7. The figure shows Hamming(7,4) carrying 1011, with position 6 flipped in transit. Checks $p_2$ and $p_4$ fail, $2 + 4 = 6$, and the decoder flips position 6 back:
 
 <HammingStep scenario="one" />
 
-The distance is 3, so two flips fool the same decoder. Flip positions 3 and 6, and the failing checks add up to $3 \oplus 6 = 5$, a position that was right. The decoder "corrects" it and outputs data that is wrong in two places, with no sign of trouble:
+Because the distance is 3, two flips cause the same decoder to miscorrect. If positions 3 and 6 flip, the failing checks add up to $3 \oplus 6 = 5$, a position that was correct. The decoder "corrects" it and outputs data that is wrong in two places, with no indication of an error:
 
 <HammingStep scenario="two" />
 
-One more parity bit over the whole codeword, at position 0, raises the distance to 4 and fixes this. A single flip makes the overall parity odd, and the syndrome says where. Two flips leave the overall parity even with a nonzero syndrome, which a single flip can't produce, so the decoder reports an error instead of guessing. This is **SECDED** (single error correction, double error detection), and it is what ECC memory does: an ECC DIMM stores 8 check bits with every 64 data bits, a (72, 64) SECDED code.
+One more parity bit over the whole codeword, at position 0, raises the distance to 4 and resolves this case. A single flip makes the overall parity odd, and the syndrome gives its position. Two flips leave the overall parity even with a nonzero syndrome, which a single flip cannot produce, so the decoder reports an error instead of miscorrecting. This is **SECDED** (single error correction, double error detection), and ECC memory uses it; an ECC DIMM stores 8 check bits with every 64 data bits, a (72, 64) SECDED code.
 
 <HammingStep scenario="secded" />
 
@@ -289,17 +288,17 @@ The tests check every single-flip correction against brute-force nearest-codewor
 
 ## Detection or correction?
 
-Detection is cheap: 32 check bits protect a 12,000-bit Ethernet frame, and a damaged frame costs one retransmission. Correction costs more bits and more computation, and pays off when errors are frequent or a retransmission is slow or impossible. Real systems use both, at different layers.
+Detection has low overhead. A 12,000-bit Ethernet frame is protected by 32 check bits, and a damaged frame costs one retransmission. Correction requires more check bits and more computation, and is worthwhile when errors are frequent or retransmission is slow or impossible. Deployed systems use both, at different layers.
 
-- **Physical layers correct.** Wi-Fi uses convolutional codes and, since 802.11n, LDPC codes. 5G NR uses LDPC codes for user data and polar codes for most control information ([3GPP TS 38.212](https://www.etsi.org/deliver/etsi_ts/138200_138299/138212/16.02.00_60/ts_138212v160200p.pdf)). Fast Ethernet links correct too: 100 Gb/s backplane and copper links add a Reed-Solomon code, RS(528, 514), and 200 and 400 Gb/s Ethernet use RS(544, 514). What these codes can't fix is left for the layer above to detect.
+- **Physical layers correct.** Wi-Fi uses convolutional codes and, since 802.11n, LDPC codes. 5G NR uses LDPC codes for user data and polar codes for most control information ([3GPP TS 38.212](https://www.etsi.org/deliver/etsi_ts/138200_138299/138212/16.02.00_60/ts_138212v160200p.pdf)). High-speed Ethernet links also correct errors: 100 Gb/s backplane and copper links add a Reed-Solomon code, RS(528, 514), and 200 and 400 Gb/s Ethernet use RS(544, 514). Errors these codes cannot correct are left for the layer above to detect.
 - **Link layers detect.** Ethernet, Wi-Fi, PPP and HDLC frames end in a CRC (see [[systems/networks/2-direct-links/framing|framing]]); a frame that fails is dropped, and Wi-Fi retransmits it immediately.
-- **End to end, detect again.** IP, TCP and UDP checksums catch corruption inside hosts and routers, and applications that can't tolerate any add stronger checks of their own.
+- **End to end, detect again.** IP, TCP and UDP checksums catch corruption inside hosts and routers, and applications that cannot tolerate corruption add stronger checks of their own.
 - **Storage corrects.** ECC memory uses SECDED. CDs and DVDs use Reed-Solomon codes, interleaved so that a scratch becomes many small errors spread across many codewords, each of them correctable. Disks and flash use Reed-Solomon and LDPC codes.
 
-How much redundancy a noisy channel needs in principle is a question for [[systems/networks/0-foundation/information-theory|information theory]].
+The redundancy a noisy channel requires in principle is the subject of [[systems/networks/0-foundation/information-theory|information theory]].
 
 > [!note]- Potentially interesting ideas
-> - For bit flips, the checksum barely cared whether the data was real or random. Stone and Partridge found it doing far worse than $2^{-16}$ on real data for errors that copy or move whole chunks of a packet, because real packets are full of zeros and repeated structure. Rerunning this harness with splice errors (one packet's tail replaced by another's) would show how big that effect is on modern traffic, where most payloads are encrypted and look random.
+> - For bit flips, the checksum's miss rate was nearly the same on real and random data. Stone and Partridge found it performing far worse than $2^{-16}$ on real data for errors that copy or move whole chunks of a packet, because real packets contain many zeros and much repeated structure. Rerunning the harness with splice errors (one packet's tail replaced by another's) would show the size of that effect on modern traffic, where most payloads are encrypted and appear random.
 
 ## Related notes
 

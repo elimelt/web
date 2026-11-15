@@ -10,17 +10,18 @@ tags:
   - voltage source
   - current source
 date: 2024-01-10
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Lecture 4 notes on power dissipation, Kirchhoff's laws, and ideal sources, with a worked voltage divider example and a resistor model of iPhone standby draw.
+description: Lecture 4 of the signal conditioning course, on power dissipation, Kirchhoff's laws and ideal sources, with a worked voltage divider example and a resistor model of iPhone standby draw.
 sources:
   - title: Signal conditioning course, lecture 4
     type: lecture
 ---
 
-## Purpose
-
-A resistor that is getting warm is leaking power. This note states the power relations and Kirchhoff's laws, works one divider example end to end, and models the iPhone standby draw from [[hardware/signal-conditioning/lecture-notes/lecture-2|lecture 2]] as a single resistor.
+Lecture 4 of the signal conditioning course treats the power dissipated in a resistor, Kirchhoff's voltage and current laws, and ideal voltage and current sources. A resistor converts the electrical power delivered to it into heat. The lecture computes the voltages, current and dissipated power in a two-resistor voltage divider and models the iPhone standby draw from [[hardware/signal-conditioning/lecture-notes/lecture-2|lecture 2]] as a single resistor.
 
 ## Power dissipation
 
@@ -61,15 +62,15 @@ $$I = \frac{V - V_2}{R_1} = \frac{120 - 109}{1} = 11\,\text{A}$$
 $$P_1 = I^2 R_1 = 11^2 \times 1 = 121\,\text{W}$$
 
 > [!warning] The divider formula assumes no load
-> $V_2 = V \cdot \frac{R_2}{R_1 + R_2}$ holds only while nothing draws current from the node between $R_1$ and $R_2$. A load attached there sits in parallel with $R_2$, which lowers the effective resistance and pulls the output voltage down. Recompute with $R_2$ replaced by $R_2 \parallel R_{load}$.
+> $V_2 = V \cdot \frac{R_2}{R_1 + R_2}$ holds only while nothing draws current from the node between $R_1$ and $R_2$. A load attached there is in parallel with $R_2$, which lowers the effective resistance and therefore the output voltage. Recompute with $R_2$ replaced by $R_2 \parallel R_{load}$.
 
 ## Ideal sources
 
-A voltage source produces a *constant* voltage regardless of the current drawn, which is an idealistic assumption. A current source delivers *constant* current to a circuit, with the voltage across it determined by the load resistance (impedance).
+A voltage source produces a *constant* voltage regardless of the current drawn, which is an idealization. A current source delivers *constant* current to a circuit, with the voltage across it determined by the load resistance (impedance).
 
 ## Modeling the iPhone as a resistor
 
-In [[hardware/signal-conditioning/lecture-notes/lecture-2|lecture 2]] we estimated that an iPhone in standby draws 7.55 mA from its 3.8 V lithium battery. Model the phone's power consumption as a single resistor across the battery:
+The estimate in [[hardware/signal-conditioning/lecture-notes/lecture-2|lecture 2]] gives a standby draw of 7.55 mA from the iPhone's 3.8 V lithium battery. The phone's power consumption can be modeled as a single resistor across the battery.
 
 ```txt
 

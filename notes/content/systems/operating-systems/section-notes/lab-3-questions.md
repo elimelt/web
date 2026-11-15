@@ -12,7 +12,10 @@ tags:
   - paging
   - shell
 date: 2024-02-25
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: needs-review
 archive: true
 description: Partial answers and debugging notes for an operating systems lab on allocation, shell pipelines, and page faults.
@@ -21,21 +24,19 @@ sources:
   - https://www.kea.nu/files/textbooks/ospp/osppv3.pdf
 ---
 
-## Purpose
-
-This is still a working note. Questions 7 through 10 are incomplete, and the final section is a raw debugging log that may still be useful when revisiting the lab.
+Lab 3 of an xv6-based operating systems course (the `xk` kernel) treats user-level memory allocation with `malloc`, `free` and `sbrk`, shell pipelines, and page faults, including stack growth on demand. Questions 7 through 10 have no answers yet, and [Debugging](#debugging) is an unedited debugging log from the lab.
 
 ## Question #1
 
 *Q:* Why might an application prefer using `malloc` and `free` instead of using `sbrk` directly?
 
-*A:* Malloc and free are higher-level and don't require the user to think about the details of the heap. Instead of needing to consider the current top of the heap, and how the memory you request is laid out contiguously, malloc and free handle all of that for you. Thus, user programs are able to apply more complex optimizations/strategies for memory allocation like first and best fit, as well as coalescing free blocks to reduce fragmentation, without having to manage the added complexity.
+*A:* `malloc` and `free` provide a higher-level interface that hides the details of the heap. The allocator tracks the current top of the heap and the contiguous layout of the requested memory, so the program manages neither. Programs thereby benefit from more complex allocation strategies, such as first fit and best fit, and from coalescing of free blocks to reduce fragmentation, without managing the added complexity themselves.
 
 ## Question #2
 
 *Q:* What is the relationship between `malloc`/`free` and `sbrk`?
 
-*A:* When `malloc` lacks the space necessary to fulfill an allocation request, it calls `sbrk` to expand its heap region and increase the memory available to the process. With the current implementation of `malloc` in `umalloc.c`, `sbrk` only expands the heap through `morecore`, and never shrinks it. In a real system, we would also want a way to return unused pages once the process has enough free space that it is unlikely to reuse soon.
+*A:* When `malloc` lacks the space necessary to fulfill an allocation request, it calls `sbrk` to expand its heap region and increase the memory available to the process. With the current implementation of `malloc` in `umalloc.c`, `sbrk` only expands the heap through `morecore`, and never shrinks it. A production allocator would also need a way to return unused pages once the process holds free space that it is unlikely to reuse soon.
 
 ## Question #3:
 
@@ -43,7 +44,7 @@ This is still a working note. Questions 7 through 10 are incomplete, and the fin
 
 > Hint: the shell will go into the `case PIPE` case in `user/sh.c:runcmd` when it receives a cmd with the pipe operator `|`.
 
-> Fun fact: the `|` operator behaves this way in most UNIX shells, and is why the infamous forkbomb command `:(){ :|:& };:` _[[systems/operating-systems/lecture-notes/handle-tables|forks]]_. [More on the forkbomb LINK](https://en.wikipedia.org/wiki/Fork_bomb).
+> The `|` operator behaves this way in most UNIX shells, which is why the fork bomb `:(){ :|:& };:` _[[systems/operating-systems/lecture-notes/handle-tables|forks]]_ repeatedly. [Fork bomb](https://en.wikipedia.org/wiki/Fork_bomb) describes the command further.
 
 *A:* The shell will create two child processes, one for `ls` and one for `wc`. The `ls` process will write to the pipe, and the `wc` process will read from the pipe.
 

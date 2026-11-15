@@ -10,7 +10,10 @@ tags:
   - udp
   - reliability
 date: 2024-03-04
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: draft
 description: How applications choose between TCP and UDP as the substrate for application-layer protocols.
 sources:
@@ -22,13 +25,9 @@ sources:
     type: textbook
 ---
 
-## Purpose
+Every application-layer protocol runs over a transport protocol, in practice TCP or UDP, and the choice determines which delivery guarantees the application receives.
 
-Frame the transport choice that every application-layer protocol makes before the notes on individual protocols.
-
-## Core idea
-
-Applications built on [[systems/networks/4-transport/TCP|TCP]] can transfer arbitrary-length data and get reliability and flow control for free. Some applications do not need those guarantees, and some actively cannot afford them. Internet telephony and online games run on [[systems/networks/4-transport/UDP|UDP]] because a retransmitted packet arrives too late to be useful, and the delays TCP introduces waiting for in-order delivery hurt more than the losses do. The protocol notes in this section, [[systems/networks/5-application/HTTP|HTTP]] and [[systems/networks/5-application/DNS|DNS]], show one of each. HTTP rides on TCP because pages must arrive intact, while DNS rides on UDP because a lookup is one small message and a retry is cheap.
+Applications built on [[systems/networks/4-transport/TCP|TCP]] can transfer data of arbitrary length and receive reliability and flow control from the transport layer without implementing them. Some applications do not require those guarantees, and for some the guarantees are harmful. Internet telephony and online games run on [[systems/networks/4-transport/UDP|UDP]] because a retransmitted packet arrives too late to be useful, and the delay TCP introduces to enforce in-order delivery degrades them more than the losses do. Among application-layer protocols, [[systems/networks/5-application/HTTP|HTTP]] runs over TCP because pages must arrive intact, and [[systems/networks/5-application/DNS|DNS]] runs over UDP because a lookup is one small message and a retry adds little overhead.
 
 ## Related notes
 

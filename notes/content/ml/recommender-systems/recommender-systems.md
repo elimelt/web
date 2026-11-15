@@ -18,9 +18,12 @@ tags:
   - candidate generation
   - wide and deep
 date: 2025-04-27
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: A first-principles map of recommender systems, from simple baselines through latent-factor models and the multi-stage production pipelines used at scale.
+description: The recommendation problem and its recurring components, from explicit and implicit feedback and simple baselines through latent-factor models and ranking objectives to the multi-stage production pipelines used at scale and the gap between offline and online evaluation.
 sources:
   - title: Koren, Bell, and Volinsky (2009), Matrix Factorization Techniques for Recommender Systems
     url: https://doi.org/10.1109/MC.2009.263
@@ -33,123 +36,121 @@ sources:
     type: paper
 ---
 
-## Purpose
+A recommender system determines, for a user $u$, which items $i$ of a catalog to expose and in what order, given records of past interactions and features of users and items. Its training data is sparse, since each user interacts with a small fraction of the catalog, and it is shaped by the exposure decisions of earlier versions of the system.
 
-This note is the top-level map. It is not trying to catalog every model family. It is trying to pin down the parts that keep recurring when recommendation systems are rebuilt in practice: sparse supervision, latent structure, pipeline decomposition, and the mismatch between offline logs and online behavior.
+Several components recur across implementations: sparse supervision from implicit feedback, latent structure in the user-item interaction matrix, the decomposition of serving into retrieval and ranking stages, and the mismatch between offline logs and online behavior.
 
 ## The Core Problem
 
-A recommender has a user, a catalog, and a decision rule for exposure. The simplest version asks:
+In its simplest form, the recommendation problem is the question
 
 > given user $u$, which items $i$ should appear near the top of the list?
 
-That question hides most of the difficulty.
+Several properties of the data make the problem difficult:
 
-- Users touch only a tiny fraction of the catalog.
+- Users interact with only a tiny fraction of the catalog.
 - Missing interactions are ambiguous.
 - Preferences drift.
 - Exposure itself changes the future data.
 
-So the training table is sparse, policy-shaped, and nonstationary from the start.
+The training table is therefore sparse, dependent on the exposure policy, and nonstationary.
 
 ## Signals: Explicit Versus Implicit
 
-Two kinds of feedback show up over and over.
+Recommender systems use two kinds of feedback.
 
 ### Explicit Feedback
 
-Ratings, thumbs-up events, stated preferences. These are direct and usually scarce.
+Explicit feedback consists of ratings, thumbs-up events, and stated preferences. It is direct and usually scarce.
 
 ### Implicit Feedback
 
-Clicks, purchases, watches, dwell time, skips. These are abundant and weak. The absence of an interaction does not mean dislike. It often only means "not exposed" or "not now."
+Implicit feedback consists of clicks, purchases, watches, dwell time, and skips. It is abundant and weak. The absence of an interaction does not imply dislike, and often indicates only that the item was not exposed or was not of interest at that moment.
 
-That is why [[ml/recommender-systems/ranking-objectives|ranking objectives and implicit feedback]] matters so much. Before choosing a model family, decide what the labels mean.
+The meaning of these labels, treated in [[ml/recommender-systems/ranking-objectives|ranking objectives and implicit feedback]], must be settled before a model family is chosen.
 
 ## Baselines Still Matter
 
-The simplest recommenders often stay in production longer than expected because they are robust and cheap.
+Simple recommenders often remain in production for a long time because they are robust and inexpensive to compute.
 
 - **Popularity**: recommend the most popular items.
 - **Recent popularity**: same idea, but with a freshness window.
 - **Item-item co-occurrence**: recommend things often consumed with what the user already consumed.
 
-These baselines are blunt, though they answer useful questions. If a new model cannot beat recent popularity in online testing, the modeling story is usually wrong or the evaluation setup is.
+These baselines are coarse but serve as reference points. A new model that does not outperform recent popularity in online testing usually indicates an error in the modeling approach or in the evaluation setup.
 
 ## Latent Factor Models
 
-Matrix factorization became the canonical collaborative-filtering model because it turns an enormous sparse table into a lower-dimensional geometric problem.
+Matrix factorization became a widely used collaborative-filtering model because it reduces an enormous sparse table to a lower-dimensional geometric problem.
 
-Represent user $u$ and item $i$ with vectors $x_u, y_i \in \mathbb{R}^k$ and score them with
+User $u$ and item $i$ are represented by vectors $x_u, y_i \in \mathbb{R}^k$ and scored with
 
 $$
 \hat{r}_{ui} = x_u^\top y_i
 $$
 
-That works because user-item interactions often have lower-dimensional structure. Instead of learning an arbitrary score for every pair, the model learns a compact representation of user tastes and item attributes.
+The model is effective because user-item interactions often have low-dimensional structure. In place of an arbitrary score for every pair, it learns a compact representation of user tastes and item attributes.
 
-For explicit-feedback settings, the standard objective is regularized squared error on observed entries. For implicit-feedback settings, confidence weighting becomes the more natural move:
+For explicit feedback, the objective is commonly regularized squared error on observed entries. For implicit feedback, a confidence-weighted objective is more appropriate:
 
 $$
 \min_{x_*, y_*} \sum_{u,i} c_{ui}(p_{ui} - x_u^\top y_i)^2 + \lambda \left(\sum_u \lVert x_u \rVert^2 + \sum_i \lVert y_i \rVert^2 \right)
 $$
 
-That is the Hu, Koren, and Volinsky formulation. It does not treat all zeros as equally meaningful.
+This is the formulation of Hu, Koren, and Volinsky, which gives observed interactions higher confidence than zeros instead of treating zeros as negatives of equal weight.
 
-## Ranking, Not Just Prediction
+## Ranking and Prediction
 
-A lot of recommender work is not truly about estimating ratings. It is about ordering.
+Much of recommendation concerns the ordering of items more than the estimation of ratings. Pairwise and listwise objectives address the ordering directly. BPR, RankNet, LambdaRank, and LambdaMART all optimize the ranking more directly than plain regression. If the product shows only a top-$k$ list, the relative order can matter more than absolute calibration.
 
-That is why pairwise and listwise objectives matter. BPR, RankNet, LambdaRank, and LambdaMART all attack the ranking problem more directly than plain regression. If the product only shows a top-$k$ list, learning the relative order can matter more than absolute calibration.
-
-There is still no universal rule here. Ads systems often need calibrated click probabilities. Media feeds often care more about top-of-list order. Good teams pick the loss based on the downstream consumer of the score.
+No single objective is correct in every case. Ads systems often require calibrated click probabilities, while media feeds depend more on top-of-list order. The loss is chosen according to the downstream consumer of the score.
 
 ## The Multi-Stage Pipeline
 
-Once the catalog is large, recommenders almost always become staged systems:
+For large catalogs, recommenders are almost always built as staged systems:
 
 1. retrieve a candidate set
 2. rank the candidates with a richer model
 3. apply filters or business constraints
 
-This is not optional elegance. It is the computational shape forced by large catalogs and tight latency budgets.
+The staging is required by the computational cost of scoring large catalogs within tight latency budgets.
 
-[[ml/recommender-systems/retrieval-and-ranking|Retrieval and Ranking]] explains the split. [[ml/recommender-systems/two-tower-retrieval|Two-Tower Retrieval]] covers the standard retrieval architecture. [[ml/recommender-systems/wide-and-deep|Wide and Deep]] is a ranking-side example of how sparse and dense features get combined once the candidate set is small enough.
+[[ml/recommender-systems/retrieval-and-ranking|Retrieval and Ranking]] describes the division of work between the stages. [[ml/recommender-systems/two-tower-retrieval|Two-Tower Retrieval]] describes a common retrieval architecture. [[ml/recommender-systems/wide-and-deep|Wide and Deep]] is a ranking-stage example of combining sparse and dense features once the candidate set is small enough.
 
 ## Beyond Bags of Interactions
 
-Basic matrix factorization throws away order and graph structure. Modern recommenders usually try to recover one or both.
+Basic matrix factorization discards the order of interactions and the structure of the interaction graph. Many later recommenders model one or both.
 
 - **Sequential models** capture short-horizon intent and recency.
 - **Graph models** propagate signal across the user-item interaction graph and related structures.
 
-Those ideas live in [[ml/recommender-systems/sequential-recommendation|Sequential and Graph Recommenders]].
+These models are described in [[ml/recommender-systems/sequential-recommendation|Sequential and Graph Recommenders]].
 
-## Evaluation Is Harder Than It Looks
+## Offline and Online Evaluation
 
-Offline accuracy is useful and routinely misleading.
+Offline accuracy is useful but often misleading.
 
-The training and evaluation logs come from an older policy that already filtered what users saw. That creates exposure bias and feedback loops. A model can look excellent offline by copying the current policy's blind spots. Then it disappoints online.
+The training and evaluation logs come from an earlier policy that determined what users saw, which creates exposure bias and feedback loops. A model can score well offline by reproducing the omissions of the current policy and then perform poorly online.
 
-That is why mature recommender teams invest in:
+Production recommender systems therefore rely on:
 
 - randomized logging
 - exploration
 - counterfactual evaluation
 - A/B tests on actual business metrics
 
-[[ml/recommender-systems/bias-and-marketplace-effects|Bias, Marketplace Effects, and Counterfactual Evaluation]] covers this in more detail.
+These methods are treated in [[ml/recommender-systems/bias-and-marketplace-effects|Bias, Marketplace Effects, and Counterfactual Evaluation]].
 
-## A Good Mental Model
+## Components of a Production Recommender
 
-A production recommender is usually some combination of:
+A production recommender typically combines:
 
 - a retrieval system for recall
 - a ranker for precision
 - a logging policy that decides what can be learned next
-- a marketplace allocator, whether the team admits it or not
+- a marketplace allocator, whether or not it is designed as one
 
-The last line matters. Once recommendation controls exposure, it is not merely prediction anymore.
+Because recommendation controls exposure, it allocates attention among items and producers in addition to predicting user preferences.
 
 ## Related Notes
 

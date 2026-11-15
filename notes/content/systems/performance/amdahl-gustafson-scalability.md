@@ -8,8 +8,12 @@ tags:
   - speedup
   - parallel performance
 date: 2026-08-01
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: draft
-description: The laws that bound parallel speedup - Amdahl's fixed-problem ceiling, Gustafson's scaled-problem rebuttal, and the contention and coherency terms that make real systems scale worse than either predicts, with computed tables.
+description: The laws that bound parallel speedup, namely Amdahl's ceiling for a fixed problem, Gustafson's scaled-problem response, and the contention and coherency terms under which measured systems scale worse than either predicts, with computed tables.
 sources:
   - title: Amdahl (1967), Validity of the Single Processor Approach
     url: https://dl.acm.org/doi/10.1145/1465482.1465560
@@ -25,13 +29,13 @@ sources:
     type: docs
 ---
 
-## Purpose
+The speedup of a program on $N$ processors is the ratio of its execution time on one processor to its execution time on $N$. Amdahl's law bounds speedup for a fixed problem, Gustafson's law gives it for a problem that grows with $N$, and the Universal Scalability Law adds contention and coherency costs that grow with $N$. Together they make parallel-scaling claims falsifiable: given a measured speedup curve, they indicate whether the workload is limited by serial work, by communication, or by neither within the measured range.
 
-These are the laws that make parallel-scaling claims falsifiable: given a measured speedup curve, they say whether the workload is limited by serial work, by communication, or by nothing yet. The numeric tables below are computed directly from the formulas (script run in the repo venv). These laws are the model layer under measurements like [[systems/operating-systems/benchmarks/reductions|the reductions benchmark]], which is an Amdahl story in miniature.
+The numeric tables are computed directly from the formulas (script run in the repo venv). The same models underlie measurements such as [[systems/operating-systems/benchmarks/reductions|the reductions benchmark]], which exhibits Amdahl-type serial limitation at small scale.
 
 ## Amdahl's law
 
-Fix the problem. Split execution time into a fraction $p$ that parallelizes perfectly and a fraction $1-p$ that does not. On $N$ processors:
+For a fixed problem, let a fraction $p$ of the single-processor execution time parallelize perfectly and the remaining fraction $1-p$ not parallelize at all. On $N$ processors,
 
 $$
 S(N) = \frac{1}{(1-p) + p/N},
@@ -39,7 +43,7 @@ S(N) = \frac{1}{(1-p) + p/N},
 \lim_{N \to \infty} S(N) = \frac{1}{1-p}.
 $$
 
-The derivation is one line — the parallel part shrinks by $N$, the serial part does not — but the consequence is brutal because the serial term dominates as $N$ grows:
+The parallel term shrinks in proportion to $1/N$ while the serial term stays constant, so the serial term dominates the denominator as $N$ grows:
 
 | $p$ | $S(8)$ | $S(64)$ | $S(1024)$ | ceiling $1/(1-p)$ |
 | --- | --- | --- | --- | --- |
@@ -49,46 +53,46 @@ The derivation is one line — the parallel part shrinks by $N$, the serial part
 | 0.99 | 7.48 | 39.26 | 91.18 | 100 |
 | 0.999 | 7.94 | 60.21 | 506.18 | 1000 |
 
-A 95%-parallel program never exceeds 20x, and at 64 cores it has already burned three quarters of its budget on the serial 5%. Historical footnote: [Amdahl's 1967 paper](https://dl.acm.org/doi/10.1145/1465482.1465560) contains no formula — it is a two-and-a-half-page argument against parallel machines, estimating that data-management housekeeping consumed ~40% of executed instructions and would not parallelize. The algebra was formalized by later commentators.
+A program that is 95% parallel cannot exceed a speedup of 20, and at 64 cores it already reaches 15.42, about three quarters of that ceiling. [Amdahl's 1967 paper](https://dl.acm.org/doi/10.1145/1465482.1465560) contains no formula. It is a two-and-a-half-page argument against parallel machines, estimating that data-management housekeeping consumed about 40% of executed instructions and would not parallelize; the algebra was formalized by later commentators.
 
 > [!warning] The ceiling is set entirely by the serial fraction
-> No processor count escapes $S(\infty) = 1/(1-p)$: a 5% serial share caps speedup at 20x forever. The approach is slow, too — at $N = p/(1-p)$ processors (19 for $p = 0.95$) speedup is exactly *half* the ceiling, so the last factor of 2 costs unboundedly many cores. Hardware added past that point competes with the far cheaper option of shrinking $1-p$ itself.
+> For every processor count, speedup stays below $S(\infty) = 1/(1-p)$, so a serial share of 5% bounds speedup at 20x. Speedup also approaches the ceiling slowly. At $N = p/(1-p)$ processors (19 for $p = 0.95$) speedup is exactly *half* the ceiling, and the remaining factor of 2 is approached only as $N \to \infty$. Beyond that point, reducing $1-p$ is an alternative to adding hardware, and often the less costly one.
 
-**Reading the serial fraction honestly.** $1-p$ is not "lines of code outside the parallel loop." It is everything whose cost fails to shrink with $N$: lock acquisition and barriers, load imbalance (the barrier waits for the slowest worker), the fork/join and result-merge phases, and — critically on multicore — shared memory bandwidth. A saturated memory bus behaves exactly like serial work: for a bandwidth-bound kernel, speedup caps at (aggregate bandwidth) / (single-core bandwidth demand) no matter how many cores exist. When a measured curve flattens earlier than the code's visible structure suggests, the effective serial fraction is telling you about one of these hidden components, and fitting $1/((1-p)+p/N)$ to the measurements recovers it.
+**The effective serial fraction.** The quantity $1-p$ includes every cost that does not shrink with $N$, of which code outside the parallel loop is only one part. It also includes lock acquisition and barriers, load imbalance (the barrier waits for the slowest worker), the fork/join and result-merge phases, and, on multicore processors in particular, shared memory bandwidth. A saturated memory bus has the same effect as serial work; for a bandwidth-bound kernel, speedup is bounded by (aggregate bandwidth) / (single-core bandwidth demand) regardless of the number of cores. When a measured curve flattens earlier than the code's structure predicts, one of these components contributes to the effective serial fraction, and fitting $1/((1-p)+p/N)$ to the measurements estimates its size.
 
 ## Gustafson's law
 
-[Gustafson (1988)](https://dl.acm.org/doi/10.1145/42411.42415) attacked the fixed-problem assumption: in practice, buying a 1024-node machine means running a 1024-node-sized problem. Fix the *time* instead, let the parallel work grow with $N$, and ask how much more got done. If the scaled run spends fraction $s = 1 - p'$ of its time in serial work, the same job on one processor would have taken $s + p'N$, so the scaled speedup is
+[Gustafson (1988)](https://dl.acm.org/doi/10.1145/42411.42415) rejected the fixed-problem assumption, arguing that a 1024-node machine is in practice used to run a problem sized for 1024 nodes. His formulation fixes the execution *time* instead, lets the parallel work grow with $N$, and measures how much more work is completed. If the scaled run spends fraction $s = 1 - p'$ of its time in serial work, the same job on one processor would have taken $s + p'N$, so the scaled speedup is
 
 $$
 S(N) = s + p'N = N - (1-p')(N-1),
 $$
 
-linear in $N$ with slope $p'$ — no ceiling. With $p' = 0.99$ and $N = 1024$: 1014x, against Amdahl's 91x for the same fractions. This was not hypothetical: Gustafson's team at Sandia reported 1016-1021x scaled speedups on a 1024-processor hypercube across three real applications, the results that ended the "Amdahl says parallelism is futile" era.
+which is linear in $N$ with slope $p'$ and has no upper bound. With $p' = 0.99$ and $N = 1024$ the scaled speedup is 1014x, against 91x from Amdahl's law for the same fractions. Gustafson's team at Sandia reported scaled speedups of 1016-1021x on a 1024-processor hypercube for three applications, results that were widely cited against the view that Amdahl's law made large-scale parallelism futile.
 
-The two laws answer different questions rather than contradicting each other. **Strong scaling** (Amdahl): same problem, more processors, lower latency — the right lens when the problem size is fixed by external requirements, e.g. serving one request faster. **Weak scaling** (Gustafson): more processors, proportionally bigger problem, same wall-clock — the right lens for batch and simulation workloads where fidelity or dataset size soaks up capacity. Misapplied lenses produce nonsense in both directions: quoting weak-scaling numbers for a latency problem overstates what more hardware buys, and quoting Amdahl at a throughput problem understates it.
+The two laws answer different questions and do not contradict each other. **Strong scaling** (Amdahl) holds the problem fixed and adds processors to reduce latency; it applies when external requirements fix the problem size, as when serving one request faster. **Weak scaling** (Gustafson) grows the problem in proportion to the processor count at constant wall-clock time; it applies to batch and simulation workloads in which fidelity or dataset size grows to use the available capacity. Applying the wrong model misestimates in either direction. Weak-scaling numbers quoted for a latency problem overstate the benefit of additional hardware, and Amdahl's law applied to a throughput problem understates it.
 
 ## Where both laws are too optimistic
 
-Both laws assume the parallel fraction costs nothing to coordinate. Add an overhead term $T_o(N)$ that *grows* with $N$ ([Brown 2000](https://www.usenix.org/legacy/publications/library/proceedings/als00/2000papers/papers/full_papers/brownrobert/brownrobert_html/node3.html)):
+Both laws assume that coordinating the parallel fraction has no cost. Add an overhead term $T_o(N)$ that *grows* with $N$ ([Brown 2000](https://www.usenix.org/legacy/publications/library/proceedings/als00/2000papers/papers/full_papers/brownrobert/brownrobert_html/node3.html)):
 
 $$
 S(N) = \frac{T_s + T_p}{T_s + T_o(N) + T_p/N}.
 $$
 
-If $T_o$ is all-to-all communication, $T_o \propto N^2$ per step and the curve peaks at finite $N$, then declines. Gunther's [Universal Scalability Law](http://www.perfdynamics.com/Manifesto/USLscalability.html) packages this into two fittable parameters:
+If $T_o$ is all-to-all communication, $T_o \propto N^2$ per step and the curve peaks at finite $N$, then declines. Gunther's [Universal Scalability Law](http://www.perfdynamics.com/Manifesto/USLscalability.html) expresses this with two parameters fitted to measurements:
 
 $$
 S(N) = \frac{N}{1 + \sigma(N-1) + \kappa N(N-1)},
 $$
 
-where $\sigma$ is contention (queueing for a shared resource; $\kappa = 0$ reduces the model to Amdahl's shape) and $\kappa$ is coherency (pairwise cost of keeping $N$ parties consistent: cache-line ping-pong, lock handoffs, consensus chatter — hence the $N(N-1)$). The $\kappa$ term is what Amdahl and Gustafson cannot express: **retrograde scaling**, throughput that falls when capacity is added, with the peak at $N_{opt} = \sqrt{(1-\sigma)/\kappa}$. Computed example with $\sigma = 0.02$, $\kappa = 10^{-4}$:
+where $\sigma$ is contention (queueing for a shared resource; $\kappa = 0$ reduces the model to Amdahl's shape) and $\kappa$ is coherency (the pairwise cost of keeping $N$ parties consistent, such as cache-line ping-pong, lock handoffs and consensus messages, which accounts for the factor $N(N-1)$). The $\kappa$ term models a behavior that neither Amdahl's nor Gustafson's law can express, **retrograde scaling**, in which throughput falls as capacity is added, with the peak at $N_{opt} = \sqrt{(1-\sigma)/\kappa}$. Computed example with $\sigma = 0.02$, $\kappa = 10^{-4}$:
 
 | $N$ | 8 | 32 | 64 | 99 | 200 | 350 |
 | --- | --- | --- | --- | --- | --- | --- |
 | $S(N)$ | 7.0 | 18.6 | 24.0 | **25.2** | 22.3 | 17.3 |
 
-Peak 25.2x at $N_{opt} = \sqrt{0.98/10^{-4}} \approx 99$, and 350 processors are 30% *slower* than 99. Fitting these three parameters to a measured scaling curve is the practical procedure: $\sigma$ names your serialization, a nonzero $\kappa$ names your crosstalk, and $N_{opt}$ tells you where to stop buying hardware.
+Speedup peaks at 25.2x at $N_{opt} = \sqrt{0.98/10^{-4}} \approx 99$, and 350 processors are 30% *slower* than 99. In practice the model is fitted to a measured scaling curve. The fitted $\sigma$ quantifies serialization, a nonzero $\kappa$ quantifies coherency cost, and $N_{opt}$ gives the processor count beyond which added hardware reduces throughput.
 
 ```python
 import numpy as np
@@ -103,16 +107,16 @@ print(np.round(amdahl(0.95, N), 2))       # [ 5.93 12.55 15.42 16.78 18.26 18.97
 print(np.round(usl(N, 0.02, 1e-4), 1))    # [ 7.  18.6 24.  25.2 22.3 17.3]
 ```
 
-Note the contrast in the two printed rows: the Amdahl curve with $p = 0.95$ climbs monotonically toward its ceiling of 20, while the USL curve with a small $\kappa$ turns over and falls.
+In the two printed rows, the Amdahl curve with $p = 0.95$ increases monotonically toward its ceiling of 20, while the USL curve with a small $\kappa$ reaches a maximum and then declines.
 
 ## Using the laws
 
-- **Estimate before parallelizing.** Profile the serial share first; if 20% of runtime is unparallelizable, the ceiling is 5x and a heroic 64-core port is wasted effort compared to attacking the serial 20%.
-- **Diagnose from the curve's shape.** Flattening toward an asymptote is Amdahl-type serialization ($\sigma$); a peak followed by decline is coherency ($\kappa$) — more parallelism will actively hurt, and the fix is reducing sharing (partitioning, per-core state, batching updates), not tuning the parallel code.
-- **State which scaling regime a benchmark ran.** "Linear to 1024 nodes" under weak scaling and under strong scaling are claims of very different strength; published speedup numbers are meaningless without this label.
-- **Watch the denominator.** Speedup is relative to the best *serial* implementation; a parallel program that scales beautifully over its own 1-thread mode may still lose to tuned serial code — Amdahl arguments silently assume the $N=1$ baseline is worth speeding up.
+- **Estimate before parallelizing.** Measuring the serial share first bounds the attainable speedup. If 20% of runtime cannot be parallelized, the ceiling is 5x, and reducing that 20% yields more than a port to 64 cores.
+- **Diagnose from the curve's shape.** A curve that flattens toward an asymptote indicates Amdahl-type serialization ($\sigma$). A peak followed by a decline indicates coherency cost ($\kappa$); additional parallelism then lowers throughput, and the remedy is to reduce sharing (partitioning, per-core state, batching updates) rather than to tune the parallel code.
+- **State which scaling regime a benchmark ran.** "Linear to 1024 nodes" under weak scaling and under strong scaling are claims of very different strength, and a published speedup cannot be interpreted without this label.
+- **Watch the denominator.** Speedup should be measured against the best *serial* implementation. A parallel program that scales well relative to its own single-threaded mode may still be slower than tuned serial code, and Amdahl-type arguments implicitly assume that the $N=1$ baseline is efficient.
 
-The queueing-side view of the same saturation phenomena — what happens to latency rather than throughput as load approaches capacity — is in [[systems/performance/latency-throughput-and-utilization|Latency, Throughput, and Utilization]] and [[systems/operating-systems/v2-concurrency/7-queueing-theory|Queueing Theory]].
+The queueing view of the same saturation, in which latency rather than throughput is examined as load approaches capacity, is treated in [[systems/performance/latency-throughput-and-utilization|Latency, Throughput, and Utilization]] and [[systems/operating-systems/v2-concurrency/7-queueing-theory|Queueing Theory]].
 
 ## Sources
 

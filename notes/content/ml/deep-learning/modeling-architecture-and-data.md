@@ -10,9 +10,12 @@ tags:
   - attention
   - resnet
 date: 2026-07-31
-updated: 2026-08-01
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: How to choose a model class, objective, data representation, and training setup, with emphasis on inductive bias, optimization stability, scaling laws, compute-optimal training, and inference economics.
+description: The choice of model class, objective, data representation and training setup, with emphasis on inductive bias, optimization stability, scaling laws, compute-optimal training and the effect of inference cost on model size.
 sources:
   - title: Deep Residual Learning for Image Recognition
     url: https://arxiv.org/abs/1512.03385
@@ -37,20 +40,20 @@ sources:
     type: paper
 ---
 
-## Purpose
+Model design for a supervised learning problem consists of choosing the prediction target and loss, the representation of the data, the model class and its inductive biases, and the allocation of training compute between parameters and data.
 
-Choosing an architecture is usually not the first hard decision. The first hard decision is deciding what the model is supposed to predict, what structure the data has, and what resource is actually scarce. This note is about that layer of design.
+The choice of architecture depends on decisions that precede it: what the model must predict, what structure the data has, and which resource (training compute, inference cost or labeled data) is the binding constraint.
 
 ## Start from the Interface
 
-A supervised learning problem is not defined by its model class. It is defined by:
+A supervised learning problem is defined independently of any model class, by
 
 - input space $x$
 - output space $y$
 - loss $\mathcal{L}(\hat{y}, y)$
 - deployment constraints
 
-Examples:
+Examples of such interfaces include
 
 - token sequence to next token
 - image to class label
@@ -58,11 +61,11 @@ Examples:
 - graph to node labels
 - feature vector to scalar score
 
-The head and the loss should follow from that interface. Classification wants cross-entropy. Regression wants a real-valued loss. Autoregressive generation wants a factorized log-likelihood.
+The output head and the loss follow from the interface. Classification uses cross-entropy, regression a real-valued loss, and autoregressive generation a factorized log-likelihood.
 
 ## Architecture Is an Inductive Bias
 
-Different architectures encode different assumptions.
+Each architecture encodes assumptions about the structure of its input.
 
 | Data structure | Bias | Typical architecture |
 | --- | --- | --- |
@@ -72,26 +75,26 @@ Different architectures encode different assumptions.
 | long-range relational sequences | content-based routing | Transformer |
 | irregular graphs | neighborhood message passing | GNN |
 
-The architecture is a guess about which symmetries matter. A good guess saves parameters and data. A bad guess makes optimization work harder for no gain.
+An architecture encodes a hypothesis about which symmetries of the data are relevant. When the hypothesis holds, the model requires fewer parameters and less data. When it does not, the constraint makes optimization harder without improving generalization.
 
-> [!abstract] Architecture selection is prior selection
-> Every row of this table is a claim about the data: CNNs claim the same pattern matters anywhere in the grid, RNNs claim the past summarizes into a state, GNNs claim neighbors are informative. Picking an architecture is choosing which of these claims to hard-code rather than spend data learning.
+> [!abstract] Architecture selection as prior selection
+> Each row of the table corresponds to an assumption about the data. A CNN assumes that a pattern is equally relevant at every position of the grid, an RNN that the past can be summarized in a fixed-size state, and a GNN that a node's neighbors are informative about it. The choice of architecture determines which of these assumptions are built into the model and which must instead be learned from data.
 
 ## The Bias-Variance Question Shows Up as Architecture
 
-A high-capacity model can fit strange functions. That is not the same thing as learning the right one under finite data and finite compute.
+A high-capacity model can represent a large class of functions, but with finite data and finite compute, training need not find one that generalizes.
 
-If structure is known, it is often wise to encode it:
+When the structure of the data is known, it can be encoded in the architecture, for example with
 
 - local convolutions instead of a fully connected image classifier
 - causal masking instead of unconstrained sequence attention
 - message passing instead of flattening a graph into arbitrary order
 
-This is one of the few genuinely transferable design heuristics in deep learning.
+The heuristic applies across data modalities and architecture families.
 
 ## Optimization Choices Are Architectural Choices
 
-Several famous papers are often described as "training tricks." They are better understood as changes to the effective architecture.
+Several widely cited techniques are often described as "training tricks." They can also be understood as changes to the effective architecture.
 
 ### Residual Connections
 
@@ -101,9 +104,9 @@ $$
 y = x + F(x)
 $$
 
-instead of asking the block to learn $H(x)$ directly. The paper's motivation is the **degradation problem**: deeper plain nets can have higher training error than shallower ones even though a deeper model contains the shallower solution as a special case via identity layers.
+so that the block learns a residual instead of the mapping $H(x)$ directly. The paper's motivation is the **degradation problem**: deeper plain nets can have higher training error than shallower ones even though a deeper model contains the shallower solution as a special case via identity layers.
 
-Residual connections matter because they preserve an easy signal path. The identity path carries both activations and gradients.
+The identity path gives both activations and gradients a direct route through the network that bypasses the learned transformation.
 
 ### Normalization
 
@@ -115,17 +118,17 @@ $$
 y^{(k)} = \gamma^{(k)} \hat{x}^{(k)} + \beta^{(k)}
 $$
 
-into the network. This changes what parameter scales are easy to optimize. In practice it often permits larger learning rates and makes initialization less fragile.
+into the network. Normalization changes the conditioning of the optimization problem with respect to parameter scale. In practice it often permits larger learning rates and reduces sensitivity to initialization.
 
 ### Regularization
 
-Dropout changes the training distribution itself. Instead of one deterministic hidden layer, training samples many subnetworks. Weight decay changes which solutions are cheap. Data augmentation changes which invariances are rewarded.
+Dropout changes the training distribution itself. Instead of a single deterministic hidden layer, training samples a different subnetwork at each step from a family that shares weights. Weight decay changes which solutions have low regularized loss. Data augmentation changes which invariances the training objective favors.
 
-These are not afterthoughts. They often dominate the outcome when the architecture is already reasonable.
+When the architecture is appropriate for the data, these choices can affect the result more than further architectural changes.
 
 ## Data Choices Are Model Choices
 
-A model only sees the world through the tensors you provide. Important choices include:
+A model receives information about the task only through the tensors constructed from the data. The relevant choices include
 
 - tokenization
 - feature extraction
@@ -136,21 +139,21 @@ A model only sees the world through the tensors you provide. Important choices i
 - augmentation
 - deduplication
 
-For sequence models this can change the task completely. Bahdanau attention was motivated by the failure of fixed-length sentence encodings. GPT-style language modeling depends heavily on tokenization and context length. Recommender training depends heavily on how negatives are sampled.
+For sequence models these choices can change the task itself. Bahdanau attention was motivated by the failure of fixed-length sentence encodings. GPT-style language modeling depends strongly on tokenization and context length, and recommender training depends strongly on how negatives are sampled.
 
 ## Compute, Data, and Scale
 
-For language models, the relationship between loss, model size, data, and compute is quantified well enough to plan against. The variables: $N$ is non-embedding parameter count, $D$ is training tokens, $C$ is training compute in FLOPs, and $L$ is autoregressive cross-entropy loss in nats per token. For dense transformers, training cost is approximately
+For language models, the relationship between loss, model size, data and compute has been measured precisely enough to be used for planning. $N$ denotes the non-embedding parameter count, $D$ the number of training tokens, $C$ the training compute in FLOPs, and $L$ the autoregressive cross-entropy loss in nats per token. For dense transformers, training cost is approximately
 
 $$
 C \approx 6ND
 $$
 
-FLOPs — a forward pass costs about $2N$ FLOPs per token, the backward about $4N$ ([Kaplan et al. 2020](https://arxiv.org/abs/2001.08361), §2.1). Everything below is an empirical fit to training runs, not a derived law; the fits hold impressively over many orders of magnitude but extrapolation beyond the measured range is conjecture.
+FLOPs, since a forward pass costs about $2N$ FLOPs per token and the backward pass about $4N$ ([Kaplan et al. 2020](https://arxiv.org/abs/2001.08361), §2.1). The scaling relations that follow are empirical fits to training runs rather than derived laws. The fits hold over many orders of magnitude, but extrapolation beyond the measured range is conjecture.
 
 ### Kaplan-style scaling
 
-[Kaplan et al. (2020)](https://arxiv.org/abs/2001.08361) found that when only one resource binds, loss follows a power law in that resource:
+[Kaplan et al. (2020)](https://arxiv.org/abs/2001.08361) found that when only one resource limits performance, loss follows a power law in that resource:
 
 $$
 L(N) = \left(\frac{N_c}{N}\right)^{\alpha_N}, \quad
@@ -158,11 +161,11 @@ L(D) = \left(\frac{D_c}{D}\right)^{\alpha_D}, \quad
 \alpha_N \approx 0.076, \;\; \alpha_D \approx 0.095,
 $$
 
-with $N_c \approx 8.8 \times 10^{13}$, $D_c \approx 5.4 \times 10^{13}$, and loss along the compute-efficient frontier falling as $L \propto C^{-0.050}$. Width-versus-depth choices matter little inside a reasonable regime; scale dominates shape. Two consequences: larger models are more sample-efficient, and compute-optimal training stops well before convergence. Allocating a fixed budget, the paper concluded $N \propto C^{0.73}$ — spend most of the marginal compute on model size, training **very large models on a relatively modest amount of data and stopping significantly before convergence**.
+with $N_c \approx 8.8 \times 10^{13}$, $D_c \approx 5.4 \times 10^{13}$, and loss along the compute-efficient frontier falling as $L \propto C^{-0.050}$. Within a wide range of shapes, the ratio of width to depth has little effect on loss compared with total scale. Two consequences follow. Larger models are more sample-efficient, and compute-optimal training stops well before convergence. For a fixed budget, the paper concluded that $N \propto C^{0.73}$, so that most additional compute should go to model size, with **very large models trained on a relatively modest amount of data and stopped significantly before convergence**.
 
 ### Chinchilla: compute-optimal rebalanced
 
-[Hoffmann et al. (2022)](https://arxiv.org/abs/2203.15556) redid the measurement with the learning-rate schedule matched to each token budget — Kaplan's runs reused schedules tuned for longer horizons, which understated how much extra data helps — and fit a parametric loss surface (their eq. 10):
+[Hoffmann et al. (2022)](https://arxiv.org/abs/2203.15556) repeated the measurement with the learning-rate schedule matched to each token budget. Kaplan's runs had reused schedules tuned for longer horizons, which understated the benefit of additional data. Hoffmann et al. fit a parametric loss surface (their eq. 10):
 
 $$
 L(N, D) = E + \frac{A}{N^{\alpha}} + \frac{B}{D^{\beta}},
@@ -170,11 +173,11 @@ L(N, D) = E + \frac{A}{N^{\alpha}} + \frac{B}{D^{\beta}},
 E \approx 1.69,\; A \approx 406.4,\; B \approx 410.7,\; \alpha \approx 0.34,\; \beta \approx 0.28.
 $$
 
-$E$ is the irreducible entropy of text; the other two terms are the finite-model and finite-data penalties. Minimizing subject to $C = 6ND$ gives $N^\star \propto C^{0.46}$, $D^\star \propto C^{0.54}$: parameters and tokens should scale **together**, roughly 20 tokens per parameter at their measured scales, not $C^{0.73}$ on parameters. The headline validation: Chinchilla (70B params, 1.4T tokens) beat Gopher (280B params, 300B tokens) across benchmarks on the same training budget. The fitted surface shows why — plugging into $L(N,D)$ with both at $C \approx 5.8 \times 10^{23}$ gives 1.937 for Chinchilla's allocation versus 1.993 for Gopher's, and a 4x smaller model is also 4x cheaper at inference.
+$E$ is the irreducible entropy of text; the other two terms are the finite-model and finite-data penalties. Minimizing subject to $C = 6ND$ gives $N^\star \propto C^{0.46}$ and $D^\star \propto C^{0.54}$, so parameters and tokens should scale **together**, at roughly 20 tokens per parameter at the measured scales, in place of Kaplan's $N \propto C^{0.73}$. The principal validation was that Chinchilla (70B parameters, 1.4T tokens) outperformed Gopher (280B parameters, 300B tokens) across benchmarks with the same training budget. The fitted surface accounts for this result. With both at $C \approx 5.8 \times 10^{23}$, $L(N,D)$ is 1.937 for Chinchilla's allocation and 1.993 for Gopher's, and the 4x smaller model also has 4x lower inference cost.
 
 ### A worked sizing example
 
-Suppose the training budget is $C = 10^{23}$ FLOPs. Sweep $N$ with $D = C/6N$ through the Chinchilla fit (computed with the constants above; script run in the repo venv):
+Consider a training budget of $C = 10^{23}$ FLOPs. The table evaluates the Chinchilla fit at several values of $N$, with $D = C/6N$ (computed with the constants above, by a script run in the repository's virtual environment).
 
 | Allocation | $N$ | $D$ | predicted $L$ |
 | --- | --- | --- | --- |
@@ -182,11 +185,11 @@ Suppose the training budget is $C = 10^{23}$ FLOPs. Sweep $N$ with $D = C/6N$ th
 | 2x larger model | 30B | 0.56T | 2.013 |
 | Gopher-style | 280B | 60B | 2.137 |
 
-The optimum at this budget sits near 15B parameters and 1.1T tokens (about 78 tokens per parameter — the fitted exponents $\alpha \ne \beta$ make the ratio drift upward with budget rather than staying at exactly 20). The instructive part is the asymmetry: doubling parameters past the optimum costs little, but a Gopher-style allocation starved of tokens gives up 0.13 nats, which at these scales is roughly the gap between successive model generations.
+The optimum at this budget is near 15B parameters and 1.1T tokens, about 78 tokens per parameter. Because the fitted exponents satisfy $\alpha \ne \beta$, the optimal ratio increases with budget instead of remaining at exactly 20. The predicted loss is asymmetric about the optimum. Doubling the parameter count beyond the optimum increases it by 0.008 nats, while the Gopher-style allocation, with far fewer tokens, increases it by 0.13 nats, which at these scales is roughly the gap between successive model generations.
 
 ### Inference changes the optimum
 
-Compute-optimal is the right target only if training is the only cost. Serving cost scales with $N$ per token generated, forever. [LLaMA](https://arxiv.org/abs/2302.13971) made this argument explicit: the Chinchilla objective "disregards the inference budget," and given a target quality level "the preferred model is not the fastest to train, but the fastest at inference" — so they trained 7B-65B models on 1-1.4T tokens, far past the ~20 tokens/parameter guideline, and [Llama 2](https://arxiv.org/abs/2307.09288) pushed to 2T. The pattern across the well-known models:
+Compute-optimal allocation is the appropriate target only when training is the only cost. Serving cost scales with $N$ for every token generated over the model's deployment. [LLaMA](https://arxiv.org/abs/2302.13971) made this argument explicitly: the Chinchilla objective "disregards the inference budget," and given a target quality level "the preferred model is not the fastest to train, but the fastest at inference." Touvron et al. accordingly trained 7B to 65B models on 1 to 1.4T tokens, far beyond the guideline of about 20 tokens per parameter, and [Llama 2](https://arxiv.org/abs/2307.09288) increased the count to 2T. The table lists the allocations of several widely cited models.
 
 | Model | $N$ | $D$ | tokens/param |
 | --- | --- | --- | --- |
@@ -196,25 +199,25 @@ Compute-optimal is the right target only if training is the only cost. Serving c
 | LLaMA-7B (2023) | 7B | 1T | ~143 |
 | Llama 2-70B (2023) | 70B | 2T | ~29 |
 
-Pre-Chinchilla models were undertrained; post-LLaMA open models are deliberately overtrained, paying extra training compute once to save inference compute on every deployed token. The fitted loss surface quantifies the price: LLaMA-7B's allocation predicts $L \approx 2.052$ where the same $4.2 \times 10^{22}$ FLOPs spent compute-optimally predicts $2.050$ — essentially nothing lost, while inference cost drops by the ratio of model sizes against a compute-optimal ~10B alternative. The flat optimum is what makes overtraining cheap.
+By the Chinchilla criterion, the models before Chinchilla were undertrained, and the open models after LLaMA are deliberately overtrained. They spend additional training compute once to reduce inference compute on every token served. The fitted loss surface quantifies the cost. LLaMA-7B's allocation predicts $L \approx 2.052$, and the same $4.2 \times 10^{22}$ FLOPs allocated compute-optimally predicts $2.050$, a negligible difference, while inference cost falls, relative to the compute-optimal alternative of about 10B parameters, by the ratio of the model sizes. Because the loss surface is flat near the optimum, overtraining costs little in loss.
 
-> [!tip] The loss optimum is flat; the inference bill is not
-> Moving along the fixed-compute curve away from the Chinchilla optimum costs thousandths of a nat, but halving $N$ halves the cost of every token the model ever serves. Whenever deployment volume is large, that asymmetry makes the smaller, overtrained model the right choice even though it is "suboptimal" by the training-only criterion.
+> [!tip] Flat loss optimum and inference cost
+> Near the Chinchilla optimum, moving along the fixed-compute curve changes the loss by thousandths of a nat, while halving $N$ halves the cost of every token the model serves. When deployment volume is large, this asymmetry makes the smaller, overtrained model the lower-cost choice, although it is "suboptimal" by the training-only criterion.
 
-Architecture interacts with the same economics. Sparse mixture-of-experts models decouple parameter count from per-token FLOPs, buying capacity without proportional inference cost, at the price of memory, routing complexity, and harder [[ml/serving-systems/parallelism|parallelism]]; small dense overtrained models are the opposite trade, maximally simple to serve.
+Architecture affects the same tradeoff. Sparse mixture-of-experts models decouple parameter count from per-token FLOPs, increasing capacity without a proportional increase in inference cost, at the cost of memory, routing complexity and more difficult [[ml/serving-systems/parallelism|parallelism]]. Small dense overtrained models make the opposite tradeoff and are the simplest to serve.
 
 ### Data-side caveats
 
-Token count is not a sufficient statistic for $D$. Deduplication matters (repeated near-duplicates waste budget and encourage memorization), mixture composition matters (code, web, books scale differently and interact with downstream tasks), and data can run out: [Muennighoff et al. (2023)](https://arxiv.org/abs/2305.16264) measured that repeating a fixed corpus for up to ~4 epochs costs almost nothing versus fresh data, with returns decaying to zero by ~16 epochs. All the scaling fits also assume the data distribution is fixed while only quantity varies — a data-quality intervention moves the constants, which is precisely why it can be worth more than parameters.
+Token count is not a sufficient statistic for $D$. Deduplication affects results (near-duplicates consume budget and encourage memorization), as does mixture composition (code, web and books scale differently and interact with downstream tasks), and the supply of data is finite. [Muennighoff et al. (2023)](https://arxiv.org/abs/2305.16264) measured that repeating a fixed corpus for up to about 4 epochs costs almost nothing compared with fresh data, and that the returns from repetition decay to zero by about 16 epochs. All the scaling fits also assume a fixed data distribution in which only quantity varies. An intervention on data quality changes the fitted constants, which is why it can be worth more than additional parameters.
 
-> [!warning] Scaling fits are interpolations, not laws
-> The power-law fits hold over the measured range with the measured data distribution. Extrapolating orders of magnitude beyond the fitted runs, or applying the constants after a major change in data mixture or quality, is conjecture — Chinchilla itself was a correction to Kaplan's fit caused by a subtle learning-rate-schedule confound.
+> [!warning] Scaling fits as interpolations
+> The power-law fits hold over the measured range with the measured data distribution. Extrapolating orders of magnitude beyond the fitted runs, or applying the constants after a major change in data mixture or quality, is conjecture. Chinchilla was itself a correction to Kaplan's fit, made necessary by a learning-rate-schedule confound.
 
-Once the architecture family is competent, data quality and compute allocation usually matter more than small structural edits. The scaling results sharpen that: they say how much loss each marginal parameter or token buys, and the answer is "a power law with a small exponent" for both — so the leverage is in not misallocating between them, and in the constants that data quality controls.
+Once the architecture family is adequate for the data, data quality and compute allocation tend to affect loss more than small structural changes. The scaling results make this quantitative. The loss reduction from each additional parameter or token follows a power law with a small exponent, so the largest gains come from the allocation between parameters and tokens and from the constants that data quality determines.
 
 ## A Practical Decision Order
 
-When starting a model, I want answers to these:
+Before a model is designed, the following questions should be answered.
 
 1. What downstream decision consumes the model output?
 2. Which invariances or constraints should the model obey?
@@ -222,7 +225,7 @@ When starting a model, I want answers to these:
 4. What kinds of errors are expensive?
 5. What part of the data pipeline is policy-shaped, biased, or weakly labeled?
 
-That usually narrows the design space quickly.
+The answers narrow the design space.
 
 ## Example: Translation
 
@@ -232,7 +235,7 @@ A translation model has:
 - one generated target sequence
 - alignment between them
 
-That points naturally toward an encoder-decoder architecture with cross-attention. The original transformer is exactly that design.
+These properties correspond to an encoder-decoder architecture with cross-attention, which is the design of the original transformer.
 
 ## Example: Long-Context Language Modeling
 
@@ -242,11 +245,11 @@ A language model needs:
 - parallel training over positions
 - long-range interaction
 
-That points toward a decoder-only transformer rather than a vanilla RNN.
+These requirements favor a decoder-only transformer over a plain RNN.
 
 ## Example: Small Scientific Dataset
 
-If data is scarce and structure is known, a smaller model with a stronger prior is often better than a huge flexible one. In that regime, the main failure mode is variance.
+When data is scarce and the structure is known, a smaller model with a stronger prior tends to generalize better than a large flexible one, because in that regime the dominant source of error is variance.
 
 ## Minimal PyTorch Spec
 
@@ -270,7 +273,7 @@ def make_head(spec: Spec) -> nn.Module:
     raise ValueError(spec.task)
 ```
 
-This is simple on purpose. Good modeling work starts by pinning down the interface before indulging architecture taste.
+The specification is deliberately minimal. It fixes the interface, meaning the input dimension, output dimension and task, before any architectural choice is made.
 
 ## Failure Modes
 

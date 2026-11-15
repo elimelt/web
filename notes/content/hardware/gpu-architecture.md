@@ -10,9 +10,12 @@ tags:
   - computer-architecture
   - digital-design
 date: 2026-08-01
-updated: 2026-08-01
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: draft
-description: Builds GPU execution from clocked RTL primitives up through SIMT lanes, warps, and the memory pipeline, with educational SystemVerilog models of a warp scheduler, a banked register file, and a pipelined MAC datapath, separated from documented Hopper/Blackwell facts.
+description: GPU execution derived from clocked RTL primitives through SIMT lanes, warps and the memory pipeline, with educational SystemVerilog models of a warp scheduler, a banked register file and a pipelined MAC datapath, kept distinct from documented Hopper and Blackwell specifications.
 sources:
   - title: CUDA C++ Programming Guide
     url: https://docs.nvidia.com/cuda/cuda-c-programming-guide/
@@ -37,25 +40,25 @@ sources:
     type: paper
 ---
 
-## Purpose
+A GPU is a throughput-oriented processor composed of many streaming multiprocessors (SMs). Each SM issues one instruction at a time to a group of 32 threads, a warp, whose threads execute it in parallel lanes; NVIDIA calls this execution model SIMT.
 
-Most GPU explanations start from CUDA's thread/block/grid vocabulary and work outward. This note goes the other direction: it starts from clocked digital logic (the same registers and combinational datapaths covered in [[hardware/digital-design/369/system-verilog|SystemVerilog]]) and builds up to warps, SMs, and the memory pipeline that CUDA exposes. The goal is to make the SIMT execution model feel like an engineering consequence of hardware constraints rather than an arbitrary API choice.
+The exposition starts from clocked digital logic (the registers and combinational datapaths covered in [[hardware/digital-design/369/system-verilog|SystemVerilog]]) rather than from CUDA's thread/block/grid vocabulary, and builds up to the warps, SMs and memory pipeline that CUDA exposes. In this derivation the SIMT execution model follows from hardware constraints.
 
-Two kinds of claims appear here, and they are marked differently. Sentences about the H100/B200 cite NVIDIA documentation and are facts about real silicon. The four SystemVerilog modules are my own simplified teaching models, not vendor RTL; NVIDIA has never published its SM microarchitecture at the gate level. Where a real open GPU RTL exists for comparison, I point to [MIAOW](https://github.com/VerticalResearchGroup/miaow), a synthesizable implementation of AMD's Southern Islands ISA built for exactly this kind of architecture research.
+Statements about the H100 and B200 cite NVIDIA documentation. The four SystemVerilog modules are simplified teaching models, not vendor RTL, since NVIDIA has not published its SM microarchitecture at the gate level. For comparison with real open GPU RTL, [MIAOW](https://github.com/VerticalResearchGroup/miaow) is a synthesizable implementation of AMD's Southern Islands ISA built for architecture research.
 
 ## From wires to lanes: the hardware building blocks
 
-Everything below rests on three primitives, all covered in [[hardware/digital-design/369/system-verilog|SystemVerilog]] and [[hardware/digital-design/369/sequential-logic|Sequential Logic]]:
+The construction rests on three primitives, all covered in [[hardware/digital-design/369/system-verilog|SystemVerilog]] and [[hardware/digital-design/369/sequential-logic|Sequential Logic]]:
 
-- **A clocked register** (`always_ff @(posedge clk)`) is a single bit or word of state that only changes on a clock edge. It is the only place state legally lives in a synchronous design.
+- **A clocked register** (`always_ff @(posedge clk)`) is a single bit or word of state that only changes on a clock edge. In a synchronous design, all state is held in such registers.
 - **A combinational datapath** (`always_comb` or continuous `assign`) computes a function of its inputs with no memory; an adder, a multiplexer, or an ALU are all combinational blocks wired between registers.
-- **Valid/ready handshaking** is the discipline two hardware blocks use to pass data when one might not be ready to receive: the sender asserts `valid`, the receiver asserts `ready`, and a transfer happens only on a cycle where both are high. This is how independent clocked blocks (a warp scheduler and an execution unit, say) communicate without assuming a shared, synchronous notion of "now."
+- **Valid/ready handshaking** is the protocol by which two hardware blocks pass data when the receiver may not be ready. The sender asserts `valid`, the receiver asserts `ready`, and a transfer happens only on a cycle where both are high. Independent clocked blocks (for example, a warp scheduler and an execution unit) communicate in this way without assuming a shared, synchronous notion of "now."
 
-A GPU core is enormous numbers of these three primitives, replicated and specialized. An ALU lane is a combinational datapath. A register file is an array of clocked registers with an addressing scheme. A pipeline is a chain of registers separated by combinational stages, one instruction phase advancing on every clock edge. Everything that follows names deliberate design choices layered on top of this substrate to extract data parallelism.
+A GPU core consists of very large numbers of these three primitives, replicated and specialized. An ALU lane is a combinational datapath. A register file is an array of clocked registers with an addressing scheme. A pipeline is a chain of registers separated by combinational stages, one instruction phase advancing on every clock edge. The remaining structures are design choices layered on this substrate to exploit data parallelism.
 
 ## The chip-level hierarchy
 
-The [CUDA programming guide](https://docs.nvidia.com/cuda/cuda-c-programming-guide/) documents a hierarchy of compute resources; H100-class figures below are from the guide and the [Hopper architecture page](https://www.nvidia.com/en-us/data-center/technologies/hopper-architecture/).
+The [CUDA programming guide](https://docs.nvidia.com/cuda/cuda-c-programming-guide/) documents a hierarchy of compute resources; the H100-class figures are from the guide and the [Hopper architecture page](https://www.nvidia.com/en-us/data-center/technologies/hopper-architecture/).
 
 ```mermaid
 flowchart TD
@@ -70,11 +73,11 @@ flowchart TD
     GPU --> HostIF["Host interface (PCIe / NVLink-C2C)"]
 ```
 
-An H100 SXM part has 132 SMs (up to 144 on the full GH100 die), 50 MB of L2, and 80 GB of HBM3 at roughly 3.35 TB/s, per the Hopper architecture page. A GPC groups several TPCs, and a TPC groups two SMs sharing an instruction cache path; the exact grouping is a floorplanning decision that does not change the programming model, since CUDA's grid/block abstraction targets SMs directly and the scheduler maps blocks onto whichever SM has room.
+An H100 SXM part has 132 SMs (up to 144 on the full GH100 die), 50 MB of L2, and 80 GB of HBM3 at roughly 3.35 TB/s, per the Hopper architecture page. A GPC groups several TPCs, and a TPC groups two SMs sharing an instruction cache path; the exact grouping is a floorplanning decision that does not change the programming model, since CUDA's grid/block abstraction targets SMs directly and the scheduler maps blocks onto any SM with available resources.
 
 ## Inside one SM
 
-Each SM is itself a small parallel machine, not a single core. NVIDIA's documented H100 SM contains four warp-scheduler partitions, each with its own register file slice, CUDA cores (scalar FP32/INT32/FP64 ALUs), fourth-generation tensor cores, special function units (SFUs) for transcendentals, and load/store units, sharing one block of configurable L1/shared memory (up to 228 KB per SM) per the [CUDA programming guide](https://docs.nvidia.com/cuda/cuda-c-programming-guide/).
+Each SM is itself a parallel processor rather than a single core. NVIDIA's documented H100 SM contains four warp-scheduler partitions, each with its own register file slice, CUDA cores (scalar FP32/INT32/FP64 ALUs), fourth-generation tensor cores, special function units (SFUs) for transcendentals, and load/store units, sharing one block of configurable L1/shared memory (up to 228 KB per SM) per the [CUDA programming guide](https://docs.nvidia.com/cuda/cuda-c-programming-guide/).
 
 ```mermaid
 flowchart TD
@@ -102,12 +105,12 @@ flowchart TD
     LSU --> L2["L2 cache"]
 ```
 
-Four independent warp schedulers per SM exist because one scheduler cannot issue fast enough to keep all the SM's ALUs busy from a single instruction stream; splitting into partitions is a throughput decision, the same reason a CPU might use superscalar issue, except here the parallelism comes from separate warps rather than separate instructions from one thread.
+An SM has four independent warp schedulers because a single scheduler cannot issue instructions fast enough to keep all of the SM's ALUs occupied from one instruction stream. The division into partitions serves throughput, as superscalar issue does in a CPU, with the difference that the parallelism comes from separate warps rather than from independent instructions of one thread.
 
 
 ## SIMT: one instruction stream, many lanes
 
-Single Instruction, Multiple Threads (SIMT) is NVIDIA's name for the execution model documented in the [CUDA programming guide](https://docs.nvidia.com/cuda/cuda-c-programming-guide/): the hardware groups 32 consecutive threads into a warp, fetches and issues one instruction for the whole warp, and broadcasts it across 32 parallel lanes. This is a direct consequence of the RTL substrate above: fetching and decoding an instruction costs registers and combinational logic regardless of how many lanes execute it, so amortizing that cost over 32 lanes instead of 1 is pure efficiency. The cost is that a lane with nothing useful to do this instruction (a divergent branch, a masked-off predicate) still occupies a slot in the warp and the hardware still pays for it, just with its result discarded.
+Single Instruction, Multiple Threads (SIMT) is NVIDIA's name for the execution model documented in the [CUDA programming guide](https://docs.nvidia.com/cuda/cuda-c-programming-guide/): the hardware groups 32 consecutive threads into a warp, fetches and issues one instruction for the whole warp, and broadcasts it across 32 parallel lanes. The grouping follows from the RTL substrate. Fetching and decoding an instruction requires registers and combinational logic regardless of how many lanes execute it, so amortizing that cost over 32 lanes instead of 1 reduces the control overhead per lane. A lane with no useful work for a given instruction (a divergent branch, a masked-off predicate) still occupies a slot in the warp and consumes execution resources, and its result is discarded.
 
 ```mermaid
 flowchart TD
@@ -118,15 +121,15 @@ flowchart TD
     Warp --> LaneN["... Lane 31"]
 ```
 
-Compute capability 9.0 (Hopper) and 10.0 (Blackwell) both support up to 64 concurrent warps resident per SM, per the [Blackwell Tuning Guide](https://docs.nvidia.com/cuda/archive/12.8.1/blackwell-tuning-guide/index.html), which explicitly notes Blackwell targets similar occupancy to Hopper. Since Independent Thread Scheduling arrived in Volta (compute capability 7.0), threads within a warp can each carry their own program counter and diverge and reconverge independently rather than executing in lockstep with a single shared PC; the [Blackwell compatibility guide](https://docs.nvidia.com/cuda/inline-ptx-assembly/blackwell-compatibility-guide/index.html) still documents an opt-in flag to fall back to the older Pascal-style scheduling model for code that assumed warp-synchronous behavior. Divergence cost did not go away with Independent Thread Scheduling, it just stopped forcing full lockstep; a warp whose threads take different branches still executes both sides serially at the warp level.
+Compute capability 9.0 (Hopper) and 10.0 (Blackwell) both support up to 64 concurrent warps resident per SM, per the [Blackwell Tuning Guide](https://docs.nvidia.com/cuda/archive/12.8.1/blackwell-tuning-guide/index.html), which states that Blackwell targets occupancy similar to Hopper's. Since Independent Thread Scheduling arrived in Volta (compute capability 7.0), threads within a warp can each carry their own program counter and diverge and reconverge independently rather than executing in lockstep with a single shared PC; the [Blackwell compatibility guide](https://docs.nvidia.com/cuda/inline-ptx-assembly/blackwell-compatibility-guide/index.html) still documents an opt-in flag to fall back to the older Pascal-style scheduling model for code that assumed warp-synchronous behavior. Independent Thread Scheduling did not remove the cost of divergence; it removed the requirement of full lockstep execution, and a warp whose threads take different branches still executes both sides serially at the warp level.
 
 ## Four educational RTL models
 
-The four models below are my own simplified teaching designs, meant to make the SIMT concepts above checkable in simulation. None of them are NVIDIA RTL; NVIDIA has not published SM microarchitecture at the gate level. [MIAOW](https://github.com/VerticalResearchGroup/miaow), a synthesizable open-source GPU implementing AMD's Southern Islands ISA, is the closest public reference for what real compute-unit RTL looks like, and its wiki documents an actual warp scheduler, vector register file, and ALU pipeline at a level of detail these four snippets intentionally do not attempt.
+The four models are simplified teaching designs that make the SIMT concepts testable in simulation. None of them is NVIDIA RTL, since NVIDIA has not published SM microarchitecture at the gate level. [MIAOW](https://github.com/VerticalResearchGroup/miaow), a synthesizable open-source GPU implementing AMD's Southern Islands ISA, is the closest public reference for real compute-unit RTL, and its wiki documents a warp scheduler, vector register file, and ALU pipeline at a level of detail that these four models intentionally omit.
 
 ### Model 1: warp issue arbiter
 
-One scheduler partition picks one ready warp to issue per cycle. This is the hardware justification for the "4 warps run at once, more are queued" structure GPUs actually use: only one of the warps mapped to a partition can issue in a given cycle, so a round-robin (or a fairer policy, GPU simulators commonly model greedy-then-oldest) keeps every ready warp making progress instead of starving.
+Each scheduler partition selects one ready warp to issue per cycle. This constraint underlies the structure in which four warps issue at once per SM and the others wait. Only one of the warps mapped to a partition can issue in a given cycle, so a round-robin policy (or an alternative such as greedy-then-oldest, which GPU simulators commonly model) ensures that every ready warp makes progress and none starves.
 
 ```systemverilog
 // Educational model, not vendor RTL. Round-robin arbiter picking one
@@ -196,7 +199,7 @@ endmodule
 
 ### Model 2: banked (per-lane) register file
 
-Warp width is not arbitrary: 32 lanes read from 32 independent register-file banks in the same cycle, one bank per lane, which is exactly what lets the whole warp read its operands in a single cycle instead of serializing 32 scalar reads. Modeling each lane's registers as its own tiny memory makes that parallelism explicit and makes a conflict structurally impossible, since lane `i` can only ever address bank `i`.
+In the model, the 32 lanes read from 32 independent register-file banks in the same cycle, one bank per lane, so the whole warp reads its operands in a single cycle instead of serializing 32 scalar reads. Modeling each lane's registers as a separate small memory makes that parallelism explicit and makes a bank conflict structurally impossible, since lane `i` addresses only bank `i`.
 
 ```systemverilog
 // Educational model, not vendor RTL. One synchronous register-file
@@ -259,7 +262,7 @@ endmodule
 
 ### Model 3: pipelined multiply-accumulate datapath (matrix engine primitive)
 
-Tensor cores compute small matrix products per instruction instead of one multiply-add per thread. The primitive underneath is a multiply-accumulate (MAC) chain: a systolic-style pipeline of MAC stages, each stage registered, streaming operands through so a new partial product completes every cycle even though any single result takes several cycles to reach the output. This is the same pipelining idea from [[hardware/digital-design/371/static-timing-analysis|static timing analysis]], applied to arithmetic instead of control: splitting one long combinational multiply-then-add into registered stages raises achievable clock frequency at the cost of latency.
+Tensor cores compute small matrix products per instruction instead of one multiply-add per thread. The underlying primitive is a multiply-accumulate (MAC) chain, a systolic-style pipeline of registered MAC stages through which operands stream, so that a new partial product completes every cycle although each result takes several cycles to reach the output. The pipelining principle from [[hardware/digital-design/371/static-timing-analysis|static timing analysis]] applies here to arithmetic. Splitting one long combinational multiply-then-add into registered stages raises the achievable clock frequency at the cost of latency.
 
 ```systemverilog
 // Educational model, not vendor RTL. 4-deep pipelined MAC chain, one
@@ -341,7 +344,7 @@ endmodule
 
 ### Model 4: valid/ready handshake between scheduler and execution unit
 
-The arbiter (Model 1) and the MAC pipeline (Model 3) run at different depths and can stall independently (a shared-memory bank conflict downstream, a busy tensor core). A valid/ready handshake decouples them: the scheduler asserts `valid` when it has an instruction to issue, the execution unit asserts `ready` when it can accept one, and only a cycle with both high is a real transfer. This is the same handshake used throughout real NoCs and AXI-style buses, scaled down to a two-block example.
+The arbiter (Model 1) and the MAC pipeline (Model 3) run at different depths and can stall independently (a shared-memory bank conflict downstream, a busy tensor core). A valid/ready handshake decouples them: the scheduler asserts `valid` when it has an instruction to issue, the execution unit asserts `ready` when it can accept one, and only a cycle with both high is a real transfer. The same handshake is used in NoCs and AXI-style buses, and the model reduces it to two blocks.
 
 ```systemverilog
 // Educational model, not vendor RTL. Minimal valid/ready handshake
@@ -406,20 +409,20 @@ endmodule
 
 ## Worked trace: one warp instruction, issue to writeback
 
-Trace a single `FFMA` (fused multiply-add) warp instruction through the pipeline built from the models above, using a simplified 5-stage view (fetch/decode already resolved, so the trace starts at issue):
+The trace follows a single `FFMA` (fused multiply-add) warp instruction through the pipeline built from the four models, in a simplified 5-stage view in which fetch and decode are already complete, so the trace starts at issue:
 
 1. **Issue (cycle 0)**: `warp_issue_arbiter` grants warp 2, which has a decoded `FFMA R3, R1, R2, R3` ready. `warp_grant = 0100`, `issue_valid = 1`.
 2. **Register read (cycle 1)**: the issued warp's register index feeds `lane_register_file.raddr` for `R1` and `R2` across all 32 lanes in parallel; 32 pairs of operands come out one cycle later (the model's registered read).
-3. **Handshake to execution unit (cycle 2)**: the decoded operands and opcode present as `sched_valid` to `issue_handshake`; if the target ALU/tensor pipe is free (`sched_ready = 1`), `exec_valid` fires and the operands enter the pipeline.
+3. **Handshake to execution unit (cycle 2)**: the decoded operands and opcode present as `sched_valid` to `issue_handshake`; if the target ALU/tensor pipe is free (`sched_ready = 1`), `exec_valid` is asserted and the operands enter the pipeline.
 4. **Execute (cycles 3-6)**: the multiply-add streams through the 4-stage `pipelined_mac_chain`; each stage advances one operand set per cycle, so throughput is one FFMA issued per cycle once the pipeline is full, but this particular instruction's result is not ready until 4 cycles after it entered.
 5. **Writeback (cycle 7)**: `acc_out` with `out_valid = 1` is written back into `lane_register_file` at `R3` (`we = 1`, `waddr = R3`), one bank per lane, completing the instruction.
 
-The pipeline depth (4 execute stages here) is why a single warp cannot issue two dependent instructions back to back without a stall or without the scheduler filling the gap with a different warp's instruction. This is precisely why having many resident warps per SM (up to 64 on Hopper/Blackwell) matters: while warp 2's FFMA is still draining through the pipeline, the scheduler can issue warp 5's instruction in the same slot, hiding the pipeline latency instead of stalling.
+The pipeline depth (4 execute stages here) is why a single warp cannot issue two dependent instructions back to back without a stall or without the scheduler filling the gap with a different warp's instruction. Many resident warps per SM (up to 64 on Hopper/Blackwell) address this stall. While warp 2's FFMA is still draining through the pipeline, the scheduler can issue warp 5's instruction in the same slot and hide the pipeline latency.
 
 
 ## Memory pipeline: registers to HBM
 
-Reading `R1`/`R2` in the trace above is the fast path; most real kernels also touch shared memory, L2, and HBM, each a step further from the ALU and each documented with very different bandwidth and latency:
+Reading `R1` and `R2` in the trace is the fastest access path. Most kernels also access shared memory, L2, and HBM, each further from the ALU and each with different documented bandwidth and latency:
 
 - **Registers**: read in the same cycle as issue in this model (real hardware pipelines this over 1-2 cycles); private per thread, largest but cheapest resource per access.
 - **Shared memory / L1**: on-chip SRAM, configurable up to 228 KB per SM on Hopper and Blackwell compute capability 10.0 per the [Blackwell Tuning Guide](https://docs.nvidia.com/cuda/archive/12.8.1/blackwell-tuning-guide/index.html); visible to a whole thread block, tens of cycles of latency, banked similarly to the register file so that a warp's 32 threads can hit 32 different banks in one cycle without conflict.
@@ -436,27 +439,27 @@ flowchart LR
 
 ## Bandwidth and latency: a worked calculation
 
-Take an H100 SXM: 3.35 TB/s HBM bandwidth and roughly 132 SMs (Hopper architecture page). A kernel that streams through the entire 80 GB of HBM once, purely memory bound, takes at minimum
+An H100 SXM has 3.35 TB/s HBM bandwidth and roughly 132 SMs (Hopper architecture page). A kernel that streams through the entire 80 GB of HBM once, purely memory bound, takes at minimum
 
 $$T = \frac{80 \times 10^9 \text{ bytes}}{3.35 \times 10^{12} \text{ bytes/s}} \approx 23.9\text{ ms}$$
 
-Per-SM share of that bandwidth, if perfectly divided, is $3.35\text{ TB/s} / 132 \approx 25.4\text{ GB/s}$ per SM. A single warp's load instruction moving 32 lanes x 4 bytes = 128 bytes in one coalesced transaction, issued back to back with zero stall, would need $128\text{ bytes} / 25.4\text{ GB/s} \approx 5\text{ ns}$ per transaction just to stay bandwidth-bound at the SM's fair share, which at a ~1.8 GHz clock is roughly 9 cycles; well above the roughly 1-cycle issue rate, which is exactly why real kernels need many warps in flight (see the worked trace above) rather than one warp saturating memory bandwidth alone. This is the same conclusion the [[ml/serving-systems/performance-modeling|roofline model]] reaches from the software side: single-thread or single-warp memory traffic is nowhere near enough to hit peak bandwidth, so occupancy exists to keep enough outstanding memory requests in flight.
+Per-SM share of that bandwidth, if perfectly divided, is $3.35\text{ TB/s} / 132 \approx 25.4\text{ GB/s}$ per SM. A single warp's load instruction moving 32 lanes x 4 bytes = 128 bytes in one coalesced transaction, issued back to back with zero stall, would need $128\text{ bytes} / 25.4\text{ GB/s} \approx 5\text{ ns}$ per transaction to stay bandwidth-bound at the SM's fair share, which at a ~1.8 GHz clock is roughly 9 cycles, well above the roughly 1-cycle issue rate. Real kernels therefore keep many warps in flight (as in the [worked trace](#worked-trace-one-warp-instruction-issue-to-writeback)) rather than relying on one warp to saturate memory bandwidth. The [[ml/serving-systems/performance-modeling|roofline model]] reaches the same conclusion from the software side. Memory traffic from a single thread or a single warp falls far short of peak bandwidth, and occupancy keeps enough memory requests outstanding to approach it.
 
 ## Resource tradeoff: registers, shared memory, occupancy, pipeline depth
 
-Everything above shares one finite SM budget: on Hopper/Blackwell compute capability 10.0, 64K 32-bit registers and up to 228 KB of shared memory per SM, with up to 64 resident warps per SM per the [Blackwell Tuning Guide](https://docs.nvidia.com/cuda/archive/12.8.1/blackwell-tuning-guide/index.html). These trade off directly:
+These resources share one finite SM budget. On Hopper/Blackwell compute capability 10.0, an SM has 64K 32-bit registers and up to 228 KB of shared memory per SM, with up to 64 resident warps per SM per the [Blackwell Tuning Guide](https://docs.nvidia.com/cuda/archive/12.8.1/blackwell-tuning-guide/index.html). These quantities trade off directly:
 
-- **More registers per thread** reduces spills to local memory (which is just HBM traffic in disguise) but reduces how many warps' worth of registers fit in the 64K-register file, lowering occupancy.
+- **More registers per thread** reduces spills to local memory (which resides in device memory and so generates HBM traffic) but reduces how many warps' worth of registers fit in the 64K-register file, lowering occupancy.
 - **More shared memory per block** enables larger tiles (fewer HBM round trips per unit of compute, raising arithmetic intensity per the [[ml/serving-systems/performance-modeling|roofline model]]) but reduces how many blocks fit per SM simultaneously.
-- **Deeper execution pipelines** (Model 3 above) raise achievable clock frequency and per-cycle throughput once full, but raise the latency any single dependent instruction chain must tolerate, again pushing toward needing more resident warps to hide that latency.
+- **Deeper execution pipelines** (Model 3 above) raise achievable clock frequency and per-cycle throughput once full, but raise the latency that any chain of dependent instructions incurs, which again requires more resident warps to hide that latency.
 
-None of these axes can be maximized independently: a kernel using all 228 KB of shared memory per block leaves room for only one block per SM regardless of register usage, and a kernel using 255 registers per thread (the compute-capability 10.0 max per the tuning guide) leaves room for at most $65536 / (255 \times 32) \approx 8$ warps per SM, an eighth of the 64-warp ceiling. Occupancy alone is not a sufficient optimization target (see [[ml/serving-systems/gpu-basics|GPU Basics]] for why), but it is the visible symptom of this three-way resource competition, and tuning any one axis (registers, shared memory, launch bounds) moves the other two.
+None of these axes can be maximized independently: a kernel using all 228 KB of shared memory per block leaves room for only one block per SM regardless of register usage, and a kernel using 255 registers per thread (the compute-capability 10.0 max per the tuning guide) leaves room for at most $65536 / (255 \times 32) \approx 8$ warps per SM, an eighth of the 64-warp ceiling. Occupancy alone is not a sufficient optimization target (see [[ml/serving-systems/gpu-basics|GPU Basics]] for why), but it reflects this three-way competition for resources, and tuning any one axis (registers, shared memory, launch bounds) affects the other two.
 
 ## Related notes
 
-- [[hardware/digital-design/369/system-verilog|SystemVerilog]] and [[hardware/digital-design/369/sequential-logic|Sequential Logic]] for the RTL primitives this note builds on.
+- [[hardware/digital-design/369/system-verilog|SystemVerilog]] and [[hardware/digital-design/369/sequential-logic|Sequential Logic]] for the RTL primitives used in the models.
 - [[hardware/digital-design/371/static-timing-analysis|Static Timing Analysis]] for why pipelining trades latency for frequency.
 - [[ml/serving-systems/gpu-basics|GPU Basics]] for the software-facing view of warps, occupancy, and dtype throughput.
 - [[ml/serving-systems/optimizing-gpu-kernels|Optimizing GPU Kernels]] for how these hardware constraints shape real kernel design (tiling, TMA, tensor cores).
-- [[ml/serving-systems/performance-modeling|Performance Modeling for LLM Serving Systems]] for the roofline model this note's bandwidth calculation feeds into.
+- [[ml/serving-systems/performance-modeling|Performance Modeling for LLM Serving Systems]] for the roofline model to which the bandwidth calculation applies.
 - [[ml/serving-systems/gpu-interconnects|GPU Interconnects and Collective Communication]] for what happens once data leaves a single GPU's HBM.

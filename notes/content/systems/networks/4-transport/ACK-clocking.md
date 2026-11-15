@@ -9,9 +9,12 @@ tags:
   - tcp
   - congestion-control
 date: 2024-02-25
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: How a sliding window sender uses returning ACKs to pace new segments into the network, and why that pacing does not protect an overloaded receiver.
+description: The use of returning ACKs by a sliding window sender to pace new segments into the network, and the reason this pacing does not protect an overloaded receiver.
 sources:
   - title: "CSE 461: Computer Networks, University of Washington"
     url: https://courses.cs.washington.edu/courses/cse461/
@@ -21,17 +24,17 @@ sources:
     type: textbook
 ---
 
-## Purpose
+The ACK clock is the mechanism by which a sliding window sender comes to transmit at the rate of the slowest link on its path, because each returning acknowledgment permits one new segment to enter the network.
 
-Explain the ACK clock, the mechanism by which a sliding window sender ends up transmitting at the pace of the slowest link on the path. Also cover the case the ACK clock does nothing about, a receiver that cannot keep up.
+The ACK clock matches the sender to the path and does not address a receiver whose application consumes data more slowly than the network delivers it.
 
 ## Core idea
 
-Each in-order ACK advances the [[algorithms/patterns/sliding-window|sliding window]] and lets one new segment enter the network. New data goes out exactly as fast as ACKs come back, and ACKs come back at the rate the bottleneck link can deliver data. The sender is clocked by the network itself.
+Each in-order ACK advances the [[algorithms/patterns/sliding-window|sliding window]] and lets one new segment enter the network. New data is sent exactly as fast as ACKs return, and ACKs return at the rate at which the bottleneck link delivers data, so the network itself sets the sender's timing.
 
 ## Intuition
 
-Say the sender sits on a fast link and the path crosses a slow link downstream. The first burst of segments arrives at the slow link faster than it can forward them, so they queue there and leave spaced out in time. The receiver generates ACKs with that same spacing, and the spacing survives the trip back because ACKs are small. When those ACKs arrive, the sender releases new segments one per ACK, already spread out to match the bottleneck rate. The network smooths the first burst once, and the ACK clock carries that smooth timing back to the sender for the rest of the transfer.
+Suppose the sender is attached to a fast link and the path crosses a slow link downstream. The first burst of segments arrives at the slow link faster than it can forward them, so they queue there and leave spaced out in time. The receiver generates ACKs with that same spacing, and the spacing is preserved on the return path because ACKs are small. When those ACKs arrive, the sender releases new segments one per ACK, already spread out to match the bottleneck rate. The bottleneck spreads out the first burst once, and the ACK clock preserves that spacing at the sender for the rest of the transfer.
 
 ```mermaid
 sequenceDiagram
@@ -53,13 +56,13 @@ sequenceDiagram
     Note over S,R: Sender now transmits at the bottleneck rate
 ```
 
-This keeps queues at the slow link small, which keeps loss and queueing delay low. TCP depends on this behavior. The window bounds how many segments are in the network at once, and the ACK clock stops later segments from arriving in bursts that would refill the queue.
+The ACK clock keeps queues at the slow link small, which keeps loss and queueing delay low. TCP depends on this behavior. The window bounds the number of segments in the network at once, and the ACK clock prevents later segments from arriving in bursts that would refill the queue.
 
 ## Problem at the receiver
 
-The ACK clock matches the sender to the network path. It says nothing about whether the receiving application actually consumes the data. Consider a receiver with $w$ buffers. The application should call `recv` to drain them, but nothing forces it to. If it stops, the buffers fill with segments the network delivered perfectly well, and every segment after that gets dropped at the receiver. The sender then retransmits data that was never lost in the network.
+The ACK clock matches the sender to the network path. It carries no information about whether the receiving application consumes the data. Consider a receiver with $w$ buffers. The application is expected to call `recv` to drain them, but nothing requires it to. If it stops, the buffers fill with segments the network delivered successfully, and every subsequent segment is dropped at the receiver. The sender then retransmits data that was never lost in the network.
 
-Fixing this takes an explicit mechanism where the receiver tells the sender how much buffer space remains. TCP does this with the receive window, covered in [[systems/networks/4-transport/flow-control|flow control]].
+Addressing this requires an explicit mechanism by which the receiver informs the sender of the remaining buffer space. TCP does this with the receive window, covered in [[systems/networks/4-transport/flow-control|flow control]].
 
 ## Related notes
 

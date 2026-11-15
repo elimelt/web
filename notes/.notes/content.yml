@@ -1,7 +1,7 @@
 version: 1
 
 core_principles:
-  - every_note_needs_a_clear_purpose
+  - every_note_opens_with_the_formal_definition_then_explains_it
   - every_nontrivial_claim_must_be_cited_derived_or_measured
   - intuition_and_rigor_should_coexist
   - examples_should_pull_their_weight
@@ -9,7 +9,7 @@ core_principles:
   - prose_should_follow_the_shape_of_the_idea
 
 required_elements:
-  - purpose
+  - opening_definition
   - main_claim_or_question
   - intuitive_explanation
   - technical_detail
@@ -53,7 +53,6 @@ math_and_code:
 note_types:
   concept:
     recommended_sections:
-      - Purpose
       - Core idea
       - Intuition
       - Formal statement
@@ -63,7 +62,6 @@ note_types:
       - Related notes
   paper:
     recommended_sections:
-      - Purpose
       - Citation
       - Problem
       - Main idea
@@ -74,7 +72,6 @@ note_types:
       - Related notes
   benchmark:
     recommended_sections:
-      - Purpose
       - Setup
       - Workload
       - Method
@@ -85,7 +82,8 @@ note_types:
       - Related notes
 
 review_prompts:
-  - does_the_note_state_why_it_exists_early
+  - does_the_opening_give_the_formal_definition_first
+  - does_the_prose_follow_style_guide_md
   - is_every_nontrivial_claim_supported
   - does_each_section_move_the_argument_forward
   - is_any_sentence_only_there_to_sound_nice

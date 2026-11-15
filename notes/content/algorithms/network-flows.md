@@ -9,29 +9,32 @@ tags:
   - vertex cover
   - independent set
 date: 2024-05-17
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: needs-review
-description: Max-flow and min-cut, the Ford-Fulkerson algorithm with runtime analysis, the reduction from bipartite matching, image segmentation via min-cut, and four worked reduction problems. Two of the problem writeups lean on results from course section handouts not reproduced here.
+description: Max-flow and min-cut, the Ford-Fulkerson algorithm with runtime analysis, the reduction from bipartite matching, image segmentation via min-cut, and four worked reduction problems. Two of the problem solutions rely on results from course section handouts that are not reproduced.
 sources:
   - https://www.cs.princeton.edu/~wayne/kleinberg-tardos/
 ---
 
-## Purpose
+Given a graph $G$ with edge capacities and two vertices $s$ and $t$, the **maximum-flow problem** asks for the maximum value of a flow from $s$ to $t$. The **minimum-cut problem** asks for a partition $(A, B)$ of the vertices with $s \in A$ and $t \in B$ that minimizes the total capacity of the edges from $A$ to $B$. The max-flow min-cut theorem states that the two optima are equal.
 
-Max-flow and min-cut sit behind a large family of reductions. This note covers the core algorithm (Ford-Fulkerson), the classic reduction from bipartite matching, an image segmentation formulation, and four worked problems that reduce to flow. Two of the problem writeups (P1 and P3) reference results proved in course section or lecture that this note does not reproduce, which is why it carries a needs-review status.
+Many problems reduce to one of the two: routing through a network whose edges have limited capacity, and partitioning a set of objects into two groups at minimum cost. The solutions to P1 and P3 rely on results proved in course section or lecture whose proofs are not reproduced.
 
 ## Max Flow/Min Cut
 
-**Max flow** and **min cut** show up wherever you route things through capacity-limited networks or split objects into two groups at minimum cost:
+Applications of **max flow** and **min cut** include the following.
 
 - **Transportation networks**: flow of goods, data, or people through a network
-- **Telecommunications**: the min cut is exactly the number of edges you must remove to disconnect servers $s$ and $t$
+- **Telecommunications**: with unit capacities, the min cut is the least number of edges whose removal disconnects servers $s$ and $t$
 - **Image segmentation**: partitioning an image into regions
 - **Data mining**: clustering and classification
 
-Use min cut when you want a partition of objects into two sets minimizing some cost. Use max flow for optimal routing. If the objects carry a natural ordering, also consider [[algorithms/dynamic-programming|dynamic programming]], and for problems on trees, try greedy (inducting on leaves) or dynamic programming on subtrees.
+Min cut applies when the goal is a partition of objects into two sets that minimizes a cost, and max flow when the goal is an optimal routing. When the objects have a natural ordering, [[algorithms/dynamic-programming|dynamic programming]] is an alternative, and problems on trees may admit a greedy algorithm (by induction on leaves) or dynamic programming on subtrees.
 
-Given a graph $G$ with edge capacities and vertices $s, t$, the max-flow problem asks for the maximum value of a flow from $s$ to $t$. The max-flow min-cut theorem says this value equals the minimum capacity over all cuts separating $s$ from $t$, where for a cut $(A, B)$ with $s \in A, t \in B$:
+The max-flow min-cut theorem states that the maximum flow value equals the minimum capacity over all cuts separating $s$ from $t$, where the capacity of a cut $(A, B)$ with $s \in A, t \in B$ is
 
 $$
 cap(A, B) = \sum_{u \in A, v \in B, (u, v) \in E} c(u, v)
@@ -42,13 +45,13 @@ $$
 
 ## Ford Fulkerson Algorithm
 
-The **residual graph** $G_f$ represents remaining capacity. If edge $(u, v)$ has capacity $c$ and current flow $f(u, v)$, the residual capacity forward is $c - f(u, v)$, and there is a backward residual edge $(v, u)$ with capacity $f(u, v)$ that lets the algorithm undo flow it committed earlier.
+The **residual graph** $G_f$ represents remaining capacity. If edge $(u, v)$ has capacity $c$ and current flow $f(u, v)$, the residual capacity forward is $c - f(u, v)$, and there is a backward residual edge $(v, u)$ with capacity $f(u, v)$, through which flow assigned earlier can be cancelled.
 
 An **augmenting path** is a path from $s$ to $t$ in $G_f$ using only edges with positive residual capacity. Ford-Fulkerson repeatedly finds an augmenting path and pushes the bottleneck (minimum residual capacity along the path) through it, until no augmenting path exists. At that point the flow is maximum, and the vertices reachable from $s$ in the residual graph form the $A$ side of a minimum cut.
 
-Pushing flow along a forward edge increases the flow on that edge. Pushing flow along a backward residual edge decreases the flow on the corresponding forward edge, rerouting flow that an earlier iteration placed badly.
+Pushing flow along a forward edge increases the flow on that edge. Pushing flow along a backward residual edge decreases the flow on the corresponding forward edge, which reroutes flow assigned in an earlier iteration.
 
-The network below shows the backward edge doing that work. Every capacity is $1$ and the max flow is $2$:
+In the network below, every capacity is $1$ and the max flow is $2$.
 
 ```mermaid
 flowchart LR
@@ -62,7 +65,7 @@ flowchart LR
     style t fill:#e3f2fd,stroke:#1565c0
 ```
 
-A DFS that first augments along $s \to a \to b \to t$ saturates $(a, b)$ and leaves a flow of value $1$. The second augmenting path is $s \to b \to a \to t$: it crosses the backward residual edge $(b, a)$, canceling the unit on $(a, b)$. The final flow routes $s \to a \to t$ and $s \to b \to t$ with nothing on the middle edge.
+A DFS that first augments along $s \to a \to b \to t$ saturates $(a, b)$ and leaves a flow of value $1$. The second augmenting path is $s \to b \to a \to t$, which crosses the backward residual edge $(b, a)$, canceling the unit on $(a, b)$. The final flow routes $s \to a \to t$ and $s \to b \to t$ with nothing on the middle edge.
 
 ```python
 from collections import defaultdict
@@ -112,11 +115,11 @@ Only $s$ produces flow, and at most $n - 1$ edges leave $s$, each with capacity 
 Each iteration finds an augmenting path via DFS in $O(m)$, giving an overall runtime of $O(mnC)$, or more generally $O(m \cdot v(f^*))$.
 
 > [!warning] The bound is pseudo-polynomial
-> $C$ occupies only $\log_2 C$ bits of input, so $O(mnC)$ can be exponential in the input size. The diamond network above with capacities $C, C, C, C$ on the outer edges and $1$ on $(a, b)$ realizes the blowup: a path search that keeps routing through the middle edge alternates $s \to a \to b \to t$ with $s \to b \to a \to t$, gaining $1$ unit per iteration and taking $2C$ iterations to reach the max flow of $2C$.
+> $C$ occupies only $\log_2 C$ bits of input, so $O(mnC)$ can be exponential in the input size. The diamond network above with capacities $C, C, C, C$ on the outer edges and $1$ on $(a, b)$ attains this bound. A path search that routes every augmentation through the middle edge alternates $s \to a \to b \to t$ with $s \to b \to a \to t$, gaining $1$ unit per iteration and taking $2C$ iterations to reach the max flow of $2C$.
 
 ## Maximum Matching
 
-Given an undirected graph $G = (V, E)$, find the matching $M \subseteq E$ with largest cardinality, where a matching is a set of edges such that each vertex touches at most one edge in $M$. This is solvable in polynomial time in general; here I only cover the case where $G$ is [[algorithms/bipartite-graphs|bipartite]].
+Given an undirected graph $G = (V, E)$, find the matching $M \subseteq E$ with largest cardinality, where a matching is a set of edges such that each vertex touches at most one edge in $M$. The general problem is solvable in polynomial time; the flow reduction below applies to the case in which $G$ is [[algorithms/bipartite-graphs|bipartite]].
 
 ### Bipartite Maximum Matching
 
@@ -148,7 +151,7 @@ Label each pixel of an image as foreground or background. Let $V$ be the set of 
 - $b_i \ge 0$ is the likelihood of pixel $i$ being in the background
 - $p_{i,j} \ge 0$ is the penalty for labeling one of $i$ and $j$ as foreground and the other as background, i.e. the penalty for a region boundary between them
 
-Two forces pull on each label. Accuracy: if $a_i > b_i$ in isolation, prefer to label $i$ foreground. Smoothness: if many neighbors of $i$ are foreground, lean foreground for $i$ too.
+The objective balances two criteria. Accuracy favors labeling $i$ foreground when $a_i > b_i$, considered in isolation. Smoothness favors labeling $i$ foreground when many of its neighbors are foreground.
 
 Find a partition $(A, B)$ that maximizes
 
@@ -162,7 +165,7 @@ $$
 \sum_{(i, j) \in E, i \in A, j \in B} p_{i, j} - \sum_{i \in A} a_i - \sum_{j \in B} b_j
 $$
 
-Negative terms are awkward in a cut formulation, so add the constant $\sum_{i \in V} a_i + \sum_{j \in V} b_j$, which shifts every solution equally:
+A cut capacity is a sum of nonnegative terms, so add the constant $\sum_{i \in V} a_i + \sum_{j \in V} b_j$, which shifts every solution equally:
 
 $$
 \sum_{(i, j) \in E, i \in A, j \in B} p_{i, j} - \sum_{i \in A} a_i - \sum_{j \in B} b_j + \sum_{i \in V} a_i + \sum_{j \in V} b_j
@@ -184,7 +187,7 @@ Given an undirected graph $G = (V, E)$ and disjoint vertex sets $S, T \subseteq 
 
 - Given $G = (V, E)$, and $S, T$
   - Construct a directed graph $G'$ with all undirected edges $(u, v) \in E$ replaced by two directed edges $(u, v), (v, u)$. Add two vertices $s$, $t$, an edge $(s, v)$ for all $v \in S$, and an edge $(u, t)$ for all $u \in T$.
-  - Run the algorithm from section for the maximum number of vertex-disjoint $s \to t$ paths in an unweighted directed graph. (That algorithm reduces to max-flow; this note treats it as a given.)
+  - Run the algorithm from section for the maximum number of vertex-disjoint $s \to t$ paths in an unweighted directed graph. (That algorithm reduces to max-flow and is assumed here without proof.)
 
 **Correctness**:
 
@@ -231,9 +234,9 @@ Let $H$ be a directed graph on vertices $X \cup Y$ with each edge $e = (u \to v)
 
 ### (b) Construct S
 
-Let $(A, B)$ be a min s-t cut in $H$. I will construct a vertex cover $S \subseteq X \cup Y$ such that $cap(A, B) = |S|$. Define $A_X = A \cap X$, $B_X = B \cap X$, $A_Y = A \cap Y$, $B_Y = B \cap Y$.
+Let $(A, B)$ be a min s-t cut in $H$. We construct a vertex cover $S \subseteq X \cup Y$ such that $cap(A, B) = |S|$. Define $A_X = A \cap X$, $B_X = B \cap X$, $A_Y = A \cap Y$, $B_Y = B \cap Y$.
 
-The following lemmas will become useful:
+The construction uses four lemmas.
 
 - *(1)*: the capacity of the min s-t cut of $H$ is upper bounded by $|X|$
   - Cutting all of $E_s$ separates $s$ from $t$ at capacity $|X|$, and the min cut can only be smaller.
@@ -250,7 +253,7 @@ We can therefore select a vertex cover $S = B_X \cup A_Y$, since $A_Y$ covers $E
 
 ### (c) Construct (A, B)
 
-Let $S$ be a vertex cover of $G$. I will construct an s-t cut $(A, B)$ in $H$ with $cap(A, B) = |S|$.
+Let $S$ be a vertex cover of $G$. We construct an s-t cut $(A, B)$ in $H$ with $cap(A, B) = |S|$.
 
 Let $S_X = S \cap X$ and $S_Y = S \cap Y$. Take $A = \{s\} \cup (X \setminus S_X) \cup S_Y$ and $B = S_X \cup (Y \setminus S_Y) \cup \{t\}$.
 
@@ -307,7 +310,7 @@ Finding the minimum vertex cover via P3 costs $O(|V|^2|E|) = O(n^6)$, and return
 
 By construction, $G$ has a vertex for each cell a knight could occupy and an edge for each pair of cells that attack each other, since a knight on $(i, j)$ attacks exactly the surviving cells offset by $(\pm 2, \pm 1)$ or $(\pm 1, \pm 2)$.
 
-Let $I \subseteq V$ be a maximum independent set of $G$, and $k$ the maximum number of mutually non-attacking knights. I claim $|I| = k$:
+Let $I \subseteq V$ be a maximum independent set of $G$, and $k$ the maximum number of mutually non-attacking knights. We claim $|I| = k$.
 
 - $|I| \le k$: no two vertices in $I$ are adjacent, so knights placed on the cells of $I$ do not attack each other, and $k$ is the maximum over all such placements.
 - $|I| \ge k$: take a maximum placement $P$ of $k$ non-attacking knights. By construction of $G$, no edges join any two cells of $P$, so $P$ is an independent set of size $k$, and the maximum independent set is at least that large. $\blacksquare$

@@ -10,22 +10,23 @@ tags:
   - clock-synchronization
   - paper-notes
 date: 2024-04-07
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Notes on Lamport's 1978 paper. Covers the happened-before relation, logical clocks, the total ordering they induce, the mutual exclusion algorithm, and the physical clock synchronization bounds.
+description: Lamport's 1978 paper on the happened-before relation, logical clocks and the total ordering they induce, the mutual exclusion algorithm built on that ordering, and the synchronization bounds for physical clocks.
 sources:
   - title: Time, Clocks, and the Ordering of Events in a Distributed System (Lamport, 1978)
     url: https://lamport.azurewebsites.net/pubs/time-clocks.pdf
     type: paper
 ---
 
-## Purpose
-
-These are notes on [Lamport's 1978 paper](https://lamport.azurewebsites.net/pubs/time-clocks.pdf). The paper defines what "before" even means in a system with no shared clock, then builds logical clocks that respect that ordering. It closes by deriving how closely physical clocks must be synchronized to avoid ordering anomalies.
+[Lamport's 1978 paper](https://lamport.azurewebsites.net/pubs/time-clocks.pdf) defines the happened-before relation on the events of a distributed system that has no shared clock, and constructs logical clocks consistent with that relation. It then derives how closely physical clocks must be synchronized to avoid ordering anomalies.
 
 ## Problem
 
-We would like to order the events in a distributed system by when they actually occurred. No process can observe that order directly, since processes only see their own events and the messages they exchange. What we can do is define a partial ordering that captures every ordering the system itself could observe, and then extend it to a total ordering that stays consistent with the partial one.
+An ideal ordering of the events in a distributed system would follow the physical times at which they occurred. No process can observe that order directly, since a process observes only its own events and the messages it exchanges. A partial ordering can instead be defined that captures every ordering the system itself could observe, and then extended to a total ordering consistent with the partial one.
 
 A partial ordering of objects is a relation that is reflexive, antisymmetric, and transitive. A total ordering is a partial ordering where every pair is comparable, so for any two objects $a$ and $b$, either $a \leq b$ or $b \leq a$.
 
@@ -38,7 +39,7 @@ A partial ordering of objects is a relation that is reflexive, antisymmetric, an
   - If $a \rightarrow b$ and $b \rightarrow c$, then $a \rightarrow c$.
   - $a \nrightarrow a$.
 - $C_i\langle a \rangle$: the clock value of process $P_i$ when event $a$ occurs.
-- $a \Rightarrow b$: the total order built from the clocks. Break ties with an arbitrary total order $\prec$ on processes (lexicographic order of process identifiers works). For $a$ in $P_i$ and $b$ in $P_j$:
+- $a \Rightarrow b$: the total order built from the clocks. Ties are broken by an arbitrary total order $\prec$ on processes (for example, lexicographic order of process identifiers). For $a$ in $P_i$ and $b$ in $P_j$:
 
 $$
 a \Rightarrow b \iff C_i\langle a \rangle < C_j\langle b \rangle \lor (C_i\langle a \rangle = C_j\langle b \rangle \land P_i \prec P_j)
@@ -46,7 +47,7 @@ $$
 
 Provided the clocks satisfy the clock condition below, $a \to b \implies a \Rightarrow b$, so the total order extends the partial one. The reverse implication fails, since $\Rightarrow$ also orders concurrent events.
 
-The diagram below shows three processes with local events and two messages. Every path along a process line or a message arrow gives a happened-before chain; events with no such path between them are concurrent.
+The following diagram shows three processes with local events and two messages. Every path along a process line or a message arrow gives a happened-before chain; events with no such path between them are concurrent.
 
 ```mermaid
 sequenceDiagram
@@ -68,11 +69,11 @@ sequenceDiagram
 
 For any events $a, b$: if $a \to b$, then $C\langle a \rangle < C\langle b \rangle$.
 
-Two implementation rules make this hold. Each process increments its clock between any two of its own events. And when event $a$ sends a message $m$ carrying the timestamp $T_m = C_i\langle a \rangle$, the receiving process sets its clock at the receipt event $b$ to some value greater than $T_m$ (and at least its current value).
+The clock condition holds under two implementation rules. Each process increments its clock between any two of its own events, and when event $a$ sends a message $m$ carrying the timestamp $T_m = C_i\langle a \rangle$, the receiving process sets its clock at the receipt event $b$ to some value greater than $T_m$ (and at least its current value).
 
 ## Synchronized access to a shared resource
 
-The paper uses the total order to solve mutual exclusion. We want an algorithm for granting a resource to processes that satisfies three conditions:
+The paper uses the total order to solve mutual exclusion. The algorithm grants a resource to processes subject to three conditions:
 
 - (I) A process which has been granted the resource must release it before it can be granted to another process.
 - (II) Different requests for the resource must be granted in the order in which they are made.
@@ -80,7 +81,7 @@ The paper uses the total order to solve mutual exclusion. We want an algorithm f
 
 ### Assumptions
 
-For any two processes $P_i$ and $P_j$, messages sent by $P_i$ are received in the order they were sent. Stop-and-wait or sliding window protocols give you this. We also assume every message is eventually received.
+For any two processes $P_i$ and $P_j$, messages sent by $P_i$ are received in the order they were sent. Stop-and-wait or sliding window protocols provide this property. Every message is also assumed to be eventually received.
 
 The protocol requires active participation from every process. If any one process fails the whole system stops, because a request cannot be granted until every process has responded.
 
@@ -139,12 +140,12 @@ Consider a nationwide system. A person issues request $a$ at node $A$, then phon
 > [!quote] Lamport on anomalous behavior ([Time, Clocks, §Anomalous Behavior](https://lamport.azurewebsites.net/pubs/time-clocks.pdf))
 > Paraphrasing the paper's example: in a nationwide network, a user can issue request $a$ at computer $A$, then telephone a friend in another city who issues request $b$ at computer $B$. It is quite possible for $b$ to receive a lower timestamp and be ordered before $a$, because the causal link between them, the phone call, is invisible to the system. The relevant happened-before relation is the one over *all* events in the world, not just the ones the system can see.
 
-More concretely, let $\mathscr{L}$ be the set of all relevant events in the world and $L$ the set of events inside our system, so $L \subseteq \mathscr{L}$. In the scenario above, $a \to_{\mathscr{L}} b$ but $a \nrightarrow_{L} b$. No algorithm based solely on the events in $L$, without knowledge of $\mathscr{L}$, can be guaranteed to order $a$ before $b$.
+More concretely, let $\mathscr{L}$ be the set of all relevant events in the world and $L$ the set of events inside the system, so $L \subseteq \mathscr{L}$. In the scenario above, $a \to_{\mathscr{L}} b$ but $a \nrightarrow_{L} b$. No algorithm based solely on the events in $L$, without knowledge of $\mathscr{L}$, can be guaranteed to order $a$ before $b$.
 
-There are two ways out:
+The paper gives two remedies.
 
-1. Users manually carry timestamps across the external channel, so the person at $A$ tells the person at $B$ a timestamp $T_a$ and the second request is issued with a later one. This pushes the burden onto users.
-2. Build clocks that satisfy a strong clock condition: if $a \to_{\mathscr{L}} b$, then $C\langle a \rangle < C\langle b \rangle$. This requires physical clocks.
+1. Users manually carry timestamps across the external channel, so the person at $A$ tells the person at $B$ a timestamp $T_a$ and the second request is issued with a later one. This places the burden on users.
+2. Clocks are constructed to satisfy a strong clock condition: if $a \to_{\mathscr{L}} b$, then $C\langle a \rangle < C\langle b \rangle$. This requires physical clocks.
 
 ## Physical clocks
 
@@ -158,7 +159,7 @@ $$
 
 The paper notes $\kappa \le 10^{-6}$ for typical crystal controlled clocks.
 
-Rate accuracy alone is not enough, since independent clocks drift apart. We also want the clocks synchronized to within some bound $\epsilon$:
+Rate accuracy alone is insufficient, since independent clocks drift apart. We also require the clocks synchronized to within some bound $\epsilon$:
 
 $$
 \forall i, j, t: |C_i(t) - C_j(t)| < \epsilon
@@ -172,16 +173,16 @@ $$
 \forall i, j, t: C_i(t + \mu) - C_j(t) > 0
 $$
 
-The rate bound gives $C_i(t + \mu) - C_i(t) > (1 - \kappa)\mu$, and the synchronization bound gives $C_i(t) > C_j(t) - \epsilon$. Adding these, $C_i(t + \mu) - C_j(t) > (1 - \kappa)\mu - \epsilon$, which is positive exactly when
+The rate bound gives $C_i(t + \mu) - C_i(t) > (1 - \kappa)\mu$, and the synchronization bound gives $C_i(t) > C_j(t) - \epsilon$. Adding these, $C_i(t + \mu) - C_j(t) > (1 - \kappa)\mu - \epsilon$, which is positive whenever
 
 $$
 \frac{\epsilon}{1 - \kappa} \le \mu
 $$
 
-So the required synchronization tightness is set by the minimum message delay. Faster networks demand tighter clocks.
+The required precision of synchronization is therefore bounded by the minimum message delay, and a network with a smaller minimum delay requires more tightly synchronized clocks.
 
-> [!abstract] The punchline
-> $\dfrac{\epsilon}{1 - \kappa} \le \mu$: how tightly clocks must be synchronized ($\epsilon$) is set by the minimum interprocess message delay ($\mu$), discounted slightly by the clock rate error ($\kappa$). If information can cross the system faster than the clocks agree with each other, anomalous orderings become possible.
+> [!abstract] Synchronization bound
+> $\dfrac{\epsilon}{1 - \kappa} \le \mu$: the bound on clock disagreement ($\epsilon$) is limited by the minimum interprocess message delay ($\mu$), scaled slightly by the clock rate error ($\kappa$). If a message can cross the system in less time than the clocks may disagree, anomalous orderings are possible.
 
 ### Clock synchronization algorithm
 
@@ -190,7 +191,7 @@ So the required synchronization tightness is set by the minimum message delay. F
 
 Let $m$ be a message sent at time $t$ and received at time $t'$. Let $v_m = t' - t$ be the total delay of the message. The receiver does not know $v_m$, but it knows some lower bound $\mu_m$ on the delay. Define $\zeta_m = v_m - \mu_m$ as the unpredictable delay of the message.
 
-The rules for the physical clocks:
+The physical clocks follow two rules.
 
 1. For each $i$, if $P_i$ does not receive a message at physical time $t$, then $C_i$ is differentiable at $t$ and $\frac{dC_i(t)}{dt} > 0$.
 2. If $P_i$ sends a message $m$ at physical time $t$, then $m$ contains a timestamp $T_m = C_i(t)$. Upon receiving $m$ at physical time $t'$, $P_j$ sets $C_j(t') = \max(\lim_{\delta \to 0} C_j(t' - \delta), T_m + \mu_m)$.

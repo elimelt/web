@@ -13,26 +13,27 @@ tags:
   - memory-latency
   - benchmarks
 date: 2025-12-29
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: needs-review
-description: Measures the TLB miss penalty on x86-64 by sweeping access stride from 8 bytes to 8 KB over a 256 MB array, separating cache misses from TLB misses.
+description: The TLB miss penalty on x86-64, measured by sweeping access stride from 8 bytes to 8 KB over a 256 MB array to separate cache misses from TLB misses.
 sources:
   - title: What Every Programmer Should Know About Memory (Ulrich Drepper)
     url: https://www.akkadia.org/drepper/cpumemory.pdf
     type: paper
 ---
 
-## Purpose
-
-Measure what a TLB miss costs. Every virtual address has to be translated to a physical address, and the CPU caches translations in the Translation Lookaside Buffer. On a miss, x86-64 hardware walks a 4-level page table, which takes up to 4 dependent memory accesses per translation. This benchmark isolates that cost by controlling how many accesses land on each page.
+The Translation Lookaside Buffer (TLB) is the CPU's cache of virtual-to-physical address translations. Every virtual address must be translated to a physical address, and on a TLB miss x86-64 hardware walks a 4-level page table, which takes up to 4 dependent memory accesses per translation. The benchmark isolates the cost of a miss by controlling how many accesses fall on each page.
 
 ## Setup
 
-The CPU model and compiler flags were not recorded with these results, so the note is marked needs-review. The runs use a 256 MB array, 4 KB pages, and the same `./bench` harness as the other notes in this directory.
+The CPU model and compiler flags were not recorded with these results, so the results are marked needs-review. The runs use a 256 MB array, 4 KB pages, and the same `./bench` harness as the other benchmarks in this directory.
 
 ## Workload
 
-Read the array at a fixed stride:
+The benchmark reads the array at a fixed stride.
 
 ```c
 for (size_t i = 0; i < n; i += stride) {
@@ -40,7 +41,7 @@ for (size_t i = 0; i < n; i += stride) {
 }
 ```
 
-Small strides touch each 4 KB page many times, so the translation is almost always already in the TLB. A 4 KB stride touches each page exactly once, so with a working set this large every access needs a fresh translation.
+Small strides touch each 4 KB page many times, so the translation is almost always already in the TLB. A 4 KB stride touches each page exactly once, so with a working set this large every access requires a new translation.
 
 ## Results
 
@@ -54,7 +55,7 @@ Small strides touch each 4 KB page many times, so the translation is almost alwa
 
 ## Interpretation
 
-Two different effects hide in this table, and pulling them apart is the whole point:
+The table combines two effects, which the following classification separates.
 
 | Stride | Cache behavior | TLB behavior |
 |--------|---------------|--------------|
@@ -63,13 +64,13 @@ Two different effects hide in this table, and pulling them apart is the whole po
 | 512B | Miss | Hit (8 accesses/page) |
 | 4KB | Miss | Miss (1 access/page) |
 
-The slowdown from 64 B to 512 B stride is cache behavior, since each access now pulls a fresh cache line. The jump from 512 B (5.38 ns) to 4 KB (12.51 ns) is the TLB. Both strides miss cache the same way, so the extra ~7 ns per access is the translation cost. Drepper's memory paper ([What Every Programmer Should Know About Memory](https://www.akkadia.org/drepper/cpumemory.pdf)) covers the TLB and paging structures behind these numbers.
+The slowdown from 64 B to 512 B stride is due to cache behavior, since each access now fetches a new cache line. The increase from 512 B (5.38 ns) to 4 KB (12.51 ns) is due to the TLB. Both strides miss in the cache in the same way, so the extra ~7 ns per access is the translation cost. Drepper's memory paper ([What Every Programmer Should Know About Memory](https://www.akkadia.org/drepper/cpumemory.pdf)) covers the TLB and paging structures behind these numbers.
 
-The miss penalty stays fixed instead of growing with stride, and 8 KB stride costs about the same as 4 KB. The page walk is itself a pointer chase, four dependent loads through PML4, PDPT, PD, and PT, so in the worst case it would cost several DRAM round trips. It doesn't here because the CPU caches intermediate page table entries in its paging structure caches, and the upper-level entries for a linear scan stay resident. Most walks only need the leaf PT entry, which keeps the penalty near 10 ns.
+The miss penalty does not grow with stride, and 8 KB stride costs about the same as 4 KB. The page walk is itself a pointer chase, four dependent loads through PML4, PDPT, PD, and PT, so in the worst case it would cost several DRAM round trips. It does not here, because the CPU caches intermediate page table entries in its paging structure caches, and the upper-level entries for a linear scan stay resident. Most walks need only the leaf PT entry, which keeps the penalty near 10 ns.
 
-Capacity explains why the misses are total at page stride. An L1 dTLB on the order of 64-128 entries covers only a few hundred KB of 4 KB pages, and an L2 TLB in the low thousands of entries covers a few MB. Striding through 256 MB touches 65K distinct pages, far past either level.
+TLB capacity explains why every access misses at page stride. An L1 dTLB on the order of 64-128 entries covers only a few hundred KB of 4 KB pages, and an L2 TLB in the low thousands of entries covers a few MB. Striding through 256 MB touches 65K distinct pages, far past either level.
 
-Huge pages attack the same problem from the other side. A 2 MB page covers 512 times as much memory per TLB entry, so this page-strided workload would keep hitting the TLB until the working set passed the TLB entry count times 2 MB. I have not measured the huge-page variant here.
+Huge pages address the same problem by increasing the memory each TLB entry covers. A 2 MB page covers 512 times as much memory per TLB entry, so this page-strided workload would keep hitting the TLB until the working set passed the TLB entry count times 2 MB. The huge-page variant was not measured.
 
 ## Reproduction
 

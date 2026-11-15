@@ -9,26 +9,27 @@ tags:
   - paper
   - review
 date: 2025-01-06
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Summary of Keshav's three-pass method for reading research papers, with what each pass covers and what you should be able to answer afterward.
+description: Summary of Keshav's three-pass method for reading research papers, with the scope of each pass and the questions a reader should be able to answer after it.
 sources:
   - title: How to Read a Paper (Keshav)
     url: https://web.stanford.edu/class/cs114/reading-keshav.pdf
     type: paper
 ---
 
-## Purpose
-
-Summary of [Keshav's "How to Read a Paper"](https://web.stanford.edu/class/cs114/reading-keshav.pdf). I keep this next to my paper reviews as the method behind them.
+[Keshav's "How to Read a Paper"](https://web.stanford.edu/class/cs114/reading-keshav.pdf) describes a three-pass method for reading research papers, in which each pass reads the paper in more depth than the previous one and ends with a decision about whether to continue. I use it as the method behind my paper reviews.
 
 ## Problem
 
-Researchers spend hundreds of hours reading papers every year, so they ought to know how to do it effectively. Keshav argues that reading a paper is a learnable skill, and one that school never teaches.
+Researchers spend hundreds of hours reading papers every year, which makes reading effectively a valuable skill. Keshav argues that it is a learnable skill, and one that is rarely taught in school.
 
 ## The three-pass approach
 
-Each pass ends with a decision about whether the paper deserves the next one:
+Each pass ends with a decision about whether the paper merits the next one.
 
 ```mermaid
 flowchart TD
@@ -46,9 +47,9 @@ flowchart TD
 
 ### First pass
 
-Gives you a general idea of what the paper is about. Read the title, abstract, introduction, and conclusion. Only read section and sub-section headers. Also glance over the references and note which you've read. This should only take 5-10 minutes.
+The first pass gives a general idea of the paper's subject. It covers the title, abstract, introduction and conclusion, and only the section and sub-section headers of the body. The reader also glances over the references and notes which have already been read. The pass should take only 5-10 minutes.
 
-After the first pass, you should be able to answer the five Cs:
+After the first pass, the reader should be able to answer the five Cs:
 
 - *Category*: What type of paper is this? (e.g. measurement, analysis)
 - *Context*: Which other papers is it related to? What is the theoretical background?
@@ -58,19 +59,19 @@ After the first pass, you should be able to answer the five Cs:
 
 ### Second pass
 
-Grasp the content of the paper, but not necessarily the details. Read the whole thing, but ignore things like proofs. It helps to annotate and take notes during this pass. Pay special attention to diagrams, and mark relevant unread references. This should take about an hour.
+The second pass aims to grasp the content of the paper, though not necessarily its details. It covers the whole paper but skips material such as proofs. Annotation and note-taking help during this pass, with particular attention to diagrams and to marking relevant unread references. The pass should take about an hour.
 
-After this pass, you should be able to summarize the paper in a few sentences to a peer. If you still don't understand, you can do one of three things:
+After this pass, the reader should be able to summarize the paper to a peer in a few sentences. A reader who still does not understand it has three options:
 
-- Set the paper aside and hope
-- Come back to the paper later after looking up references you didn't understand
-- Continue to the third pass anyways 😢
+- Set the paper aside, in the expectation that its material will not be needed
+- Return to the paper later, after looking up the references that were not understood
+- Continue to the third pass regardless
 
 ### Third pass
 
-Understand the paper in depth. You should *virtually re-implement* the paper, following all reasoning and challenging every assumption. Also try to think about how you would have presented the information differently, and note potential follow-up work as you go. This takes up to 5 hours, and at least 1 hour for a well-written paper and a well-read reader.
+The third pass aims at an in-depth understanding of the paper. The reader *virtually re-implements* the paper, following all of its reasoning and challenging every assumption, considers how the information could have been presented differently, and notes potential follow-up work along the way. The pass takes up to 5 hours, and at least 1 hour for a well-written paper and a well-read reader.
 
-After this pass, you should be able to reconstruct the paper's structure from memory, critique it, and pinpoint implicit assumptions, limitations, and potential improvements.
+After this pass, the reader should be able to reconstruct the paper's structure from memory, critique it, and pinpoint implicit assumptions, limitations, and potential improvements.
 
 ## Sources
 

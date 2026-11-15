@@ -11,14 +11,15 @@ tags:
   - dram
   - prefetching
 date: 2024-12-08
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: needs-review
-description: Measures effective memory bandwidth for three access patterns over a 1 GB buffer, sequential partial-line reads, sequential full-line reads, and a random pointer chase. Exact CPU model and measured output table were not recorded.
+description: Effective memory bandwidth measured for three access patterns over a 1 GB buffer (sequential partial-line reads, sequential full-line reads and a random pointer chase). The exact CPU model and the measured output table were not recorded.
 ---
 
-## Purpose
-
-How much of a machine's memory bandwidth do you actually get, depending on how you walk memory? This benchmark supplies concrete measurements for the memory-access model in [[systems/performance/streaming|Streaming Data]]: bandwidth depends less on how many bytes you need and more on how many cache lines you touch and whether the prefetchers can predict the next one.
+Effective memory bandwidth is the rate at which a program consumes the bytes it loads from memory. For a given machine it depends less on the number of bytes a program needs than on the number of cache lines it touches and on whether the hardware prefetchers can predict the next line. The benchmark measures effective bandwidth for three access patterns, providing concrete measurements for the memory-access model in [[systems/performance/streaming|Streaming Data]].
 
 ## Setup
 
@@ -34,7 +35,7 @@ Memory:
       Manufacturer: Hynix
 ```
 
-The exact chip model and OS version were not recorded, which is why this note is marked needs-review. Compiler and flags come from the Makefile: clang with `-O3 -Wall -std=c11 -march=armv8.5-a+simd`.
+The exact chip model and OS version were not recorded. Compiler and flags come from the Makefile: clang with `-O3 -Wall -std=c11 -march=armv8.5-a+simd`.
 
 ## Workload
 
@@ -50,17 +51,17 @@ All three kernels walk the same 1 GB buffer, allocated with `posix_memalign` on 
 
 ## Results
 
-The averaged numbers from the run this note is based on, per pattern:
+The averaged results of the recorded run, per pattern:
 
-- **seq8**: Hardware prefetchers stream lines efficiently, but effective bandwidth lands around 1/8 of peak because most of each line is unused.
+- **seq8**: Hardware prefetchers stream lines efficiently, but effective bandwidth is about 1/8 of peak because most of each line is unused.
 - **seq64**: Every byte brought in from DRAM is consumed, and throughput reflects near-peak memory bandwidth, about 55 GB/s on this machine.
-- **rand8**: Throughput collapses to about 70 MB/s, set by memory latency and the limit on outstanding misses rather than bandwidth.
+- **rand8**: Throughput falls to about 70 MB/s, limited by memory latency and the limit on outstanding misses rather than by bandwidth.
 
 The raw CSV output of the run was not saved. Rerunning prints a `seq8,seq64,rand8` header row followed by the three averages in GB/s.
 
 ## Interpretation
 
-seq64 against seq8 isolates line utilization: same traversal, same prefetch behavior, 8x difference in bytes consumed per line, and the measured bandwidth scales with the consumed fraction. seq8 against rand8 isolates prefetching and memory-level parallelism: same bytes loaded per line, but the dependent chain in rand8 serializes the misses, so each load pays full DRAM latency. That gap, roughly three orders of magnitude between seq64 and rand8, is the cost model streaming code should have in mind: process data in the order it sits in memory, and consume whole lines when you can.
+The comparison of seq64 with seq8 isolates line utilization. The traversal and prefetch behavior are the same, the bytes consumed per line differ by a factor of 8, and the measured bandwidth scales with the consumed fraction. The comparison of seq8 with rand8 isolates prefetching and memory-level parallelism. The bytes loaded per line are the same, but the dependent chain in rand8 serializes the misses, so each load incurs the full DRAM latency. The resulting gap of roughly three orders of magnitude between seq64 and rand8 is the relevant cost model for streaming code, which should process data in the order it is laid out in memory and consume whole cache lines where possible.
 
 ## Reproduction
 

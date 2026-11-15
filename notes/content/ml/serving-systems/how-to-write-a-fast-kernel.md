@@ -9,21 +9,24 @@ tags:
   - pytorch
   - kernel
 date: 2025-04-02
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: incomplete
-description: A first pass at hand-writing a matrix transpose kernel in CUDA, starting from a PyTorch baseline and introducing coalesced memory access.
+description: Hand-writing a matrix transpose kernel in CUDA, from a PyTorch baseline to a naive kernel and the principle of coalesced memory access.
 sources:
   - title: CSE 599K, LLM Serving Systems, University of Washington, Spring 2025 (lecture notes)
     type: lecture
 ---
 
-## Purpose
+A CUDA kernel is a function executed on the GPU by a grid of thread blocks, in which each thread uses its block and thread indices to compute its part of the output. Matrix transpose is a kernel whose performance depends almost entirely on the pattern of its global memory accesses, which makes it a suitable first example.
 
-This note walks the first steps of hand-writing a CUDA kernel, using matrix transpose as the running example. It applies the architecture concepts from [[ml/serving-systems/gpu-basics|GPU Architecture and Programming]]. The full optimization sequence for this same kernel (shared memory tiling, bank conflict padding, measured timings) lives in [[ml/serving-systems/optimizing-gpu-kernels|Optimizing GPU Kernels]]; this note stops at the naive version and the coalescing idea.
+The kernel applies the architecture concepts from [[ml/serving-systems/gpu-basics|GPU Architecture and Programming]]. The naive version and the principle of coalesced access are the first steps of an optimization sequence for the same kernel whose later steps (shared memory tiling, bank conflict padding, measured timings) are given in [[ml/serving-systems/optimizing-gpu-kernels|Optimizing GPU Kernels]].
 
 ## Baseline: transpose in PyTorch
 
-`a.t()` only changes the tensor's stride metadata, so `.contiguous()` is what actually moves the data. Timing needs CUDA events because kernel launches are asynchronous.
+`a.t()` changes only the tensor's stride metadata, and the data is moved by `.contiguous()`. Timing needs CUDA events because kernel launches are asynchronous.
 
 ```python
 import torch
@@ -53,7 +56,7 @@ print(f"Time per iteration: {time_per_iter} ms")
 
 ## A first CUDA attempt
 
-The natural partitioning is one block per row. A row of 8192 floats will not fit in the per-thread resources of a 1024-thread block if each thread handles one element, so each thread takes a contiguous slice of columns:
+A straightforward partitioning assigns one block to each row. A row of 8192 floats has more elements than a block can have threads (at most 1024), so each thread takes a contiguous slice of columns:
 
 ```cpp
 #include <torch/extension.h>
@@ -72,11 +75,11 @@ __global__ void transpose(float* input, float* output, int num_rows, int num_col
 }
 ```
 
-This version is slow. Adjacent threads read addresses that are `num_cols / blockDim.x` elements apart, and write addresses that are entire columns apart, so neither the loads nor the stores coalesce.
+This version runs slowly. Adjacent threads read addresses that are `num_cols / blockDim.x` elements apart and write addresses that are entire columns apart, so neither the loads nor the stores coalesce.
 
 ## Coalesced memory access
 
-Inside one warp, if the 32 threads access contiguous addresses, the hardware batches the accesses into one or a few memory transactions. That batching is what makes global memory bandwidth usable.
+Inside one warp, if the 32 threads access contiguous addresses, the hardware batches the accesses into one or a few memory transactions. Global memory approaches its rated bandwidth only when accesses are batched in this way.
 
 In the naive kernel above, each thread owns a slice of $8192 / 1024 = 8$ columns, so on any given loop iteration the warp's 32 loads land 8 elements apart and every load becomes its own transaction. Assigning consecutive elements to consecutive threads lets the hardware fold the same 32 loads into a few transactions:
 
@@ -97,9 +100,9 @@ flowchart TB
 ```
 
 > [!tip] Spotting uncoalesced access
-> Check what one warp does in a single instruction, not what one thread does over its whole loop. Each thread here reads contiguous columns over time, and the access pattern is still terrible, because at any instant the warp's addresses are strided. If adjacent threads' addresses differ by more than one element, the loads split into separate transactions.
+> Coalescing depends on the addresses one warp accesses in a single instruction, not on the addresses one thread accesses over its whole loop. Each thread here reads contiguous columns over time, and the access pattern is still uncoalesced, because at any instant the warp's addresses are strided. If adjacent threads' addresses differ by more than one element, the loads split into separate transactions.
 
-Getting both the reads and the writes of a transpose to coalesce requires staging tiles in shared memory, which is where [[ml/serving-systems/optimizing-gpu-kernels|Optimizing GPU Kernels]] picks up.
+Getting both the reads and the writes of a transpose to coalesce requires staging tiles in shared memory, and this step is treated in [[ml/serving-systems/optimizing-gpu-kernels|Optimizing GPU Kernels]].
 
 ## Related notes
 

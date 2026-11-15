@@ -13,18 +13,19 @@ tags:
   - streaming
   - throughput
 date: 2023-12-23
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Reading notes on chapter 10 of Designing Data-Intensive Applications. Covers batch processing with Unix tools, the MapReduce model on distributed filesystems, join strategies, and the outputs of batch workflows.
+description: Chapter 10 of Designing Data-Intensive Applications, on batch processing with Unix tools, the MapReduce model on distributed filesystems, join strategies, and the outputs of batch workflows.
 sources:
   - title: Designing Data-Intensive Applications, Martin Kleppmann
     url: https://dataintensive.net/
     type: book
 ---
 
-## Purpose
-
-Reading notes on chapter 10 of [Designing Data-Intensive Applications](https://dataintensive.net/) by Martin Kleppmann. The chapter works up from Unix pipelines to MapReduce, then to the join strategies and output patterns that make batch workflows useful.
+Chapter 10 of [Designing Data-Intensive Applications](https://dataintensive.net/), by Martin Kleppmann, treats batch processing, from Unix pipelines to MapReduce on distributed filesystems, together with the join strategies used in MapReduce and the outputs of batch workflows.
 
 ## Three kinds of systems
 
@@ -36,7 +37,7 @@ Reading notes on chapter 10 of [Designing Data-Intensive Applications](https://d
 
 ## Batch processing with Unix tools
 
-Log analysis is the classic batch task: applications append entries to a log file, and a job periodically turns the file into a report. Finding the top five URLs looks like this:
+The chapter's first example is log analysis. Applications append entries to a log file, and a job periodically turns the file into a report. A pipeline that finds the five most frequently requested URLs is:
 
 ```bash
 cat /var/log/<application>/<logfile> |  # read the log file
@@ -47,7 +48,7 @@ cat /var/log/<application>/<logfile> |  # read the log file
     head -n 5                           # take the top 5
 ```
 
-Equivalently, in Python:
+The equivalent Python program is:
 
 ```python
 from collections import Counter
@@ -58,15 +59,15 @@ with open('/var/log/<application>/<logfile>') as f:
         print(url, count)
 ```
 
-The Python version keeps its counts in an in-memory hash table. The Unix pipeline sorts instead, and `sort` spills to disk and merges, so the pipeline handles datasets larger than memory. That sorting trick is the same idea MapReduce scales out.
+The Python version keeps its counts in an in-memory hash table. The Unix pipeline sorts instead, and `sort` spills to disk and merges, so the pipeline handles datasets larger than memory. MapReduce applies the same sort-based approach across many machines.
 
 ## MapReduce and distributed filesystems
 
 **[[ml/recommender-systems/intro-mapreduce-spark|MapReduce]]** is a programming model for processing large amounts of data in bulk across many machines. A job runs a user-defined map function in parallel over many input records, then runs a user-defined reduce function over the map output grouped by key.
 
-**Hadoop** is the main open source MapReduce implementation, and it ships with **HDFS** (Hadoop Distributed Filesystem). HDFS stores large files for streaming access, optimized for throughput over latency, and follows the design of the Google File System. It differs from an object store like Amazon S3 in that computation runs on the machines storing the data.
+**Hadoop** is an open source implementation of MapReduce, and it ships with **HDFS** (Hadoop Distributed Filesystem). HDFS stores large files for streaming access, optimized for throughput over latency, and follows the design of the Google File System. It differs from an object store like Amazon S3 in that computation runs on the machines storing the data.
 
-The URL-counting pipeline as a single-node MapReduce job:
+As a single-node MapReduce job, the URL-counting pipeline has four steps:
 
 1. Read the input logs and break them into records (lines)
 2. Map: extract the URL from each record and emit a key-value pair `(URL, _)`
@@ -134,19 +135,19 @@ reduce_group(user_id, values):
     emit(user_id, values)
 ```
 
-Skew breaks the symmetry. If one user has a disproportionate share of events, the reducer handling that user becomes the straggler that delays the whole job. Skew-handling join algorithms exist and are implemented in tools like Pig and Hive.
+Skew causes load imbalance among reducers. If one user has a disproportionate share of events, the reducer handling that user becomes the straggler that delays the whole job. Skew-handling join algorithms exist and are implemented in tools like Pig and Hive.
 
 > [!warning] Hot keys make stragglers
-> The shuffle sends **every** record for a key to a single reducer. One celebrity user's events can make that reducer run long after all others finish, and the job is only done when its slowest reducer is.
+> The shuffle sends **every** record for a key to a single reducer. One celebrity user's events can make that reducer run long after all others finish, and the job completes only when its slowest reducer completes.
 
 ### Map-side joins
 
-The joins above run in the reducer. A **map-side join** performs the join in the mapper, which avoids the shuffle entirely, and works when the inputs are already laid out conveniently.
+The joins above run in the reducer. A **map-side join** performs the join in the mapper, which avoids the shuffle entirely, and applies when the inputs satisfy assumptions about their size or layout.
 
-> [!tip] Map-side joins are a bet on input layout
-> Skipping the shuffle only works because assumptions about the inputs (one dataset fits in memory, or both are partitioned and sorted the same way) replace it. Those assumptions become part of the job's contract with whatever produced the inputs.
+> [!tip] Map-side joins depend on input layout
+> A map-side join omits the shuffle by relying on assumptions about its inputs (one dataset fits in memory, or both are partitioned and sorted the same way). Those assumptions become part of the job's contract with the process that produced the inputs.
 
-A **broadcast hash join** handles joining a large dataset with a small one: load the small dataset into an in-memory hash table on every mapper. Pig calls this a replicated join, Hive a MapJoin. A small dataset that does not fit in memory can sit in a disk index instead, where frequent lookups stay warm in the page cache.
+A **broadcast hash join** joins a large dataset with a small one by loading the small dataset into an in-memory hash table on every mapper. Pig calls this a replicated join, Hive a MapJoin. A small dataset that does not fit in memory can sit in a disk index instead, where frequently accessed entries remain in the page cache.
 
 ```python
 #pseudocode to join event and user data by user_id
@@ -180,14 +181,14 @@ map_events(event):
 
 ## Output of batch workflows
 
-**Search indexes** are a natural batch output. Building an index over a massive document collection:
+**Search indexes** were the original application of MapReduce at Google. Building an index over a large document collection takes four steps:
 
 1. Extract the text from each document
 2. Tokenize the text into words
 3. Remove common words (stop words)
 4. Build an index from words to documents
 
-Partition the documents by id, build an index per partition in parallel, then merge the partial indexes.
+The documents are partitioned by id, an index is built for each partition in parallel, and the partial indexes are merged.
 
 ```python
 #pseudocode to build a search index
@@ -204,7 +205,7 @@ reduce_index(word, values):
     emit(word, values)
 ```
 
-**Recommendation systems** suggest items to users based on past behavior. The recommendations need to be queryable in real time with low latency, while the heavy computation runs in batches so it never loads down the serving database. Instead of having the batch job query the database directly, extract an immutable copy of the data into the distributed filesystem, transform it there, and load the results into a serving store, the extract-transform-load (ETL) pattern.
+**Recommendation systems** suggest items to users based on past behavior. The recommendations need to be queryable in real time with low latency, while the heavy computation runs in batches so that it adds no load to the serving database. Instead of querying the database directly, the batch job works on an immutable copy of the data extracted into the distributed filesystem, transforms it there, and loads the results into a serving store, following the extract-transform-load (ETL) pattern.
 
 ```python
 #pseudocode to build a recommendation index

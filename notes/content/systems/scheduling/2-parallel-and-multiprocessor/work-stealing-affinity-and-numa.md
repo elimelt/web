@@ -9,9 +9,12 @@ tags:
   - locality
   - multiprocessor scheduling
 date: 2026-07-31
-updated: 2026-08-01
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Scheduling dynamic parallel work on many processors - work stealing with the work-first principle and a runnable toy runtime, processor affinity, NUMA cost models, and how the pieces map to Cilk, TBB, ForkJoinPool, rayon, and Go.
+description: Scheduling dynamic parallel work on many processors, covering work stealing with the work-first principle and a runnable toy runtime, processor affinity, NUMA cost models, and their realization in Cilk, TBB, ForkJoinPool, rayon and Go.
 sources:
   - title: "Scheduling Multithreaded Computations by Work Stealing"
     url: https://dl.acm.org/doi/10.1145/324133.324234
@@ -24,13 +27,9 @@ sources:
     type: docs
 ---
 
-## Purpose
+Work stealing is a scheduling discipline for dynamic parallel computations in which each processor keeps its own queue of ready tasks, and a processor whose queue is empty takes (steals) a task from the queue of another processor chosen at random. Load is balanced by idle processors only, so busy processors incur no scheduling coordination.
 
-Single-queue scheduling stops being adequate on multicore machines because a good placement policy has to reason about both load and locality. This note covers three pieces that fit together:
-
-- work stealing for irregular task graphs
-- processor affinity for cache reuse
-- NUMA awareness for memory locality
+On multicore machines a placement policy must account for locality as well as load. Processor affinity keeps a thread on a core whose caches hold its state, and NUMA awareness keeps it near the memory it accesses; both constrain where work stealing may move a task.
 
 ## Work and Span
 
@@ -39,13 +38,13 @@ For a parallel computation DAG:
 - $T_1$: total work, the time on one processor
 - $T_\infty$: span, the critical-path time with infinite processors
 
-No scheduler can beat
+No schedule on $P$ processors satisfies a tighter bound than
 
 $$
 T_P \ge \max\left(\frac{T_1}{P}, T_\infty\right)
 $$
 
-Work stealing matters because it gets close to that lower bound for well-structured computations without centralized scheduling.
+Work stealing comes within a constant factor of this lower bound in expectation for fully strict computations, without centralized scheduling.
 
 ## The Deque Discipline
 
@@ -54,10 +53,10 @@ Each worker owns a double-ended queue:
 - owner pushes and pops from the bottom
 - thieves steal from the top
 
-That asymmetry is the trick.
+The asymmetry has two consequences:
 
-- Bottom operations are cheap and local in the common case.
-- Old work near the top tends to expose more parallel slack, so stealing there is useful.
+- Bottom operations are inexpensive and local in the common case.
+- Older work near the top tends to expose more parallel slack, so a steal from the top transfers more work.
 
 ```python
 class Worker:
@@ -74,7 +73,7 @@ class Worker:
         return victim.deque.pop(0) if victim.deque else None
 ```
 
-Real runtimes avoid `pop(0)` because it is linear in Python lists, but the policy is the point.
+Production runtimes avoid `pop(0)`, which takes linear time on Python lists; the sketch shows only the policy.
 
 ```mermaid
 flowchart TD
@@ -91,11 +90,11 @@ flowchart TD
     style TOP fill:#e3f2fd
 ```
 
-There is a second, quieter argument for this exact discipline: the owner's bottom-LIFO order is *the sequential execution order*. A worker that never gets robbed executes the DAG exactly as a single-threaded program would — same order, same cache behavior, same stack depth. This is the **work-first principle** from the [Cilk-5 papers](https://dl.acm.org/doi/10.1145/277650.277725): put the scheduling overhead on the *steal* path, not the *spawn* path, because in a well-parallelized program spawns happen $T_1$ times but steals happen only $O(P \cdot T_\infty)$ times. Cilk's implementation makes a spawn cost only a few instructions more than a function call, while a steal pays for locks, continuation packaging, and cache misses — the rare path absorbs the cost. The same asymmetry shows up as *continuation stealing* (Cilk: the thief takes the caller's continuation, the owner keeps executing the child it just spawned, depth-first) versus *child stealing* (TBB, ForkJoinPool: the spawned child is queued and the owner continues in the caller; simpler to implement in a library without compiler support, at the cost of unbounded queue growth in pathological spawn patterns).
+A second argument for this discipline is that the owner's bottom-LIFO order is *the sequential execution order*. A worker from which nothing is stolen executes the DAG exactly as a single-threaded program would, with the same order, cache behavior and stack depth. This is the basis of the **work-first principle** of the [Cilk-5 papers](https://dl.acm.org/doi/10.1145/277650.277725): scheduling overhead belongs on the *steal* path rather than the *spawn* path, because in a well-parallelized program spawns occur $T_1$ times but steals only $O(P \cdot T_\infty)$ times. In Cilk's implementation a spawn costs only a few instructions more than a function call, while a steal incurs locks, continuation packaging and cache misses, so the overhead falls on the infrequent path. The same asymmetry distinguishes *continuation stealing* (Cilk: the thief takes the caller's continuation, and the owner continues executing the child it just spawned, depth-first) from *child stealing* (TBB, ForkJoinPool: the spawned child is queued and the owner continues in the caller). Child stealing is simpler to implement in a library without compiler support, at the cost of unbounded queue growth for some spawn patterns.
 
 ## A DAG and Its Trace
 
-Recursive Fibonacci is the standard toy DAG because it is maximally irregular: `fib(n)` spawns `fib(n-1)` and `fib(n-2)`, subtree sizes differ exponentially, and no static partition balances them. A 3-worker trace of `fib(4)`, unit-cost nodes, W0 starting with the root:
+Recursive Fibonacci is a common example DAG because it is highly irregular: `fib(n)` spawns `fib(n-1)` and `fib(n-2)`, subtree sizes differ exponentially, and no static partition balances them. The following is a 3-worker trace of `fib(4)` with unit-cost nodes, in which W0 starts with the root:
 
 ```plaintext
 tick  W0                    W1                    W2
@@ -106,9 +105,9 @@ tick  W0                    W1                    W2
 ...
 ```
 
-The shape to notice: W0's *bottom* pops walk depth-first down the small subtree (sequential order), while thieves take from the *top* — the oldest spawn, the biggest unexplored subtree (`fib(3)` rather than `fib(1)`) — so one steal buys a thief a long run of local work. Steal frequency is what the theorem says it should be: rare when the deques are deep.
+W0's *bottom* pops proceed depth-first through the small subtree (sequential order), while thieves take from the *top*, which holds the oldest spawn and the largest unexplored subtree (`fib(3)` rather than `fib(1)`), so a single steal gives a thief a long run of local work. Steals are infrequent when the deques are deep, as the theorem predicts.
 
-A complete toy runtime (workers as round-robin ticks, random victims, bottom-pop/top-steal, continuation bookkeeping via join counters) is small enough to run and measure — the results below are from the repo venv on `fib(10)`, 177 unit tasks:
+A complete toy runtime (workers as round-robin ticks, random victims, bottom-pop/top-steal, continuation bookkeeping via join counters) is small enough to run and measure. The results below are from the repo venv on `fib(10)`, 177 unit tasks:
 
 | Workers | ticks | steals | speedup |
 | --- | --- | --- | --- |
@@ -116,7 +115,7 @@ A complete toy runtime (workers as round-robin ticks, random victims, bottom-pop
 | 2 | 92 | 6 | 1.92 |
 | 4 | 49 | 17 | 3.61 |
 
-Near-linear speedup with steals under 10% of tasks: the $T_1/P$ term dominating, as the bound predicts for a DAG whose parallelism ($T_1/T_\infty \approx 177/\text{depth} \approx 20$) exceeds $P$. The core of the implementation:
+Speedup is nearly linear, and steals are under 10% of tasks. The $T_1/P$ term dominates, as the bound predicts for a DAG whose parallelism ($T_1/T_\infty \approx 177/\text{depth} \approx 20$) exceeds $P$. The core of the implementation is
 
 ```python
 kind, arg, parent = self.deques[w].pop()      # owner: bottom (LIFO)
@@ -125,11 +124,11 @@ task = self.deques[victim].pop(0)             # thief: top (FIFO)
 self.deques[w].append(task)
 ```
 
-plus a join counter per spawn point (`[children_pending, accumulator, parent]`) that fires the continuation when the last child completes. Production runtimes replace the list with a **Chase-Lev deque** — a lock-free circular array where owner and thief touch opposite ends and a compare-and-swap is needed only when they race for the last element.
+plus a join counter per spawn point (`[children_pending, accumulator, parent]`) that fires the continuation when the last child completes. Production runtimes replace the list with a **Chase-Lev deque**, a lock-free circular array in which owner and thief operate on opposite ends and a compare-and-swap is needed only when they contend for the last element.
 
-## Why Work Stealing Works
+## Performance Bound for Work Stealing
 
-The Blumofe-Leiserson result is the headline:
+The principal result is that of Blumofe and Leiserson:
 
 $$
 E[T_P] = O\left(\frac{T_1}{P} + T_\infty\right)
@@ -137,62 +136,62 @@ $$
 
 for fully strict computations under randomized stealing.
 
-The intuition is clean:
+The bound rests on three properties:
 
-- busy workers keep chewing through local work
+- busy workers continue to execute local work
 - idle workers steal only when parallelism exists elsewhere
-- steals are charged mostly to the critical path rather than to all work
+- the cost of steals is charged mostly to the critical path rather than to all work
 
-That is why task-parallel runtimes often prefer work stealing to one global queue.
+For these reasons task-parallel runtimes often use work stealing in place of one global queue.
 
-## The Same Design, Shipped Five Times
+## Implementations
 
-The pattern's ubiquity is its best endorsement, and the variations are informative:
+The same design appears in several runtimes, with variations:
 
-- **Cilk / Cilk Plus**: the reference design — compiler-supported continuation stealing, work-first, randomized victims. The theorem's home.
+- **Cilk / Cilk Plus**: the reference design, with compiler-supported continuation stealing, the work-first principle and randomized victims; the setting of the theorem.
 - **Intel TBB** and **Java ForkJoinPool**: library implementations with child stealing; ForkJoinPool adds *help-first* joining (a worker blocked on a join steals its own descendants' work rather than idling).
 - **Rust rayon**: TBB-shaped, with `join(a, b)` as the primitive and scope-based lifetimes making the deque discipline memory-safe.
-- **Go runtime**: goroutines in per-P local run queues with bottom-LIFO/top-steal, plus a global queue and network poller integration; steals take *half* the victim's queue, trading steal frequency against balance granularity.
-- **Linux CFS/EEVDF** is the contrast case: per-CPU queues with periodic load balancing rather than stealing, because kernel threads are long-lived and priority-bearing rather than short cooperative tasks — which marks the boundary of work stealing's applicability: it assumes tasks are plentiful, short, and interchangeable in priority. Deadline or priority scheduling across jobs needs different machinery ([[systems/scheduling/1-single-resource/real-time-scheduling-edf-and-rate-monotonic|EDF and rate-monotonic]]).
+- **Go runtime**: goroutines in per-P local run queues with bottom-LIFO/top-steal, plus a global queue and network poller integration; a steal takes *half* the victim's queue, which lowers steal frequency at the cost of coarser balancing.
+- **Linux CFS/EEVDF** differs: it uses per-CPU queues with periodic load balancing rather than stealing, because kernel threads are long-lived and carry priorities, unlike short cooperative tasks. This marks the limit of work stealing's applicability, since it assumes tasks that are numerous, short and equal in priority. Deadline or priority scheduling across jobs requires different mechanisms ([[systems/scheduling/1-single-resource/real-time-scheduling-edf-and-rate-monotonic|EDF and rate-monotonic]]).
 
 ## Affinity
 
-Even for sequential request processing, where work stealing is not the main idea, affinity matters. If a thread runs again on the same core:
+Affinity also affects sequential request processing, where work stealing is not the central mechanism. If a thread runs again on the same core:
 
-- its private caches are more likely to help
-- branch predictor state is warmer
-- TLB entries are likelier to still matter
+- its private caches are more likely to hold its data
+- branch predictor state is more likely to reflect it
+- its TLB entries are more likely to remain valid
 
-The scheduler objective is no longer just "which core is idle?" It becomes:
+The scheduler must then consider more than which core is idle:
 
-- is the work runnable?
-- where is its state warm?
-- what is the cost of moving it?
+- whether the work is runnable
+- where its state is cached
+- the cost of moving it
 
-This is why per-core run queues are common.
+Per-core run queues are common for this reason.
 
 ## NUMA
 
-On a NUMA machine, memory has topology. Local DRAM and remote DRAM do not cost the same. So thread placement and page placement become coupled problems.
+On a NUMA machine, memory has a topology, and access to local DRAM costs less than access to remote DRAM. Thread placement and page placement are therefore coupled problems.
 
-The wrong move is to "balance" CPU load by moving a thread away from the memory it mostly touches. CPU utilization can improve while response time gets worse.
+Balancing CPU load by moving a thread away from the memory it mostly accesses can improve CPU utilization while response time increases.
 
-The actual cost model includes:
+The cost model includes:
 
 - migration cost of moving the runnable thread
 - cache-warmup loss after migration
 - remote-memory penalty if the thread stays but data moves badly
 
-That is why real multiprocessor scheduling often accepts some load imbalance to preserve locality.
+Multiprocessor schedulers in practice therefore often accept some load imbalance to preserve locality.
 
-## When Work Stealing and Affinity Fight
+## Conflicts Between Work Stealing and Affinity
 
-Work stealing wants idle processors to grab tasks aggressively. Affinity wants tasks to stay near their data. These objectives line up when:
+Work stealing moves tasks to idle processors as soon as possible, and affinity keeps tasks near their data. The two objectives are compatible when the scheduler:
 
-- steal only when local work is exhausted
-- steal coarse enough tasks that the extra locality loss is amortized
+- steals only when local work is exhausted
+- steals tasks coarse enough that the loss of locality is amortized
 
-They fight when tasks are tiny or data-heavy. Then a "balanced" schedule can become a locality disaster.
+They conflict when tasks are very small or access large amounts of data. A schedule that balances load can then lose most of its locality.
 
 ## Related Notes
 

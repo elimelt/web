@@ -7,16 +7,17 @@ tags:
   - reading notes
   - research method
 date: 2026-07-31
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Overview of the systems research notes, including classic papers, reading strategy, and original work.
+description: Index of the systems research notes, including classic papers, reading method and original work.
 ---
 
-## Purpose
+Systems research concerns the design, implementation and evaluation of computer systems such as operating systems, networks and distributed systems. The notes comprise classic systems papers, notes on how to read and evaluate papers, and a small amount of original research writing. [[systems/research/how-to-read-a-paper|How to Read a Paper]] and [[systems/research/strong-inference|Strong Inference]] treat method, and the remainder are paper summaries, design essays and project writeups.
 
-This section mixes three things that belong together: classic systems papers, notes on how to read and evaluate papers, and a small amount of original research writing. [[systems/research/how-to-read-a-paper|How to Read a Paper]] and [[systems/research/strong-inference|Strong Inference]] are the method notes. The rest are paper summaries, design essays, and project writeups.
-
-The cluster is broad on purpose. Some notes are about operating systems, some about networking, some about methods, and some about machine learning systems. The point is not one subfield. The point is to keep the design arguments and empirical habits in one place.
+The notes span operating systems, networking, research method and machine learning systems. They are grouped by a common concern with design arguments and empirical practice, across subfields.
 
 ## Entry points
 

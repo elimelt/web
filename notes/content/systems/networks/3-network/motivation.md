@@ -12,24 +12,25 @@ tags:
   - icmp
   - bgp
 date: 2024-02-16
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Why the link layer alone can't build the internet, what the network layer adds, and the difference between routing and forwarding. Ends with a map of the other network layer notes.
+description: The limits of the link layer as a basis for the internet, the functions the network layer adds, and the distinction between routing and forwarding, with an index of the other network layer notes.
 sources:
   - title: "Computer Networks: A Systems Approach"
     url: https://book.systemsapproach.org/
     type: textbook
 ---
 
-## Purpose
-
-Explain why the network layer exists at all. The link layer with packet forwarding can already build a network, so this note pins down what breaks when you try to build the internet out of it, and what the network layer does about each problem.
+The network layer delivers packets between hosts on different networks. The link layer with packet forwarding can build a single network, but it lacks the global addressing, scalable routing state and interoperation across technologies that an internet requires, and the network layer supplies each of these.
 
 ## Shortcomings of the link layer
 
 - **No global addressing**: link layer addresses only mean something on the local network. Reaching hosts on other networks needs an address scheme that spans networks.
-- **Doesn't scale**: no host can maintain a routing table with an entry for every other host on the internet.
-- **Only one technology**: link layer technologies are not interoperable with each other. Ethernet and 802.11 frames don't mix without something above them.
+- **Limited scale**: no host can maintain a routing table with an entry for every other host on the internet.
+- **Only one technology**: link layer technologies are not interoperable with each other. Ethernet and 802.11 frames cannot interoperate without a layer above them.
 - **Limited traffic control**: the link layer has no mechanism for handling congestion, routing around failures, or controlling the bandwidth different applications use.
 
 ## Network layer approach
@@ -42,9 +43,9 @@ Explain why the network layer exists at all. The link layer with packet forwardi
 
 **Routing** is the process of deciding which paths traffic should take. It happens on a global scale and involves routers exchanging information.
 
-**Forwarding** is the process of actually sending a packet from one node to the next, one local table lookup per packet.
+**Forwarding** is the process of sending a packet from one node to the next, one local table lookup per packet.
 
-## Where the details live
+## Network layer topics
 
 - Network service models, datagrams and virtual circuits: [[systems/networks/3-network/networking-services|networking services]]
 - IP, addressing, and forwarding by longest prefix match: [[systems/networks/3-network/internetworking|internetworking]]

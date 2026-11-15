@@ -10,18 +10,19 @@ tags:
   - conflict-resolution
   - paper-notes
 date: 2024-08-04
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: incomplete
-description: Stub notes on the Dynamo paper (SOSP 2007). Records the paper's main move and its core techniques; the mechanism details are not written up yet.
+description: The Dynamo paper (SOSP 2007), covering its always-writeable design, consistent hashing, sloppy quorums with hinted handoff, and vector clock versioning. The remaining mechanism details are not yet covered.
 sources:
   - title: "Dynamo: Amazon's Highly Available Key-value Store (SOSP 2007)"
     url: https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf
     type: paper
 ---
 
-## Purpose
-
-Notes on the [Dynamo paper](https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf). This is a stub. Only the main idea is recorded so far.
+The [Dynamo paper](https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf) (SOSP 2007) describes Amazon's highly available key-value store. It treats consistent hashing for partitioning and replication, vector clocks for versioning, sloppy quorums with hinted handoff for availability during failures, and gossip-based membership.
 
 ## Main idea
 
@@ -30,10 +31,8 @@ Dynamo is a highly available key-value store that sacrifices consistency under c
 > [!quote] Dynamo paper, SOSP 2007
 > "Customers should be able to view and add items to their shopping cart even if disks are failing, network routes are flapping, or data centers are being destroyed by tornados."
 
-> [!tip] The core trade
-> Dynamo is an "always writeable" store: writes are never rejected because of failures or concurrent updates. The cost moves to reads, where divergent versions surface and must be reconciled, by vector clock comparison when possible and by the application when not.
-
-The paper's techniques worth writing up properly: consistent hashing for partitioning and replication, vector clocks for versioning, sloppy quorums with hinted handoff for availability during failures, and gossip-based membership.
+> [!tip] The central tradeoff
+> Dynamo is an "always writeable" store: writes are never rejected because of failures or concurrent updates. The cost shifts to reads, where divergent versions surface and must be reconciled, by vector clock comparison when possible and by the application when not.
 
 ### Partitioning: consistent hashing
 
@@ -53,7 +52,7 @@ flowchart LR
 
 ### Sloppy quorum and hinted handoff
 
-Reads and writes go to the first $N$ *healthy* nodes in the preference list rather than strictly the first $N$, so a write can still gather $W$ acknowledgements while a replica is down. The substitute node stores the write with a hint naming the intended owner and hands it back when the owner recovers.
+Reads and writes go to the first $N$ *healthy* nodes in the preference list rather than strictly the first $N$, so a write can still gather $W$ acknowledgements while a replica is down. The substitute node stores the write with a hint naming the intended owner and transfers it to the owner when the owner recovers.
 
 ```mermaid
 sequenceDiagram
@@ -74,7 +73,7 @@ sequenceDiagram
 ```
 
 > [!warning] Sloppy quorums weaken read guarantees
-> With a sloppy quorum, $R + W > N$ no longer guarantees that a read overlaps the latest write, since the quorums are drawn from whichever nodes are healthy at the time. Eventual consistency also leaks into the application: the shopping cart merge is a union of divergent versions, so a deleted item can resurface.
+> With a sloppy quorum, $R + W > N$ no longer guarantees that a read overlaps the latest write, since the quorums are drawn from whichever nodes are healthy at the time. Eventual consistency is also visible to the application. The shopping cart merge is a union of divergent versions, so a deleted item can resurface.
 
 > [!warning] Vector clock sizing
 > A clock gains a (node, counter) pair for every node that coordinates a write to the object. Dynamo caps the size by timestamping pairs and truncating the oldest past a threshold, which discards causality information and can force application-level reconciliation that the clocks would otherwise have resolved.

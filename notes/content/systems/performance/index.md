@@ -7,16 +7,17 @@ tags:
   - throughput
   - bandwidth
 date: 2026-07-31
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Overview of the performance notes, with emphasis on bottleneck models and measurements.
+description: Index of the performance engineering notes, with emphasis on bottleneck models and measurements.
 ---
 
-## Purpose
+Performance engineering is the measurement and modeling of a system's latency, throughput and resource utilization, with the aim of identifying the resource that limits them. The notes cover the basic bottleneck model as well as case studies. [[systems/performance/latency-throughput-and-utilization|Latency, throughput, and utilization]] introduces the queueing and bottleneck vocabulary that the other notes assume.
 
-The performance section is small, so it should carry the basic mental model as well as the case studies. Start with [[systems/performance/latency-throughput-and-utilization|latency, throughput, and utilization]]. It gives the queueing and bottleneck vocabulary that the other notes assume.
-
-Then read [[systems/performance/streaming|streaming data]] for a concrete bandwidth-bound workload and [[systems/performance/streaming_benchmarks/cache_line_efficiency/README|cache-line efficiency benchmark]] for a direct measurement of how access pattern changes throughput.
+[[systems/performance/streaming|Streaming data]] treats a concrete bandwidth-bound workload, and the [[systems/performance/streaming_benchmarks/cache_line_efficiency/README|cache-line efficiency benchmark]] measures directly how the access pattern changes throughput.
 
 ## Notes
 

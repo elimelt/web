@@ -12,33 +12,34 @@ tags:
   - mapreduce
   - distributed-storage
 date: 2023-12-19
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Reading notes on chapter 2 of Designing Data-Intensive Applications. Covers relational, document, and graph data models, how each handles relationships, data locality, and MapReduce-style querying.
+description: Chapter 2 of Designing Data-Intensive Applications on the relational, document, and graph data models, their representation of relationships between records, data locality, and MapReduce-style querying.
 sources:
   - title: Designing Data-Intensive Applications, Martin Kleppmann
     url: https://dataintensive.net/
     type: book
 ---
 
-## Purpose
-
-Reading notes on chapter 2 of [Designing Data-Intensive Applications](https://dataintensive.net/) by Martin Kleppmann. The chapter compares the relational, document, and graph data models, with relationships between records as the axis that separates them.
+A data model specifies the structures in which an application's data is stored and the operations by which it is queried. Chapter 2 of [Designing Data-Intensive Applications](https://dataintensive.net/) by Martin Kleppmann compares the relational, document, and graph data models, which differ chiefly in how they represent relationships between records.
 
 ## The relational and document models
 
 The relational model organizes data into tables of rows queried with SQL. The document model, common in NoSQL databases, stores self-contained documents, usually as JSON.
 
-The awkward translation between in-memory objects and relational tables is often called an impedance mismatch, and it is why so much middleware exists, most commonly an object-relational mapping (ORM) layer.
+The translation required between in-memory objects and relational tables is called the impedance mismatch, and object-relational mapping (ORM) layers are the most common form of middleware built to reduce it.
 
 ## Relationships
 
-Use ids to refer to related data instead of embedding it. An id never changes and is often much smaller than the data it points to.
+Kleppmann recommends referring to related data by id rather than embedding it. An id never changes and is often much smaller than the data it points to.
 
-> [!tip] Why ids beat embedded values
-> An id carries no meaning to humans, which is exactly why it never needs to change. Anything human-meaningful that gets duplicated into records has to be updated everywhere it appears when it changes.
+> [!tip] Ids and embedded values
+> An id has no meaning to humans, so it never needs to change. Anything human-meaningful that gets duplicated into records has to be updated everywhere it appears when it changes.
 
-One-to-many relationships are by far the most common type of relationship in databases. In SQL they are a foreign key; in a document they are an embedded array of ids.
+In SQL a one-to-many relationship is represented by a foreign key; in a document it is an embedded array of ids.
 
 ```sql
 CREATE TABLE users (
@@ -60,7 +61,7 @@ CREATE TABLE orders (
 }
 ```
 
-Many-to-many relationships are less common. In SQL they get a join table:
+In SQL a many-to-many relationship is represented by a join table:
 
 ```sql
 CREATE TABLE users (
@@ -88,7 +89,7 @@ CREATE TABLE user_groups (
 }
 ```
 
-Many-to-many relationships are natural in SQL but awkward in document databases, since joins in document databases are weak or missing. Often the practical answer is to denormalize some of the data into the document:
+A relational database expresses many-to-many relationships directly through joins, whereas document databases have weak or no support for joins. A document database instead often denormalizes some of the data into the document:
 
 > [!warning] Denormalization shifts work to writes
 > Copying `group_name` into each document makes reads self-contained, but now every rename must update every document holding a copy, and the application is responsible for keeping the copies consistent.
@@ -111,28 +112,28 @@ WHERE group_name = 'devops';
 }
 ```
 
-Two older and more general models come up when relationships dominate. The network model generalizes the hierarchical model by letting a child record have several parents, forming a graph of records connected by links. The graph model generalizes further, letting edges carry properties as well as vertices.
+Two more general models apply when relationships predominate. The network model, which predates the relational model, generalizes the hierarchical model by letting a child record have several parents, forming a graph of records connected by links. The graph model generalizes further, letting edges carry properties as well as vertices.
 
 ## Choosing a data model
 
-Schema-on-write is the traditional approach: define a relational schema, then only write data that conforms to it. It enforces data quality and helps performance, at the cost of flexibility. Schema-on-read skips upfront enforcement and interprets structure when data is read. It handles rapidly changing requirements well, and it copes with data written by many different applications.
+Schema-on-write is the traditional approach of relational databases, in which a schema is defined first and only data conforming to it can be written. It enforces data quality and permits optimizations that depend on a known structure, at the cost of flexibility. Schema-on-read performs no enforcement at write time and interprets the structure when data is read. It accommodates rapidly changing requirements and data written by many different applications.
 
-Choose whichever model simplifies your application code the most and matches your access patterns.
+The appropriate model is the one that most simplifies the application code and matches its access patterns.
 
-> [!tip] The deciding question
-> If the data has a document-like structure (a tree of one-to-many relationships, loaded all at once), the document model fits. If many-to-many relationships dominate, the relational model handles them better, and highly interconnected data points to a graph model.
+> [!tip] Choosing by relationship structure
+> If the data has a document-like structure (a tree of one-to-many relationships, loaded all at once), the document model is appropriate. If many-to-many relationships dominate, the relational model handles them better, and highly interconnected data points to a graph model.
 
 ## Data locality
 
 Data locality means related data items sit together on the same storage device, for example the same disk block or the same server node. Queries that touch collocated data avoid extra seeks and network hops.
 
-A document database has to load an entire document even when the query needs a small part of it, so keep documents small. Google Spanner gets locality in a relational model by letting rows be interleaved (nested) within a parent table. Column-family databases such as [[systems/distributed-systems/bigtable|Bigtable]], HBase, and Cassandra manage locality with a similar idea. Many relational databases also have XML and JSON column types, which store documents inside a row of a table.
+A document database has to load an entire document even when the query needs a small part of it, so Kleppmann recommends keeping documents small. Google Spanner achieves locality in a relational model by letting rows be interleaved (nested) within a parent table. Column-family databases such as [[systems/distributed-systems/bigtable|Bigtable]], HBase, and Cassandra manage locality with a similar idea. Many relational databases also have XML and JSON column types, which store documents inside a row of a table.
 
 ## MapReduce querying
 
 [[ml/recommender-systems/intro-mapreduce-spark|MapReduce]] is a programming model for processing large amounts of data in bulk across many machines, popularized by Google. It has two steps. The map step takes a document as input and produces intermediate key-value pairs. The reduce step takes all values emitted for a key and collapses them into a result, which can be a single value or a more complex structure.
 
-MapReduce fits batch processing. It does not fit interactive queries that need low latency. Some NoSQL databases, for example MongoDB and CouchDB, expose a limited form of MapReduce for reading batches of documents. The same aggregation looks like this in SQL, MongoDB's mapReduce API, and MongoDB's aggregation pipeline:
+MapReduce suits batch processing and is ill-suited to interactive queries that require low latency. Some NoSQL databases, for example MongoDB and CouchDB, expose a limited form of MapReduce for reading batches of documents. The same aggregation is expressed as follows in SQL, in MongoDB's mapReduce API, and in MongoDB's aggregation pipeline:
 
 ```sql
 -- traditional SQL
@@ -215,7 +216,7 @@ CREATE INDEX edges_tails ON edges (tail_vertex);
 CREATE INDEX edges_heads ON edges (head_vertex);
 ```
 
-In practice, graph databases are implemented differently because traversals over this relational encoding are slow. Dedicated query languages such as Cypher express multi-hop traversals directly, which is painful to write as recursive SQL joins.
+In practice, graph databases are implemented differently because traversals over this relational encoding are slow. Dedicated query languages such as Cypher express multi-hop traversals directly; in SQL the same traversals require recursive joins.
 
 ## Triple-stores and SPARQL
 

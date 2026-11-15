@@ -14,9 +14,12 @@ tags:
   - gqa
   - kv-cache
 date: 2025-05-10
-updated: 2026-07-30
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
-description: Compact reference for arithmetic intensity, the roofline plot, and the execution time model (memory, compute, network) used to reason about LLM serving throughput.
+description: Arithmetic intensity, the roofline plot, and the execution time model for memory, compute and network, in compact form for estimating LLM serving throughput.
 sources:
   - title: How to Scale Your Model, All About Rooflines
     url: https://jax-ml.github.io/scaling-book/roofline/
@@ -26,9 +29,7 @@ sources:
     type: paper
 ---
 
-## Purpose
-
-This is the compact reference for the roofline analysis developed in [[ml/serving-systems/performance-modeling|Performance Modeling]] and applied in [[ml/serving-systems/optimizing-gpu-kernels|Optimizing GPU Kernels]].
+The roofline model bounds the execution time of a computation by the hardware's arithmetic throughput, its data-movement bandwidth and its memory capacity. The analysis is developed in [[ml/serving-systems/performance-modeling|Performance Modeling]] and applied in [[ml/serving-systems/optimizing-gpu-kernels|Optimizing GPU Kernels]].
 
 > "When we run algorithms on hardware, we're bounded by three things: how fast it can do math (OPs/second), the bandwidth available for moving data around (bytes/second), and the total memory available to store data (bytes). These "roofline" constraints let us upper and lower bound the time of a given computation." - [How to Scale Your Model - All About Rooflines](https://jax-ml.github.io/scaling-book/roofline/)
 
@@ -40,7 +41,7 @@ $$
 \text{Arithmetic Intensity} = \frac{\text{Computation FLOPs}}{\text{Communication Bytes}}
 $$
 
-We want models to run as compute-bound as possible, meaning the algorithm's intensity meets or exceeds what the hardware supplies. That drives utilization up. A memory-bound workload leaves compute supply unmatched and the hardware underutilized.
+A workload attains high utilization when it is compute bound, meaning that the algorithm's intensity meets or exceeds the hardware's critical intensity. A memory-bound workload leaves part of the available compute unused.
 
 ### Example: dot product
 
@@ -54,31 +55,31 @@ $$
 \text{Intensity (dot product)} = \frac{2n - 1}{4n + 2} \to \frac{1}{2} \text{ as } n \to \infty
 $$
 
-That is bad. An H100 supplies roughly 333 FLOPs per byte (see below), so the dot product is deeply memory bound and the GPU spends most of its time waiting on loads.
+An H100 has a critical intensity of roughly 333 FLOPs per byte ([Roofline plot](#roofline-plot)), so the dot product is deeply memory bound and the GPU spends most of its time waiting on loads.
 
 ## Roofline plot
 
 ![Roofline plot: performance vs arithmetic intensity](./assets/roofline-plot.png)
 
-Roofline plots put arithmetic intensity on the x-axis and performance on the y-axis, both usually log scale. Three regions matter:
+Roofline plots put arithmetic intensity on the x-axis and performance on the y-axis, both usually on a log scale. The plot has three parts:
 
 - Roofline: the performance upper bound at each intensity, set by memory bandwidth on the left and peak compute on the right.
-- Compute-bound: the flat region. Where compute-heavy workloads want to live.
+- Compute-bound: the flat region, where peak compute caps performance.
 - Memory-bound: the slanted region, where bandwidth caps performance.
 
-Moving up within the memory-bound region means better data movement (coalesced access, tiling, faster memory) or better math throughput (multithreading, SIMD) once compute binds. NUMA effects make the memory side harder: when memory is "local" or "remote" relative to a core, careless placement turns into communication overhead.
+Within the memory-bound region, performance improves through better data movement (coalesced access, tiling, faster memory). Once compute is the bound, it improves through higher arithmetic throughput (multithreading, SIMD). NUMA effects complicate the memory side, since memory is "local" or "remote" relative to a core and poor placement adds communication overhead.
 
-Writing $\text{OI}$ for operational intensity, a workload is compute bound when $\text{OI}(\text{algorithm}) > \text{OI}(\text{accelerator})$ and memory bound when the inequality flips. The balance point is the critical operational intensity, $\text{OI}(\text{algorithm}) = \text{OI}(\text{accelerator})$. For an H100 at ~1000 FP16 TFLOPs and ~3 TB/s, the critical intensity is about 333 FLOPs/byte, so the dot product's $\frac{1}{2}$ is very memory bound.
+Writing $\text{OI}$ for operational intensity, a workload is compute bound when $\text{OI}(\text{algorithm}) > \text{OI}(\text{accelerator})$ and memory bound when the inequality flips. The balance point is the critical operational intensity, $\text{OI}(\text{algorithm}) = \text{OI}(\text{accelerator})$. For an H100 at ~1000 FP16 TFLOPs and ~3 TB/s, the critical intensity is about 333 FLOPs/byte, so the dot product's intensity of $\frac{1}{2}$ lies far into the memory-bound region.
 
 ## Matrix multiplication with FP16
 
 For $A \in \mathbb{R}^{M \times N}$, $B \in \mathbb{R}^{N \times K}$, and $C = AB$: reads are $2MN + 2NK$ bytes, writes $2MK$ bytes, compute $2MNK$ FLOPs.
 
 $$
-\text{OI}(\text{matmul}) = \frac{2MNK}{2MN + 2NK + 2MK} \approx M \text{ if } M \text{ is large}
+\text{OI}(\text{matmul}) = \frac{2MNK}{2MN + 2NK + 2MK} \approx M \text{ if } N, K \gg M
 $$
 
-So with $M$ as the batch dimension, matmul goes compute bound on the H100 once $M > 333$.
+With $M$ as the batch dimension, matmul is therefore compute bound on the H100 once $M > 333$.
 
 ## Key hardware specs for serving throughput
 
@@ -103,13 +104,13 @@ So with $M$ as the batch dimension, matmul goes compute bound on the H100 once $
 
 ## Execution time model
 
-Assume optimal batching and enough demand to keep the hardware fed.
+The model assumes optimal batching and enough demand to keep the hardware fully occupied.
 
-Memory: each iteration effectively streams all of GPU memory (weights, activations, KV cache) once, so $t_\text{mem} = \frac{\text{GPU}_{\text{mem}}}{\text{MemBW}}$.
+For memory, each iteration streams nearly all of GPU memory (weights, activations, KV cache) once, so $t_\text{mem} = \frac{\text{GPU}_{\text{mem}}}{\text{MemBW}}$.
 
-Compute: dense operations cost 2 FLOPs per parameter per batched token, so $t_{\text{compute}} = \frac{2 B_{\text{dense}} P_\text{model}}{\text{compute}}$.
+For compute, dense operations cost 2 FLOPs per parameter per batched token, so $t_{\text{compute}} = \frac{2 B_{\text{dense}} P_\text{model}}{\text{compute}}$.
 
-Network: for a model sharded across GPUs, the collectives that matter are `AllGather` and `AllReduce`.
+For the network, the collectives that matter for a model sharded across GPUs are `AllGather` and `AllReduce`.
 
 - `AllGather`: collect each GPU's output; roughly $N_{\text{gpus}} - 1$ network hops, with several per layer (4 in Llama 2).
 - `AllReduce`: roughly twice the cost of an `AllGather`.

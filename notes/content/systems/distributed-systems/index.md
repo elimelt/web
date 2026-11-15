@@ -7,7 +7,10 @@ tags:
   - consensus
   - sharding
 date: 2026-07-31
-updated: 2026-07-31
+updated: 2026-11-15
+authors:
+  - elimelt
+  - claude-opus-5-5
 status: evergreen
 description: Overview of the distributed systems notes, from ordering and consistency to replication, consensus, and scalable services.
 sources:
@@ -16,11 +19,9 @@ sources:
     type: paper
 ---
 
-## Purpose
+A distributed system is a set of machines that communicate over a network and coordinate to provide a service, with no machine able to observe the whole system at once. The central question in its design is how to maintain useful global behavior under that limitation. A suggested reading order begins with [[systems/distributed-systems/clocks|clocks]], then [[systems/distributed-systems/ordering-events-in-distributed-systems|event ordering]], then [[systems/distributed-systems/consistency|consistency]], which together supply the vocabulary of the replication and consensus notes.
 
-The notes here revolve around one question: how do you keep useful global behavior when no machine can see the whole system at once? The cleanest starting path is [[systems/distributed-systems/clocks|clocks]], then [[systems/distributed-systems/ordering-events-in-distributed-systems|event ordering]], then [[systems/distributed-systems/consistency|consistency]]. That gives the vocabulary the replication and consensus notes use later.
-
-From there, the section branches into system-building patterns such as [[systems/distributed-systems/primary-backup|primary backup]], [[systems/distributed-systems/sharding|sharding]], and [[systems/distributed-systems/load-balancing|load balancing]], plus consensus notes such as [[systems/distributed-systems/paxos-intro|Paxos introduction]] and [[systems/distributed-systems/paxos-made-simple|Paxos Made Simple]].
+Later topics include system-building patterns such as [[systems/distributed-systems/primary-backup|primary backup]], [[systems/distributed-systems/sharding|sharding]], and [[systems/distributed-systems/load-balancing|load balancing]], plus consensus notes such as [[systems/distributed-systems/paxos-intro|Paxos introduction]] and [[systems/distributed-systems/paxos-made-simple|Paxos Made Simple]].
 
 ## Entry points
 
