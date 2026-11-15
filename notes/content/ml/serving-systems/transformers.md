@@ -118,7 +118,7 @@ During decode, each new token needs attention against every previous position's 
 
 ## Multi-GPU execution
 
-Tensor parallelism splits the weight matrices across GPUs: Q, K, V projections are partitioned by head, FFN projections by rows or columns, and each GPU computes its shard (details in [[ml/serving-systems/parallelism|Parallelism]]). Two collectives combine the results: AllGather collects partial outputs after attention, and AllReduce (ReduceScatter plus AllGather) sums partial results after the FFN down projection. Both are network bound.
+Tensor parallelism splits the weight matrices across GPUs: Q, K, V projections are partitioned by head, FFN projections by rows or columns, and each GPU computes its shard (details in [[ml/serving-systems/parallelism|Parallelism]]). The attention output projection and the FFN down projection are split by rows, so each GPU produces a partial sum of the layer's output, and one AllReduce (a ReduceScatter followed by an AllGather) after each of the two sums them, two per layer in the forward pass ([Megatron-LM](https://arxiv.org/abs/1909.08053), Section 3). With sequence parallelism, each AllReduce becomes a ReduceScatter and a later AllGather that send the same bytes.
 
 ## Where each operation binds
 
@@ -126,7 +126,7 @@ Compute bound: the dense projections (Q, K, V, output, up, gate, down) and prefi
 
 Memory bound: decode attention, which streams the KV cache to score one new token per request.
 
-Network bound: the AllGather and AllReduce collectives in tensor-parallel deployments.
+Network bound: the AllReduce collectives (or, with sequence parallelism, ReduceScatter and AllGather) in tensor-parallel deployments.
 
 This division is the reason prefill and decode require different batching treatments ([[ml/serving-systems/batching|Batching]]) and different hardware ratios.
 
