@@ -1,0 +1,202 @@
+[
+ {
+  "rate": 100.0,
+  "seeds": [
+   {
+    "seed": 1,
+    "sends_per_s_per_proc": 94,
+    "naive_inconsistent": 0.0,
+    "naive_sum_wrong": 0.02,
+    "naive_median_skew_us": 111.667,
+    "naive_mean_inflight": 0.02,
+    "naive_max_orphans": 0,
+    "cl_inconsistent": 0.0,
+    "cl_sum_wrong": 0.0,
+    "cl_mean_channel_msgs": 0.04,
+    "cl_median_latency_us": 648.0989999999999,
+    "cl_p90_latency_us": 878.583,
+    "snapshots": 50
+   },
+   {
+    "seed": 2,
+    "sends_per_s_per_proc": 99,
+    "naive_inconsistent": 0.0,
+    "naive_sum_wrong": 0.06,
+    "naive_median_skew_us": 113.7345,
+    "naive_mean_inflight": 0.06,
+    "naive_max_orphans": 0,
+    "cl_inconsistent": 0.0,
+    "cl_sum_wrong": 0.0,
+    "cl_mean_channel_msgs": 0.04,
+    "cl_median_latency_us": 646.7,
+    "cl_p90_latency_us": 985.198,
+    "snapshots": 50
+   },
+   {
+    "seed": 3,
+    "sends_per_s_per_proc": 98,
+    "naive_inconsistent": 0.02,
+    "naive_sum_wrong": 0.1,
+    "naive_median_skew_us": 119.9195,
+    "naive_mean_inflight": 0.08,
+    "naive_max_orphans": 1,
+    "cl_inconsistent": 0.0,
+    "cl_sum_wrong": 0.0,
+    "cl_mean_channel_msgs": 0.14,
+    "cl_median_latency_us": 678.63,
+    "cl_p90_latency_us": 1038.605,
+    "snapshots": 50
+   }
+  ]
+ },
+ {
+  "rate": 1000.0,
+  "seeds": [
+   {
+    "seed": 1,
+    "sends_per_s_per_proc": 834,
+    "naive_inconsistent": 0.02,
+    "naive_sum_wrong": 0.48,
+    "naive_median_skew_us": 142.4015,
+    "naive_mean_inflight": 0.48,
+    "naive_max_orphans": 2,
+    "cl_inconsistent": 0.0,
+    "cl_sum_wrong": 0.0,
+    "cl_mean_channel_msgs": 0.42,
+    "cl_median_latency_us": 683.7625,
+    "cl_p90_latency_us": 1099.236,
+    "snapshots": 50
+   },
+   {
+    "seed": 2,
+    "sends_per_s_per_proc": 838,
+    "naive_inconsistent": 0.0,
+    "naive_sum_wrong": 0.36,
+    "naive_median_skew_us": 129.226,
+    "naive_mean_inflight": 0.42,
+    "naive_max_orphans": 0,
+    "cl_inconsistent": 0.0,
+    "cl_sum_wrong": 0.0,
+    "cl_mean_channel_msgs": 0.56,
+    "cl_median_latency_us": 656.424,
+    "cl_p90_latency_us": 1120.613,
+    "snapshots": 50
+   },
+   {
+    "seed": 3,
+    "sends_per_s_per_proc": 832,
+    "naive_inconsistent": 0.04,
+    "naive_sum_wrong": 0.52,
+    "naive_median_skew_us": 131.424,
+    "naive_mean_inflight": 0.58,
+    "naive_max_orphans": 1,
+    "cl_inconsistent": 0.0,
+    "cl_sum_wrong": 0.0,
+    "cl_mean_channel_msgs": 0.56,
+    "cl_median_latency_us": 674.3444999999999,
+    "cl_p90_latency_us": 1037.945,
+    "snapshots": 50
+   }
+  ]
+ },
+ {
+  "rate": 10000.0,
+  "seeds": [
+   {
+    "seed": 1,
+    "sends_per_s_per_proc": 4258,
+    "naive_inconsistent": 0.18,
+    "naive_sum_wrong": 0.94,
+    "naive_median_skew_us": 210.8065,
+    "naive_mean_inflight": 1.92,
+    "naive_max_orphans": 4,
+    "cl_inconsistent": 0.0,
+    "cl_sum_wrong": 0.0,
+    "cl_mean_channel_msgs": 2.64,
+    "cl_median_latency_us": 767.3175,
+    "cl_p90_latency_us": 1191.363,
+    "snapshots": 50
+   },
+   {
+    "seed": 2,
+    "sends_per_s_per_proc": 4052,
+    "naive_inconsistent": 0.14,
+    "naive_sum_wrong": 0.92,
+    "naive_median_skew_us": 234.3065,
+    "naive_mean_inflight": 2.82,
+    "naive_max_orphans": 18,
+    "cl_inconsistent": 0.0,
+    "cl_sum_wrong": 0.0,
+    "cl_mean_channel_msgs": 3.16,
+    "cl_median_latency_us": 840.538,
+    "cl_p90_latency_us": 1326.266,
+    "snapshots": 50
+   },
+   {
+    "seed": 3,
+    "sends_per_s_per_proc": 4192,
+    "naive_inconsistent": 0.22,
+    "naive_sum_wrong": 0.9,
+    "naive_median_skew_us": 216.5495,
+    "naive_mean_inflight": 2.26,
+    "naive_max_orphans": 4,
+    "cl_inconsistent": 0.0,
+    "cl_sum_wrong": 0.0,
+    "cl_mean_channel_msgs": 2.8,
+    "cl_median_latency_us": 815.2505,
+    "cl_p90_latency_us": 1921.515,
+    "snapshots": 50
+   }
+  ]
+ },
+ {
+  "rate": 0.0,
+  "seeds": [
+   {
+    "seed": 1,
+    "sends_per_s_per_proc": 4615,
+    "naive_inconsistent": 0.6,
+    "naive_sum_wrong": 1.0,
+    "naive_median_skew_us": 6794.3994999999995,
+    "naive_mean_inflight": 112.92,
+    "naive_max_orphans": 69,
+    "cl_inconsistent": 0.0,
+    "cl_sum_wrong": 0.0,
+    "cl_mean_channel_msgs": 105.56,
+    "cl_median_latency_us": 19855.589,
+    "cl_p90_latency_us": 27616.956,
+    "snapshots": 50
+   },
+   {
+    "seed": 2,
+    "sends_per_s_per_proc": 4594,
+    "naive_inconsistent": 0.82,
+    "naive_sum_wrong": 1.0,
+    "naive_median_skew_us": 7656.637500000001,
+    "naive_mean_inflight": 104.5,
+    "naive_max_orphans": 50,
+    "cl_inconsistent": 0.0,
+    "cl_sum_wrong": 0.0,
+    "cl_mean_channel_msgs": 103.12,
+    "cl_median_latency_us": 21446.2945,
+    "cl_p90_latency_us": 36731.447,
+    "snapshots": 50
+   },
+   {
+    "seed": 3,
+    "sends_per_s_per_proc": 4494,
+    "naive_inconsistent": 0.66,
+    "naive_sum_wrong": 1.0,
+    "naive_median_skew_us": 7912.786,
+    "naive_mean_inflight": 109.54,
+    "naive_max_orphans": 95,
+    "cl_inconsistent": 0.0,
+    "cl_sum_wrong": 0.0,
+    "cl_mean_channel_msgs": 92.22,
+    "cl_median_latency_us": 21405.3315,
+    "cl_p90_latency_us": 34218.754,
+    "snapshots": 50
+   }
+  ]
+ }
+]
