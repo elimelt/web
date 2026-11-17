@@ -1,0 +1,4134 @@
+{
+ "rows": [
+  {
+   "rpc": 4.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 1,
+   "nestloop": 229.55,
+   "hash": 1992.66,
+   "merge": 4571.41,
+   "planner": 229.55,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 3,
+   "nestloop": 310.63,
+   "hash": 1992.73,
+   "merge": 4571.68,
+   "planner": 310.63,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 10,
+   "nestloop": 594.42,
+   "hash": 1993.0,
+   "merge": 4572.73,
+   "planner": 594.42,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 30,
+   "nestloop": 1188.06,
+   "hash": 1993.75,
+   "merge": 4575.9,
+   "planner": 1188.06,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 100,
+   "nestloop": 2612.22,
+   "hash": 1996.37,
+   "merge": 4587.59,
+   "planner": 1996.37,
+   "choice": "Hash Join"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 300,
+   "nestloop": 2998.73,
+   "hash": 2003.87,
+   "merge": 4622.61,
+   "planner": 2003.87,
+   "choice": "Hash Join"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 1000,
+   "nestloop": 3413.51,
+   "hash": 2030.12,
+   "merge": 4751.09,
+   "planner": 2030.12,
+   "choice": "Hash Join"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 3000,
+   "nestloop": 4598.51,
+   "hash": 2105.12,
+   "merge": 5127.05,
+   "planner": 2105.12,
+   "choice": "Hash Join"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 10000,
+   "nestloop": 7375.6,
+   "hash": 2367.58,
+   "merge": 6019.42,
+   "planner": 2367.58,
+   "choice": "Hash Join"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 1,
+   "nestloop": 197.6,
+   "hash": 1992.66,
+   "merge": 2951.45,
+   "planner": 197.6,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 3,
+   "nestloop": 214.79,
+   "hash": 1992.73,
+   "merge": 2951.72,
+   "planner": 214.79,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 10,
+   "nestloop": 274.94,
+   "hash": 1993.0,
+   "merge": 2952.77,
+   "planner": 274.94,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 30,
+   "nestloop": 434.78,
+   "hash": 1993.74,
+   "merge": 2955.93,
+   "planner": 434.78,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 100,
+   "nestloop": 900.25,
+   "hash": 1996.37,
+   "merge": 2967.6,
+   "planner": 900.25,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 300,
+   "nestloop": 1774.75,
+   "hash": 2003.86,
+   "merge": 3002.58,
+   "planner": 1774.75,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 1000,
+   "nestloop": 3329.47,
+   "hash": 2030.08,
+   "merge": 3130.91,
+   "planner": 2030.08,
+   "choice": "Hash Join"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 3000,
+   "nestloop": 4598.38,
+   "hash": 2104.99,
+   "merge": 3506.41,
+   "planner": 2104.99,
+   "choice": "Hash Join"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 10000,
+   "nestloop": 7383.79,
+   "hash": 2367.13,
+   "merge": 4397.21,
+   "planner": 2367.13,
+   "choice": "Hash Join"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 1,
+   "nestloop": 2324.67,
+   "hash": 19955.49,
+   "merge": 45779.29,
+   "planner": 2324.67,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 3,
+   "nestloop": 2324.67,
+   "hash": 19955.49,
+   "merge": 45779.29,
+   "planner": 2324.67,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 10,
+   "nestloop": 2324.67,
+   "hash": 19955.49,
+   "merge": 45779.29,
+   "planner": 2324.67,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 30,
+   "nestloop": 3073.54,
+   "hash": 19956.13,
+   "merge": 45781.95,
+   "planner": 3073.54,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 100,
+   "nestloop": 5786.02,
+   "hash": 19958.62,
+   "merge": 45793.01,
+   "planner": 5786.02,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 300,
+   "nestloop": 12049.76,
+   "hash": 19965.81,
+   "merge": 45826.47,
+   "planner": 12049.76,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 1000,
+   "nestloop": 25717.86,
+   "hash": 19990.9,
+   "merge": 45949.09,
+   "planner": 19990.9,
+   "choice": "Hash Join"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 3000,
+   "nestloop": 30503.21,
+   "hash": 20069.46,
+   "merge": 46350.81,
+   "planner": 20069.46,
+   "choice": "Hash Join"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 10000,
+   "nestloop": 35573.12,
+   "hash": 20329.89,
+   "merge": 47742.12,
+   "planner": 20329.89,
+   "choice": "Hash Join"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 30000,
+   "nestloop": 49857.6,
+   "hash": 21063.71,
+   "merge": 51141.02,
+   "planner": 21063.71,
+   "choice": "Hash Join"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 100000,
+   "nestloop": 100743.85,
+   "hash": 23677.84,
+   "merge": 59998.88,
+   "planner": 23677.84,
+   "choice": "Hash Join"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 1,
+   "nestloop": 1977.26,
+   "hash": 19955.5,
+   "merge": 29462.9,
+   "planner": 1977.26,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 3,
+   "nestloop": 1977.26,
+   "hash": 19955.5,
+   "merge": 29462.9,
+   "planner": 1977.26,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 10,
+   "nestloop": 1977.26,
+   "hash": 19955.5,
+   "merge": 29462.9,
+   "planner": 1977.26,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 30,
+   "nestloop": 2125.59,
+   "hash": 19956.13,
+   "merge": 29465.59,
+   "planner": 2125.59,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 100,
+   "nestloop": 2698.16,
+   "hash": 19958.65,
+   "merge": 29476.74,
+   "planner": 2698.16,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 300,
+   "nestloop": 4242.09,
+   "hash": 19965.88,
+   "merge": 29510.46,
+   "planner": 4242.09,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 1000,
+   "nestloop": 8842.73,
+   "hash": 19991.16,
+   "merge": 29633.97,
+   "planner": 8842.73,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 3000,
+   "nestloop": 18324.48,
+   "hash": 20070.28,
+   "merge": 30038.54,
+   "planner": 18324.48,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 10000,
+   "nestloop": 34731.86,
+   "hash": 20332.6,
+   "merge": 31439.26,
+   "planner": 20332.6,
+   "choice": "Hash Join"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 30000,
+   "nestloop": 49865.61,
+   "hash": 21071.72,
+   "merge": 34865.05,
+   "planner": 21071.72,
+   "choice": "Hash Join"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 100000,
+   "nestloop": 100770.76,
+   "hash": 23704.75,
+   "merge": 43817.3,
+   "planner": 23704.75,
+   "choice": "Hash Join"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 1,
+   "nestloop": 23337.18,
+   "hash": 199231.31,
+   "merge": 456365.9,
+   "planner": 23337.18,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 3,
+   "nestloop": 23337.18,
+   "hash": 199231.31,
+   "merge": 456365.9,
+   "planner": 23337.18,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 10,
+   "nestloop": 23337.18,
+   "hash": 199231.31,
+   "merge": 456365.9,
+   "planner": 23337.18,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 30,
+   "nestloop": 23337.18,
+   "hash": 199231.31,
+   "merge": 456365.9,
+   "planner": 23337.18,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 100,
+   "nestloop": 23337.18,
+   "hash": 199231.31,
+   "merge": 456365.9,
+   "planner": 23337.18,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 300,
+   "nestloop": 31942.82,
+   "hash": 199238.76,
+   "merge": 456400.66,
+   "planner": 31942.82,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 1000,
+   "nestloop": 60879.39,
+   "hash": 199265.76,
+   "merge": 456532.9,
+   "planner": 60879.39,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 3000,
+   "nestloop": 128063.72,
+   "hash": 199342.96,
+   "merge": 456928.0,
+   "planner": 128063.72,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 10000,
+   "nestloop": 265660.48,
+   "hash": 199611.94,
+   "merge": 458365.33,
+   "planner": 199611.94,
+   "choice": "Hash Join"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 30000,
+   "nestloop": 303045.1,
+   "hash": 200331.22,
+   "merge": 462361.89,
+   "planner": 200331.22,
+   "choice": "Hash Join"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 100000,
+   "nestloop": 354360.4,
+   "hash": 202942.47,
+   "merge": 477456.62,
+   "planner": 202942.47,
+   "choice": "Hash Join"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 300000,
+   "nestloop": 502350.32,
+   "hash": 290948.61,
+   "merge": 510526.83,
+   "planner": 290948.61,
+   "choice": "Hash Join"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 1000000,
+   "nestloop": 1016202.61,
+   "hash": 322563.92,
+   "merge": 599340.79,
+   "planner": 322563.92,
+   "choice": "Hash Join"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 1,
+   "nestloop": 19792.76,
+   "hash": 199235.75,
+   "merge": 294154.37,
+   "planner": 19792.76,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 3,
+   "nestloop": 19792.76,
+   "hash": 199235.75,
+   "merge": 294154.37,
+   "planner": 19792.76,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 10,
+   "nestloop": 19792.76,
+   "hash": 199235.75,
+   "merge": 294154.37,
+   "planner": 19792.76,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 30,
+   "nestloop": 19792.76,
+   "hash": 199235.75,
+   "merge": 294154.37,
+   "planner": 19792.76,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 100,
+   "nestloop": 19792.76,
+   "hash": 199235.75,
+   "merge": 294154.37,
+   "planner": 19792.76,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 300,
+   "nestloop": 21557.33,
+   "hash": 199243.21,
+   "merge": 294189.22,
+   "planner": 21557.33,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 1000,
+   "nestloop": 27806.99,
+   "hash": 199270.29,
+   "merge": 294321.81,
+   "planner": 27806.99,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 3000,
+   "nestloop": 44649.35,
+   "hash": 199347.69,
+   "merge": 294717.89,
+   "planner": 44649.35,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 10000,
+   "nestloop": 94411.01,
+   "hash": 199617.36,
+   "merge": 296158.7,
+   "planner": 94411.01,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 30000,
+   "nestloop": 185146.84,
+   "hash": 200338.49,
+   "merge": 300164.51,
+   "planner": 185146.84,
+   "choice": "Nested Loop"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 100000,
+   "nestloop": 364273.49,
+   "hash": 202956.46,
+   "merge": 315292.84,
+   "planner": 202956.46,
+   "choice": "Hash Join"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 300000,
+   "nestloop": 560262.1,
+   "hash": 290985.99,
+   "merge": 348459.07,
+   "planner": 290985.99,
+   "choice": "Hash Join"
+  },
+  {
+   "rpc": 4.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 1000000,
+   "nestloop": 1208779.63,
+   "hash": 322668.62,
+   "merge": 437609.66,
+   "planner": 322668.62,
+   "choice": "Hash Join"
+  },
+  {
+   "rpc": 2.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 1,
+   "nestloop": 210.27,
+   "hash": 1992.66,
+   "merge": 3255.43,
+   "planner": 210.27,
+   "choice": "Nested Loop",
+   "choice_ms": 0.34,
+   "choice_times_ms": [
+    0.38,
+    0.333,
+    0.34
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 3,
+   "nestloop": 252.79,
+   "hash": 1992.73,
+   "merge": 3255.7,
+   "planner": 252.79,
+   "choice": "Nested Loop",
+   "choice_ms": 0.34,
+   "choice_times_ms": [
+    0.34,
+    0.355,
+    0.326
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 10,
+   "nestloop": 398.93,
+   "hash": 1993.0,
+   "merge": 3256.76,
+   "planner": 398.93,
+   "choice": "Nested Loop",
+   "choice_ms": 0.425,
+   "choice_times_ms": [
+    0.58,
+    0.425,
+    0.345
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 30,
+   "nestloop": 712.43,
+   "hash": 1993.75,
+   "merge": 3259.93,
+   "planner": 712.43,
+   "choice": "Nested Loop",
+   "choice_ms": 0.58,
+   "choice_times_ms": [
+    0.617,
+    0.569,
+    0.58
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 100,
+   "nestloop": 1430.24,
+   "hash": 1996.37,
+   "merge": 3271.61,
+   "planner": 1430.24,
+   "choice": "Nested Loop",
+   "choice_ms": 0.823,
+   "choice_times_ms": [
+    0.95,
+    0.823,
+    0.765
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 300,
+   "nestloop": 1682.75,
+   "hash": 2003.87,
+   "merge": 3306.63,
+   "planner": 1682.75,
+   "choice": "Nested Loop",
+   "choice_ms": 1.672,
+   "choice_times_ms": [
+    1.863,
+    1.672,
+    1.559
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 1000,
+   "nestloop": 2097.51,
+   "hash": 2030.12,
+   "merge": 3435.12,
+   "planner": 2030.12,
+   "choice": "Hash Join",
+   "choice_ms": 6.914,
+   "choice_times_ms": [
+    6.914,
+    6.886,
+    6.918
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 3000,
+   "nestloop": 3282.51,
+   "hash": 2105.12,
+   "merge": 3749.08,
+   "planner": 2105.12,
+   "choice": "Hash Join",
+   "choice_ms": 8.317,
+   "choice_times_ms": [
+    8.344,
+    8.3,
+    8.317
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 10000,
+   "nestloop": 7356.82,
+   "hash": 2367.58,
+   "merge": 4641.45,
+   "planner": 2367.58,
+   "choice": "Hash Join",
+   "choice_ms": 11.287,
+   "choice_times_ms": [
+    11.287,
+    11.344,
+    11.26
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 1,
+   "nestloop": 193.6,
+   "hash": 1992.66,
+   "merge": 2715.45,
+   "planner": 193.6,
+   "choice": "Nested Loop",
+   "choice_ms": 0.305,
+   "choice_times_ms": [
+    0.305,
+    0.293,
+    0.319
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 3,
+   "nestloop": 202.79,
+   "hash": 1992.73,
+   "merge": 2715.72,
+   "planner": 202.79,
+   "choice": "Nested Loop",
+   "choice_ms": 0.327,
+   "choice_times_ms": [
+    0.327,
+    0.334,
+    0.305
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 10,
+   "nestloop": 234.93,
+   "hash": 1993.0,
+   "merge": 2716.77,
+   "planner": 234.93,
+   "choice": "Nested Loop",
+   "choice_ms": 0.365,
+   "choice_times_ms": [
+    0.365,
+    0.506,
+    0.34
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 30,
+   "nestloop": 320.78,
+   "hash": 1993.74,
+   "merge": 2719.93,
+   "planner": 320.78,
+   "choice": "Nested Loop",
+   "choice_ms": 0.384,
+   "choice_times_ms": [
+    0.452,
+    0.35,
+    0.384
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 100,
+   "nestloop": 574.25,
+   "hash": 1996.37,
+   "merge": 2731.6,
+   "planner": 574.25,
+   "choice": "Nested Loop",
+   "choice_ms": 0.588,
+   "choice_times_ms": [
+    0.602,
+    0.588,
+    0.557
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 300,
+   "nestloop": 1070.75,
+   "hash": 2003.86,
+   "merge": 2766.58,
+   "planner": 1070.75,
+   "choice": "Nested Loop",
+   "choice_ms": 0.902,
+   "choice_times_ms": [
+    1.111,
+    0.902,
+    0.902
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 1000,
+   "nestloop": 2055.47,
+   "hash": 2030.08,
+   "merge": 2894.91,
+   "planner": 2030.08,
+   "choice": "Hash Join",
+   "choice_ms": 5.753,
+   "choice_times_ms": [
+    5.784,
+    5.753,
+    5.611
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 3000,
+   "nestloop": 3282.38,
+   "hash": 2104.99,
+   "merge": 3208.41,
+   "planner": 2104.99,
+   "choice": "Hash Join",
+   "choice_ms": 6.827,
+   "choice_times_ms": [
+    6.906,
+    6.827,
+    6.713
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 10000,
+   "nestloop": 7364.96,
+   "hash": 2367.13,
+   "merge": 4099.21,
+   "planner": 2367.13,
+   "choice": "Hash Join",
+   "choice_ms": 10.281,
+   "choice_times_ms": [
+    11.058,
+    10.182,
+    10.281
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 1,
+   "nestloop": 2113.25,
+   "hash": 19955.49,
+   "merge": 32585.69,
+   "planner": 2113.25,
+   "choice": "Nested Loop",
+   "choice_ms": 2.993,
+   "choice_times_ms": [
+    3.19,
+    2.993,
+    2.958
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 3,
+   "nestloop": 2113.25,
+   "hash": 19955.49,
+   "merge": 32585.69,
+   "planner": 2113.25,
+   "choice": "Nested Loop",
+   "choice_ms": 3.002,
+   "choice_times_ms": [
+    3.002,
+    3.003,
+    2.989
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 10,
+   "nestloop": 2113.25,
+   "hash": 19955.49,
+   "merge": 32585.69,
+   "planner": 2113.25,
+   "choice": "Nested Loop",
+   "choice_ms": 3.037,
+   "choice_times_ms": [
+    3.032,
+    3.037,
+    3.047
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 30,
+   "nestloop": 2491.56,
+   "hash": 19956.13,
+   "merge": 32588.35,
+   "planner": 2491.56,
+   "choice": "Nested Loop",
+   "choice_ms": 3.265,
+   "choice_times_ms": [
+    3.349,
+    3.265,
+    3.209
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 100,
+   "nestloop": 3872.08,
+   "hash": 19958.62,
+   "merge": 32599.41,
+   "planner": 3872.08,
+   "choice": "Nested Loop",
+   "choice_ms": 3.776,
+   "choice_times_ms": [
+    3.878,
+    3.761,
+    3.776
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 300,
+   "nestloop": 7151.86,
+   "hash": 19965.81,
+   "merge": 32632.87,
+   "planner": 7151.86,
+   "choice": "Nested Loop",
+   "choice_ms": 5.23,
+   "choice_times_ms": [
+    5.724,
+    5.23,
+    4.946
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 1000,
+   "nestloop": 14152.17,
+   "hash": 19990.9,
+   "merge": 32755.49,
+   "planner": 14152.17,
+   "choice": "Nested Loop",
+   "choice_ms": 9.617,
+   "choice_times_ms": [
+    9.617,
+    9.106,
+    10.095
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 3000,
+   "nestloop": 17309.43,
+   "hash": 20069.46,
+   "merge": 33157.21,
+   "planner": 17309.43,
+   "choice": "Nested Loop",
+   "choice_ms": 21.711,
+   "choice_times_ms": [
+    22.624,
+    21.711,
+    20.683
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 10000,
+   "nestloop": 22379.14,
+   "hash": 20329.89,
+   "merge": 34548.52,
+   "planner": 20329.89,
+   "choice": "Hash Join",
+   "choice_ms": 71.415,
+   "choice_times_ms": [
+    74.19,
+    71.415,
+    70.102
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 30000,
+   "nestloop": 36663.6,
+   "hash": 21063.71,
+   "merge": 37393.5,
+   "planner": 21063.71,
+   "choice": "Hash Join",
+   "choice_ms": 116.373,
+   "choice_times_ms": [
+    113.943,
+    116.373,
+    117.212
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 100000,
+   "nestloop": 87549.85,
+   "hash": 23677.84,
+   "merge": 46251.34,
+   "planner": 23677.84,
+   "choice": "Hash Join",
+   "choice_ms": 258.982,
+   "choice_times_ms": [
+    258.982,
+    258.029,
+    283.131
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 1,
+   "nestloop": 1937.26,
+   "hash": 19955.5,
+   "merge": 27146.9,
+   "planner": 1937.26,
+   "choice": "Nested Loop",
+   "choice_ms": 3.262,
+   "choice_times_ms": [
+    3.554,
+    3.262,
+    3.194
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 3,
+   "nestloop": 1937.26,
+   "hash": 19955.5,
+   "merge": 27146.9,
+   "planner": 1937.26,
+   "choice": "Nested Loop",
+   "choice_ms": 3.163,
+   "choice_times_ms": [
+    3.119,
+    3.163,
+    3.236
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 10,
+   "nestloop": 1937.26,
+   "hash": 19955.5,
+   "merge": 27146.9,
+   "planner": 1937.26,
+   "choice": "Nested Loop",
+   "choice_ms": 3.24,
+   "choice_times_ms": [
+    3.24,
+    3.233,
+    3.259
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 30,
+   "nestloop": 2017.58,
+   "hash": 19956.13,
+   "merge": 27149.59,
+   "planner": 2017.58,
+   "choice": "Nested Loop",
+   "choice_ms": 4.294,
+   "choice_times_ms": [
+    5.3,
+    4.267,
+    4.294
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 100,
+   "nestloop": 2328.16,
+   "hash": 19958.65,
+   "merge": 27160.74,
+   "planner": 2328.16,
+   "choice": "Nested Loop",
+   "choice_ms": 3.444,
+   "choice_times_ms": [
+    3.444,
+    3.339,
+    4.912
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 300,
+   "nestloop": 3170.09,
+   "hash": 19965.88,
+   "merge": 27194.46,
+   "planner": 3170.09,
+   "choice": "Nested Loop",
+   "choice_ms": 4.0,
+   "choice_times_ms": [
+    4.231,
+    4.0,
+    3.855
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 1000,
+   "nestloop": 5714.74,
+   "hash": 19991.16,
+   "merge": 27317.97,
+   "planner": 5714.74,
+   "choice": "Nested Loop",
+   "choice_ms": 5.446,
+   "choice_times_ms": [
+    5.832,
+    5.446,
+    5.312
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 3000,
+   "nestloop": 11220.49,
+   "hash": 20070.28,
+   "merge": 27722.54,
+   "planner": 11220.49,
+   "choice": "Nested Loop",
+   "choice_ms": 9.641,
+   "choice_times_ms": [
+    10.106,
+    9.641,
+    9.491
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 10000,
+   "nestloop": 21959.86,
+   "hash": 20332.6,
+   "merge": 29123.26,
+   "planner": 20332.6,
+   "choice": "Hash Join",
+   "choice_ms": 59.996,
+   "choice_times_ms": [
+    59.973,
+    59.996,
+    60.285
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 30000,
+   "nestloop": 36671.61,
+   "hash": 21071.72,
+   "merge": 31995.07,
+   "planner": 21071.72,
+   "choice": "Hash Join",
+   "choice_ms": 99.833,
+   "choice_times_ms": [
+    145.189,
+    99.833,
+    76.452
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 100000,
+   "nestloop": 87576.76,
+   "hash": 23704.75,
+   "merge": 40947.32,
+   "planner": 23704.75,
+   "choice": "Hash Join",
+   "choice_ms": 120.929,
+   "choice_times_ms": [
+    133.88,
+    120.929,
+    120.445
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 1,
+   "nestloop": 21155.34,
+   "hash": 199231.31,
+   "merge": 325140.97,
+   "planner": 21155.34,
+   "choice": "Nested Loop",
+   "choice_ms": 35.094,
+   "choice_times_ms": [
+    33.596,
+    36.144,
+    35.094
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 3,
+   "nestloop": 21155.34,
+   "hash": 199231.31,
+   "merge": 325140.97,
+   "planner": 21155.34,
+   "choice": "Nested Loop",
+   "choice_ms": 42.775,
+   "choice_times_ms": [
+    52.101,
+    41.956,
+    42.775
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 10,
+   "nestloop": 21155.34,
+   "hash": 199231.31,
+   "merge": 325140.97,
+   "planner": 21155.34,
+   "choice": "Nested Loop",
+   "choice_ms": 34.299,
+   "choice_times_ms": [
+    33.691,
+    34.299,
+    34.363
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 30,
+   "nestloop": 21155.34,
+   "hash": 199231.31,
+   "merge": 325140.97,
+   "planner": 21155.34,
+   "choice": "Nested Loop",
+   "choice_ms": 33.89,
+   "choice_times_ms": [
+    36.722,
+    33.89,
+    33.291
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 100,
+   "nestloop": 21155.34,
+   "hash": 199231.31,
+   "merge": 325140.97,
+   "planner": 21155.34,
+   "choice": "Nested Loop",
+   "choice_ms": 35.185,
+   "choice_times_ms": [
+    36.024,
+    35.185,
+    34.653
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 300,
+   "nestloop": 25531.28,
+   "hash": 199238.76,
+   "merge": 325175.73,
+   "planner": 25531.28,
+   "choice": "Nested Loop",
+   "choice_ms": 43.149,
+   "choice_times_ms": [
+    43.862,
+    43.149,
+    38.873
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 1000,
+   "nestloop": 40264.87,
+   "hash": 199265.76,
+   "merge": 325307.97,
+   "planner": 40264.87,
+   "choice": "Nested Loop",
+   "choice_ms": 54.599,
+   "choice_times_ms": [
+    57.615,
+    53.969,
+    54.599
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 3000,
+   "nestloop": 74615.46,
+   "hash": 199342.96,
+   "merge": 325703.07,
+   "planner": 74615.46,
+   "choice": "Nested Loop",
+   "choice_ms": 76.945,
+   "choice_times_ms": [
+    84.017,
+    76.945,
+    74.851
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 10000,
+   "nestloop": 146056.18,
+   "hash": 199611.94,
+   "merge": 327140.4,
+   "planner": 146056.18,
+   "choice": "Nested Loop",
+   "choice_ms": 173.047,
+   "choice_times_ms": [
+    162.416,
+    173.047,
+    181.157
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 30000,
+   "nestloop": 171814.6,
+   "hash": 200331.22,
+   "merge": 331136.96,
+   "planner": 171814.6,
+   "choice": "Nested Loop",
+   "choice_ms": 410.811,
+   "choice_times_ms": [
+    402.774,
+    410.811,
+    416.406
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 100000,
+   "nestloop": 223124.81,
+   "hash": 202942.47,
+   "merge": 348231.55,
+   "planner": 202942.47,
+   "choice": "Hash Join",
+   "choice_ms": 1982.998,
+   "choice_times_ms": [
+    1845.266,
+    1982.998,
+    2051.57
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 300000,
+   "nestloop": 371114.32,
+   "hash": 290948.61,
+   "merge": 373809.9,
+   "planner": 290948.61,
+   "choice": "Hash Join",
+   "choice_ms": 2281.569,
+   "choice_times_ms": [
+    1946.245,
+    2281.569,
+    2684.443
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 1000000,
+   "nestloop": 884966.61,
+   "hash": 322563.92,
+   "merge": 462623.87,
+   "planner": 322563.92,
+   "choice": "Hash Join",
+   "choice_ms": 2501.883,
+   "choice_times_ms": [
+    3304.196,
+    2411.616,
+    2501.883
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 1,
+   "nestloop": 19392.76,
+   "hash": 199235.75,
+   "merge": 271076.37,
+   "planner": 19392.76,
+   "choice": "Nested Loop",
+   "choice_ms": 32.602,
+   "choice_times_ms": [
+    32.173,
+    32.602,
+    32.955
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 3,
+   "nestloop": 19392.76,
+   "hash": 199235.75,
+   "merge": 271076.37,
+   "planner": 19392.76,
+   "choice": "Nested Loop",
+   "choice_ms": 42.395,
+   "choice_times_ms": [
+    31.93,
+    42.395,
+    49.204
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 10,
+   "nestloop": 19392.76,
+   "hash": 199235.75,
+   "merge": 271076.37,
+   "planner": 19392.76,
+   "choice": "Nested Loop",
+   "choice_ms": 31.851,
+   "choice_times_ms": [
+    31.851,
+    31.854,
+    31.368
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 30,
+   "nestloop": 19392.76,
+   "hash": 199235.75,
+   "merge": 271076.37,
+   "planner": 19392.76,
+   "choice": "Nested Loop",
+   "choice_ms": 31.41,
+   "choice_times_ms": [
+    31.495,
+    31.41,
+    31.388
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 100,
+   "nestloop": 19392.76,
+   "hash": 199235.75,
+   "merge": 271076.37,
+   "planner": 19392.76,
+   "choice": "Nested Loop",
+   "choice_ms": 31.92,
+   "choice_times_ms": [
+    31.92,
+    31.941,
+    31.252
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 300,
+   "nestloop": 20367.33,
+   "hash": 199243.21,
+   "merge": 271111.22,
+   "planner": 20367.33,
+   "choice": "Nested Loop",
+   "choice_ms": 32.046,
+   "choice_times_ms": [
+    32.046,
+    32.989,
+    31.807
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 1000,
+   "nestloop": 23826.99,
+   "hash": 199270.29,
+   "merge": 271243.81,
+   "planner": 23826.99,
+   "choice": "Nested Loop",
+   "choice_ms": 33.78,
+   "choice_times_ms": [
+    33.78,
+    33.569,
+    34.296
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 3000,
+   "nestloop": 33205.35,
+   "hash": 199347.69,
+   "merge": 271639.89,
+   "planner": 33205.35,
+   "choice": "Nested Loop",
+   "choice_ms": 41.153,
+   "choice_times_ms": [
+    41.374,
+    40.984,
+    41.153
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 10000,
+   "nestloop": 61421.01,
+   "hash": 199617.36,
+   "merge": 273080.7,
+   "planner": 61421.01,
+   "choice": "Nested Loop",
+   "choice_ms": 62.44,
+   "choice_times_ms": [
+    64.852,
+    62.44,
+    59.117
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 30000,
+   "nestloop": 115706.84,
+   "hash": 200338.49,
+   "merge": 277086.51,
+   "planner": 115706.84,
+   "choice": "Nested Loop",
+   "choice_ms": 105.74,
+   "choice_times_ms": [
+    105.74,
+    103.404,
+    109.256
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 100000,
+   "nestloop": 237645.49,
+   "hash": 202956.46,
+   "merge": 294213.81,
+   "planner": 202956.46,
+   "choice": "Hash Join",
+   "choice_ms": 609.426,
+   "choice_times_ms": [
+    609.426,
+    604.551,
+    624.82
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 300000,
+   "nestloop": 429026.1,
+   "hash": 290985.99,
+   "merge": 319889.21,
+   "planner": 290985.99,
+   "choice": "Hash Join",
+   "choice_ms": 1506.978,
+   "choice_times_ms": [
+    1235.501,
+    1574.17,
+    1506.978
+   ]
+  },
+  {
+   "rpc": 2.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 1000000,
+   "nestloop": 1077543.63,
+   "hash": 322668.62,
+   "merge": 409039.79,
+   "planner": 322668.62,
+   "choice": "Hash Join",
+   "choice_ms": 1954.883,
+   "choice_times_ms": [
+    2143.849,
+    1863.65,
+    1954.883
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 1,
+   "nestloop": 201.7,
+   "hash": 1992.66,
+   "merge": 2663.24,
+   "planner": 201.7,
+   "choice": "Nested Loop",
+   "choice_ms": 0.321,
+   "choice_times_ms": [
+    0.316,
+    0.411,
+    0.321
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 3,
+   "nestloop": 227.09,
+   "hash": 1992.73,
+   "merge": 2663.52,
+   "planner": 227.09,
+   "choice": "Nested Loop",
+   "choice_ms": 0.426,
+   "choice_times_ms": [
+    0.398,
+    0.428,
+    0.426
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 10,
+   "nestloop": 307.13,
+   "hash": 1993.0,
+   "merge": 2664.57,
+   "planner": 307.13,
+   "choice": "Nested Loop",
+   "choice_ms": 0.313,
+   "choice_times_ms": [
+    0.372,
+    0.313,
+    0.297
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 30,
+   "nestloop": 494.98,
+   "hash": 1993.75,
+   "merge": 2667.74,
+   "planner": 494.98,
+   "choice": "Nested Loop",
+   "choice_ms": 0.43,
+   "choice_times_ms": [
+    0.546,
+    0.43,
+    0.403
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 100,
+   "nestloop": 898.35,
+   "hash": 1996.37,
+   "merge": 2679.42,
+   "planner": 898.35,
+   "choice": "Nested Loop",
+   "choice_ms": 0.665,
+   "choice_times_ms": [
+    0.715,
+    0.628,
+    0.665
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 300,
+   "nestloop": 1090.55,
+   "hash": 2003.87,
+   "merge": 2714.44,
+   "planner": 1090.55,
+   "choice": "Nested Loop",
+   "choice_ms": 1.227,
+   "choice_times_ms": [
+    1.503,
+    1.227,
+    1.174
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 1000,
+   "nestloop": 1505.31,
+   "hash": 2030.12,
+   "merge": 2842.93,
+   "planner": 1505.31,
+   "choice": "Nested Loop",
+   "choice_ms": 3.066,
+   "choice_times_ms": [
+    3.354,
+    3.066,
+    2.963
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 3000,
+   "nestloop": 2690.31,
+   "hash": 2105.12,
+   "merge": 3128.99,
+   "planner": 2105.12,
+   "choice": "Hash Join",
+   "choice_ms": 8.207,
+   "choice_times_ms": [
+    8.207,
+    8.126,
+    8.3
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 10000,
+   "nestloop": 6837.22,
+   "hash": 2367.58,
+   "merge": 4021.36,
+   "planner": 2367.58,
+   "choice": "Hash Join",
+   "choice_ms": 11.12,
+   "choice_times_ms": [
+    11.169,
+    11.07,
+    11.12
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 1,
+   "nestloop": 191.8,
+   "hash": 1992.66,
+   "merge": 2609.25,
+   "planner": 191.8,
+   "choice": "Nested Loop",
+   "choice_ms": 0.311,
+   "choice_times_ms": [
+    0.311,
+    0.301,
+    0.322
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 3,
+   "nestloop": 197.39,
+   "hash": 1992.73,
+   "merge": 2609.52,
+   "planner": 197.39,
+   "choice": "Nested Loop",
+   "choice_ms": 0.296,
+   "choice_times_ms": [
+    0.296,
+    0.315,
+    0.292
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 10,
+   "nestloop": 216.93,
+   "hash": 1993.0,
+   "merge": 2610.57,
+   "planner": 216.93,
+   "choice": "Nested Loop",
+   "choice_ms": 0.303,
+   "choice_times_ms": [
+    0.306,
+    0.292,
+    0.303
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 30,
+   "nestloop": 269.48,
+   "hash": 1993.74,
+   "merge": 2613.73,
+   "planner": 269.48,
+   "choice": "Nested Loop",
+   "choice_ms": 0.36,
+   "choice_times_ms": [
+    0.396,
+    0.36,
+    0.356
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 100,
+   "nestloop": 427.55,
+   "hash": 1996.37,
+   "merge": 2625.4,
+   "planner": 427.55,
+   "choice": "Nested Loop",
+   "choice_ms": 0.485,
+   "choice_times_ms": [
+    0.512,
+    0.485,
+    0.449
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 300,
+   "nestloop": 753.95,
+   "hash": 2003.86,
+   "merge": 2660.38,
+   "planner": 753.95,
+   "choice": "Nested Loop",
+   "choice_ms": 0.871,
+   "choice_times_ms": [
+    0.878,
+    0.871,
+    0.833
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 1000,
+   "nestloop": 1482.16,
+   "hash": 2030.08,
+   "merge": 2788.71,
+   "planner": 1482.16,
+   "choice": "Nested Loop",
+   "choice_ms": 1.971,
+   "choice_times_ms": [
+    2.084,
+    1.971,
+    1.924
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 3000,
+   "nestloop": 2690.17,
+   "hash": 2104.99,
+   "merge": 3074.31,
+   "planner": 2104.99,
+   "choice": "Hash Join",
+   "choice_ms": 6.643,
+   "choice_times_ms": [
+    6.619,
+    6.643,
+    6.784
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 10000,
+   "nestloop": 6836.77,
+   "hash": 2367.13,
+   "merge": 3965.11,
+   "planner": 2367.13,
+   "choice": "Hash Join",
+   "choice_ms": 10.379,
+   "choice_times_ms": [
+    10.328,
+    10.379,
+    10.47
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 1,
+   "nestloop": 2018.25,
+   "hash": 19955.49,
+   "merge": 26648.57,
+   "planner": 2018.25,
+   "choice": "Nested Loop",
+   "choice_ms": 2.8,
+   "choice_times_ms": [
+    3.157,
+    2.8,
+    2.777
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 3,
+   "nestloop": 2018.25,
+   "hash": 19955.49,
+   "merge": 26648.57,
+   "planner": 2018.25,
+   "choice": "Nested Loop",
+   "choice_ms": 2.885,
+   "choice_times_ms": [
+    3.014,
+    2.885,
+    2.766
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 10,
+   "nestloop": 2018.25,
+   "hash": 19955.49,
+   "merge": 26648.57,
+   "planner": 2018.25,
+   "choice": "Nested Loop",
+   "choice_ms": 2.879,
+   "choice_times_ms": [
+    2.879,
+    3.261,
+    2.869
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 30,
+   "nestloop": 2229.67,
+   "hash": 19956.13,
+   "merge": 26651.23,
+   "planner": 2229.67,
+   "choice": "Nested Loop",
+   "choice_ms": 3.216,
+   "choice_times_ms": [
+    3.216,
+    3.116,
+    3.443
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 100,
+   "nestloop": 3010.8,
+   "hash": 19958.62,
+   "merge": 26662.29,
+   "planner": 3010.8,
+   "choice": "Nested Loop",
+   "choice_ms": 3.435,
+   "choice_times_ms": [
+    3.6,
+    3.365,
+    3.435
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 300,
+   "nestloop": 4877.63,
+   "hash": 19965.81,
+   "merge": 26695.75,
+   "planner": 4877.63,
+   "choice": "Nested Loop",
+   "choice_ms": 4.291,
+   "choice_times_ms": [
+    4.851,
+    4.291,
+    4.176
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 1000,
+   "nestloop": 8947.61,
+   "hash": 19990.9,
+   "merge": 26818.37,
+   "planner": 8947.61,
+   "choice": "Nested Loop",
+   "choice_ms": 7.476,
+   "choice_times_ms": [
+    8.284,
+    7.476,
+    7.208
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 3000,
+   "nestloop": 11372.23,
+   "hash": 20069.46,
+   "merge": 27220.09,
+   "planner": 11372.23,
+   "choice": "Nested Loop",
+   "choice_ms": 18.327,
+   "choice_times_ms": [
+    18.255,
+    18.327,
+    18.543
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 10000,
+   "nestloop": 16441.84,
+   "hash": 20329.89,
+   "merge": 28720.71,
+   "planner": 16441.84,
+   "choice": "Nested Loop",
+   "choice_ms": 69.092,
+   "choice_times_ms": [
+    69.092,
+    61.436,
+    72.511
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 30000,
+   "nestloop": 30726.3,
+   "hash": 21063.71,
+   "merge": 31207.11,
+   "planner": 21063.71,
+   "choice": "Hash Join",
+   "choice_ms": 105.532,
+   "choice_times_ms": [
+    163.261,
+    105.532,
+    94.662
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 100000,
+   "nestloop": 81612.55,
+   "hash": 23677.84,
+   "merge": 40064.95,
+   "planner": 23677.84,
+   "choice": "Hash Join",
+   "choice_ms": 155.762,
+   "choice_times_ms": [
+    226.185,
+    155.487,
+    155.762
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 1,
+   "nestloop": 1919.26,
+   "hash": 19955.5,
+   "merge": 26104.7,
+   "planner": 1919.26,
+   "choice": "Nested Loop",
+   "choice_ms": 2.959,
+   "choice_times_ms": [
+    3.025,
+    2.76,
+    2.959
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 3,
+   "nestloop": 1919.26,
+   "hash": 19955.5,
+   "merge": 26104.7,
+   "planner": 1919.26,
+   "choice": "Nested Loop",
+   "choice_ms": 2.738,
+   "choice_times_ms": [
+    2.815,
+    2.738,
+    2.687
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 10,
+   "nestloop": 1919.26,
+   "hash": 19955.5,
+   "merge": 26104.7,
+   "planner": 1919.26,
+   "choice": "Nested Loop",
+   "choice_ms": 2.788,
+   "choice_times_ms": [
+    2.827,
+    2.778,
+    2.788
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 30,
+   "nestloop": 1968.98,
+   "hash": 19956.13,
+   "merge": 26107.39,
+   "planner": 1968.98,
+   "choice": "Nested Loop",
+   "choice_ms": 2.882,
+   "choice_times_ms": [
+    3.008,
+    2.863,
+    2.882
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 100,
+   "nestloop": 2161.66,
+   "hash": 19958.65,
+   "merge": 26118.54,
+   "planner": 2161.66,
+   "choice": "Nested Loop",
+   "choice_ms": 3.0,
+   "choice_times_ms": [
+    3.194,
+    3.0,
+    2.996
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 300,
+   "nestloop": 2687.69,
+   "hash": 19965.88,
+   "merge": 26152.26,
+   "planner": 2687.69,
+   "choice": "Nested Loop",
+   "choice_ms": 3.477,
+   "choice_times_ms": [
+    3.798,
+    3.477,
+    3.465
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 1000,
+   "nestloop": 4307.14,
+   "hash": 19991.16,
+   "merge": 26275.77,
+   "planner": 4307.14,
+   "choice": "Nested Loop",
+   "choice_ms": 4.985,
+   "choice_times_ms": [
+    5.356,
+    4.985,
+    4.926
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 3000,
+   "nestloop": 8023.69,
+   "hash": 20070.28,
+   "merge": 26680.34,
+   "planner": 8023.69,
+   "choice": "Nested Loop",
+   "choice_ms": 9.062,
+   "choice_times_ms": [
+    9.528,
+    9.062,
+    8.806
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 10000,
+   "nestloop": 16212.46,
+   "hash": 20332.6,
+   "merge": 28190.64,
+   "planner": 16212.46,
+   "choice": "Nested Loop",
+   "choice_ms": 22.046,
+   "choice_times_ms": [
+    21.99,
+    22.046,
+    22.05
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 30000,
+   "nestloop": 30734.31,
+   "hash": 21071.72,
+   "merge": 30703.57,
+   "planner": 21071.72,
+   "choice": "Hash Join",
+   "choice_ms": 69.942,
+   "choice_times_ms": [
+    69.942,
+    69.495,
+    111.48
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 100000,
+   "nestloop": 81639.46,
+   "hash": 23704.75,
+   "merge": 39655.83,
+   "planner": 23704.75,
+   "choice": "Hash Join",
+   "choice_ms": 110.049,
+   "choice_times_ms": [
+    107.165,
+    110.049,
+    110.937
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 1,
+   "nestloop": 20173.51,
+   "hash": 199231.31,
+   "merge": 266089.76,
+   "planner": 20173.51,
+   "choice": "Nested Loop",
+   "choice_ms": 30.687,
+   "choice_times_ms": [
+    30.732,
+    30.687,
+    30.403
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 3,
+   "nestloop": 20173.51,
+   "hash": 199231.31,
+   "merge": 266089.76,
+   "planner": 20173.51,
+   "choice": "Nested Loop",
+   "choice_ms": 30.714,
+   "choice_times_ms": [
+    30.97,
+    30.655,
+    30.714
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 10,
+   "nestloop": 20173.51,
+   "hash": 199231.31,
+   "merge": 266089.76,
+   "planner": 20173.51,
+   "choice": "Nested Loop",
+   "choice_ms": 31.052,
+   "choice_times_ms": [
+    31.195,
+    30.546,
+    31.052
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 30,
+   "nestloop": 20173.51,
+   "hash": 199231.31,
+   "merge": 266089.76,
+   "planner": 20173.51,
+   "choice": "Nested Loop",
+   "choice_ms": 30.87,
+   "choice_times_ms": [
+    30.48,
+    30.87,
+    33.148
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 100,
+   "nestloop": 20173.51,
+   "hash": 199231.31,
+   "merge": 266089.76,
+   "planner": 20173.51,
+   "choice": "Nested Loop",
+   "choice_ms": 31.049,
+   "choice_times_ms": [
+    39.142,
+    31.049,
+    30.41
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 300,
+   "nestloop": 22646.09,
+   "hash": 199238.76,
+   "merge": 266124.51,
+   "planner": 22646.09,
+   "choice": "Nested Loop",
+   "choice_ms": 32.589,
+   "choice_times_ms": [
+    32.216,
+    32.627,
+    32.589
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 1000,
+   "nestloop": 30988.33,
+   "hash": 199265.76,
+   "merge": 266256.76,
+   "planner": 30988.33,
+   "choice": "Nested Loop",
+   "choice_ms": 57.342,
+   "choice_times_ms": [
+    61.651,
+    57.342,
+    45.707
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 3000,
+   "nestloop": 50563.74,
+   "hash": 199342.96,
+   "merge": 266651.85,
+   "planner": 50563.74,
+   "choice": "Nested Loop",
+   "choice_ms": 71.429,
+   "choice_times_ms": [
+    91.823,
+    71.429,
+    70.374
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 10000,
+   "nestloop": 92234.25,
+   "hash": 199611.94,
+   "merge": 268089.18,
+   "planner": 92234.25,
+   "choice": "Nested Loop",
+   "choice_ms": 138.732,
+   "choice_times_ms": [
+    134.194,
+    138.732,
+    143.053
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 30000,
+   "nestloop": 112760.87,
+   "hash": 200331.22,
+   "merge": 272085.75,
+   "planner": 112760.87,
+   "choice": "Nested Loop",
+   "choice_ms": 332.342,
+   "choice_times_ms": [
+    332.342,
+    370.1,
+    330.241
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 100000,
+   "nestloop": 164068.79,
+   "hash": 202942.47,
+   "merge": 286708.93,
+   "planner": 164068.79,
+   "choice": "Nested Loop",
+   "choice_ms": 1129.872,
+   "choice_times_ms": [
+    1133.793,
+    1129.872,
+    1013.435
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 300000,
+   "nestloop": 312058.12,
+   "hash": 290948.61,
+   "merge": 312287.29,
+   "planner": 290948.61,
+   "choice": "Hash Join",
+   "choice_ms": 3140.717,
+   "choice_times_ms": [
+    3140.717,
+    3231.782,
+    3044.74
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 1000000,
+   "nestloop": 825910.41,
+   "hash": 322563.92,
+   "merge": 401101.25,
+   "planner": 322563.92,
+   "choice": "Hash Join",
+   "choice_ms": 2856.521,
+   "choice_times_ms": [
+    3062.958,
+    2856.521,
+    2537.732
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 1,
+   "nestloop": 19212.76,
+   "hash": 199235.75,
+   "merge": 260691.27,
+   "planner": 19212.76,
+   "choice": "Nested Loop",
+   "choice_ms": 30.403,
+   "choice_times_ms": [
+    30.403,
+    30.98,
+    30.338
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 3,
+   "nestloop": 19212.76,
+   "hash": 199235.75,
+   "merge": 260691.27,
+   "planner": 19212.76,
+   "choice": "Nested Loop",
+   "choice_ms": 30.725,
+   "choice_times_ms": [
+    30.413,
+    30.725,
+    31.053
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 10,
+   "nestloop": 19212.76,
+   "hash": 199235.75,
+   "merge": 260691.27,
+   "planner": 19212.76,
+   "choice": "Nested Loop",
+   "choice_ms": 30.828,
+   "choice_times_ms": [
+    31.275,
+    30.828,
+    30.678
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 30,
+   "nestloop": 19212.76,
+   "hash": 199235.75,
+   "merge": 260691.27,
+   "planner": 19212.76,
+   "choice": "Nested Loop",
+   "choice_ms": 30.556,
+   "choice_times_ms": [
+    30.643,
+    30.556,
+    30.367
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 100,
+   "nestloop": 19212.76,
+   "hash": 199235.75,
+   "merge": 260691.27,
+   "planner": 19212.76,
+   "choice": "Nested Loop",
+   "choice_ms": 31.033,
+   "choice_times_ms": [
+    31.033,
+    30.679,
+    33.925
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 300,
+   "nestloop": 19831.83,
+   "hash": 199243.21,
+   "merge": 260726.12,
+   "planner": 19831.83,
+   "choice": "Nested Loop",
+   "choice_ms": 38.16,
+   "choice_times_ms": [
+    30.915,
+    38.16,
+    56.171
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 1000,
+   "nestloop": 22035.99,
+   "hash": 199270.29,
+   "merge": 260858.71,
+   "planner": 22035.99,
+   "choice": "Nested Loop",
+   "choice_ms": 34.429,
+   "choice_times_ms": [
+    51.319,
+    33.094,
+    34.429
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 3000,
+   "nestloop": 28055.55,
+   "hash": 199347.69,
+   "merge": 261254.79,
+   "planner": 28055.55,
+   "choice": "Nested Loop",
+   "choice_ms": 39.861,
+   "choice_times_ms": [
+    39.428,
+    40.047,
+    39.861
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 10000,
+   "nestloop": 46575.51,
+   "hash": 199617.36,
+   "merge": 262695.6,
+   "planner": 46575.51,
+   "choice": "Nested Loop",
+   "choice_ms": 59.379,
+   "choice_times_ms": [
+    59.379,
+    58.915,
+    60.753
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 30000,
+   "nestloop": 84458.83,
+   "hash": 200338.49,
+   "merge": 266701.41,
+   "planner": 84458.83,
+   "choice": "Nested Loop",
+   "choice_ms": 104.357,
+   "choice_times_ms": [
+    104.314,
+    104.357,
+    106.024
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 100000,
+   "nestloop": 180662.89,
+   "hash": 202956.46,
+   "merge": 281357.39,
+   "planner": 180662.89,
+   "choice": "Nested Loop",
+   "choice_ms": 235.482,
+   "choice_times_ms": [
+    285.342,
+    233.665,
+    235.482
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 300000,
+   "nestloop": 369969.9,
+   "hash": 290985.99,
+   "merge": 307032.78,
+   "planner": 290985.99,
+   "choice": "Hash Join",
+   "choice_ms": 1289.093,
+   "choice_times_ms": [
+    1291.174,
+    1289.093,
+    1284.997
+   ]
+  },
+  {
+   "rpc": 1.1,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 1000000,
+   "nestloop": 1018487.43,
+   "hash": 322668.62,
+   "merge": 396183.35,
+   "planner": 322668.62,
+   "choice": "Hash Join",
+   "choice_ms": 2053.441,
+   "choice_times_ms": [
+    2124.244,
+    1926.638,
+    2053.441
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 1,
+   "nestloop": 200.6,
+   "hash": 1992.66,
+   "merge": 2597.45,
+   "planner": 200.6,
+   "choice": "Nested Loop",
+   "choice_ms": 0.31,
+   "choice_times_ms": [
+    0.332,
+    0.31,
+    0.305
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 3,
+   "nestloop": 223.79,
+   "hash": 1992.73,
+   "merge": 2597.72,
+   "planner": 223.79,
+   "choice": "Nested Loop",
+   "choice_ms": 0.326,
+   "choice_times_ms": [
+    0.394,
+    0.307,
+    0.326
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 10,
+   "nestloop": 296.93,
+   "hash": 1993.0,
+   "merge": 2598.77,
+   "planner": 296.93,
+   "choice": "Nested Loop",
+   "choice_ms": 0.386,
+   "choice_times_ms": [
+    0.398,
+    0.386,
+    0.345
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 30,
+   "nestloop": 468.78,
+   "hash": 1993.75,
+   "merge": 2601.94,
+   "planner": 468.78,
+   "choice": "Nested Loop",
+   "choice_ms": 0.483,
+   "choice_times_ms": [
+    0.623,
+    0.483,
+    0.481
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 100,
+   "nestloop": 839.25,
+   "hash": 1996.37,
+   "merge": 2613.62,
+   "planner": 839.25,
+   "choice": "Nested Loop",
+   "choice_ms": 0.82,
+   "choice_times_ms": [
+    0.923,
+    0.82,
+    0.746
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 300,
+   "nestloop": 1024.75,
+   "hash": 2003.87,
+   "merge": 2648.65,
+   "planner": 1024.75,
+   "choice": "Nested Loop",
+   "choice_ms": 1.558,
+   "choice_times_ms": [
+    1.737,
+    1.558,
+    1.548
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 1000,
+   "nestloop": 1439.51,
+   "hash": 2030.12,
+   "merge": 2777.13,
+   "planner": 1439.51,
+   "choice": "Nested Loop",
+   "choice_ms": 4.199,
+   "choice_times_ms": [
+    4.339,
+    4.199,
+    3.914
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 3000,
+   "nestloop": 2624.51,
+   "hash": 2105.12,
+   "merge": 3060.09,
+   "planner": 2105.12,
+   "choice": "Hash Join",
+   "choice_ms": 8.373,
+   "choice_times_ms": [
+    8.507,
+    8.373,
+    8.302
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 100000,
+   "layout": "rand",
+   "k": 10000,
+   "nestloop": 6771.42,
+   "hash": 2367.58,
+   "merge": 3952.46,
+   "planner": 2367.58,
+   "choice": "Hash Join",
+   "choice_ms": 12.895,
+   "choice_times_ms": [
+    12.895,
+    11.381,
+    15.349
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 1,
+   "nestloop": 191.6,
+   "hash": 1992.66,
+   "merge": 2597.45,
+   "planner": 191.6,
+   "choice": "Nested Loop",
+   "choice_ms": 0.489,
+   "choice_times_ms": [
+    0.365,
+    0.489,
+    0.523
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 3,
+   "nestloop": 196.79,
+   "hash": 1992.73,
+   "merge": 2597.72,
+   "planner": 196.79,
+   "choice": "Nested Loop",
+   "choice_ms": 0.338,
+   "choice_times_ms": [
+    0.385,
+    0.338,
+    0.309
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 10,
+   "nestloop": 214.93,
+   "hash": 1993.0,
+   "merge": 2598.77,
+   "planner": 214.93,
+   "choice": "Nested Loop",
+   "choice_ms": 0.365,
+   "choice_times_ms": [
+    0.374,
+    0.365,
+    0.325
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 30,
+   "nestloop": 263.78,
+   "hash": 1993.74,
+   "merge": 2601.93,
+   "planner": 263.78,
+   "choice": "Nested Loop",
+   "choice_ms": 0.392,
+   "choice_times_ms": [
+    0.467,
+    0.384,
+    0.392
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 100,
+   "nestloop": 411.26,
+   "hash": 1996.37,
+   "merge": 2613.6,
+   "planner": 411.26,
+   "choice": "Nested Loop",
+   "choice_ms": 0.585,
+   "choice_times_ms": [
+    0.649,
+    0.585,
+    0.581
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 300,
+   "nestloop": 718.75,
+   "hash": 2003.86,
+   "merge": 2648.58,
+   "planner": 718.75,
+   "choice": "Nested Loop",
+   "choice_ms": 0.978,
+   "choice_times_ms": [
+    1.059,
+    0.978,
+    0.906
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 1000,
+   "nestloop": 1418.46,
+   "hash": 2030.08,
+   "merge": 2776.91,
+   "planner": 1418.46,
+   "choice": "Nested Loop",
+   "choice_ms": 2.204,
+   "choice_times_ms": [
+    2.595,
+    2.188,
+    2.204
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 3000,
+   "nestloop": 2624.38,
+   "hash": 2104.99,
+   "merge": 3059.41,
+   "planner": 2104.99,
+   "choice": "Hash Join",
+   "choice_ms": 6.965,
+   "choice_times_ms": [
+    6.965,
+    7.019,
+    6.878
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 100000,
+   "layout": "clu",
+   "k": 10000,
+   "nestloop": 6770.97,
+   "hash": 2367.13,
+   "merge": 3950.21,
+   "planner": 2367.13,
+   "choice": "Hash Join",
+   "choice_ms": 10.855,
+   "choice_times_ms": [
+    10.901,
+    10.855,
+    10.658
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 1,
+   "nestloop": 2007.25,
+   "hash": 19955.49,
+   "merge": 25988.89,
+   "planner": 2007.25,
+   "choice": "Nested Loop",
+   "choice_ms": 3.367,
+   "choice_times_ms": [
+    3.367,
+    3.244,
+    3.438
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 3,
+   "nestloop": 2007.25,
+   "hash": 19955.49,
+   "merge": 25988.89,
+   "planner": 2007.25,
+   "choice": "Nested Loop",
+   "choice_ms": 2.94,
+   "choice_times_ms": [
+    2.9,
+    2.966,
+    2.94
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 10,
+   "nestloop": 2007.25,
+   "hash": 19955.49,
+   "merge": 25988.89,
+   "planner": 2007.25,
+   "choice": "Nested Loop",
+   "choice_ms": 3.105,
+   "choice_times_ms": [
+    3.283,
+    3.105,
+    3.037
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 30,
+   "nestloop": 2200.57,
+   "hash": 19956.13,
+   "merge": 25991.55,
+   "planner": 2200.57,
+   "choice": "Nested Loop",
+   "choice_ms": 3.191,
+   "choice_times_ms": [
+    3.284,
+    3.191,
+    3.18
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 100,
+   "nestloop": 2915.11,
+   "hash": 19958.62,
+   "merge": 26002.61,
+   "planner": 2915.11,
+   "choice": "Nested Loop",
+   "choice_ms": 3.969,
+   "choice_times_ms": [
+    4.205,
+    3.926,
+    3.969
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 300,
+   "nestloop": 4624.93,
+   "hash": 19965.81,
+   "merge": 26036.07,
+   "planner": 4624.93,
+   "choice": "Nested Loop",
+   "choice_ms": 5.911,
+   "choice_times_ms": [
+    5.916,
+    5.438,
+    5.911
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 1000,
+   "nestloop": 8369.32,
+   "hash": 19990.9,
+   "merge": 26158.69,
+   "planner": 8369.32,
+   "choice": "Nested Loop",
+   "choice_ms": 15.598,
+   "choice_times_ms": [
+    16.298,
+    15.598,
+    15.465
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 3000,
+   "nestloop": 10712.55,
+   "hash": 20069.46,
+   "merge": 26560.41,
+   "planner": 10712.55,
+   "choice": "Nested Loop",
+   "choice_ms": 33.06,
+   "choice_times_ms": [
+    33.77,
+    33.06,
+    25.758
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 10000,
+   "nestloop": 15782.14,
+   "hash": 20329.89,
+   "merge": 28033.34,
+   "planner": 15782.14,
+   "choice": "Nested Loop",
+   "choice_ms": 89.945,
+   "choice_times_ms": [
+    89.945,
+    108.995,
+    85.709
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 30000,
+   "nestloop": 30066.6,
+   "hash": 21063.71,
+   "merge": 30519.74,
+   "planner": 21063.71,
+   "choice": "Hash Join",
+   "choice_ms": 113.648,
+   "choice_times_ms": [
+    119.813,
+    112.146,
+    113.648
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 1000000,
+   "layout": "rand",
+   "k": 100000,
+   "nestloop": 80952.86,
+   "hash": 23677.84,
+   "merge": 39377.58,
+   "planner": 23677.84,
+   "choice": "Hash Join",
+   "choice_ms": 243.949,
+   "choice_times_ms": [
+    248.935,
+    243.949,
+    243.144
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 1,
+   "nestloop": 1917.26,
+   "hash": 19955.5,
+   "merge": 25988.9,
+   "planner": 1917.26,
+   "choice": "Nested Loop",
+   "choice_ms": 4.202,
+   "choice_times_ms": [
+    4.527,
+    4.202,
+    4.125
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 3,
+   "nestloop": 1917.26,
+   "hash": 19955.5,
+   "merge": 25988.9,
+   "planner": 1917.26,
+   "choice": "Nested Loop",
+   "choice_ms": 3.754,
+   "choice_times_ms": [
+    3.742,
+    3.754,
+    4.393
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 10,
+   "nestloop": 1917.26,
+   "hash": 19955.5,
+   "merge": 25988.9,
+   "planner": 1917.26,
+   "choice": "Nested Loop",
+   "choice_ms": 5.196,
+   "choice_times_ms": [
+    5.196,
+    5.128,
+    5.29
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 30,
+   "nestloop": 1963.58,
+   "hash": 19956.13,
+   "merge": 25991.59,
+   "planner": 1963.58,
+   "choice": "Nested Loop",
+   "choice_ms": 4.742,
+   "choice_times_ms": [
+    4.904,
+    3.953,
+    4.742
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 100,
+   "nestloop": 2143.16,
+   "hash": 19958.65,
+   "merge": 26002.74,
+   "planner": 2143.16,
+   "choice": "Nested Loop",
+   "choice_ms": 5.082,
+   "choice_times_ms": [
+    5.444,
+    5.082,
+    3.357
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 300,
+   "nestloop": 2634.09,
+   "hash": 19965.88,
+   "merge": 26036.46,
+   "planner": 2634.09,
+   "choice": "Nested Loop",
+   "choice_ms": 3.995,
+   "choice_times_ms": [
+    3.995,
+    4.048,
+    3.845
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 1000,
+   "nestloop": 4150.74,
+   "hash": 19991.16,
+   "merge": 26159.97,
+   "planner": 4150.74,
+   "choice": "Nested Loop",
+   "choice_ms": 5.691,
+   "choice_times_ms": [
+    6.076,
+    5.691,
+    5.615
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 3000,
+   "nestloop": 7668.49,
+   "hash": 20070.28,
+   "merge": 26564.54,
+   "planner": 7668.49,
+   "choice": "Nested Loop",
+   "choice_ms": 10.561,
+   "choice_times_ms": [
+    10.68,
+    10.561,
+    10.447
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 10000,
+   "nestloop": 15573.86,
+   "hash": 20332.6,
+   "merge": 28047.14,
+   "planner": 15573.86,
+   "choice": "Nested Loop",
+   "choice_ms": 24.28,
+   "choice_times_ms": [
+    24.28,
+    24.228,
+    24.441
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 30000,
+   "nestloop": 30074.61,
+   "hash": 21071.72,
+   "merge": 30560.08,
+   "planner": 21071.72,
+   "choice": "Hash Join",
+   "choice_ms": 74.338,
+   "choice_times_ms": [
+    74.181,
+    74.338,
+    75.282
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 1000000,
+   "layout": "clu",
+   "k": 100000,
+   "nestloop": 80979.76,
+   "hash": 23704.75,
+   "merge": 39512.34,
+   "planner": 23704.75,
+   "choice": "Hash Join",
+   "choice_ms": 125.266,
+   "choice_times_ms": [
+    120.846,
+    125.266,
+    129.814
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 1,
+   "nestloop": 20064.42,
+   "hash": 199231.31,
+   "merge": 259528.51,
+   "planner": 20064.42,
+   "choice": "Nested Loop",
+   "choice_ms": 31.392,
+   "choice_times_ms": [
+    31.392,
+    31.55,
+    30.767
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 3,
+   "nestloop": 20064.42,
+   "hash": 199231.31,
+   "merge": 259528.51,
+   "planner": 20064.42,
+   "choice": "Nested Loop",
+   "choice_ms": 32.452,
+   "choice_times_ms": [
+    30.778,
+    32.452,
+    33.126
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 10,
+   "nestloop": 20064.42,
+   "hash": 199231.31,
+   "merge": 259528.51,
+   "planner": 20064.42,
+   "choice": "Nested Loop",
+   "choice_ms": 30.746,
+   "choice_times_ms": [
+    30.468,
+    33.454,
+    30.746
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 30,
+   "nestloop": 20064.42,
+   "hash": 199231.31,
+   "merge": 259528.51,
+   "planner": 20064.42,
+   "choice": "Nested Loop",
+   "choice_ms": 41.904,
+   "choice_times_ms": [
+    31.574,
+    41.904,
+    48.121
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 100,
+   "nestloop": 20064.42,
+   "hash": 199231.31,
+   "merge": 259528.51,
+   "planner": 20064.42,
+   "choice": "Nested Loop",
+   "choice_ms": 40.551,
+   "choice_times_ms": [
+    40.586,
+    40.551,
+    39.514
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 300,
+   "nestloop": 22325.52,
+   "hash": 199238.76,
+   "merge": 259563.27,
+   "planner": 22325.52,
+   "choice": "Nested Loop",
+   "choice_ms": 58.095,
+   "choice_times_ms": [
+    58.095,
+    59.28,
+    46.213
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 1000,
+   "nestloop": 29957.61,
+   "hash": 199265.76,
+   "merge": 259695.51,
+   "planner": 29957.61,
+   "choice": "Nested Loop",
+   "choice_ms": 50.884,
+   "choice_times_ms": [
+    50.775,
+    51.559,
+    50.884
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 3000,
+   "nestloop": 47891.32,
+   "hash": 199342.96,
+   "merge": 260090.61,
+   "planner": 47891.32,
+   "choice": "Nested Loop",
+   "choice_ms": 90.441,
+   "choice_times_ms": [
+    90.441,
+    93.566,
+    85.173
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 10000,
+   "nestloop": 86254.03,
+   "hash": 199611.94,
+   "merge": 261527.93,
+   "planner": 86254.03,
+   "choice": "Nested Loop",
+   "choice_ms": 165.762,
+   "choice_times_ms": [
+    165.762,
+    156.716,
+    194.499
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 30000,
+   "nestloop": 106199.34,
+   "hash": 200331.22,
+   "merge": 265524.5,
+   "planner": 106199.34,
+   "choice": "Nested Loop",
+   "choice_ms": 347.234,
+   "choice_times_ms": [
+    317.938,
+    347.234,
+    368.076
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 100000,
+   "nestloop": 157507.01,
+   "hash": 202942.47,
+   "merge": 279873.08,
+   "planner": 157507.01,
+   "choice": "Nested Loop",
+   "choice_ms": 965.247,
+   "choice_times_ms": [
+    892.045,
+    965.247,
+    992.321
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 300000,
+   "nestloop": 305496.32,
+   "hash": 290948.61,
+   "merge": 305451.44,
+   "planner": 290948.61,
+   "choice": "Hash Join",
+   "choice_ms": 2172.487,
+   "choice_times_ms": [
+    2172.487,
+    2387.232,
+    1922.954
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "rand",
+   "k": 1000000,
+   "nestloop": 819348.61,
+   "hash": 322563.92,
+   "merge": 394265.4,
+   "planner": 322563.92,
+   "choice": "Hash Join",
+   "choice_ms": 2443.427,
+   "choice_times_ms": [
+    2471.878,
+    2443.427,
+    2441.933
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 1,
+   "nestloop": 19192.76,
+   "hash": 199235.75,
+   "merge": 259537.37,
+   "planner": 19192.76,
+   "choice": "Nested Loop",
+   "choice_ms": 30.539,
+   "choice_times_ms": [
+    30.453,
+    30.638,
+    30.539
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 3,
+   "nestloop": 19192.76,
+   "hash": 199235.75,
+   "merge": 259537.37,
+   "planner": 19192.76,
+   "choice": "Nested Loop",
+   "choice_ms": 29.875,
+   "choice_times_ms": [
+    29.951,
+    29.856,
+    29.875
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 10,
+   "nestloop": 19192.76,
+   "hash": 199235.75,
+   "merge": 259537.37,
+   "planner": 19192.76,
+   "choice": "Nested Loop",
+   "choice_ms": 30.267,
+   "choice_times_ms": [
+    30.267,
+    30.064,
+    30.306
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 30,
+   "nestloop": 19192.76,
+   "hash": 199235.75,
+   "merge": 259537.37,
+   "planner": 19192.76,
+   "choice": "Nested Loop",
+   "choice_ms": 30.403,
+   "choice_times_ms": [
+    30.655,
+    30.403,
+    30.148
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 100,
+   "nestloop": 19192.76,
+   "hash": 199235.75,
+   "merge": 259537.37,
+   "planner": 19192.76,
+   "choice": "Nested Loop",
+   "choice_ms": 31.628,
+   "choice_times_ms": [
+    31.052,
+    31.697,
+    31.628
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 300,
+   "nestloop": 19772.33,
+   "hash": 199243.21,
+   "merge": 259572.22,
+   "planner": 19772.33,
+   "choice": "Nested Loop",
+   "choice_ms": 31.42,
+   "choice_times_ms": [
+    31.42,
+    31.276,
+    31.831
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 1000,
+   "nestloop": 21836.99,
+   "hash": 199270.29,
+   "merge": 259704.81,
+   "planner": 21836.99,
+   "choice": "Nested Loop",
+   "choice_ms": 40.709,
+   "choice_times_ms": [
+    44.262,
+    40.709,
+    38.146
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 3000,
+   "nestloop": 27483.35,
+   "hash": 199347.69,
+   "merge": 260100.89,
+   "planner": 27483.35,
+   "choice": "Nested Loop",
+   "choice_ms": 41.463,
+   "choice_times_ms": [
+    48.122,
+    41.463,
+    40.851
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 10000,
+   "nestloop": 44926.0,
+   "hash": 199617.36,
+   "merge": 261541.7,
+   "planner": 44926.0,
+   "choice": "Nested Loop",
+   "choice_ms": 60.746,
+   "choice_times_ms": [
+    61.616,
+    60.746,
+    60.528
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 30000,
+   "nestloop": 80986.83,
+   "hash": 200338.49,
+   "merge": 265547.51,
+   "planner": 80986.83,
+   "choice": "Nested Loop",
+   "choice_ms": 118.188,
+   "choice_times_ms": [
+    118.188,
+    170.127,
+    107.583
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 100000,
+   "nestloop": 174331.49,
+   "hash": 202956.46,
+   "merge": 279928.9,
+   "planner": 174331.49,
+   "choice": "Nested Loop",
+   "choice_ms": 239.958,
+   "choice_times_ms": [
+    244.69,
+    239.958,
+    239.71
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 300000,
+   "nestloop": 363408.1,
+   "hash": 290985.99,
+   "merge": 305604.29,
+   "planner": 290985.99,
+   "choice": "Hash Join",
+   "choice_ms": 1459.618,
+   "choice_times_ms": [
+    1459.618,
+    1371.441,
+    1521.393
+   ]
+  },
+  {
+   "rpc": 1.0,
+   "scale": 10000000,
+   "layout": "clu",
+   "k": 1000000,
+   "nestloop": 1011925.63,
+   "hash": 322668.62,
+   "merge": 394754.86,
+   "planner": 322668.62,
+   "choice": "Hash Join",
+   "choice_ms": 2191.024,
+   "choice_times_ms": [
+    2191.024,
+    2111.708,
+    2200.249
+   ]
+  }
+ ],
+ "relstats": {
+  "100000/rand": {
+   "orders_pages": 541,
+   "orders_rows": 100000.0,
+   "customers_pages": 64,
+   "index_levels": 2
+  },
+  "100000/clu": {
+   "orders_pages": 541,
+   "orders_rows": 100000.0,
+   "customers_pages": 64,
+   "index_levels": 2
+  },
+  "1000000/rand": {
+   "orders_pages": 5440,
+   "orders_rows": 1000000.0,
+   "customers_pages": 640,
+   "index_levels": 3
+  },
+  "1000000/clu": {
+   "orders_pages": 5440,
+   "orders_rows": 1000000.0,
+   "customers_pages": 640,
+   "index_levels": 3
+  },
+  "10000000/rand": {
+   "orders_pages": 54080,
+   "orders_rows": 9999798.0,
+   "customers_pages": 6400,
+   "index_levels": 3
+  },
+  "10000000/clu": {
+   "orders_pages": 54080,
+   "orders_rows": 10000149.0,
+   "customers_pages": 6400,
+   "index_levels": 3
+  }
+ }
+}

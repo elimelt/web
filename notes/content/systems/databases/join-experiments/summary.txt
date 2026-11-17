@@ -1,0 +1,128 @@
+page-I/O model 100000/rand: 11.92 pages per probe, 541 orders pages, crossover k=45
+page-I/O model 100000/clu: 3.05 pages per probe, 541 orders pages, crossover k=177
+page-I/O model 1000000/rand: 12.99 pages per probe, 5440 orders pages, crossover k=419
+page-I/O model 1000000/clu: 4.05 pages per probe, 5440 orders pages, crossover k=1344
+page-I/O model 10000000/rand: 13.00 pages per probe, 54080 orders pages, crossover k=4160
+page-I/O model 10000000/clu: 4.05 pages per probe, 54080 orders pages, crossover k=13357
+
+== 100000 rand: measured NL->hash crossover k=2719
+   rpc=4: estimated NL->hash crossover k=66
+   rpc=2: estimated NL->hash crossover k=827
+   rpc=1.1: estimated NL->hash crossover k=1829
+   rpc=1: estimated NL->hash crossover k=1953
+       k        NL      hash     merge  fastest  planner(rpc4)   regret  | rpc1.1 choice ms
+       1       0.3       4.8       5.0  nestloop nestloop      0.3  0.87x  | nestloop      0.3
+       3       0.3       4.8      21.4  nestloop nestloop      0.4  1.33x  | nestloop      0.4
+      10       0.6       7.3      19.2  nestloop nestloop      0.4  0.80x  | nestloop      0.3
+      30       0.5       5.8      20.3  nestloop nestloop      0.5  0.94x  | nestloop      0.4
+     100       0.7       5.0      21.9  nestloop hash          5.1  7.42x  | nestloop      0.7
+     300       2.1       5.6      20.3  nestloop hash          5.5  2.65x  | nestloop      1.2
+    1000       3.3       6.7      21.0  nestloop hash          6.6  1.98x  | nestloop      3.1
+    3000       8.8       8.2      22.7  hash     hash          8.1  0.99x  | hash          8.2
+   10000      29.1      12.2      31.2  hash     hash         11.4  0.94x  | hash         11.1
+
+== 100000 clu: measured NL->hash crossover k=5585
+   rpc=4: estimated NL->hash crossover k=380
+   rpc=2: estimated NL->hash crossover k=977
+   rpc=1.1: estimated NL->hash crossover k=1854
+   rpc=1: estimated NL->hash crossover k=1974
+       k        NL      hash     merge  fastest  planner(rpc4)   regret  | rpc1.1 choice ms
+       1       0.3       5.0       3.3  nestloop nestloop      0.5  1.60x  | nestloop      0.3
+       3       0.5       7.3       6.9  nestloop nestloop      0.5  0.91x  | nestloop      0.3
+      10       0.5       5.0       7.0  nestloop nestloop      0.3  0.62x  | nestloop      0.3
+      30       0.7       9.0      12.8  nestloop nestloop      0.7  0.97x  | nestloop      0.4
+     100       0.9       9.2      13.1  nestloop nestloop      1.0  1.05x  | nestloop      0.5
+     300       1.5       8.8       8.0  nestloop nestloop      1.3  0.90x  | nestloop      0.9
+    1000       2.8       5.7       8.4  nestloop hash          6.7  2.39x  | nestloop      2.0
+    3000       5.4      13.1      17.5  nestloop hash          6.9  1.29x  | hash          6.6
+   10000      25.9      11.2      21.6  hash     hash         19.6  1.74x  | hash         10.4
+
+== 1000000 rand: measured NL->hash crossover k=15723
+   rpc=4: estimated NL->hash crossover k=670
+   rpc=2: estimated NL->hash crossover k=6226
+   rpc=1.1: estimated NL->hash crossover k=14849
+   rpc=1: estimated NL->hash crossover k=15789
+       k        NL      hash     merge  fastest  planner(rpc4)   regret  | rpc1.1 choice ms
+       1       5.1      89.5     357.4  nestloop nestloop      2.9  0.55x  | nestloop      2.8
+       3       2.9      49.6     325.5  nestloop nestloop      2.9  0.98x  | nestloop      2.9
+      10       3.0      52.3     567.2  nestloop nestloop      2.8  0.94x  | nestloop      2.9
+      30       3.0      47.8     327.8  nestloop nestloop      2.9  0.97x  | nestloop      3.2
+     100       3.3      50.2     331.8  nestloop nestloop      3.3  0.97x  | nestloop      3.4
+     300       5.1      53.6     375.7  nestloop nestloop      6.1  1.19x  | nestloop      4.3
+    1000       9.9      86.8     434.0  nestloop hash         66.5  6.71x  | nestloop      7.5
+    3000      19.5      62.3     343.5  nestloop hash         61.9  3.18x  | nestloop     18.3
+   10000      49.6      68.6     571.5  nestloop hash         84.2  1.70x  | nestloop     69.1
+   30000     195.1     122.8     628.1  hash     hash        116.9  0.95x  | hash        105.5
+  100000     689.4     271.6     648.5  hash     hash        257.0  0.95x  | hash        155.8
+
+== 1000000 clu: measured NL->hash crossover k=45370
+   rpc=4: estimated NL->hash crossover k=3573
+   rpc=2: estimated NL->hash crossover k=8687
+   rpc=1.1: estimated NL->hash crossover k=15098
+   rpc=1: estimated NL->hash crossover k=16010
+       k        NL      hash     merge  fastest  planner(rpc4)   regret  | rpc1.1 choice ms
+       1       3.1      51.1      61.2  nestloop nestloop      2.9  0.93x  | nestloop      3.0
+       3       3.1      51.2      61.3  nestloop nestloop      2.9  0.95x  | nestloop      2.7
+      10       2.9      49.2      72.2  nestloop nestloop      3.1  1.10x  | nestloop      2.8
+      30       3.2      56.1      82.9  nestloop nestloop      3.0  0.94x  | nestloop      2.9
+     100       3.3      50.9      75.1  nestloop nestloop      5.8  1.73x  | nestloop      3.0
+     300       3.8      51.3      75.6  nestloop nestloop      6.5  1.70x  | nestloop      3.5
+    1000       5.7      54.9      75.5  nestloop nestloop      5.2  0.91x  | nestloop      5.0
+    3000       9.3      52.7      85.1  nestloop nestloop     11.3  1.22x  | nestloop      9.1
+   10000      25.5      61.6      95.7  nestloop hash         56.5  2.21x  | nestloop     22.0
+   30000      56.4      69.6      93.1  nestloop hash         69.6  1.24x  | hash         69.9
+  100000     166.1     110.9     122.1  hash     hash        111.2  1.00x  | hash        110.0
+
+== 10000000 rand: measured NL->hash crossover k=211987
+   rpc=4: estimated NL->hash crossover k=6234
+   rpc=2: estimated NL->hash crossover k=63154
+   rpc=1.1: estimated NL->hash crossover k=228507
+   rpc=1: estimated NL->hash crossover k=251246
+       k        NL      hash     merge  fastest  planner(rpc4)   regret  | rpc1.1 choice ms
+       1      31.2     502.2     773.4  nestloop nestloop     30.7  0.99x  | nestloop     30.7
+       3      31.2     489.1    4675.9  nestloop nestloop     30.6  0.98x  | nestloop     30.7
+      10      30.7     516.7    6563.1  nestloop nestloop     33.2  1.08x  | nestloop     31.1
+      30      32.3     516.3    6813.1  nestloop nestloop     31.9  0.99x  | nestloop     30.9
+     100      36.3     523.4    8461.3  nestloop nestloop     39.7  1.09x  | nestloop     31.0
+     300      41.2     554.3    6985.5  nestloop nestloop     44.5  1.08x  | nestloop     32.6
+    1000      52.3     667.7    8564.1  nestloop nestloop     46.3  0.88x  | nestloop     57.3
+    3000      65.7     668.2    8734.0  nestloop nestloop     68.6  1.04x  | nestloop     71.4
+   10000     166.3     611.3    7231.7  nestloop hash        624.7  3.76x  | nestloop    138.7
+   30000     418.2     891.4    7333.0  nestloop hash        724.6  1.73x  | nestloop    332.3
+  100000     837.1    1018.1    8862.4  nestloop hash       1239.7  1.48x  | nestloop   1129.9
+  300000    2241.4    2047.5    6805.6  hash     hash       1872.7  0.91x  | hash       3140.7
+ 1000000    7378.7    2636.9   10950.8  hash     hash       3185.5  1.21x  | hash       2856.5
+
+== 10000000 clu: measured NL->hash crossover k=None
+   rpc=4: estimated NL->hash crossover k=34613
+   rpc=2: estimated NL->hash crossover k=76429
+   rpc=1.1: estimated NL->hash crossover k=143129
+   rpc=1: estimated NL->hash crossover k=156245
+       k        NL      hash     merge  fastest  planner(rpc4)   regret  | rpc1.1 choice ms
+       1      30.5     493.1     101.5  nestloop nestloop     31.4  1.03x  | nestloop     30.4
+       3      30.7     489.9     545.2  nestloop nestloop     30.5  0.99x  | nestloop     30.7
+      10      31.5     538.4     778.1  nestloop nestloop     30.5  0.97x  | nestloop     30.8
+      30      31.1     512.0     859.2  nestloop nestloop     37.4  1.20x  | nestloop     30.6
+     100      33.0     598.5     788.8  nestloop nestloop     31.6  0.96x  | nestloop     31.0
+     300      31.6     507.3     817.5  nestloop nestloop     36.9  1.17x  | nestloop     38.2
+    1000      35.6     534.7     762.3  nestloop nestloop     34.2  0.96x  | nestloop     34.4
+    3000      50.1     547.1     802.9  nestloop nestloop     50.9  1.02x  | nestloop     39.9
+   10000      77.2     568.6     756.1  nestloop nestloop     62.7  0.81x  | nestloop     59.4
+   30000     105.6     562.0     777.0  nestloop nestloop    118.0  1.12x  | nestloop    104.4
+  100000     245.7     657.3     842.9  nestloop hash        674.1  2.74x  | nestloop    235.5
+  300000     612.4    1375.8    1030.9  nestloop hash       1479.6  2.42x  | hash       1289.1
+ 1000000    1737.3    1896.7    1227.2  merge    hash       1950.9  1.59x  | hash       2053.4
+
+== correlated predicates
+per-column s est   2427 act  20000 nestloop Nested Loop      297.8 ms  (244.3-327.3)
+per-column s est   2427 act  20000 hash     Hash Join        960.7 ms  (857.4-1019.1)
+per-column s est   2427 act  20000 merge    Merge Join      9781.7 ms  (6518.9-9865.3)
+per-column s est   2427 act  20000 planner  Nested Loop      264.9 ms  (237.8-300.8)
+create stati est  20667 act  20000 nestloop Nested Loop      232.3 ms  (231.2-244.6)
+create stati est  20667 act  20000 hash     Hash Join        829.3 ms  (747.0-940.6)
+create stati est  20667 act  20000 merge    Merge Join      7201.8 ms  (7015.8-7389.4)
+create stati est  20667 act  20000 planner  Hash Join        711.3 ms  (710.4-712.6)
+create stati est  20667 act  20000 nestloop Nested Loop      226.8 ms  (223.0-231.0)
+create stati est  20667 act  20000 hash     Hash Join        783.8 ms  (709.7-1061.5)
+create stati est  20667 act  20000 merge    Merge Join      7332.8 ms  (7159.9-7351.5)
+create stati est  20667 act  20000 planner  Nested Loop      224.4 ms  (223.6-233.7)
