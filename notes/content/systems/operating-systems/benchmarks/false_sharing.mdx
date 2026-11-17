@@ -1,0 +1,159 @@
+---
+title: False Sharing Benchmarks
+aliases:
+  - operating-systems/benchmarks/false_sharing
+category: Performance Engineering
+tags:
+  - false-sharing
+  - cache coherence
+  - mesi
+  - multi-threading
+  - cache-line
+  - benchmarks
+date: 2025-12-29
+updated: 2026-11-17
+authors:
+  - elimelt
+  - claude-opus-5-5
+status: evergreen
+description: "False sharing measured on an Emerald Rapids VM: atomic increments on counters that share a 64-byte line cost 50 ns with two threads and 136 ns with four, against 6 ns when padded; plain stores and compiler-hoisted counters show no measurable penalty."
+sources:
+  - title: Measurements on an Intel Xeon (Emerald Rapids) KVM guest, November 2026
+    type: experiment
+  - title: "Drepper (2007), What Every Programmer Should Know About Memory, section 6.4.1 (LWN serialization)"
+    url: https://lwn.net/Articles/256433/
+    type: paper
+  - title: perf-c2c(1) manual page
+    url: https://man7.org/linux/man-pages/man1/perf-c2c.1.html
+    type: docs
+  - title: "Bastien, Giroux (2016), P0154R1: constexpr std::hardware_{constructive,destructive}_interference_size"
+    url: https://open-std.org/JTC1/SC22/WG21/docs/papers/2016/p0154r1.html
+    type: paper
+  - title: folly/lang/Align.h
+    url: https://github.com/facebook/folly/blob/main/folly/lang/Align.h
+    type: source
+  - title: "Liu, Berger (2011), SHERIFF: Precise Detection and Automatic Mitigation of False Sharing, OOPSLA"
+    url: https://doi.org/10.1145/2048066.2048070
+    type: paper
+  - title: "Torrellas, Lam, Hennessy (1994), False Sharing and Spatial Locality in Multiprocessor Caches, IEEE Transactions on Computers 43(6)"
+    url: https://doi.org/10.1109/12.286299
+    type: paper
+---
+
+False sharing is coherence traffic between cores that access distinct variables located in the same cache line, where at least one of the accesses is a write. Coherence protocols track ownership per line, so a write to one variable invalidates every other core's copy of the line, including copies held only for access to the other variables in it. The program shares no data, yet the hardware serializes the accesses as if it did.
+
+On x86-64 a line is 64 bytes. Eight `uint64_t` counters fill one line, so per-thread counters stored in an ordinary array are a common source of false sharing. The cost depends on the kind of access. An atomic read-modify-write must hold the line in the Modified state while it executes, so every increment by a different core than the previous one moves the line between cores. A plain store can wait in the store buffer, and a later load can be satisfied from it; on the Emerald Rapids core in [[#Measurements]], plain increments showed no penalty within run-to-run variation.
+
+## Coherence and ownership
+
+Under [[hardware/computer-architecture/multiprocessors-cache-coherence|MESI]], a core may write a line only while its cache holds the line in the Modified (M) or Exclusive (E) state. A write to a line in any other state first sends a read-for-ownership (RFO) request, which invalidates every other copy. If another core holds the line Modified, that core supplies the data directly, a cache-to-cache transfer that Intel's [performance-monitoring events](https://github.com/intel/perfmon/blob/main/ICL/events/icelake_core.json) count as a HITM: a snoop that hits a Modified line in another core's cache, so the data must be forwarded from it. [Drepper](https://lwn.net/Articles/256433/) (section 6.4.1) measured the cost on a machine with four Pentium 4 processors, with pinned threads each incrementing a memory location 500 million times: sharing one line instead of using one line per thread added 390%, 734% and 1,147% to the run time as the thread count grew, while a Core 2 QX6700 showed no comparable effect in the same test.
+
+When four cores increment four counters in one line, every write by a core other than the last writer needs a transfer. The simulation below steps through that protocol one access at a time. It has no store buffer, so each write completes before the next access, which matches the atomic case.
+
+<LinePingPong preset="packed" />
+
+The measured cost of one transfer on this machine is 91 to 119 ns (median of five runs per pair of cores, one-way handoff of a line between two threads spinning on it). A local `lock add` on a line the core already owns costs about 6 ns.
+
+## Measurements
+
+Each thread pins itself to one of the four vCPUs and increments its own `uint64_t` counter. Counter *t* is at byte offset *t* × *stride* in a 4096-byte-aligned buffer, so a stride of 8, 16 or 32 bytes places several counters in one line and a stride of 64 or more gives each counter its own line. Three increment kinds were measured:
+
+- **atomic**: `atomic_fetch_add_explicit(c, 1, memory_order_relaxed)`, which compiles to `lock addq`;
+- **volatile**: `*c = *c + 1` through a `volatile` pointer, a load, an add and a plain store on every iteration;
+- **plain**: `(*c)++` through an ordinary pointer at `-O2`.
+
+The table gives nanoseconds per increment (wall time divided by increments per thread), median of five runs with the range in brackets.
+
+| Kind, threads | stride 8 | 16 | 32 | 64 | 128 | 256 |
+|---|---|---|---|---|---|---|
+| atomic, 2 | 49.8 [47.6, 65.0] | 49.4 | 44.2 | 5.9 [5.8, 7.0] | 5.8 | 6.1 |
+| atomic, 4 | 135.7 [124.3, 146.4] | 129.8 | 57.3 | 6.3 [6.1, 6.8] | 6.0 | 6.6 |
+| volatile, 2 | 0.30 | 0.33 | 0.32 | 0.34 | 0.27 | 0.26 |
+| volatile, 4 | 0.46 [0.30, 2.13] | 0.42 | 0.44 | 0.46 [0.37, 0.57] | 0.29 | 0.34 |
+| plain, 4 | &lt; 0.001 | &lt; 0.001 | &lt; 0.001 | &lt; 0.001 | &lt; 0.001 | &lt; 0.001 |
+
+**Atomic increments.** Packing the counters slows each increment by 8.5x with two threads and by 21.7x with four. With four threads at stride 8 the cores complete one increment every 33.9 ns in aggregate, faster than one handoff, so a core that holds the line sometimes completes more than one increment before it loses ownership. At stride 32 with four threads, counters 0 and 1 share one line and counters 2 and 3 share another; the result (57.3 ns) is close to the two-thread packed case (49.8 ns), because the cost depends on the number of writers per line rather than the total number of threads.
+
+**128-byte padding.** Strides of 64, 128 and 256 bytes give the same result within run-to-run variation. Folly pads to 128 bytes on x86 because its authors observed destructive interference between adjacent pairs of lines under heavy atomic increments on Sandy Bridge (see [[#Padding size]]). The atomic rows above are that workload, and on this Emerald Rapids machine adjacent lines (stride 64) show no interference: 6.3 ns against 6.0 ns at stride 128 with four threads.
+
+**Plain stores.** The `volatile` loop shows no measurable penalty at any stride: the medians at stride 8 and stride 64 differ by less than the spread between runs. A likely explanation, not verified here with performance counters, is the store buffer. Each load forwards from the preceding store to the same address (see [[systems/operating-systems/benchmarks/store_fwd|store-to-load forwarding]]), so the loop never waits for the line, and the core commits its buffered stores in a batch whenever it holds the line, which spreads one transfer over many increments.
+
+**Compiler-hoisted counters.** At `-O2`, GCC 13 keeps `(*c)++` in a register and stores once after the loop, so the loop performs no memory accesses and its cost per iteration is below a picosecond. The packed and padded versions run the same instructions and cannot differ. The benchmark that earlier versions of this note reported used this form of loop, and its numbers (0.04 to 0.34 ns per increment) are consistent with a loop that did not touch memory.
+
+## Readers next to a writer
+
+False sharing also occurs when one core writes a line that other cores only read. Each read after a write misses and fetches the line from the writer's Modified copy, leaving it Shared, and the next write invalidates all of the readers' copies.
+
+<LinePingPong preset="reader" />
+
+In the measurement, thread 0 performs `volatile` increments on counter 0 while the other threads load their own counters in a loop.
+
+| Threads | Readers, stride 8 | Readers, stride 64 | Writer, stride 8 | Writer, stride 64 |
+|---|---|---|---|---|
+| 2 | 0.76 ns/load | 0.33 | 0.54 ns/increment | 0.34 |
+| 4 | 0.72 ns/load | 0.31 | 0.44 ns/increment | 0.27 |
+
+The readers slow by 2.3x to 2.4x and the writer by 1.6x. The loads are independent of one another, so the out-of-order core overlaps many of them and one miss serves every load to the line that is waiting on it. A reader that instead uses each loaded value before issuing the next load, such as a thread polling a flag that shares a line with a hot counter, waits for each miss in full.
+
+## Fixes
+
+The fixes, in order of how completely they remove the traffic:
+
+1. **Accumulate locally and publish once.** A thread that sums into a local variable and writes the shared counter once, or periodically, generates no coherence traffic in its loop. GCC applies this transformation to the plain loop above. The Linux kernel's [`percpu_counter`](https://github.com/torvalds/linux/blob/master/lib/percpu_counter.c) keeps a per-CPU delta and folds it into the shared count only when the delta exceeds a batch size.
+2. **Use thread-local storage.** `thread_local` (C++11) or `_Thread_local` (C11) gives each thread its own copy. glibc places each thread's static TLS block in that thread's stack mapping, so blocks of different threads do not share lines.
+3. **Pad and align.** Give each hot per-thread variable its own line, as in [[#Padding size]]. The cost is memory: 64 bytes per counter instead of 8.
+
+<LinePingPong preset="padded" />
+
+### Padding size
+
+```c
+struct padded_counter { alignas(64) _Atomic uint64_t count; };
+struct padded_counter counters[NTHREADS];
+```
+
+Alignment matters as much as size. A plain `uint64_t counters[8]` has 8-byte alignment, so it fills one line only if the allocator returns a 64-byte-aligned address; otherwise it spans two lines and two groups of threads contend for two lines.
+
+The padding that common libraries and runtimes choose:
+
+| Source | x86-64 | Arm64 | Reason given |
+|---|---|---|---|
+| C++17 `std::hardware_destructive_interference_size` ([P0154R1](https://open-std.org/JTC1/SC22/WG21/docs/papers/2016/p0154r1.html)), GCC | 64 | 256 (generic tuning) | GCC derives it from the L1 line size of the `-mtune` target ([decl.cc](https://github.com/gcc-mirror/gcc/blob/master/gcc/cp/decl.cc)) |
+| Linux `____cacheline_aligned_in_smp` | 64 | per platform | `L1_CACHE_BYTES`, from `CONFIG_X86_L1_CACHE_SHIFT` = 6 ([Kconfig.cpu](https://github.com/torvalds/linux/blob/master/arch/x86/Kconfig.cpu)) |
+| Go `internal/cpu.CacheLinePadSize` | [64](https://github.com/golang/go/blob/master/src/internal/cpu/cpu_x86.go) | [128](https://github.com/golang/go/blob/master/src/internal/cpu/cpu_arm64.go) | Apple M1 reports 128-byte lines (`hw.cachelinesize`) |
+| Folly `hardware_destructive_interference_size` | 128 | 64 | Pairs of lines interfered under atomic increments on Sandy Bridge ([Align.h](https://github.com/facebook/folly/blob/main/folly/lang/Align.h)) |
+| HotSpot `@Contended` ([JEP 142](https://openjdk.org/jeps/142)) | 128 | 128 | `-XX:ContendedPaddingWidth` default ([globals.hpp](https://github.com/openjdk/jdk/blob/master/src/hotspot/share/runtime/globals.hpp)) |
+
+Folly forwards to the standard library's value when `__cpp_lib_hardware_interference_size` is defined, so with GCC 12 or later in C++17 mode it uses 64 on x86-64. GCC warns (`-Winterference-size`) when the destructive size is used in a header or an exported module, because the value changes with `-mtune` and would make the type's layout part of an unstable ABI. HotSpot honors `@Contended` outside the JDK only with `-XX:-RestrictContended`.
+
+## Detection
+
+`perf c2c` samples memory loads with their data source and latency, together with stores, and groups the samples by cache line (see the [perf-c2c manual page](https://man7.org/linux/man-pages/man1/perf-c2c.1.html)). Lines with many HITM events in which several threads access different offsets are false-sharing candidates.
+
+```bash
+perf c2c record -- ./false_sharing_bench sweep 4 8 atomic 20000000
+perf c2c report --stdio
+```
+
+The guest used here does not expose the performance counters `perf c2c` needs, so no `perf c2c` output is shown. Sampling tools of this kind locate contended lines; [SHERIFF](https://doi.org/10.1145/2048066.2048070) (Liu and Berger, OOPSLA 2011) instead runs threads as processes with private copies of memory to detect false sharing precisely and remove it at run time, and [Nanavati et al.](https://doi.org/10.1145/2465351.2465366) (EuroSys 2013) detect and repair it in the operating system by remapping the contended data. The term dates to studies of shared-memory multiprocessors in the early 1990s, including [Bolosky and Scott](https://www.usenix.org/conference/sedms-iv/false-sharing-and-its-effect-shared-memory-performance) (1993) and [Torrellas, Lam and Hennessy](https://doi.org/10.1109/12.286299) (1994), which measured its effect on parallel programs.
+
+> [!note]- How this was measured
+> - Machine: KVM guest with 4 vCPUs on an Intel Xeon reported as model 207 (Emerald Rapids), 2.1 GHz base, 1 thread per core as reported to the guest, one NUMA node. Linux 6.18. The host's mapping of vCPUs to physical cores is not visible to the guest.
+> - Compiler: GCC 13.3.0, `gcc -O2 -pthread`.
+> - Harness: [`false_sharing_bench.c`](false_sharing_bench.c) and [`run_false_sharing_bench.py`](run_false_sharing_bench.py). Raw results, with all five runs of every configuration: [`false_sharing_results.json`](false_sharing_results.json).
+> - Iterations: 20 million increments per thread for the atomic kind, 200 million for the others. Each thread pins itself with `pthread_setaffinity_np` and spins on a start flag; timing starts when all threads are ready. Every run checks that each counter ends at the iteration count.
+> - Ping-pong: two threads alternately write odd and even values to one 64-byte-aligned word with release stores and acquire loads; the time for one million round trips, after 1,000 warm-up rounds, is divided by two million handoffs. All six pairs of vCPUs were measured.
+> - All configurations were run in a shuffled order within each of five passes, so slow drift on the host affects them alike. The full run took 70 s.
+>
+> ```bash
+> gcc -O2 -pthread -o false_sharing_bench false_sharing_bench.c
+> python3 run_false_sharing_bench.py 5
+> ```
+
+## Related notes
+
+- [[hardware/computer-architecture/multiprocessors-cache-coherence|Multiprocessors, cache coherence, and memory consistency]]
+- [[systems/operating-systems/v2-concurrency/5-synchronizing-access-to-shared-objects|Synchronizing access to shared objects]]
+- [[systems/operating-systems/benchmarks/store_fwd|Store-to-load forwarding]]
+- [[systems/operating-systems/benchmarks/reductions|Parallel reductions]]
+- [[systems/performance/streaming_benchmarks/cache_line_efficiency/README|Cache line efficiency]]
