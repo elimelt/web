@@ -79,12 +79,12 @@ export function rows(v: View): Row[] {
 }
 
 function cell(step: Step, r: StepOutcome, steps: Step[]): string {
-  const after = r.releasedAt !== undefined ? `<small>after ${esc(label(steps[r.releasedAt]))}</small>` : "";
+  const after = r.releasedAt !== undefined ? `<small>after ${esc(label(steps[r.releasedAt])).replace("[", "<wbr>[")}</small>` : "";
   if (r.kind === "skipped") return `<td class="sc-skip" title="not run: the transaction had already failed">·</td>`;
   if (r.kind === "blocked") return `<td class="sc-wait" title="still waiting at the end of the schedule">waits</td>`;
   if (r.kind === "error") {
     const code = r.code === "deadlock" || r.code === "40P01" || r.code === "1213" ? "deadlock" : r.code === "1205" ? "timeout" : "fails";
-    return `<td class="sc-err" title="${esc(`${r.code ?? ""} ${r.message ?? ""}`.trim())}">${code}${after}</td>`;
+    return `<td class="sc-err" title="${esc(`${r.code ?? ""} ${r.message ?? ""}`.trim())}">${code.replace("dead", "dead&shy;")}${after}</td>`;
   }
   const v = step.op === "r" || step.op === "w" ? (r.value !== undefined ? num(r.value, 0) : "ok") : step.op;
   return `<td class="${after ? "sc-waited" : ""}">${v}${after}</td>`;
@@ -104,7 +104,7 @@ export function result(init: Record<string, number>, steps: Step[], o: Outcome):
 export function gridHtml(v: View): string {
   const p = presets[v.key];
   const head = v.steps
-    .map((s, i) => `<th scope="col"><button type="button" class="sc-step t${s.t}" data-step="${i}" aria-pressed="${i === v.picked}" disabled>${esc(label(s))}${rule(s) ? `<small>${esc(rule(s))}</small>` : ""}</button></th>`)
+    .map((s, i) => `<th scope="col"><button type="button" class="sc-step t${s.t}" data-step="${i}" aria-pressed="${i === v.picked}" disabled>${esc(label(s)).replace("[", "<wbr>[")}${rule(s) ? `<small>${esc(rule(s))}</small>` : ""}</button></th>`)
     .join("");
   const n = v.steps.length;
   const body = rows(v)
