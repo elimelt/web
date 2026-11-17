@@ -1,0 +1,178 @@
+// The overload-lab figure. Blue is the chosen policy (measured points and the
+// simulated line); other policies' measurements are faint lines in their own
+// colors; the dashed line is the ideal min(offered, capacity).
+figure.ovl {
+  @include fig-frame;
+  font-size: 0.9rem;
+
+  .ovl-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.5rem 1.2rem;
+    margin: 0 0 0.6rem;
+  }
+
+  .ovl-select {
+    display: flex;
+    min-width: 0;
+    gap: 0.5rem;
+    align-items: center;
+
+    span {
+      color: var(--gray);
+      white-space: nowrap;
+    }
+
+    select {
+      @include fig-button(0.15rem 0.4rem, 0.85rem);
+      @include fig-button-hover;
+      min-width: 0;
+      flex: 1;
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+    }
+  }
+
+  .ovl-slider,
+  .ovl-policy {
+    grid-column: 1 / -1;
+  }
+
+  .ovl-slider {
+    @include fig-slider;
+  }
+
+  .ovl-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 1rem;
+    color: var(--gray);
+    font-size: 0.78rem;
+  }
+
+  .ovl-key-pt,
+  .ovl-key-sim {
+    color: var(--fig-blue);
+  }
+
+  .ovl-plot svg {
+    @include fig-chart;
+  }
+
+  .ovl-subhead {
+    margin-top: 0.4rem;
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  .ovl-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .ovl-axis {
+    stroke: var(--gray);
+    stroke-width: 1;
+  }
+
+  .ovl-tick {
+    fill: var(--gray);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ovl-ideal {
+    stroke: var(--gray);
+    stroke-width: 1.2;
+    stroke-dasharray: 4 4;
+  }
+
+  .ovl-sim {
+    fill: none;
+    stroke: var(--fig-blue);
+    stroke-width: 2;
+    stroke-linejoin: round;
+  }
+
+  .ovl-pt {
+    fill: var(--fig-blue);
+    stroke: var(--light);
+    stroke-width: 1;
+  }
+
+  .ovl-pt-now {
+    stroke: var(--darkgray);
+    stroke-width: 1.5;
+  }
+
+  .ovl-bar {
+    stroke: var(--fig-blue);
+    stroke-width: 2;
+    opacity: 0.6;
+  }
+
+  .ovl-other {
+    fill: none;
+    stroke-width: 1.5;
+    opacity: 0.45;
+  }
+
+  .ovl-p-none {
+    stroke: var(--fig-red);
+  }
+
+  .ovl-p-fixed {
+    stroke: var(--fig-orange);
+  }
+
+  .ovl-p-queue {
+    stroke: var(--fig-purple);
+  }
+
+  .ovl-p-codel {
+    stroke: var(--fig-green);
+  }
+
+  .ovl-p-gradient {
+    stroke: var(--darkgray);
+  }
+
+  .ovl-now {
+    stroke: var(--secondary);
+    stroke-width: 1;
+    stroke-dasharray: 2 3;
+  }
+
+  .ovl-spike {
+    fill: var(--fig-orange);
+    opacity: 0.12;
+  }
+
+  .ovl-step {
+    fill: var(--fig-blue);
+    opacity: 0.22;
+  }
+
+  .ovl-readout {
+    min-height: 4.5em;
+    margin: 0.5rem 0 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .ovl-controls {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ovl-tick {
+      font-size: 16px;
+    }
+  }
+}
