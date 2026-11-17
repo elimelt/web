@@ -1,0 +1,12 @@
+e8 enc.1 span-corrupted max/mean 1.33  plain 1.34
+e8 enc.3 span-corrupted max/mean 1.16  plain 1.18
+e8 enc.5 span-corrupted max/mean 1.21  plain 1.23
+e8 enc.7 span-corrupted max/mean 1.29  plain 1.46
+e8 enc.9 span-corrupted max/mean 1.09  plain 2.80
+e8 enc.11 span-corrupted max/mean 1.13  plain 1.65
+e64 enc.1 span-corrupted max/mean 1.91  plain 2.68
+e64 enc.3 span-corrupted max/mean 2.42  plain 2.72
+e64 enc.5 span-corrupted max/mean 2.90  plain 3.79
+e64 enc.7 span-corrupted max/mean 1.82  plain 3.22
+e64 enc.9 span-corrupted max/mean 1.94  plain 4.18
+e64 enc.11 span-corrupted max/mean 2.69  plain 4.82

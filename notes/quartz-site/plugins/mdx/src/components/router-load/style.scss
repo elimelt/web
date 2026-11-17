@@ -1,0 +1,158 @@
+// router-load (ml/serving-systems/mixture-of-experts)
+figure.rl {
+  @include fig-frame(0.9rem 1rem 0.8rem);
+
+  .rl-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem 1.1rem;
+  }
+
+  .rl-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .rl-glabel {
+    font-size: 0.8rem;
+    color: var(--darkgray);
+    margin-right: 0.15rem;
+  }
+
+  button {
+    @include fig-button(0.2rem 0.5rem, 0.83rem);
+    @include fig-button-hover;
+  }
+
+  button[aria-pressed="true"] {
+    @include fig-pressed;
+  }
+
+  button:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+
+  .rl-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.6rem 1.2rem;
+    margin-top: 0.7rem;
+    font-size: 0.85rem;
+  }
+
+  .rl-slider {
+    @include fig-slider;
+    flex: 1 1 14rem;
+  }
+
+  .rl-readout {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    margin: 0.7rem 0 0.3rem;
+    min-height: 4.4em;
+    font-size: 0.88rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .rl-chart {
+    @include fig-chart;
+    aspect-ratio: 640 / 230;
+  }
+
+  .rl-grid {
+    stroke: var(--lightgray);
+    stroke-width: 0.6;
+  }
+
+  .rl-tick,
+  .rl-axis {
+    fill: var(--gray);
+    font-size: 10px;
+  }
+
+  .rl-axis {
+    fill: var(--darkgray);
+    font-size: 11px;
+  }
+
+  .rl-kept {
+    fill: var(--fig-blue);
+  }
+
+  .rl-over {
+    fill: var(--fig-red);
+  }
+
+  .rl-mean {
+    stroke: var(--dark);
+    stroke-width: 1.6;
+    fill: none;
+  }
+
+  .rl-cap {
+    stroke: var(--fig-red);
+    stroke-width: 1.2;
+    stroke-dasharray: 5 3;
+  }
+
+  .rl-cap-label {
+    fill: var(--fig-red);
+    font-size: 10px;
+  }
+
+  .rl-legend {
+    margin: 0.2rem 0 0;
+    font-size: 0.8rem;
+    color: var(--darkgray);
+  }
+
+  .rl-key {
+    display: inline-block;
+    width: 0.8rem;
+    height: 0.6rem;
+    margin: 0 0.25rem 0 0.6rem;
+    vertical-align: baseline;
+  }
+
+  .rl-key:first-child {
+    margin-left: 0;
+  }
+
+  .rl-key-kept {
+    background: var(--fig-blue);
+  }
+
+  .rl-key-over {
+    background: var(--fig-red);
+  }
+
+  .rl-key-mean {
+    height: 2px;
+    vertical-align: middle;
+    background: var(--dark);
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .rl-tick,
+    .rl-cap-label {
+      font-size: 15px;
+    }
+
+    .rl-axis {
+      font-size: 15px;
+    }
+
+    .rl-chart {
+      aspect-ratio: 640 / 300;
+    }
+  }
+}
