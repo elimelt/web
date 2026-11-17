@@ -73,17 +73,23 @@ export function chartSvg(p: Preset, d: number): string {
     [hot(p), "pd-floor-hot", `data in L1 ${ns(hot(p))}`],
     [bufferFloor(p), "pd-floor-fb", `L / 16 = ${ns(bufferFloor(p))}`],
   ];
-  for (const [v, cls, text] of floors) {
-    if (v < lo || v > hi) continue;
+  // When the two floors are close, the lower one's label goes under its line.
+  const lower = floors[0][0] <= floors[1][0] ? 0 : 1;
+  const close = Math.abs(y(floors[0][0]) - y(floors[1][0])) < 16;
+  floors.forEach(([v, cls, text], i) => {
+    if (v < lo || v > hi) return;
+    const below = close && i === lower;
     out.push(`<line class="pd-floor ${cls}" x1="${M.left}" x2="${W - M.right}" y1="${f(y(v))}" y2="${f(y(v))}"/>`);
-    out.push(`<text class="pd-note" x="${W - M.right - 2}" y="${f(y(v) - 4)}" text-anchor="end">${esc(text)}</text>`);
-  }
+    out.push(`<text class="pd-note" x="${W - M.right - 2}" y="${f(below ? y(v) + 12 : y(v) - 4)}" text-anchor="end">${esc(text)}</text>`);
+  });
   // Mowry's distance, where the lead time first covers L.
   const dm = mowry(p);
   if (dm <= 4096) {
     const xx = f(xPos(dm));
     out.push(`<line class="pd-mowry" x1="${xx}" x2="${xx}" y1="${M.top}" y2="${H - M.bottom}"/>`);
-    out.push(`<text class="pd-note" x="${f(xPos(dm) + 4)}" y="${M.top + 11}">D* = ${dm}</text>`);
+    // The label sits on the side of the line away from the cursor.
+    const left = xPos(d) > xPos(dm);
+    out.push(`<text class="pd-note" x="${f(xPos(dm) + (left ? -4 : 4))}" y="${M.top + 11}" text-anchor="${left ? "end" : "start"}">D* = ${dm}</text>`);
   }
   const cx = f(xPos(d));
   out.push(`<line class="pd-cursor" x1="${cx}" x2="${cx}" y1="${M.top}" y2="${H - M.bottom}"/>`);
