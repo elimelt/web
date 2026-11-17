@@ -1,0 +1,192 @@
+---
+title: TLB and Page Walk Benchmarks
+aliases:
+  - operating-systems/benchmarks/tlb
+category: Performance Engineering
+tags:
+  - tlb
+  - page-tables
+  - virtual-memory
+  - paging
+  - page-walk
+  - huge-pages
+  - memory-latency
+  - benchmarks
+date: 2025-12-29
+updated: 2026-11-17
+authors:
+  - elimelt
+  - claude-opus-5-5
+status: evergreen
+description: The cost of an L1 DTLB miss, a second-level TLB miss and a page walk on an Emerald Rapids KVM guest, measured by a pointer chase over 32 KiB to 8 GiB backed by 4 KiB, 2 MiB and 1 GiB pages, and a re-test of a strided scan previously used to estimate the TLB miss penalty.
+sources:
+  - title: Benchmark measurements on a 4-vCPU Emerald Rapids KVM guest (tlb_sweep.c, tlb_stride.c)
+    type: experiment
+  - title: Original strided-scan measurements by Elijah Melton (hardware not recorded)
+    type: experiment
+  - title: Intel 64 and IA-32 Architectures Software Developer's Manual, Volume 3A, chapter 4 (Paging), section 4.10 (Caching Translation Information)
+    url: https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html
+    type: documentation
+  - title: Intel 64 and IA-32 Architectures Optimization Reference Manual, documentation changes 355308-051 (October 2026), section 2.4.1.1, Golden Cove cache and memory subsystem
+    url: https://cdrdv2-public.intel.com/930023/355308-051-optimization-reference-manual-changes-doc.pdf
+    type: documentation
+  - title: "Frumusanu (2021), Golden Cove Microarchitecture (P-Core) Examined, AnandTech"
+    url: https://at-web1.www.anandtech.com/show/16881/a-deep-dive-into-intels-alder-lake-microarchitectures/3
+    type: article
+  - title: "Barr, Cox, Rixner (2010), Translation Caching: Skip, Don't Walk (the Page Table), ISCA"
+    url: https://doi.org/10.1145/1815961.1815970
+    type: paper
+  - title: "Bhargava, Serebrin, Spadini, Manne (2008), Accelerating Two-Dimensional Page Walks for Virtualized Systems, ASPLOS"
+    url: https://doi.org/10.1145/1346281.1346286
+    type: paper
+  - title: "Pham, Veselý, Loh, Bhattacharjee (2015), Large Pages and Lightweight Memory Management in Virtualized Environments: Can You Have It Both Ways?, MICRO"
+    url: https://doi.org/10.1145/2830772.2830773
+    type: paper
+  - title: "Basu, Gandhi, Chang, Hill, Swift (2013), Efficient Virtual Memory for Big Memory Servers, ISCA"
+    url: https://doi.org/10.1145/2485922.2485943
+    type: paper
+  - title: Linux kernel documentation, Transparent Hugepage Support
+    url: https://docs.kernel.org/admin-guide/mm/transhuge.html
+    type: documentation
+  - title: Linux kernel documentation, HugeTLB Pages
+    url: https://docs.kernel.org/admin-guide/mm/hugetlbpage.html
+    type: documentation
+  - title: What Every Programmer Should Know About Memory (Ulrich Drepper)
+    url: https://www.akkadia.org/drepper/cpumemory.pdf
+    type: paper
+---
+
+A translation lookaside buffer (TLB) is a cache of virtual-to-physical page translations, consulted on every memory access. When a load's page is in no TLB level, the hardware page walker reads the page table, one dependent entry per level, before the load itself can be sent to the cache. The cost of a miss is the latency of those page-table reads, and it depends on where the entries reside: in the walker's own caches, in the data caches, or in DRAM.
+
+Running the same pointer chase over the same cache lines with three page sizes separates that cost from the cost of the data access. On a 4-vCPU Emerald Rapids KVM guest, a load that missed the 96-entry L1 DTLB and hit the second-level TLB took 2.4 to 2.9 ns longer than one that hit the L1 DTLB. Past about 2,048 pages of 4 KiB, where every load needs a page walk, a load took about 14 ns longer with 4 KiB pages than with 2 MiB pages while the page tables still fit in the caches, and 50 to 300 ns longer at 1 to 8 GiB, where they do not.
+
+## Address translation on x86-64
+
+With four-level paging, a 48-bit virtual address is divided into four 9-bit indices and a 12-bit offset. The walk starts at the physical address in CR3 and reads one 8-byte entry from each of four 4 KiB tables:
+
+$$
+\underbrace{47\ldots39}_{\text{PML4}}\;\underbrace{38\ldots30}_{\text{PDPT}}\;\underbrace{29\ldots21}_{\text{PD}}\;\underbrace{20\ldots12}_{\text{PT}}\;\underbrace{11\ldots0}_{\text{offset}}
+$$
+
+A PD entry can map a 2 MiB page directly, and a PDPT entry a 1 GiB page, so walks for those page sizes read three and two entries, and the offset widens to 21 and 30 bits. A larger page also multiplies the memory one TLB entry covers, its reach, by 512 or 262,144. Five-level paging adds a PML5 level above PML4 for 57-bit addresses; the guest measured here does not enable it.
+
+Two kinds of structure shorten the walk. The TLBs cache complete translations. On Golden Cove cores, which Emerald Rapids uses, the load L1 DTLB holds 96 entries for 4 KiB pages ([Intel optimization manual, section 2.4.1.1](https://cdrdv2-public.intel.com/930023/355308-051-optimization-reference-manual-changes-doc.pdf)), and the second-level TLB (STLB) is reported to hold 2,048 entries; [AnandTech](https://at-web1.www.anandtech.com/show/16881/a-deep-dive-into-intels-alder-lake-microarchitectures/3) infers that figure from Intel not announcing a change. The same section of Intel's manual states that the page miss handler performs up to four data-side walks in parallel. The paging-structure caches ([Intel SDM, Volume 3A, section 4.10](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html)) hold upper-level entries, so a walk whose PML4, PDPT and PD entries are cached reads only the leaf PT entry. [Barr, Cox and Rixner](https://doi.org/10.1145/1815961.1815970) classify Intel's design as a translation cache, one that lets the walker skip upper levels of the table. Page-table entries not held there are read through the ordinary data caches, where they compete with the program's data for capacity.
+
+In a virtual machine, every guest-physical address, including the address of each guest page table, must itself be translated through the host's page table. With an $n$-level guest table and an $m$-level host table, a TLB miss can require
+
+$$
+nm + n + m
+$$
+
+memory references, 24 for four levels on both sides ([Bhargava et al. 2008](https://doi.org/10.1145/1346281.1346286)). The page size of a cached translation is limited by both mappings: a 2 MiB guest page backed by 4 KiB host pages cannot be cached as one 2 MiB translation, an effect [Pham et al.](https://doi.org/10.1145/2830772.2830773) call splintering. A guest cannot observe the host's page size.
+
+## Page-size sweep
+
+[`tlb_sweep.c`](tlb_sweep.c) builds a random cyclic chain of pointers with one node per 4 KiB of a region and times 4 to 20 million dependent loads around it. Each node sits at a cache-line offset within its 4 KiB that is a hash of its position, so the loads spread over all cache sets for every page size. The region is backed in turn by 4 KiB pages, by 2 MiB transparent huge pages (`MADV_HUGEPAGE`) and by 1 GiB hugetlbfs pages (`MAP_HUGETLB | MAP_HUGE_1GB`, up to 2 GiB, the most the guest could reserve). For a given region size the three runs touch the same number of distinct 64-byte lines, $R/64$ for a region of $R$ bytes, at the same virtual offsets, so a difference between page sizes is a difference in translation cost.
+
+<TlbReach region={64} />
+
+Median nanoseconds per load over five runs, each run on a fresh allocation:
+
+| Region | 4 KiB pages | 4 KiB | 2 MiB | 1 GiB | 4 KiB minus 2 MiB |
+|---|---|---|---|---|---|
+| 256 KiB | 64 | 1.7 | 1.8 | 1.7 | 0.0 |
+| 1 MiB | 256 | 4.2 | 1.8 | 4.1 | 2.5 |
+| 8 MiB | 2,048 | 10.4 | 6.1 | 6.9 | 4.3 |
+| 16 MiB | 4,096 | 20.7 | 7.0 | 6.7 | 13.7 |
+| 64 MiB | 16,384 | 24.7 | 10.7 | 12.6 | 14.0 |
+| 256 MiB | 65,536 | 64.4 | 40.9 | 40.5 | 23.5 |
+| 1 GiB | 262,144 | 186.5 | 136.3 | 137.4 | 50.1 |
+| 4 GiB | 1,048,576 | 290.5 | 180.0 | | 110.5 |
+| 8 GiB | 2,097,151 | 490.7 | 190.4 | | 300.3 |
+
+The 4 KiB curve has two steps that the 2 MiB curve does not.
+
+- **L1 DTLB capacity.** Up to 90 pages every page size takes 1.7 to 2.0 ns per load, the L1D hit latency. At 128 pages the 4 KiB median rises to 4.8 ns while the 2 MiB median stays at 1.9 ns. The step lies between 90 and 128 entries, consistent with the 96-entry L1 DTLB. The 2.4 to 2.9 ns added from 128 to 512 pages is the latency of an STLB hit, since every line touched fits in the 48 KiB L1D up to 768 pages.
+- **STLB capacity.** Between 2,048 pages (8 MiB, 10.4 ns) and 2,896 pages (11.3 MiB, 20.6 ns) the 4 KiB time doubles, consistent with a 2,048-entry STLB. Beyond this step every load needs a page walk. From 11 to 64 MiB the walk added 13 to 20 ns over the 2 MiB run (medians). The leaf entries for 64 MiB occupy 128 KiB, so they can be read from L2.
+
+Above 64 MiB the difference grows with the page-table footprint. A region of $R$ bytes uses $R/512$ bytes of PT entries, 1 MiB for 512 MiB and 16 MiB for 8 GiB, and in the guest each guest PT line read also needs its own host translation. At 512 MiB the 4 KiB median was 187.4 ns against 47.9 ns with 2 MiB pages, and at 8 GiB 490.7 ns against 190.4 ns. Part of that difference is the walk itself and part is PT lines evicting data lines that the 2 MiB run keeps cached; the benchmark does not separate the two, and the guest exposes no performance counters to count walks or misses. Run-to-run spread is large in this range: at 8 GiB the five 4 KiB runs ranged from 338 to 690 ns.
+
+The 2 MiB curve follows the data hierarchy. It rises past 3 MiB, where $R/64$ exceeds the 48 KiB L1D, and between 90 and 128 MiB, where $R/64$ reaches the 2 MiB L2. Both huge-page curves rise from about 46 ns at 362 MiB to about 135 ns at 724 MiB, where the lines touched grow from 5.7 to 11.3 MiB. The step appears at the same size for both huge page sizes, so it is a data-cache effect: an effective last-level capacity of that order for this guest, far less than the 260 MiB L3 the guest reports for the whole socket.
+
+> [!note]- 1 GiB pages in this guest
+> The 1 GiB runs did not behave like a single TLB entry. They show the same L1 DTLB step as 4 KiB pages, from 2.0 ns at 90 pages to 4.1 ns at 128 pages, but no STLB step: from 8 to 64 MiB they stay within 3 ns of the 2 MiB runs, and from 181 MiB to 2 GiB within 5 percent of them except at 512 MiB (68.8 against 47.9 ns). One explanation consistent with both observations is that the host backs this memory with pages smaller than 1 GiB, so the combined translation is splintered ([Pham et al.](https://doi.org/10.1145/2830772.2830773)), and that the L1 DTLB caches it at 4 KiB granularity while the STLB caches a larger unit. The guest cannot read the host's page size, so the explanation is untested.
+>
+> The 2 MiB runs varied between allocations in a similar way. In one of the five runs, regions from 0.5 to 2 MiB took 4.3 to 5.0 ns with 2 MiB pages, the 4 KiB value; the other four runs took under 2 ns at every size in that range but one (2.7 ns at 512 KiB). `AnonHugePages` confirmed a 2 MiB guest mapping in every 2 MiB run, so the difference lies in how that allocation was backed or cached below the guest.
+
+## The strided scan
+
+An earlier benchmark, on hardware that was not recorded, timed a sequential loop that reads a 256 MB array at a fixed stride:
+
+```c
+for (size_t i = 0; i < n; i += stride) {
+    sum += array[i];
+}
+```
+
+| Stride | Accesses per 4 KiB page | ns per access |
+|---|---|---|
+| 8 B | 512 | 1.36 |
+| 64 B | 64 | 2.49 |
+| 512 B | 8 | 5.38 |
+| 4 KiB | 1 | 12.51 |
+| 8 KiB | 0.5 | 13.31 |
+
+Its interpretation attributed the increase from 512 B to 4 KiB stride (about 7 ns) to TLB misses, on the grounds that both strides miss in the cache. That loop cannot isolate translation, because its loads are independent: the processor overlaps many of them, and the time per access reflects prefetching and [[systems/operating-systems/benchmarks/mlp|memory-level parallelism]] as much as latency. A change of stride also changes what the hardware prefetchers fetch, so the two strides do not miss in the same way.
+
+[`tlb_stride.c`](tlb_stride.c) reruns the loop on the Emerald Rapids guest over a 1 GiB array, four times the reported L3, with 4 KiB and with 2 MiB pages. Medians of five runs, ns per access:
+
+| Stride | 4 KiB pages | 2 MiB pages | Difference |
+|---|---|---|---|
+| 8 B | 1.33 | 1.33 | 0.00 |
+| 64 B | 5.08 | 4.77 | 0.31 |
+| 512 B | 10.93 | 10.75 | 0.18 |
+| 4 KiB | 11.71 | 8.50 | 3.21 |
+| 8 KiB | 13.20 | 8.79 | 4.40 |
+
+On this machine the step from 512 B to 4 KiB stride is 0.8 ns with 4 KiB pages, and with 2 MiB pages a 4 KiB stride is faster than a 512 B one. Translation accounts for the 3.2 ns difference between page sizes at 4 KiB stride and 4.4 ns at 8 KiB stride, less than the walk cost in the [page-size sweep](#page-size-sweep) because the walks overlap with each other and with the data misses. The original 7 ns step was measured on different hardware and cannot be re-attributed without rerunning it there, but the size of the step in a strided scan is not a measurement of translation cost.
+
+## Huge pages in Linux
+
+Linux provides huge pages in two ways. Transparent huge pages (THP) are allocated by the kernel for anonymous memory when a 2 MiB-aligned range is available; with the policy set to `madvise`, as on the guest here, only ranges marked with `madvise(MADV_HUGEPAGE)` qualify ([kernel documentation](https://docs.kernel.org/admin-guide/mm/transhuge.html)). Hugetlbfs pages, including 1 GiB pages, come from a pool reserved in advance through `/sys/kernel/mm/hugepages/` and are requested with `MAP_HUGETLB` ([kernel documentation](https://docs.kernel.org/admin-guide/mm/hugetlbpage.html)). Each 1 GiB page needs a physically contiguous gigabyte, and at run time the guest here allocated two of the four requested. A 2 MiB fault zeroes the whole page, which the [[systems/operating-systems/lecture-notes/page-faults|page fault measurements]] put at about 420 µs per fault. [Basu et al.](https://doi.org/10.1145/2485922.2485943) measure the TLB-miss overhead of large-memory server workloads and propose direct segments, which map part of an address space without pages, as an alternative for them.
+
+> [!note]- How this was measured
+> - **Machine:** a shared 4-vCPU KVM guest whose CPU reports "Intel(R) Xeon(R) Processor @ 2.10GHz", family 6, model 207 (Emerald Rapids); L1D 48 KiB and L2 2 MiB per core and L3 260 MiB, as reported by `lscpu`; 15 GiB of memory; kernel `6.18.44-fc-v553`, four-level paging (no `la57` flag), THP policy `madvise`. CPUID leaf 0x18, which describes the TLBs, returns no entries in the guest, and the guest exposes no hardware performance counters. The guest cannot see the host's page size or its other tenants.
+> - **Compiler:** gcc 13.3.0, `-O2`. Both benchmarks ran pinned to one vCPU with `taskset -c 2` on an otherwise idle guest, one at a time.
+> - **Sweep:** `./tlb_sweep 5 8192 > tlb_sweep-results.jsonl`. 37 region sizes from 32 KiB to 8 GiB in steps of $\sqrt 2$, five runs each, every run on a fresh `mmap`. Each run walks the chain twice (at most 4 million loads) before timing 20 million loads below 64 MiB and 4 million from 64 MiB up. `AnonHugePages` (2 MiB) or `Private_Hugetlb` (1 GiB) in `/proc/self/smaps_rollup` is recorded for every run. [`analyze_tlb.py`](analyze_tlb.py) checks that every huge-page run was fully backed and every 4 KiB run had no huge pages, and writes [`tlb-summary.json`](tlb-summary.json). A dependent-add loop calibrated the core clock at 2.12 GHz before the sweep and 2.96 GHz after it, so results are reported in nanoseconds rather than cycles.
+> - **Strided scan:** `./tlb_stride 5 > tlb_stride-results.jsonl`. A 1 GiB array of `uint64_t`, one warm-up pass and three timed passes per stride.
+> - **Data:** [`tlb_sweep-results.jsonl`](tlb_sweep-results.jsonl), [`tlb_stride-results.jsonl`](tlb_stride-results.jsonl).
+
+## Reproduction
+
+```bash
+gcc -O2 -o tlb_sweep tlb_sweep.c
+gcc -O2 -o tlb_stride tlb_stride.c
+echo 2 > /sys/kernel/mm/hugepages/hugepages-1048576kB/nr_hugepages  # root; 1 GiB pages for the 1 GiB runs
+taskset -c 2 ./tlb_sweep 5 8192 > tlb_sweep-results.jsonl
+echo 0 > /sys/kernel/mm/hugepages/hugepages-1048576kB/nr_hugepages
+taskset -c 2 ./tlb_stride 5 > tlb_stride-results.jsonl
+python3 analyze_tlb.py tlb_sweep-results.jsonl tlb_stride-results.jsonl > tlb-summary.json
+```
+
+## Sources
+
+- [Intel 64 and IA-32 Architectures Software Developer's Manual, Volume 3A, chapter 4](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html)
+- [Intel Optimization Reference Manual, documentation changes 355308-051, section 2.4.1.1](https://cdrdv2-public.intel.com/930023/355308-051-optimization-reference-manual-changes-doc.pdf)
+- [Frumusanu (2021), Golden Cove Microarchitecture (P-Core) Examined, AnandTech](https://at-web1.www.anandtech.com/show/16881/a-deep-dive-into-intels-alder-lake-microarchitectures/3)
+- [Barr, Cox, Rixner (2010), Translation Caching: Skip, Don't Walk (the Page Table)](https://doi.org/10.1145/1815961.1815970)
+- [Bhargava et al. (2008), Accelerating Two-Dimensional Page Walks for Virtualized Systems](https://doi.org/10.1145/1346281.1346286)
+- [Pham et al. (2015), Large Pages and Lightweight Memory Management in Virtualized Environments](https://doi.org/10.1145/2830772.2830773)
+- [Basu et al. (2013), Efficient Virtual Memory for Big Memory Servers](https://doi.org/10.1145/2485922.2485943)
+- [Linux Transparent Hugepage Support](https://docs.kernel.org/admin-guide/mm/transhuge.html) and [HugeTLB Pages](https://docs.kernel.org/admin-guide/mm/hugetlbpage.html)
+- [What Every Programmer Should Know About Memory (Drepper)](https://www.akkadia.org/drepper/cpumemory.pdf)
+
+## Related notes
+
+- [[systems/operating-systems/lecture-notes/tlb|Translation Lookaside Buffer (TLB)]]
+- [[systems/operating-systems/lecture-notes/paging|virtual memory and paging]]
+- [[systems/operating-systems/lecture-notes/page-faults|page faults]], which makes the same 4 KiB and 2 MiB comparison at 1 GiB
+- [[hardware/computer-architecture/caches-virtual-memory|caches and virtual memory]]
+- [[systems/operating-systems/benchmarks/README|measuring real DRAM latency]]
+- [[systems/operating-systems/benchmarks/mlp|memory-level parallelism]]
+- [[systems/operating-systems/benchmarks/prefetch|software prefetching]]
