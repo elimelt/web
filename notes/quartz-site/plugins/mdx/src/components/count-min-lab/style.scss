@@ -1,0 +1,140 @@
+figure.cml {
+  @include fig-frame;
+
+  .cml-controls {
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .cml-slider {
+    flex: 1 1 18rem;
+    font-size: 0.92rem;
+    @include fig-slider;
+  }
+
+  button {
+    @include fig-button;
+    @include fig-button-hover;
+  }
+
+  input:disabled,
+  button:disabled {
+    cursor: progress;
+  }
+
+  .cml-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    margin: 0.8rem 0 0.2rem;
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  .cml-key::before {
+    content: "";
+    display: inline-block;
+    width: 1.3rem;
+    height: 0;
+    margin-right: 0.35rem;
+    vertical-align: middle;
+    border-top: 2px solid currentColor;
+  }
+
+  .cml-key-pt::before,
+  .cml-key-exact::before {
+    width: 0.45rem;
+    height: 0.45rem;
+    border: 0;
+    border-radius: 50%;
+    background: var(--fig-blue);
+  }
+
+  .cml-key-exact::before {
+    background: var(--fig-green);
+  }
+
+  .cml-key-diag::before {
+    border-color: var(--gray);
+  }
+
+  .cml-key-row::before {
+    border-top: 2px dotted var(--fig-orange);
+  }
+
+  .cml-key-bound::before {
+    border-top: 2px dashed var(--fig-red);
+  }
+
+  .cml-chart {
+    @include fig-chart;
+  }
+
+  .cml-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .cml-tick,
+  .cml-axis {
+    fill: var(--gray);
+    font-size: 11px;
+  }
+
+  .cml-axis {
+    font-size: 12px;
+  }
+
+  .cml-diag,
+  .cml-row,
+  .cml-bound {
+    fill: none;
+    stroke-width: 1.6;
+  }
+
+  .cml-diag {
+    stroke: var(--gray);
+  }
+
+  .cml-row {
+    stroke: var(--fig-orange);
+    stroke-dasharray: 1.5 3;
+  }
+
+  .cml-bound {
+    stroke: var(--fig-red);
+    stroke-dasharray: 6 4;
+  }
+
+  .cml-pt {
+    fill: var(--fig-blue);
+    opacity: 0.45;
+  }
+
+  .cml-exact {
+    fill: var(--fig-green);
+    opacity: 0.7;
+  }
+
+  .cml-readout {
+    margin: 0.5rem 0 0;
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .cml-tick {
+      font-size: 16px;
+    }
+
+    .cml-axis {
+      font-size: 17px;
+    }
+  }
+}

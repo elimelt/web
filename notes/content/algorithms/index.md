@@ -25,3 +25,4 @@ The graph traversals assume [[algorithms/graphs-intro|graph fundamentals]], and 
 - Core structures: [[algorithms/tree-intro|trees]], [[algorithms/bipartite-graphs|bipartite graphs]], [[algorithms/network-flows|network flows]]
 - Techniques: [[algorithms/induction|induction]], [[algorithms/divide-and-conquer|divide and conquer]], [[algorithms/dynamic-programming|dynamic programming]]
 - Patterns: [[algorithms/patterns/BFS|BFS pattern]], [[algorithms/patterns/sliding-window|sliding window]], [[algorithms/greedy-algorithms|greedy algorithms]]
+- Probabilistic data structures: [[algorithms/probabilistic/index|series index and notation]], [[algorithms/probabilistic/hyperloglog-count-min|HyperLogLog and Count-Min]]
