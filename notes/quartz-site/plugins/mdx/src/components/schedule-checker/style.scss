@@ -1,0 +1,294 @@
+// Schedule checker (schedule-checker). T1 blue, T2 orange, T3 purple, in the
+// schedule's step buttons and the graph's nodes.
+
+figure.sc {
+  @include fig-frame;
+  font-size: 0.9rem;
+
+  .t1 { --sc-c: var(--fig-blue); }
+  .t2 { --sc-c: var(--fig-orange); }
+  .t3 { --sc-c: var(--fig-purple); }
+
+  h4 {
+    margin: 0 0 0.35rem;
+    font-size: 0.82rem;
+    color: var(--darkgray);
+  }
+
+  button {
+    @include fig-button(0.25rem 0.6rem, 0.84rem);
+    @include fig-button-hover;
+  }
+
+  button:disabled {
+    cursor: default;
+    opacity: 0.55;
+  }
+
+  .sc-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+  }
+
+  .sc-preset {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+    font-size: 0.8rem;
+    color: var(--gray);
+
+    select {
+      @include fig-button(0.25rem 0.4rem, 0.86rem);
+      max-width: 100%;
+    }
+  }
+
+  .sc-move {
+    display: flex;
+    gap: 0.3rem;
+  }
+
+  .sc-story {
+    margin: 0.6rem 0 0.5rem;
+    color: var(--darkgray);
+    font-size: 0.86rem;
+  }
+
+  .sc-scroll {
+    overflow-x: auto;
+    margin: 0 -0.2rem;
+    padding: 0 0.2rem;
+
+    > .table-container {
+      margin: 0;
+      padding: 0;
+      overflow: visible;
+    }
+  }
+
+  table.sc-grid {
+    @include fig-table;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.8rem;
+    table-layout: fixed;
+
+    th,
+    td {
+      padding: 0.18rem 0.15rem;
+      border: none;
+      text-align: center;
+      vertical-align: middle;
+      overflow-wrap: normal;
+      word-break: normal;
+    }
+
+    thead th {
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid var(--lightgray);
+    }
+
+    th.sc-corner,
+    tbody th {
+      width: 7.2rem;
+      text-align: left;
+      font-weight: 600;
+      color: var(--darkgray);
+    }
+
+    th.sc-corner {
+      font-weight: 400;
+      color: var(--gray);
+    }
+
+    small {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 400;
+      color: var(--gray);
+      line-height: 1.15;
+    }
+
+    tr.sc-run td {
+      border-left: 1px solid var(--lightgray);
+    }
+
+    tr.sc-run:not(:first-child) th,
+    tr.sc-run:not(:first-child) td {
+      border-top: 1px solid var(--lightgray);
+    }
+
+    td.sc-waited {
+      background: color-mix(in srgb, var(--fig-orange) 16%, transparent);
+    }
+
+    td.sc-wait {
+      background: color-mix(in srgb, var(--fig-orange) 28%, transparent);
+    }
+
+    td.sc-err {
+      background: color-mix(in srgb, var(--fig-red) 18%, transparent);
+      color: var(--darkgray);
+      font-weight: 600;
+      hyphens: manual;
+      overflow-wrap: normal;
+      word-break: normal;
+    }
+
+    td.sc-skip {
+      color: var(--gray);
+    }
+
+    tr.sc-res td {
+      padding: 0 0.15rem 0.35rem;
+      text-align: left;
+      font-size: 0.76rem;
+      color: var(--gray);
+    }
+
+    tr.sc-res[data-ok="false"] td {
+      color: var(--fig-red);
+    }
+
+    td.sc-mysql-note {
+      padding-top: 0.4rem;
+      border-top: 1px solid var(--lightgray);
+      font-style: italic;
+    }
+  }
+
+  button.sc-step {
+    width: 100%;
+    padding: 0.2rem 0.05rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.15;
+    border-color: var(--sc-c);
+    border-left-width: 3px;
+    white-space: nowrap;
+
+    small {
+      color: var(--gray);
+    }
+
+    &[aria-pressed="true"] {
+      @include fig-pressed;
+      background: color-mix(in srgb, var(--sc-c) 22%, transparent);
+    }
+  }
+
+  .sc-panels {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.8rem 1.2rem;
+    margin-top: 0.8rem;
+  }
+
+  svg.sc-graph {
+    @include fig-chart;
+    display: block;
+    width: 100%;
+    max-width: 320px;
+    height: auto;
+
+    .sc-edge {
+      fill: none;
+      stroke: var(--gray);
+      stroke-width: 1.4;
+    }
+
+    .sc-edge.cyc {
+      stroke: var(--fig-red);
+      stroke-width: 2;
+    }
+
+    .sc-elabel {
+      font-size: 11px;
+      fill: var(--darkgray);
+    }
+
+    .sc-node circle {
+      fill: color-mix(in srgb, var(--sc-c) 22%, var(--light));
+      stroke: var(--sc-c);
+      stroke-width: 2;
+    }
+
+    .sc-node text {
+      font-size: 12px;
+      font-weight: 600;
+      fill: var(--dark);
+    }
+  }
+
+  .sc-verdict {
+    margin: 0.3rem 0 0;
+    font-size: 0.84rem;
+
+    &[data-tone="bad"] {
+      color: var(--fig-red);
+    }
+  }
+
+  ul.sc-phen {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.82rem;
+
+    li {
+      margin: 0.1rem 0;
+      padding: 0;
+    }
+
+    li::before {
+      content: none;
+    }
+
+    li.off {
+      color: var(--gray);
+      opacity: 0.75;
+    }
+
+    li.on b {
+      color: var(--fig-red);
+    }
+
+    .sc-m {
+      font-family: var(--codeFont);
+      font-size: 0.76rem;
+    }
+  }
+
+  .sc-ansi {
+    margin: 0.45rem 0 0;
+    font-size: 0.8rem;
+    color: var(--darkgray);
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .sc-panels {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    table.sc-grid {
+      font-size: 0.74rem;
+
+      th.sc-corner,
+      tbody th {
+        width: 5.4rem;
+      }
+    }
+
+    button.sc-step {
+      font-size: 0.72rem;
+      white-space: normal;
+    }
+  }
+}

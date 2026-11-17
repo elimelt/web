@@ -1,0 +1,40 @@
+lost_update.json server 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+rmw         ru   lost% 85.6 (85.0–86.2)  retries/commit 0.00 (0.00–0.00)  commits/s 2529 (2278–2806)
+rmw         rc   lost% 86.0 (85.5–86.2)  retries/commit 0.00 (0.00–0.00)  commits/s 2457 (2263–2597)
+rmw         rr   lost% 0.0 (0.0–0.0)  retries/commit 4.05 (4.03–4.08)  commits/s 262 (254–272)
+rmw         ser  lost% 0.0 (0.0–0.0)  retries/commit 4.03 (4.03–4.04)  commits/s 263 (258–267)
+atomic      ru   lost% 0.0 (0.0–0.0)  retries/commit 0.00 (0.00–0.00)  commits/s 2320 (2156–2455)
+atomic      rc   lost% 0.0 (0.0–0.0)  retries/commit 0.00 (0.00–0.00)  commits/s 2337 (2254–2407)
+atomic      rr   lost% 0.0 (0.0–0.0)  retries/commit 3.00 (2.96–3.03)  commits/s 500 (484–517)
+atomic      ser  lost% 0.0 (0.0–0.0)  retries/commit 3.09 (2.94–3.33)  commits/s 558 (479–673)
+for_update  ru   lost% 0.0 (0.0–0.0)  retries/commit 0.00 (0.00–0.00)  commits/s 1749 (1689–1794)
+for_update  rc   lost% 0.0 (0.0–0.0)  retries/commit 0.00 (0.00–0.00)  commits/s 1832 (1723–1993)
+for_update  rr   lost% 0.0 (0.0–0.0)  retries/commit 4.55 (4.51–4.59)  commits/s 344 (321–372)
+for_update  ser  lost% 0.0 (0.0–0.0)  retries/commit 4.50 (4.47–4.52)  commits/s 340 (331–348)
+lost_update_mysql.json server 8.0.46-0ubuntu0.24.04.5
+rmw         ru   lost% 85.4 (85.4–85.5)  retries/commit 0.00 (0.00–0.00)  commits/s 1406 (1365–1450)
+rmw         rc   lost% 87.5 (87.5–87.5)  retries/commit 0.00 (0.00–0.00)  commits/s 2590 (2467–2766)
+rmw         rr   lost% 87.5 (87.5–87.5)  retries/commit 0.00 (0.00–0.00)  commits/s 2280 (1903–2543)
+rmw         ser  lost% 0.0 (0.0–0.0)  retries/commit 6.29 (6.28–6.29)  commits/s 314 (307–325)
+atomic      ru   lost% 0.0 (0.0–0.0)  retries/commit 0.00 (0.00–0.00)  commits/s 1041 (1000–1077)
+atomic      rc   lost% 0.0 (0.0–0.0)  retries/commit 0.00 (0.00–0.00)  commits/s 1058 (1048–1074)
+atomic      rr   lost% 0.0 (0.0–0.0)  retries/commit 0.00 (0.00–0.00)  commits/s 1100 (1069–1125)
+atomic      ser  lost% 0.0 (0.0–0.0)  retries/commit 0.00 (0.00–0.00)  commits/s 1061 (1042–1081)
+for_update  ru   lost% 0.0 (0.0–0.0)  retries/commit 0.00 (0.00–0.00)  commits/s 833 (795–871)
+for_update  rc   lost% 0.0 (0.0–0.0)  retries/commit 0.00 (0.00–0.00)  commits/s 816 (804–827)
+for_update  rr   lost% 0.0 (0.0–0.0)  retries/commit 0.00 (0.00–0.00)  commits/s 804 (795–810)
+for_update  ser  lost% 0.0 (0.0–0.0)  retries/commit 0.00 (0.00–0.00)  commits/s 815 (784–855)
+write_skew.json, server 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+plain      think   0ms ru   violations% 97.0 (96.5–97.8)  trials retried% 0.0 (0.0–0.0)  retries/trial 0.00 (0.00–0.00)  unchanged 0
+plain      think   0ms rc   violations% 97.2 (96.9–97.7)  trials retried% 0.0 (0.0–0.0)  retries/trial 0.00 (0.00–0.00)  unchanged 0
+plain      think   0ms rr   violations% 97.3 (97.0–97.7)  trials retried% 0.0 (0.0–0.0)  retries/trial 0.00 (0.00–0.00)  unchanged 0
+plain      think   0ms ser  violations% 0.0 (0.0–0.0)  trials retried% 98.0 (97.5–98.7)  retries/trial 1.04 (1.02–1.08)  unchanged 0
+plain      think   2ms ru   violations% 100.0 (100.0–100.0)  trials retried% 0.0 (0.0–0.0)  retries/trial 0.00 (0.00–0.00)  unchanged 0
+plain      think   2ms rc   violations% 100.0 (100.0–100.0)  trials retried% 0.0 (0.0–0.0)  retries/trial 0.00 (0.00–0.00)  unchanged 0
+plain      think   2ms rr   violations% 100.0 (99.9–100.0)  trials retried% 0.0 (0.0–0.0)  retries/trial 0.00 (0.00–0.00)  unchanged 0
+plain      think   2ms ser  violations% 0.0 (0.0–0.0)  trials retried% 100.0 (99.9–100.0)  retries/trial 1.07 (1.05–1.10)  unchanged 0
+for_update think   2ms ru   violations% 0.0 (0.0–0.0)  trials retried% 0.0 (0.0–0.0)  retries/trial 0.00 (0.00–0.00)  unchanged 0
+for_update think   2ms rc   violations% 0.0 (0.0–0.0)  trials retried% 0.0 (0.0–0.0)  retries/trial 0.00 (0.00–0.00)  unchanged 0
+for_update think   2ms rr   violations% 0.0 (0.0–0.0)  trials retried% 100.0 (99.9–100.0)  retries/trial 1.00 (1.00–1.00)  unchanged 0
+for_update think   2ms ser  violations% 0.0 (0.0–0.0)  trials retried% 99.9 (99.8–100.0)  retries/trial 1.00 (1.00–1.00)  unchanged 0
+{'->  Index Scan using doctors_shift_idx o'}
