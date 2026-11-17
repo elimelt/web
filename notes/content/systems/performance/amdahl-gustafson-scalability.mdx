@@ -1,0 +1,240 @@
+---
+title: Amdahl, Gustafson, and Scalability Limits
+category: Performance Engineering
+tags:
+  - amdahl
+  - gustafson
+  - scalability
+  - speedup
+  - universal scalability law
+  - parallel performance
+date: 2026-08-01
+updated: 2026-11-17
+authors:
+  - elimelt
+  - claude-opus-5-5
+status: evergreen
+description: Amdahl's fixed-problem speedup bound, Gustafson's scaled speedup, the Universal Scalability Law's contention and coherency terms, and how to estimate a serial fraction from measurements, with fits to xz, a designed kernel and a shared counter on a 4-vCPU VM and to two published curves up to 216 users.
+sources:
+  - title: Amdahl (1967), Validity of the Single Processor Approach to Achieving Large Scale Computing Capabilities
+    url: https://dl.acm.org/doi/10.1145/1465482.1465560
+    type: paper
+  - title: Gustafson (1988), Reevaluating Amdahl's Law
+    url: https://dl.acm.org/doi/10.1145/42411.42415
+    type: paper
+  - title: Karp and Flatt (1990), Measuring Parallel Processor Performance
+    url: https://dl.acm.org/doi/10.1145/78607.78614
+    type: paper
+  - title: Hill and Marty (2008), Amdahl's Law in the Multicore Era
+    url: https://research.cs.wisc.edu/multifacet/papers/ieeecomputer08_amdahl_multicore.pdf
+    type: paper
+  - title: Brown (2000), Amdahl's Law and Parallel Speedup (USENIX ALS)
+    url: https://www.usenix.org/legacy/publications/library/proceedings/als00/2000papers/papers/full_papers/brownrobert/brownrobert_html/node3.html
+    type: paper
+  - title: Gunther, How to Quantify Scalability
+    url: https://www.perfdynamics.com/Manifesto/USLscalability.html
+    type: docs
+  - title: Gunther, Puglia and Tomasette (2015), Hadoop Superlinear Scalability
+    url: https://queue.acm.org/detail.cfm?id=2789974
+    type: paper
+  - title: Gunther (2007), Guerrilla Capacity Planning
+    url: https://doi.org/10.1007/978-3-540-31010-5
+    type: book
+  - title: Moeding and Gunther, usl R package
+    url: https://github.com/smoeding/usl
+    type: code
+---
+
+The speedup of a program on $N$ processors is $S(N) = T(1)/T(N)$, the ratio of its execution time on one processor to its execution time on $N$. Amdahl's law bounds $S(N)$ for a fixed problem whose serial fraction is known. Gustafson's law gives the speedup of a problem that grows with $N$. The Universal Scalability Law (USL) adds a coherency cost that grows with $N$, which allows speedup to reach a maximum and then decrease.
+
+Each law is a model with one or two parameters, and each parameter can be estimated from a measured speedup curve. The estimates indicate whether a workload is limited by work that does not parallelize, by communication between the processors, or by neither within the measured range. [[#Estimating the serial fraction from measurements]] fits the models to three workloads measured on a 4-vCPU virtual machine and to two published curves that extend to 64 processors and 216 users.
+
+## Amdahl's law
+
+For a fixed problem, let a fraction $p$ of the single-processor execution time parallelize perfectly and the remaining fraction $1-p$ not parallelize at all. On $N$ processors,
+
+$$
+S(N) = \frac{1}{(1-p) + p/N},
+\qquad
+\lim_{N \to \infty} S(N) = \frac{1}{1-p}.
+$$
+
+The parallel term shrinks in proportion to $1/N$ while the serial term stays constant, so the serial term dominates the denominator as $N$ grows:
+
+| $p$ | $S(8)$ | $S(64)$ | $S(1024)$ | ceiling $1/(1-p)$ |
+| --- | --- | --- | --- | --- |
+| 0.50 | 1.78 | 1.97 | 2.00 | 2 |
+| 0.90 | 4.71 | 8.77 | 9.91 | 10 |
+| 0.95 | 5.93 | 15.42 | 19.64 | 20 |
+| 0.99 | 7.48 | 39.26 | 91.18 | 100 |
+| 0.999 | 7.94 | 60.21 | 506.18 | 1000 |
+
+A program that is 95% parallel cannot exceed a speedup of 20, and at 64 processors it reaches 15.42, about three quarters of that ceiling. At $N = p/(1-p)$ processors (19 for $p = 0.95$) the speedup is exactly half the ceiling, because the serial and parallel terms of the denominator are then equal. The remaining factor of 2 is approached only as $N \to \infty$, so beyond that point a reduction of $1-p$ raises speedup more than additional processors do.
+
+[Amdahl's 1967 paper](https://dl.acm.org/doi/10.1145/1465482.1465560) (AFIPS Spring Joint Computer Conference, pages 483 to 485) contains no formula. It argues against machines built from many processors, noting that data-management housekeeping had accounted for about 40% of executed instructions in production runs for a decade and would not parallelize. The algebraic form above was written down by later authors. [Hill and Marty (2008)](https://research.cs.wisc.edu/multifacet/papers/ieeecomputer08_amdahl_multicore.pdf) applied it to chip design, where the processors share a fixed transistor budget: if a core built from $r$ base-core resources runs serial code $\sqrt{r}$ times faster, an asymmetric chip with one large core and many small ones obtains a higher speedup than any symmetric chip for the same budget.
+
+The quantity $1-p$ includes every cost that does not shrink with $N$, of which code outside the parallel region is only one part:
+
+- **Synchronization.** Lock acquisition, barriers, and the fork and join of worker threads.
+- **Load imbalance.** A barrier waits for the slowest worker, so work divided into pieces that do not split evenly over $N$ leaves processors idle.
+- **Shared resources.** A saturated memory bus or shared cache acts like serial work. For a kernel bounded by memory bandwidth, speedup cannot exceed the ratio of aggregate bandwidth to one core's bandwidth demand, whatever the number of cores. The [[systems/operating-systems/benchmarks/reductions|reductions benchmark]] measured 2.7x from 8 threads on a 1 GB array for this reason.
+
+The fraction obtained by fitting a measured curve is therefore an *effective* serial fraction, which [[#Estimating the serial fraction from measurements]] estimates for three workloads.
+
+## Gustafson's law
+
+[Gustafson (1988)](https://dl.acm.org/doi/10.1145/42411.42415) rejected the fixed-problem assumption, observing that a 1024-processor machine is in practice used to run a problem sized for 1024 processors. The scaled formulation, which Gustafson attributes to E. Barsis at Sandia, fixes the execution *time*, lets the parallel work grow with $N$, and measures how much more work is completed. If the scaled run on $N$ processors spends a fraction $s$ of its time in serial work and $1-s$ in parallel work, the same job on one processor would take $s + (1-s)N$ times as long, so the scaled speedup is
+
+$$
+S_{\text{scaled}}(N) = s + (1-s)N = N - s(N-1),
+$$
+
+which is linear in $N$ with slope $1-s$ and has no upper bound. With $s = 0.01$ and $N = 1024$ the scaled speedup is 1013.8, against 91.2 from Amdahl's law with the same fraction. Gustafson's group reported scaled speedups of 1021 for beam stress analysis with conjugate gradients, 1020 for a baffled surface wave simulation with explicit finite differences, and 1016 for unstable fluid flow with flux-corrected transport, on a 1024-processor hypercube at Sandia, with serial fractions $s$ of 0.4% to 0.8%.
+
+The two laws answer different questions and do not contradict each other. The fraction $s$ in Gustafson's law is measured on the scaled $N$-processor run, while $1-p$ in Amdahl's law is measured on the single-processor run, and the serial share of a single-processor run of the scaled problem is much smaller than $s$. Expressed in the same fraction, the two formulas agree.
+
+**Strong scaling** (Amdahl) holds the problem fixed and adds processors to reduce the time to solution; it applies when external requirements fix the problem size, as when a single request must be served faster. **Weak scaling** (Gustafson) grows the problem in proportion to the processor count at constant execution time; it applies to batch and simulation workloads in which resolution or dataset size grows to use the available capacity. A weak-scaling result quoted for a latency problem overstates the benefit of additional hardware, and Amdahl's law applied to a throughput problem understates it.
+
+## Overheads that grow with N
+
+Both laws assume that coordinating the parallel work has no cost. [Brown (2000)](https://www.usenix.org/legacy/publications/library/proceedings/als00/2000papers/papers/full_papers/brownrobert/brownrobert_html/node3.html) adds an overhead time $T_o(N)$ that grows with $N$, such as interprocess communication that each additional processor lengthens:
+
+$$
+S(N) = \frac{T_s + T_p}{T_s + T_p/N + T_o(N)}.
+$$
+
+When $T_o(N)$ increases with $N$ the denominator has a minimum at finite $N$, so the speedup curve reaches a maximum and then decreases. For $T_o(N) = cN$ the maximum is at $N = \sqrt{T_p/c}$. Gunther's [Universal Scalability Law](https://www.perfdynamics.com/Manifesto/USLscalability.html) expresses relative capacity with two coefficients fitted to measurements:
+
+$$
+S(N) = \frac{N}{1 + \sigma(N-1) + \kappa N(N-1)}.
+$$
+
+The contention coefficient $\sigma$ models queueing for a shared resource; with $\kappa = 0$ the USL is Amdahl's law with $\sigma = 1 - p$. The coherency coefficient $\kappa$ models a delay paid once per pair of processors, such as the transfer of a cache line between cores that write it, a lock handoff, or a message that keeps replicas consistent; the number of pairs grows as $N(N-1)$. A positive $\kappa$ produces **retrograde scaling**, in which throughput decreases as processors are added, with a maximum at
+
+$$
+N_{\text{peak}} = \sqrt{\frac{1-\sigma}{\kappa}}.
+$$
+
+With $\sigma = 0.02$ and $\kappa = 10^{-4}$:
+
+| $N$ | 8 | 32 | 64 | 99 | 200 | 350 |
+| --- | --- | --- | --- | --- | --- | --- |
+| $S(N)$ | 7.0 | 18.6 | 24.0 | **25.2** | 22.3 | 17.3 |
+
+The maximum is 25.2 at $N_{\text{peak}} = \sqrt{0.98/10^{-4}} \approx 99$, and 350 processors deliver 31% less throughput than 99. A negative $\sigma$ represents superlinear speedup, which occurs when the per-processor working set shrinks into a faster level of the memory hierarchy as $N$ grows; [Gunther, Puglia and Tomasette (2015)](https://queue.acm.org/detail.cfm?id=2789974) fitted a negative $\sigma$ together with a positive $\kappa$ to a Hadoop TeraSort cluster, a combination in which the superlinear region is followed by a maximum and then a decline.
+
+```python
+import numpy as np
+
+def amdahl(p, N):    return 1 / ((1 - p) + p / N)
+def gustafson(s, N): return N - s * (N - 1)
+def usl(N, sigma, kappa):
+    return N / (1 + sigma * (N - 1) + kappa * N * (N - 1))
+
+N = np.array([8, 32, 64, 99, 200, 350])
+print(np.round(amdahl(0.95, N), 2))       # [ 5.93 12.55 15.42 16.78 18.26 18.97]
+print(np.round(usl(N, 0.02, 1e-4), 1))    # [ 7.  18.6 24.  25.2 22.3 17.3]
+```
+
+The Amdahl curve with $p = 0.95$ increases monotonically toward its ceiling of 20, while the USL curve with $\kappa = 10^{-4}$ reaches a maximum and then decreases.
+
+## Estimating the serial fraction from measurements
+
+A measured speedup curve determines the model parameters only up to the measurement noise and only within the measured range of $N$. The Karp–Flatt metric and a least-squares fit estimate them in different ways.
+
+The **Karp–Flatt metric** ([Karp and Flatt 1990](https://dl.acm.org/doi/10.1145/78607.78614)) solves Amdahl's law for the serial fraction at each measured point:
+
+$$
+e(N) = \frac{1/S(N) - 1/N}{1 - 1/N}.
+$$
+
+If the workload follows Amdahl's law, $e(N)$ equals $1-p$ at every $N$. An $e(N)$ that increases with $N$ indicates an overhead that grows with $N$, which Amdahl's law does not contain, and a negative $e(N)$ indicates superlinear speedup.
+
+**Least-squares fitting** of the USL to throughput, $X(N) = \gamma N / (1 + \sigma(N-1) + \kappa N(N-1))$, estimates $\gamma$ (the single-processor throughput), $\sigma$ and $\kappa$ together from all runs. This is Gunther's procedure and the one implemented by the [usl R package](https://github.com/smoeding/usl); fitting $\gamma$ instead of fixing it at the measured $X(1)$ keeps a noisy single-processor run from biasing every speedup. Amdahl's law is the same fit with $\kappa$ fixed at 0.
+
+### Measurements on a 4-vCPU virtual machine
+
+Five workloads were run with $N$ from 1 to 4 threads, in a shuffled order, 7 times each (5 for xz):
+
+- **xz.** `xz -T N -3` compresses the 212 MB [Silesia corpus](https://sun.aei.polsl.pl/~sdeor/index.php?page=silesia), a corpus of text, executables, databases and medical images assembled for comparing compressors. The multithreaded encoder splits the input into independent 12 MiB blocks.
+- **5% serial kernel.** A program that performs 50 units of work on one thread and then divides 950 units over $N$ pinned threads, so its serial fraction is 0.05 by construction. Each unit is $10^6$ iterations of a dependent xorshift sequence, which touches no memory. The same program with the parallel work multiplied by $N$ is the weak-scaling case.
+- **Shared atomic counter.** $N$ threads perform 120 million relaxed atomic increments of one 64-bit counter in total.
+- **Padded counters.** The same increments, each thread on its own counter in its own cache line.
+- **STREAM triad.** `a[i] = b[i] + 3*c[i]` over three arrays of 64 Mi doubles (1.5 GiB in total), 10 passes, split over $N$ threads.
+
+| workload | $S(2)$ | $S(3)$ | $S(4)$ | Karp–Flatt $e(2), e(3), e(4)$ | fitted Amdahl $\sigma = 1-p$ (95% CI) |
+| --- | --- | --- | --- | --- | --- |
+| xz -3 on Silesia | 2.20 | 3.15 | 3.78 | −0.091, −0.024, 0.020 | 0.060 (0.040 to 0.079) |
+| 5% serial kernel | 1.91 | 2.70 | 3.47 | 0.049, 0.055, 0.051 | 0.053 (0.042 to 0.067) |
+| padded counters | 1.82 | 2.68 | 3.08 | 0.101, 0.061, 0.100 | 0.079 (0.048 to 0.109) |
+| STREAM triad | 1.84 | 2.83 | 3.67 | 0.089, 0.030, 0.030 | 0.021 (−0.011 to 0.059) |
+| shared atomic counter | 0.39 | 0.34 | 0.35 | 4.16, 3.92, 3.47 | not described by the model |
+
+Speedups are ratios of median times; the confidence intervals come from resampling the runs at each $N$ 300 times and refitting.
+
+The **designed kernel** recovers its known serial fraction. The Karp–Flatt values lie between 0.049 and 0.055, the least-squares estimate is 0.053, and Amdahl's law with $p = 0.95$ predicts $S(4) = 3.48$ against 3.47 measured. The run-to-run spread of the 4-thread time was 11% even for this kernel, which accesses no shared state, because the VM shares its host with other tenants; with four points and that noise the 95% interval for $\sigma$ is 0.042 to 0.067, which corresponds to a ceiling $1/\sigma$ between 15 and 24.
+
+The **xz** curve shows how the two estimators diverge when the single-thread measurement is off. Its Karp–Flatt values are negative at 2 and 3 threads, which would mean superlinear speedup, while the least-squares fit gives $\sigma = 0.060$ with a fitted $\gamma$ 14% above the measured 1-thread throughput. The fit follows the 2-, 3- and 4-thread points, which are sublinear relative to one another ($S(4)/S(2) = 1.72$), and treats the 1-thread point as slow. Two checks support that reading. The program does not change between $N = 1$ and $N \ge 2$: xz's single-threaded encoder (`-T1`, median 50.1 s) and the block encoder with one worker (`-T+1`, 50.0 s) took the same time. A later check that alternated `-T+1` and `-T2` twice gave $S(2) = 1.86$ both times, a Karp–Flatt value of 0.075, while the median 2-thread time had risen from 22.7 s to 26.6 s; the host's contribution to run time therefore drifted by about 15% during the measurements. A shuffled run order spreads such drift over all values of $N$, but with 5 runs per $N$ it does not remove it, and the Karp–Flatt metric, which divides by a single measured $T(1)$, inherits the full error of that measurement.
+
+The **shared counter** scales retrogradely from the first added thread: one thread completes 149 million increments per second (6.7 ns each), two threads together complete 58 million, and four complete 52 million. With one thread the counter's cache line remains in that core's L1 cache; with two or more, each increment must first obtain the line in exclusive state from another core. The cost per operation therefore changes once, at $N = 2$, and then stays nearly constant, a pattern that neither Amdahl's law nor the USL represents: within the constraint $\sigma \le 1$ the best USL fit has $\sigma = 1$ and $\kappa = 1.0$ and misses the 3- and 4-thread points. Giving each thread its own cache line (padded counters) restores a speedup of 3.08 at 4 threads; the shortfall from 4 lies within that workload's run-to-run spread, since the fastest and slowest pairings of runs give 2.84 and 3.75. The same transfer of a cache line between cores is measured in [[systems/operating-systems/benchmarks/false_sharing|the false sharing benchmark]] and, for locks, in [[systems/operating-systems/v2-concurrency/5-synchronizing-access-to-shared-objects|Synchronizing Access to Shared Objects]].
+
+The **triad** reaches 3.67 at 4 threads, so on this VM four threads do not saturate memory bandwidth: they move 41 GB/s (counting 24 bytes per element) against 11 GB/s for one thread. The bandwidth limit described under [[#Amdahl's law]] therefore lies above 4 threads here, while the 8-thread [[systems/operating-systems/benchmarks/reductions|reductions benchmark]], on a machine whose model was not recorded, reached it.
+
+The **weak-scaling** run of the kernel kept its execution time within 1% (2.17 s at $N = 1$, 2.19 s at $N = 4$) while doing 3.85 times the work, a scaled speedup of 3.82 against Gustafson's prediction $0.05 + 0.95 \times 4 = 3.85$. The same program has a strong-scaling speedup of 3.47 at 4 threads.
+
+### Fitting and extrapolating
+
+The figure fits both models to five datasets: the three 4-thread curves above and two published curves from the usl R package, which Gunther (2007) took from a SPEC SDM91 result for a 16-CPU Sun SPARCcenter 2000 (1 to 216 simulated users) and from a BRL-CAD ray tracer on a 64-processor SGI Origin 2000. The slider restricts the fit to the points with $N$ up to a chosen value and leaves the rest as held-out points.
+
+<ScalingFit />
+
+The fitted coefficients for the SPEC SDM91 data are $\sigma = 0.0277$, $\kappa = 1.04 \times 10^{-4}$ and $\gamma = 90.0$ scripts per hour, identical to the usl package's published fit to four significant figures, with a predicted maximum at 96.5 users. Fits to fewer points disagree on where the maximum lies:
+
+| points used | users covered | $\sigma$ | $\kappa$ | predicted $N_{\text{peak}}$ |
+| --- | --- | --- | --- | --- |
+| 3 | 1 to 36 | 0.0085 | $9.2 \times 10^{-5}$ | 104 |
+| 4 | 1 to 72 | −0.0030 | $2.8 \times 10^{-4}$ | 60 |
+| 5 | 1 to 108 | 0.0099 | $1.9 \times 10^{-4}$ | 73 |
+| 7 (all) | 1 to 216 | 0.0277 | $1.04 \times 10^{-4}$ | 97 |
+
+Of the seven load levels, the highest measured throughput is at 72 users (1853 scripts per hour), and the four fits place the maximum anywhere from 60 to 104 users. Each additional point moves the predicted maximum by 22% to 42%, because with one value per load level a single measurement can change $\kappa$ by a factor of 3. The ray tracer data fit $\sigma = 0.058$ and $\kappa = 0$: its throughput at 64 processors is 15.5 times the single-processor value and still increasing, and the fitted ceiling $\gamma/\sigma$ is 378 intersections per second, 18.9 times the single-processor value.
+
+> [!note]- How the measurements were taken
+> - Hardware: a KVM guest with 4 vCPUs of an Intel Xeon (family 6, model 207, 2.1 GHz, 260 MB L3 reported to the guest), 15 GB of memory, Ubuntu 24.04, kernel 6.18. The vCPUs are shared with other tenants of the host, and the 1-minute load average during the runs was at most 2.5 (the benchmark's own threads included).
+> - Software: gcc 13.3.0 (`-O2 -pthread`), xz 5.4.5 (liblzma 5.4.5), Python 3.13 with NumPy and SciPy 1.18.1 for the fits.
+> - Every (workload, $N$) pair was run 7 times (xz 5 times) in one shuffled order (seed 20261117) after a warm-up compression that loaded the corpus into the page cache. Threads were pinned to vCPUs 0 to $N-1$. Times are wall-clock times of the timed region (microbenchmarks) or of the whole process (xz).
+> - xz: `xz -T N -3 -c` on the twelve Silesia files concatenated (211,938,580 bytes), output discarded. The 1-thread point is `-T+1`, the multithreaded encoder with one worker, run 5 times after the shuffled runs; the shuffled `-T1` runs (single-threaded encoder) are kept in the results as `xz_t1`. The alternating check is in [`xz_check.txt`](scaling-experiments/xz_check.txt).
+> - Fits: `scipy.optimize.least_squares` on per-run throughput with $\sigma \in [-0.5, 1]$ and $\kappa \ge 0$, started from a small grid of initial values. The browser figure implements the same fit (variable projection for $\gamma$ and Levenberg–Marquardt for $\sigma$ and $\kappa$), and its tests check it against these results and against the usl package's SPEC SDM91 coefficients.
+> - Files, all in `scaling-experiments/`: [`scaling_bench.c`](scaling-experiments/scaling_bench.c) (the kernel, counters and triad), [`run_scaling.py`](scaling-experiments/run_scaling.py) and [`run_xz_plus1.py`](scaling-experiments/run_xz_plus1.py) (the runners), [`raw.jsonl`](scaling-experiments/raw.jsonl) (every run), [`analyze_scaling.py`](scaling-experiments/analyze_scaling.py) (speedups, Karp–Flatt values, fits and bootstrap intervals, written to [`scaling-results.json`](scaling-experiments/scaling-results.json)) and [`export_figure_data.py`](scaling-experiments/export_figure_data.py) (the figure's data). To reproduce, build with `gcc -O2 -pthread -o scaling_bench scaling_bench.c`, concatenate the twelve Silesia files into `../data/silesia.tar.raw`, and run `python3 run_scaling.py raw.jsonl`, `python3 run_xz_plus1.py raw.jsonl` and `python3 analyze_scaling.py raw.jsonl scaling-results.json`.
+
+## Using the laws
+
+- **Estimate before parallelizing.** A profile of the single-threaded program bounds the attainable speedup. If 20% of the runtime cannot be parallelized, the ceiling is 5x, and reducing that 20% raises the ceiling, while a port to 64 cores approaches it.
+- **Diagnose from the shape of the curve.** A curve that flattens toward an asymptote, with a Karp–Flatt fraction that stays constant as $N$ grows, indicates serialization ($\sigma$). A Karp–Flatt fraction that increases with $N$, or a curve that peaks and declines, indicates a cost that grows with $N$ ($\kappa$). Additional processors then lower throughput, and the remedy is to reduce sharing (partitioning, per-core state, batched updates) rather than to tune the parallel code.
+- **State the scaling regime.** "Linear to 1024 nodes" is a weak claim under weak scaling and a strong one under strong scaling, and a published speedup cannot be interpreted without this label.
+- **Use the best serial program as the baseline.** A parallel program that scales well relative to its own single-threaded mode may still be slower than tuned serial code. Speedup relative to the best serial implementation (absolute speedup) is the quantity that predicts the benefit of buying processors.
+- **Extrapolate only as far as the data supports.** A fit to four points constrains $\sigma$ but not a $\kappa$ whose effect appears only at larger $N$.
+
+The queueing view of the same saturation, in which latency rather than throughput is examined as load approaches capacity, is treated in [[systems/performance/latency-throughput-and-utilization|Latency, Throughput, and Utilization]] and [[systems/operating-systems/v2-concurrency/7-queueing-theory|Queueing Theory]]. Lock throughput as a function of thread count, which is the coherency term measured directly, is in [[systems/operating-systems/v2-concurrency/5-synchronizing-access-to-shared-objects|Synchronizing Access to Shared Objects]].
+
+## Sources
+
+- [Amdahl (1967), Validity of the Single Processor Approach to Achieving Large Scale Computing Capabilities, AFIPS SJCC](https://dl.acm.org/doi/10.1145/1465482.1465560)
+- [Gustafson (1988), Reevaluating Amdahl's Law, CACM 31(5)](https://dl.acm.org/doi/10.1145/42411.42415) ([text reproduced by the author](http://www.johngustafson.net/pubs/pub13/amdahl.htm))
+- [Karp and Flatt (1990), Measuring Parallel Processor Performance, CACM 33(5)](https://dl.acm.org/doi/10.1145/78607.78614)
+- [Hill and Marty (2008), Amdahl's Law in the Multicore Era, IEEE Computer 41(7)](https://research.cs.wisc.edu/multifacet/papers/ieeecomputer08_amdahl_multicore.pdf)
+- [Brown (2000), Amdahl's Law and Parallel Speedup, USENIX ALS](https://www.usenix.org/legacy/publications/library/proceedings/als00/2000papers/papers/full_papers/brownrobert/brownrobert_html/node3.html)
+- [Gunther, How to Quantify Scalability](https://www.perfdynamics.com/Manifesto/USLscalability.html)
+- [Gunther, Puglia and Tomasette (2015), Hadoop Superlinear Scalability, ACM Queue 13(5)](https://queue.acm.org/detail.cfm?id=2789974)
+- [Gunther (2007), Guerrilla Capacity Planning, Springer](https://doi.org/10.1007/978-3-540-31010-5)
+- [Moeding and Gunther, usl R package](https://github.com/smoeding/usl), the source of the SPEC SDM91 and ray tracer datasets
+- [Silesia compression corpus](https://sun.aei.polsl.pl/~sdeor/index.php?page=silesia)
+
+## Related notes
+
+- [[systems/performance/latency-throughput-and-utilization|Latency, Throughput, and Utilization]]
+- [[systems/operating-systems/v2-concurrency/7-queueing-theory|Queueing Theory]]
+- [[systems/operating-systems/v2-concurrency/5-synchronizing-access-to-shared-objects|Synchronizing Access to Shared Objects]]
+- [[systems/operating-systems/benchmarks/false_sharing|False Sharing Benchmarks]]
+- [[systems/operating-systems/benchmarks/reductions|Reductions Benchmark]]
+- [[systems/performance/streaming|Streaming Data]]
