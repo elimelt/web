@@ -1,0 +1,162 @@
+// roofline-lab (ml/serving-systems/performance-modeling).
+
+figure.rl {
+  @include fig-frame;
+  font-size: 0.9rem;
+
+  .rl-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+
+    button {
+      @include fig-button(0.25rem 0.75rem, 0.88rem);
+      @include fig-button-hover;
+      font-variant-numeric: tabular-nums;
+    }
+
+    button[aria-pressed="true"] {
+      @include fig-pressed;
+    }
+  }
+
+  .rl-slider {
+    max-width: 22rem;
+    font-size: 0.92rem;
+    @include fig-slider;
+
+    input:disabled {
+      cursor: progress;
+    }
+  }
+
+  .rl-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 1rem;
+    margin: 0.7rem 0 0.15rem;
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  .rl-key-blue {
+    color: var(--fig-blue);
+  }
+
+  .rl-key-orange {
+    color: var(--fig-orange);
+  }
+
+  .rl-key-faint {
+    opacity: 0.55;
+  }
+
+  .rl-chart {
+    @include fig-chart;
+    aspect-ratio: 640 / 330;
+  }
+
+  .rl-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .rl-tick {
+    fill: var(--gray);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .rl-axis {
+    fill: var(--darkgray);
+    font-size: 12.5px;
+  }
+
+  .rl-label {
+    fill: var(--gray);
+    font-size: 11.5px;
+  }
+
+  .rl-strong {
+    fill: var(--darkgray);
+    font-weight: 600;
+  }
+
+  .rl-roof {
+    fill: none;
+    stroke: var(--darkgray);
+    stroke-width: 2.2;
+    stroke-linejoin: round;
+  }
+
+  .rl-faint {
+    stroke: var(--gray);
+    stroke-width: 1.2;
+    opacity: 0.45;
+  }
+
+  .rl-ceil {
+    stroke: var(--gray);
+    stroke-width: 1.2;
+    stroke-dasharray: 5 4;
+  }
+
+  .rl-cursor {
+    stroke: var(--secondary);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+  }
+
+  .rl-series {
+    circle,
+    rect {
+      fill: var(--rl-color);
+      stroke: var(--light);
+      stroke-width: 1;
+    }
+
+    .rl-whisker {
+      stroke: var(--rl-color);
+      stroke-width: 1.4;
+    }
+
+    .rl-sel {
+      stroke: var(--secondary);
+      stroke-width: 2.5;
+    }
+  }
+
+  .rl-blue {
+    --rl-color: var(--fig-blue);
+  }
+
+  .rl-orange {
+    --rl-color: var(--fig-orange);
+  }
+
+  .rl-readout {
+    margin: 0.4rem 0 0;
+    min-height: 3em;
+    font-size: 0.88rem;
+    line-height: 1.45;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .rl-tick,
+    .rl-label {
+      font-size: 17px;
+    }
+
+    .rl-axis {
+      font-size: 17px;
+    }
+
+    .rl-chart {
+      aspect-ratio: 640 / 330;
+    }
+  }
+}

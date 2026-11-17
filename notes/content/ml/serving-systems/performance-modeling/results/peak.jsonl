@@ -1,0 +1,6 @@
+{"kind":"peak","isa":"avx512","threads":4,"gflops_median":888.48,"gflops_min":566.33,"gflops_max":899.84}
+{"kind":"peak","isa":"avx2","threads":4,"gflops_median":511.91,"gflops_min":491.79,"gflops_max":525.12}
+{"kind":"peak","isa":"scalar","threads":4,"gflops_median":64.11,"gflops_min":58.64,"gflops_max":66.30}
+{"kind":"peak","isa":"avx512","threads":1,"gflops_median":237.17,"gflops_min":233.35,"gflops_max":238.20}
+{"kind":"peak","isa":"avx2","threads":1,"gflops_median":131.28,"gflops_min":94.78,"gflops_max":133.42}
+{"kind":"peak","isa":"scalar","threads":1,"gflops_median":16.43,"gflops_min":15.89,"gflops_max":16.73}
