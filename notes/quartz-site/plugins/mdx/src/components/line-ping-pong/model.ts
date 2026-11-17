@@ -149,16 +149,20 @@ export function describe(m: Machine, e: Event | undefined): string {
   if (!e) return "No accesses yet. Each button makes that core access its own counter once.";
   const what = `Core ${e.core} ${e.op === "write" ? "writes" : "reads"} c${e.core} (line ${e.line})`;
   const inv = e.invalidated.length
-    ? ` and invalidates the copy in core${e.invalidated.length > 1 ? "s" : ""} ${e.invalidated.join(", ")}`
+    ? `; the ${e.invalidated.length > 1 ? "copies" : "copy"} in core${e.invalidated.length > 1 ? "s" : ""} ${e.invalidated.join(", ")} ${e.invalidated.length > 1 ? "are" : "is"} invalidated`
     : "";
   switch (e.source) {
     case "hit":
       return `${what}: hit, the line is already ${m.state[e.core][e.line] === "M" ? "Modified" : m.state[e.core][e.line] === "E" ? "Exclusive" : "Shared"} in its cache.`;
     case "upgrade":
-      return `${what}: the line is Shared, so the core sends an upgrade${inv}.`;
+      return `${what}: the line is Shared, so the core requests ownership without refetching the data${inv}.`;
     case "memory":
       return `${what}: miss, served from L3 or memory${inv}.`;
-    case "core":
-      return `${what}: miss, core ${e.from} holds the line Modified and supplies it${inv}.`;
+    case "core": {
+      const rest = e.invalidated.filter((k) => k !== e.from);
+      const fate = e.op === "write" ? "its copy becomes Invalid" : "both copies become Shared";
+      const more = rest.length ? `; the ${rest.length > 1 ? "copies" : "copy"} in core${rest.length > 1 ? "s" : ""} ${rest.join(", ")} ${rest.length > 1 ? "are" : "is"} invalidated` : "";
+      return `${what}: miss. Core ${e.from} holds the line Modified and supplies it, and ${fate}${more}.`;
+    }
   }
 }
