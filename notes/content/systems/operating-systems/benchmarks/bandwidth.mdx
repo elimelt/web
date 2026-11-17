@@ -1,0 +1,173 @@
+---
+title: Memory Bandwidth Benchmarks
+aliases:
+  - operating-systems/benchmarks/bandwidth
+category: Performance Engineering
+tags:
+  - memory
+  - bandwidth
+  - stream
+  - multi-threading
+  - littles-law
+  - write-allocate
+  - non-temporal-stores
+  - numa
+  - benchmarks
+date: 2025-12-29
+updated: 2026-11-17
+authors:
+  - elimelt
+  - claude-opus-5-5
+status: needs-review
+description: STREAM-style read, copy and triad bandwidth from L1 to DRAM with 1 to 4 threads on an Emerald Rapids cloud VM, the Little's-law limit on one core's DRAM bandwidth, and the write-allocate traffic that streaming stores remove.
+sources:
+  - title: Original benchmark measurements by Elijah Melton
+    type: experiment
+  - title: "McCalpin, STREAM: Sustainable Memory Bandwidth in High Performance Computers (reference and run rules)"
+    url: https://www.cs.virginia.edu/stream/ref.html
+    type: documentation
+  - title: "McCalpin (1995), Sustainable Memory Bandwidth in Current High Performance Computers"
+    url: https://www.cs.virginia.edu/~mccalpin/papers/bandwidth/bandwidth.html
+    type: paper
+  - title: "McCalpin (2025), Single-core memory bandwidth: Latency, Bandwidth, and Concurrency"
+    url: https://sites.utexas.edu/jdm4372/2025/02/17/single-core-memory-bandwidth-latency-bandwidth-and-concurrency
+    type: article
+  - title: "McCalpin (2023), Bandwidth Limits in the Intel Xeon Max (Sapphire Rapids with HBM) Processors, ISC 2023 IXPUG Workshop"
+    url: https://www.ixpug.org/images/docs/ISC23/McCalpin_SPR_BW_limits_2023-05-24_final.pdf
+    type: slides
+  - title: "McCalpin (2018), Notes on \"non-temporal\" (aka \"streaming\") stores"
+    url: https://sites.utexas.edu/jdm4372/2018/01/01/notes-on-non-temporal-aka-streaming-stores
+    type: article
+  - title: "Hager (2019), The McCalpin STREAM benchmark: How to do it right and interpret the results"
+    url: https://blogs.fau.de/hager/archives/8263
+    type: article
+  - title: "Little (1961), A Proof for the Queuing Formula: L = λW, Operations Research 9(3)"
+    url: https://doi.org/10.1287/opre.9.3.383
+    type: paper
+  - title: Intel Xeon Platinum 8592+ processor specifications
+    url: https://www.intel.com/content/www/us/en/products/sku/237261/intel-xeon-platinum-8592-processor-320m-cache-1-9-ghz/specifications.html
+    type: documentation
+  - title: GNU C Library manual, Hardware Capability Tunables
+    url: https://www.gnu.org/software/libc/manual/html_node/Hardware-Capability-Tunables.html
+    type: documentation
+  - title: What Every Programmer Should Know About Memory (Ulrich Drepper)
+    url: https://www.akkadia.org/drepper/cpumemory.pdf
+    type: paper
+---
+
+Sustainable memory bandwidth is the rate, in bytes per second, at which a program moves data between memory and the processor for a given access pattern. McCalpin's STREAM benchmark ([1995](https://www.cs.virginia.edu/~mccalpin/papers/bandwidth/bandwidth.html)) defines it with four vector kernels over arrays too large for any cache, and counts as moved only "the bytes that the user program requested to be loaded or stored" ([STREAM reference](https://www.cs.virginia.edu/stream/ref.html)).
+
+The rate depends on where the working set resides and on how many cache misses are outstanding at once. A working set that fits in a core's L1 or L2 cache streams at hundreds of GB/s, and one that spills to DRAM streams at a small fraction of that. Within DRAM a single core cannot reach the memory system's peak, because it tracks a bounded number of outstanding misses, and by Little's law that number divided by the miss latency bounds its bandwidth. Additional cores add outstanding misses until the DRAM channels, rather than the cores, limit the total. The measurements below come from a 4-vCPU cloud VM on an Intel Xeon (Emerald Rapids), with the hardware, compiler and procedure recorded under How this was measured, at the end.
+
+## Two ceilings
+
+The peak transfer rate of a DRAM system is the number of channels times the channel width (8 bytes) times the transfer rate. Dual-channel DDR4-3200 gives $2 \times 8\ \text{B} \times 3200\ \text{MT/s} = 51.2$ GB/s and dual-channel DDR5-4800 gives 76.8 GB/s. An Emerald Rapids Xeon Platinum 8592+ supports eight channels of DDR5-5600 ([Intel](https://www.intel.com/content/www/us/en/products/sku/237261/intel-xeon-platinum-8592-processor-320m-cache-1-9-ghz/specifications.html)), or 358.4 GB/s per socket. Sustained bandwidth stays below the peak because row activation, precharge and refresh occupy time on the channel during which no data moves ([Drepper, section 2.2](https://www.akkadia.org/drepper/cpumemory.pdf)).
+
+The second ceiling is per core. [Little's law](https://doi.org/10.1287/opre.9.3.383) relates the number of 64-byte lines in flight $N$, the latency $L$ of each miss and the bandwidth $B$:
+
+$$B = \frac{N \cdot 64\ \text{B}}{L}.$$
+
+McCalpin states the consequence as "(maximum sustained) Bandwidth &lt;= (maximum available) Concurrency / (minimum possible) Latency" ([2025](https://sites.utexas.edu/jdm4372/2025/02/17/single-core-memory-bandwidth-latency-bandwidth-and-concurrency)). On Sapphire Rapids, whose cores are close relatives of Emerald Rapids', a core supports up to 16 outstanding L1D misses and up to 48 outstanding L2 misses, and it can exceed 16 requests only through L2 hardware prefetches ([McCalpin, ISC 2023](https://www.ixpug.org/images/docs/ISC23/McCalpin_SPR_BW_limits_2023-05-24_final.pdf)). The [[systems/operating-systems/benchmarks/mlp|memory-level parallelism benchmark]] finds about 15 demand misses in flight on this VM. With the 163.2 ns idle DRAM latency measured on the VM, 16 lines in flight bound one core at $16 \times 64 / 163.2 = 6.3$ GB/s and 48 lines at 18.8 GB/s. A sequential stream engages the L2 prefetcher, so the second bound is the relevant one.
+
+## Kernels and byte counts
+
+| Kernel | Loop body | Bytes STREAM counts per element | Bytes moved with write-allocate |
+|---|---|---:|---:|
+| read | `sum += a[i]` | 8 | 8 |
+| copy | `c[i] = a[i]` | 16 | 24 |
+| triad | `a[i] = b[i] + s * c[i]` | 24 | 32 |
+
+A store that misses a write-back cache first reads the line from memory, so that the bytes the store does not overwrite are valid (write-allocate, also called read for ownership), and the modified line is written back when it is evicted. A copy therefore moves three lines for every two STREAM counts, and a triad four for every three ([Hager](https://blogs.fau.de/hager/archives/8263)). A non-temporal (streaming) store such as `vmovntpd` writes a full line through a write-combining buffer without reading it, which removes that read and leaves the line out of the cache ([McCalpin 2018](https://sites.utexas.edu/jdm4372/2018/01/01/notes-on-non-temporal-aka-streaming-stores)). The benchmark runs copy and triad both ways; `copy-nt` and `triad-nt` are the streaming-store versions.
+
+## Workload
+
+[`bandwidth_bench.c`](bandwidth_bench.c) runs each kernel with 1 to 4 OpenMP threads pinned to separate cores, over working sets from 16 KiB to 4 GiB in steps of 2 and 1.5. The working set is the combined size of the arrays a kernel touches (one array for read, two for copy, three for triad), so every kernel at a given size occupies the same amount of cache. Each thread owns a contiguous, line-aligned part of every array, and the threads share no lines. Arrays are backed by 2 MB pages.
+
+Each sample repeats the kernel until at least 20 ms have elapsed, without a barrier between repetitions, and divides the bytes STREAM counts by the elapsed time. Every (kernel, threads, size) cell gets 7 samples in each of 5 processes, which visit the 740 cells in an order shuffled by the process's seed. A cell's value is the median over processes of each process's median sample. Sizes of 1 GiB and above, at least four times the 260 MB L3, are treated as DRAM-resident. At 4 GiB each triad array is 1.33 GiB, which meets STREAM's rule that each array be "at least 4x the size of the sum of all the last-level caches used in the run", and the curves are flat from 1 to 4 GiB.
+
+The read kernel sums into four independent AVX-512 accumulators. With a single accumulator, as in a plain `sum += a[i]` loop, each add waits for the previous one; a pilot run with that loop reached 60 to 90 GB/s in L1 with one thread, against 215 GB/s with four accumulators. In DRAM the difference does not matter, because one core's 13.7 GB/s is below either rate.
+
+## Cache levels and thread count
+
+<BandwidthSweep kernels="read" threads="1" />
+
+With one thread the read kernel runs at a median of 215.5 GB/s in L1, 147.2 GB/s in L2, 25.1 GB/s in L3 and 13.7 GB/s in DRAM. The L1 and L2 caches are private to each core, so a team of $t$ threads holds $t$ times as much in them, and the L2 cliff moves right with the thread count. It falls between 2 and 3 MiB with one thread (131.9 to 26.2 GB/s), between 4 and 6 MiB with two, at 6 to 8 MiB with three, and between 8 and 12 MiB with four. The L3 is shared, and the drop to DRAM begins between 128 and 256 MiB for every thread count, around the 260 MB the guest reports. It reaches the DRAM level by 384 MiB with one or two threads and only by 512 to 768 MiB with three or four.
+
+For the read kernel, bandwidth falls by a factor of 5.9 from L2 to L3 and by 1.8 from L3 to DRAM. The L3 rate is about 25 GB/s per core for every kernel and scales with the thread count to 89 to 99 GB/s with four. L3 latency was not measured, so the concurrency behind that rate is not computed here.
+
+| Threads | read | copy | triad | copy-nt | triad-nt |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 13.7 (12.7–14.7) | 12.5 (11.8–13.5) | 14.2 (13.4–15.7) | 19.3 (18.0–21.5) | 19.5 (18.4–21.9) |
+| 2 | 27.1 (25.8–28.2) | 24.4 (22.4–26.4) | 28.1 (23.2–30.2) | 37.2 (34.9–40.0) | 37.9 (34.9–40.6) |
+| 3 | 39.8 (33.4–43.6) | 36.1 (33.9–37.4) | 40.7 (35.1–44.4) | 55.4 (48.8–61.8) | 56.1 (49.6–58.6) |
+| 4 | 51.9 (32.5–54.9) | 45.9 (41.0–49.7) | 53.4 (48.6–57.6) | 71.7 (43.6–77.6) | 72.5 (66.6–79.3) |
+
+The table gives DRAM-resident bandwidth in GB/s as STREAM counts it: the median over the five sizes from 1 to 4 GiB, with the minimum and maximum of the 25 per-process medians in parentheses. Bandwidth grows almost in proportion to the thread count, and four threads read at 3.80 times the rate of one. The four cores of this guest therefore do not saturate the memory system. The highest total, 72.5 GB/s for triad-nt, is 20% of the 358.4 GB/s an eight-channel DDR5-5600 socket provides, although the host's SKU, its DIMM population and the traffic of other guests on the same socket are not visible from inside the VM.
+
+The limit on one core follows from Little's law. At 13.7 GB/s and 163.2 ns, a core reading from DRAM has at least $13.7 \times 163.2 / 64 = 35$ lines in flight; the true number is larger, since latency under load exceeds the idle latency. Thirty-five exceeds the 16 L1D misses a core can track, so most of the stream's misses are L2 prefetches, and it is within the 48 the L2 can track. McCalpin reports the same regime on Sapphire Rapids with HBM, where one core sustained about 19 to 22 GB/s with an average of 40.2 misses outstanding ([ISC 2023](https://www.ixpug.org/images/docs/ISC23/McCalpin_SPR_BW_limits_2023-05-24_final.pdf)).
+
+## Write-allocate and streaming stores
+
+<BandwidthSweep kernels="copy,copy-nt" threads="1" />
+
+With one thread in DRAM, copy reaches 12.5 GB/s and copy-nt 19.3 GB/s as STREAM counts them, a ratio of 1.55; for triad and triad-nt the ratio is 1.37. Write-allocate predicts 3/2 and 4/3. Counting the write-allocate reads (the box in the figure) puts copy at 18.7 GB/s and triad at 19.0 GB/s, within 4% of their streaming-store versions, so in DRAM each of the four kernels moves about 19 GB/s of lines per core whichever way its stores are issued. The streaming store raises STREAM's figure by removing the read for ownership, while the rate at which the core moves lines stays about the same. The same holds at every thread count; with four threads, copy counted with write-allocate is 68.9 GB/s against 71.7 GB/s for copy-nt.
+
+When the data fits in cache the comparison reverses. Streaming stores bypass the cache and send every line toward memory, so with one thread in L2 copy-nt runs at 28.5 GB/s against 83.9 GB/s for copy, and in L1 at 23.4 GB/s against 380.2 GB/s. Streaming stores reduce traffic for output that is larger than the cache and is not read again soon; for output that a later step reads while it is still cached, they replace cache hits with DRAM traffic.
+
+> [!note]- Deep dive: STREAM's counting convention
+> The STREAM reference distinguishes its convention, which counts only the bytes the program requests, from a hardware convention that counts the extra read because "most cached systems perform what is called a write allocate" ([STREAM reference](https://www.cs.virginia.edu/stream/ref.html)). A STREAM copy figure from a write-allocate machine therefore understates the bytes the memory system moved by a third, and a triad figure by a quarter. Hager's correction multiplies copy and scale by 1.5 and add and triad by 4/3 ([Hager](https://blogs.fau.de/hager/archives/8263)).
+>
+> A compiler can turn a copy loop into a call to `memcpy`, and glibc's x86 `memcpy` switches to non-temporal stores above a size threshold set by the tunable `glibc.cpu.x86_non_temporal_threshold` ([glibc manual](https://www.gnu.org/software/libc/manual/html_node/Hardware-Capability-Tunables.html)). A copy benchmark built that way measures copy at small sizes and copy-nt at large ones. The harness is compiled with `-fno-tree-loop-distribute-patterns`, which stops GCC from making that substitution, and the binary contains no call to `memcpy`.
+
+## Earlier measurements on an unrecorded machine
+
+An earlier version of this note reported one run of a sequential sum over a 1 GB array on the author's machine, whose CPU, DIMM configuration and compiler flags were not recorded. The harness that produced it is not in the repository, and whether the 8-thread run used SMT siblings is unknown.
+
+| Threads | GB/s | vs 1 thread |
+|---:|---:|---:|
+| 1 | 24.9 | 1.0× |
+| 2 | 44.1 | 1.8× |
+| 4 | 47.8 | 1.9× |
+| 8 | 63.7 | 2.6× |
+
+The flattening from 2 to 4 threads would be consistent with a machine whose DRAM channels saturate with two cores, as a dual-channel client system can, but without the hardware configuration the run cannot be interpreted further, and its numbers are not comparable with the VM's.
+
+## NUMA
+
+On a multi-socket machine a thread that reads memory attached to the other socket crosses the inter-socket link, which adds latency and shares the link's bandwidth. The VM reports one NUMA node, so none of the measurements above include remote accesses. [[systems/scheduling/2-parallel-and-multiprocessor/numa-aware-scheduling-and-locality|NUMA-aware scheduling]] covers placement and the remote-access penalty.
+
+## Reproduction
+
+On Linux x86-64 with GCC, OpenMP and AVX-512, from this directory:
+
+```bash
+./run_bandwidth_bench.sh out 1 2 3 4 5     # builds, records the machine, one process per seed
+cat out/seed*.jsonl > results.jsonl
+python3 analyze_bandwidth_bench.py summary.json results.jsonl
+```
+
+The committed [`bandwidth_bench-results.jsonl`](bandwidth_bench-results.jsonl) keeps each sample with its seed, kernel, thread count, working set and repetition count. The runner needs about 8.5 GB of free memory and took 12 minutes for five seeds on the VM.
+
+> [!note]- How this was measured
+> - **Machine:** a shared 4-vCPU KVM guest (Firecracker, kernel `6.18.44-fc-v553`) whose CPU reports "Intel(R) Xeon(R) Processor @ 2.10GHz", family 6, model 207 (Emerald Rapids), one socket, one thread per core; L1D 48 KiB and L2 2 MiB per core and a 260 MiB L3, as reported by `/sys/devices/system/cpu/cpu0/cache`; 15.7 GiB of memory; one NUMA node. The guest exposes no hardware performance counters, so cache misses and outstanding requests were not counted. The recorded values are in [`bandwidth_bench-machine.txt`](bandwidth_bench-machine.txt).
+> - **Code:** [`bandwidth_bench.c`](bandwidth_bench.c), built by [`run_bandwidth_bench.sh`](run_bandwidth_bench.sh) with GCC 13.3.0 and `-O3 -march=native -mprefer-vector-width=512 -fopenmp -fno-tree-loop-distribute-patterns`. Threads are pinned with `OMP_PROC_BIND=close OMP_PLACES=cores`. Copy and triad are plain C loops that GCC vectorizes with 512-bit loads and stores; read and the streaming-store kernels use AVX-512 intrinsics (`_mm512_stream_pd`, then `sfence`).
+> - **Pages:** the arrays (4 GiB, 2 GiB and 2 GiB) are allocated with 2 MB alignment and `madvise(MADV_HUGEPAGE)` under THP mode `madvise`; `/proc/<pid>/smaps_rollup` during the first process showed 8,392,704 KiB of 8,395,092 KiB resident as huge pages.
+> - **Procedure:** five processes with seeds 1 to 5 ran one after another between 23:22 and 23:34 UTC on 2026-11-17. Each first-touches every array from four threads, then visits all 740 cells (5 kernels, 4 thread counts, 37 sizes) in its own shuffled order. For each cell it runs the kernel once to warm the caches, times one more run to choose a repetition count that lasts at least 20 ms, and records 7 samples with `CLOCK_MONOTONIC_RAW`.
+> - **Load:** the 1-minute load average before each process was 1.96 to 2.21. Besides the benchmark the VM ran this session's own tools, including a Node.js process that used about 17% of one CPU when checked before the run. The 4-thread runs share their cores with that load, which widens their ranges; the read minimum of 32.5 GB/s is a single process at 1 GiB, and the next lowest is 45.7 GB/s.
+> - **Latency:** after the sweep, [`mlp_bench.c`](mlp_bench.c) from the [[systems/operating-systems/benchmarks/mlp|MLP benchmark]] ran a single pointer chase over a 4 GiB array with 2 MB pages, 5 blocks in each of 3 processes pinned to CPU 1. The median of the 15 samples is 163.2 ns (151.8 to 167.9). The output is in [`bandwidth_bench-latency.txt`](bandwidth_bench-latency.txt). The MLP note measured 151.6 ns on another instance of the same VM type.
+> - **Pilot:** an earlier pass (sizes up to 2 GiB) used a read kernel with one vector accumulator. Its samples are not included. Its one-thread DRAM medians differed from those above by 1 to 12%, the largest difference being read (15.3 against 13.7 GB/s).
+> - **Results:** every sample is in [`bandwidth_bench-results.jsonl`](bandwidth_bench-results.jsonl). [`analyze_bandwidth_bench.py`](analyze_bandwidth_bench.py) (Python 3.13, standard library only) prints the tables and writes [`bandwidth_bench-summary.json`](bandwidth_bench-summary.json). The figure's tests check every point it draws against that file, compare its per-level medians with those the Python script computes independently, and recompute the Little's-law and write-allocate numbers in its readout.
+> - **Not done:** McCalpin's own `stream.c` was not run as a cross-check.
+
+> [!note]- Potentially interesting ideas
+> - In DRAM, copy and triad counted with write-allocate, and both streaming-store kernels, move about 19 GB/s of lines per core, while the read kernel moves 13.7 GB/s. A limit set only by outstanding reads would predict the opposite order, since the mixed kernels read less. Whether writebacks and streaming stores use buffers outside the L2's 48 miss entries, or the L2 prefetcher behaves differently on interleaved streams, could be separated with uncore counters on bare metal.
+> - Three and four threads reach the DRAM level only at 512 to 768 MiB, well past the 260 MB L3, while one and two threads reach it by 384 MiB. The L3 is shared with other guests on the host, and its replacement behavior under several streams was not examined.
+
+## Related notes
+
+- [[systems/operating-systems/benchmarks/mlp|memory-level parallelism]], for fill buffers and Little's law with one core
+- [[systems/operating-systems/benchmarks/prefetch|software prefetching]]
+- [[systems/operating-systems/benchmarks/README|measuring real DRAM latency]]
+- [[systems/operating-systems/benchmarks/reductions|parallel reductions]]
+- [[systems/scheduling/2-parallel-and-multiprocessor/numa-aware-scheduling-and-locality|NUMA-aware scheduling and locality]]
+- [[systems/performance/streaming_benchmarks/cache_line_efficiency/README|cache line efficiency]]
