@@ -1,0 +1,182 @@
+---
+title: Consistent Global State in Distributed Systems
+aliases:
+  - distributed-systems/consistent-global-state
+category: Distributed Systems
+tags:
+  - consistent-global-state
+  - distributed-systems
+  - global-predicate-evaluation
+  - distributed-snapshots
+  - chandy-lamport
+  - vector-clocks
+date: 2024-04-14
+updated: 2026-11-17
+authors:
+  - elimelt
+  - claude-opus-5-5
+status: evergreen
+description: Cuts, consistent cuts and channel states in an asynchronous message-passing system, the vector-clock test for consistency, the lattice of consistent global states and the Possibly and Definitely modalities, the Chandy-Lamport snapshot algorithm and its non-FIFO and dataflow descendants, an interactive check of cuts of a recorded run, and measurements of uncoordinated and Chandy-Lamport snapshots over TCP.
+sources:
+  - title: "Babaoglu and Marzullo (1993), Consistent Global States of Distributed Systems: Fundamental Concepts and Mechanisms"
+    url: https://courses.cs.washington.edu/courses/csep552/18wi/papers/chapt4.pdf
+    type: paper
+  - title: "Chandy and Lamport (1985), Distributed Snapshots: Determining Global States of Distributed Systems, ACM TOCS 3(1)"
+    url: https://lamport.azurewebsites.net/pubs/chandy.pdf
+    type: paper
+  - title: "Mattern (1989), Virtual Time and Global States of Distributed Systems"
+    url: https://www.vs.inf.ethz.ch/publ/papers/VirtTimeGlobStates.pdf
+    type: paper
+  - title: "Lai and Yang (1987), On Distributed Snapshots, Information Processing Letters 25(3)"
+    url: https://doi.org/10.1016/0020-0190(87)90125-6
+    type: paper
+  - title: "Marzullo and Neiger (1991), Detection of Global State Predicates"
+    url: https://apps.dtic.mil/sti/pdfs/ADA243444.pdf
+    type: paper
+  - title: "Chase and Garg (1995), On Techniques and their Limitations for the Global Predicate Detection Problem in Distributed Systems"
+    url: https://users.ece.utexas.edu/~garg/pdslab/TechReports/1995/TR-PDS-1995-004.abstract
+    type: paper
+  - title: "Carbone et al. (2015), Lightweight Asynchronous Snapshots for Distributed Dataflows"
+    url: https://arxiv.org/abs/1506.08603
+    type: paper
+  - title: "Elnozahy, Alvisi, Wang and Johnson (2002), A Survey of Rollback-Recovery Protocols in Message-Passing Systems"
+    url: https://www.cs.utexas.edu/~lorenzo/papers/SurveyFinal.pdf
+    type: paper
+  - title: "Apache Flink (2020), From Aligned to Unaligned Checkpoints, Part 1"
+    url: https://flink.apache.org/2020/10/15/from-aligned-to-unaligned-checkpoints-part-1-checkpoints-alignment-and-backpressure/
+    type: documentation
+---
+
+A *global state* of a distributed computation is a tuple of one local state per process and one message sequence per channel. It is *consistent* if it is the state at a cut of the computation that is closed under the happens-before relation: whenever the cut contains an event, it contains every event that happens before it. Equivalently, every message that the global state records as received, it also records as sent.
+
+No process can read another's memory, and there is no global clock, so a global state is never observed directly; it is assembled from local states recorded at different moments and from messages. A consistent global state is one that an ideal observer could have seen at some instant of an execution that is indistinguishable, to every process, from the real one. An inconsistent one contains an effect without its cause, such as money credited at one bank branch that was never debited at another, and a predicate evaluated on it can report a condition that never held. [Babaoglu and Marzullo](https://courses.cs.washington.edu/courses/csep552/18wi/papers/chapt4.pdf) frame the problem as *global predicate evaluation*: deciding whether the system satisfies a predicate $\Phi$ of its global state, such as "the system is deadlocked" or "the total balance is 3,000". The [[systems/distributed-systems/clocks|clocks]] note covers the timestamps used below, and the note on [[systems/distributed-systems/ordering-events-in-distributed-systems|Lamport's 1978 paper]] covers the happens-before relation.
+
+## System model
+
+A distributed system is a set of *sequential* processes $p_1, \ldots, p_n$ and a set of unidirectional channels between pairs of them. The system is *asynchronous*: there is no bound on relative process speeds or message delays, and no shared clock. Channels are reliable (every message sent is received exactly once) and, unless stated otherwise, may reorder messages. The channel graph is strongly connected but not necessarily complete. An algorithm that is correct under these assumptions is also correct in any system that additionally has synchronized clocks or bounded delays.
+
+Each process executes a sequence of *events*: internal events, which change only its local state, and the events $send(m)$ and $receive(m)$. The *local history* of $p_i$ is $h_i = e_i^1 e_i^2 \cdots$, and $h_i^k$ is its prefix of length $k$. The local state $\sigma_i^k$ is the state of $p_i$ after $e_i^k$, with $\sigma_i^0$ its initial state.
+
+Lamport's *happens-before* relation $\to$ is the smallest transitive relation such that $e_i^k \to e_i^{k+1}$ for consecutive events of one process and $send(m) \to receive(m)$ for every message. Two distinct events are *concurrent*, written $e \parallel e'$, if neither happens before the other. No other ordering between events on different processes is observable from inside the system.
+
+## Cuts and consistent cuts
+
+A *cut* is a prefix of every local history:
+
+$$
+C = h_1^{c_1} \cup h_2^{c_2} \cup \cdots \cup h_n^{c_n},
+$$
+
+written as the vector $(c_1, \ldots, c_n)$. Its *frontier* is the set of last events $\{e_1^{c_1}, \ldots, e_n^{c_n}\}$. The cut defines the global state $\Sigma^C = (\sigma_1^{c_1}, \ldots, \sigma_n^{c_n})$ together with the state of each channel $p_j \to p_i$: the messages sent by $p_j$ inside $C$ and received by $p_i$ outside it, in sending order.
+
+A cut is *consistent* if it is left-closed under happens-before ([Mattern 1989, Definition 3](https://www.vs.inf.ethz.ch/publ/papers/VirtTimeGlobStates.pdf)):
+
+$$
+e \in C \;\wedge\; e' \to e \;\Longrightarrow\; e' \in C.
+$$
+
+A cut is already closed under each process's program order, so it can violate this condition only through a message: $C$ is inconsistent exactly when some $receive(m) \in C$ has $send(m) \notin C$. Such a message is an *orphan* of the cut. A message with $send(m) \in C$ and $receive(m) \notin C$ is *in flight* across the cut and belongs to a channel state; it does not make the cut inconsistent.
+
+Two characterizations make the condition checkable. First, the frontier events of a consistent cut are pairwise concurrent ([Mattern 1989, Theorem 3](https://www.vs.inf.ethz.ch/publ/papers/VirtTimeGlobStates.pdf)). The converse holds when every $c_i \ge 1$: if $e' \to e$ with $e \in C$ and $e'$ on $p_i$ outside $C$, then $e_i^{c_i} \to e' \to e$, and $e$ is at or before some frontier event, so two frontier events are ordered. Second, with [[systems/distributed-systems/clocks|vector clocks]] $VC$, in which $VC(e_i^{k})[i] = k$,
+
+$$
+C \text{ is consistent} \iff VC(e_j^{c_j})[i] \le c_i \quad \text{for all } i, j.
+$$
+
+$VC(e_j^{c_j})[i]$ is the number of $p_i$'s events that happen before or at $p_j$'s frontier event. If it exceeds $c_i$, that frontier event depends on an event of $p_i$ outside the cut; if it never does, every event that happens before a frontier event is inside the cut. Mattern states the same result as: the vector time of a cut is consistent if and only if it equals $(VC(e_1^{c_1})[1], \ldots, VC(e_n^{c_n})[n])$ ([Theorem 6](https://www.vs.inf.ethz.ch/publ/papers/VirtTimeGlobStates.pdf)). A monitor that receives each process's frontier clock can therefore decide consistency with $n^2$ comparisons, without seeing any messages.
+
+The figure below replays 2.7 ms of a recorded run of the experiment in [[#Measuring uncoordinated and Chandy-Lamport snapshots]]: three processes on one host transferring money to each other over TCP. Both snapshots it offers were taken by the processes during that run. The readout applies both tests above, the message test and the frontier vector clocks, to the chosen cut.
+
+<SnapshotCut start="naive" />
+
+The money in the system makes consistency measurable. For any cut,
+
+$$
+\sum_i \text{balance}_i(C) + \sum_{m \text{ in flight}} a_m
+= \text{total} + \sum_{m \text{ orphan}} a_m ,
+$$
+
+because a transfer of $a_m$ contributes $-a_m$ to the balances if its send is in $C$ and $+a_m$ if its receive is. The two cancel for a message entirely inside $C$, an in-flight message is restored by the second sum, and an orphan contributes only its $+a_m$. On a consistent cut the identity is conservation of money. The uncoordinated snapshot in the figure has one orphan: P1 recorded its balance at 833 µs and then, at 989 µs, sent 20 to P3, which received it at 1,116 µs and recorded its own balance at 1,274 µs. Its recorded balances sum to 2,941; adding the 79 in flight would give 3,020, which exceeds the 3,000 in the system by the orphan's 20. The figure's tests check the identity, and the agreement of the two consistency tests, on all 729 cuts of the window and on every cut of 200 random computations.
+
+## The lattice of consistent global states
+
+The union and the intersection of two consistent cuts are consistent, so the consistent cuts of a computation form a lattice under inclusion ([Mattern 1989, Theorem 2](https://www.vs.inf.ethz.ch/publ/papers/VirtTimeGlobStates.pdf)). Its bottom is the initial state $(0, \ldots, 0)$ and its top is the final state. A *run* is a total order of all events that respects each local history; a *consistent run* also respects $\to$. A consistent run passes through a chain of consistent global states from bottom to top, advancing one process by one event at each step, and every such chain is a consistent run. Observers that receive event notifications with different delays can observe different consistent runs of the same computation; the lattice is common to all of them.
+
+The lattice can be large. In the figure's window, 85 of the $9^3 = 729$ cuts are consistent. In the four-process runs of the experiment, the first 25 events of each process have $26^4 = 456{,}976$ cuts, of which 911 to 1,557 are consistent across six runs. Processes that rarely communicate can advance in any interleaving, so the number of consistent cuts grows exponentially with the number of processes.
+
+## Global predicate evaluation
+
+A predicate $\Phi$ is *stable* if, once true in a global state, it is true in every later global state of the computation. Termination, deadlock, loss of a token and an object becoming garbage are stable. A stable predicate can be evaluated on a single consistent snapshot: by the reachability property of [[#Chandy-Lamport snapshots]], if $\Phi$ holds in the snapshot it holds when the snapshot completes, and if it does not hold in the snapshot it did not hold when the snapshot started.
+
+An unstable predicate, such as "the queue at $p_1$ and the queue at $p_2$ together hold more than 100 requests", can be true in some states of the lattice and false in others, so a single snapshot neither confirms nor refutes it. Cooper and Marzullo defined two modalities over the observations of a computation, stated by [Marzullo and Neiger (1991)](https://apps.dtic.mil/sti/pdfs/ADA243444.pdf) as:
+
+- $\textit{Possibly}(\Phi)$: there is an execution consistent with the observed behavior in which $\Phi$ was true at some point. Equivalently, some consistent cut satisfies $\Phi$.
+- $\textit{Definitely}(\Phi)$: in every execution consistent with the observed behavior, $\Phi$ was true at some point. Equivalently, every path from the bottom of the lattice to the top passes through a cut that satisfies $\Phi$.
+
+$\textit{Possibly}$ answers whether a different message timing could have exposed a bad state, which is the question a debugger asks. $\textit{Definitely}$ answers whether a state was reached regardless of timing. A monitor that receives every event with its vector timestamp can decide both by traversing the lattice level by level, at a cost proportional to the number of consistent cuts. For arbitrary predicates the detection problem is NP-complete ([Chase and Garg 1995](https://users.ece.utexas.edu/~garg/pdslab/TechReports/1995/TR-PDS-1995-004.abstract)), so practical detectors restrict the form of $\Phi$, for example to conjunctions of predicates on individual processes.
+
+## Snapshot protocols
+
+### Uncoordinated recording
+
+The simplest protocol has a coordinator ask every process to record its state immediately. It records no channel state, so even when the cut happens to be consistent the recorded total omits money in flight. A message sent by a process that has already recorded to one that has not yet recorded becomes an orphan. The probability of each failure rises with the message rate and with the spread of recording times, as [[#Measuring uncoordinated and Chandy-Lamport snapshots]] quantifies. Recording at a physical clock reading $T$ has the same defect: the cut can be inconsistent whenever the clock skew between two processes exceeds the delay of a message between them ([[systems/distributed-systems/clocks#Why Timestamps Alone Can't Order Events|clocks]]).
+
+A cut defined by logical time is consistent. If $L$ is a Lamport clock, the cut $\{e : L(e) \le t\}$ is consistent for every $t$, because $e' \to e$ implies $L(e') < L(e)$. Multiversion databases use this form of snapshot: a read at timestamp $t$, in a system whose commit timestamps respect causality (Spanner's [[systems/distributed-systems/clocks#TrueTime: Waiting Out the Uncertainty|TrueTime]] commit wait ensures this), reads the consistent cut at $t$.
+
+### Chandy-Lamport snapshots
+
+[Chandy and Lamport (1985)](https://lamport.azurewebsites.net/pubs/chandy.pdf) give a protocol for systems whose channels are FIFO. Any process may initiate it by recording its own state; markers then propagate the snapshot:
+
+- **Marker sending rule.** After a process records its state, it sends one marker on each outgoing channel before sending any further message on that channel.
+- **Marker receiving rule.** When a process receives a marker on channel $c$ and has not yet recorded its state, it records its state, records $c$ as empty, and follows the sending rule. If it has already recorded its state, it records as the state of $c$ the messages received on $c$ after it recorded its state and before this marker.
+
+A process is finished when it has received a marker on every incoming channel. The protocol sends one marker per channel; collecting the recorded states, for example at the initiator, is a separate step.
+
+The recorded cut is consistent. Suppose $p$ sends $m$ to $q$ and $q$ receives $m$ before $q$ records its state. If $p$ had recorded its state before sending $m$, the sending rule would have placed $p$'s marker ahead of $m$ on the channel, FIFO delivery would have delivered the marker first, and $q$ would have recorded its state before receiving $m$. So every message received inside the cut was sent inside it. The recorded state of channel $p \to q$ is exactly its in-flight set: by FIFO, the messages that $q$ receives on that channel between its own recording and $p$'s marker are those that $p$ sent before recording and that $q$ received after recording.
+
+The recorded global state need not be one the system passed through; the paper's example records a state "not identical to any of the global states" of the actual execution. Its Theorem 1 gives the property that matters instead: the recorded state is reachable from the state in which the algorithm started, and the state in which it finished is reachable from the recorded state. Stable predicate detection relies on exactly this property.
+
+### Non-FIFO channels
+
+Without FIFO delivery, a marker can overtake a message sent before it. [Lai and Yang (1987)](https://doi.org/10.1016/0020-0190(87)90125-6) piggyback one bit on every message: a process is *white* before it records its state and *red* after, and every message carries its sender's color. A white process that receives a red message records its state before processing the message, which prevents orphans. Channel states are reconstructed from each process's log of messages sent and received, since no marker delimits them. [Mattern (1989, Section 11)](https://www.vs.inf.ethz.ch/publ/papers/VirtTimeGlobStates.pdf) gives a related algorithm for non-FIFO channels.
+
+### Snapshots in practice
+
+Coordinated checkpointing for rollback recovery writes a consistent snapshot to stable storage. Checkpoints taken independently can be mutually inconsistent, and recovery must then roll processes back to earlier checkpoints until it finds a consistent cut. Rollback can propagate back to the initial state of the computation, which the survey by [Elnozahy et al. (2002)](https://www.cs.utexas.edu/~lorenzo/papers/SurveyFinal.pdf) calls the *domino effect*.
+
+Stream processors snapshot dataflow graphs with the same mechanism. Apache Flink's *asynchronous barrier snapshotting* ([Carbone et al. 2015](https://arxiv.org/abs/1506.08603)) injects barriers, which are markers, at the sources. An operator with several inputs blocks each input on which a barrier has arrived until barriers have arrived on all of them (*alignment*), then records its state and forwards the barrier. Because alignment holds back every record that follows a barrier, no channel state remains on an acyclic graph and the snapshot "persists only operator states"; on cyclic graphs, records on back edges are logged as channel state. Under backpressure, alignment delays a checkpoint, because a barrier waits behind every buffered record on its channel. Flink 1.11 added *unaligned checkpoints* ([Apache Flink 2020](https://flink.apache.org/2020/10/15/from-aligned-to-unaligned-checkpoints-part-1-checkpoints-alignment-and-backpressure/)), which let the barrier overtake buffered records and store those records with the checkpoint, the channel-recording half of the Chandy-Lamport algorithm.
+
+## Measuring uncoordinated and Chandy-Lamport snapshots
+
+The harness, [`snapshot_bench.py`](consistent-global-state-experiments/snapshot_bench.py), runs four operating-system processes on one host. Each starts with a balance of 1,000 and transfers 1 to 50 units to a random peer at exponentially distributed intervals. Every ordered pair of processes has its own TCP connection, so channels are reliable and FIFO. A coordinator takes 50 snapshots per run, each in both ways: it asks every process to record its balance over a separate control connection (uncoordinated), and it asks one random process to start Chandy-Lamport, whose markers travel on the data connections. Every process logs every event with its vector clock and a `CLOCK_MONOTONIC` timestamp, which on one host is a single clock shared by all processes. [`analyze.py`](consistent-global-state-experiments/analyze.py) rebuilds the execution from the logs and checks every recorded cut with both the orphan test and the vector-clock test, asserting that they agree. Each row below summarizes three runs (seeds 1 to 3) of 50 snapshots of each kind, as the range across the runs.
+
+| Target rate (transfers/s per process) | Achieved | Uncoordinated: total wrong | Uncoordinated: inconsistent | Uncoordinated: median spread of recording times | Chandy-Lamport: channel messages per snapshot | Chandy-Lamport: median completion |
+| --- | --- | --- | --- | --- | --- | --- |
+| 100 | 94–99 | 2–10% | 0–2% | 112–120 µs | 0.0–0.1 | 0.65–0.68 ms |
+| 1,000 | 832–838 | 36–52% | 0–4% | 129–142 µs | 0.4–0.6 | 0.66–0.68 ms |
+| 10,000 | 4,052–4,258 | 90–94% | 14–22% | 211–234 µs | 2.6–3.2 | 0.77–0.84 ms |
+| unthrottled | 4,494–4,615 | 100% | 60–82% | 6.8–7.9 ms | 92–106 | 19.9–21.4 ms |
+
+All 600 Chandy-Lamport snapshots were consistent, every recorded channel state equaled the in-flight set computed from the logs message for message, and every snapshot accounted for exactly 4,000 units. The uncoordinated snapshots failed in two ways. At low rates most failures come from the missing channel state: at about 97 transfers per second the total was wrong in 2 to 10% of snapshots, while only 0 to 2% of the cuts were inconsistent. As the rate rises, orphans appear: at about 4,150 transfers per second, 14 to 22% of uncoordinated cuts were inconsistent, one of them with 18 orphans. Unthrottled, the record requests queue behind transfers in each process's input queue, the recording times spread over about 7 ms, and 60 to 82% of the cuts were inconsistent. Even on one host the uncoordinated recording times spread over 0.1 ms or more; across machines the spread of a time-triggered snapshot is bounded below by clock synchronization error ([[systems/distributed-systems/clocks#Physical Clocks|clocks]]).
+
+Chandy-Lamport completion time, from the initiator's recording to the last process receiving its last marker, was 0.65 to 0.84 ms while the processes kept up with the offered load, about two message hops through Python's socket and queue path. Unthrottled, it grew to about 20 ms, because each marker waits on its FIFO channel behind every queued transfer, the delay that unaligned checkpoints remove in Flink.
+
+> [!note]- Measurement record
+> **Host:** a 4-vCPU VM (Intel Xeon @ 2.10 GHz), Linux 6.18, Python 3.13.18, NumPy 2.5.3. All processes ran on this host; channels were localhost TCP with `TCP_NODELAY`, with one reader thread per incoming connection feeding a single event queue per process, so each process handles its events sequentially.
+>
+> **Workload:** 4 processes, a complete channel graph, initial balance 1,000 each, transfers of 1 to 50 units (never more than the sender's balance) to a uniformly random peer, exponential inter-send times with mean 1/rate. "Unthrottled" sends whenever the process's input queue is empty. A 0.2 s warm-up is followed by 50 snapshot rounds at intervals of 40 to 120 ms; each round sends the uncoordinated record requests to all processes in random order, then a Chandy-Lamport start request to one random process. Each run ends by stopping all senders before stopping the processes, so no transfer is lost and the final balances sum to 4,000.
+>
+> **Checks in `analyze.py`:** every transfer sent is received; every recorded balance equals the balance replayed from the log; the orphan test and the vector-clock test agree on every recorded cut; every Chandy-Lamport channel record equals the set of messages in flight across its cut. "Achieved" is the number of sends divided by the time between a run's first and last send. Completion and spread are measured on the shared monotonic clock and are never used by a protocol.
+>
+> **Lattice counts:** `analyze.py --lattice --window 25` enumerates all $26^4$ cuts of the first 25 events of each process with NumPy and cross-checks 2,000 of them against the orphan test. For rates 100 and 1,000, seeds 1 to 3: 911, 1,037, 1,557, 932, 1,026 and 1,212 consistent cuts.
+>
+> **Figure trace:** a separate three-process run at 3,000 transfers/s per process (seed 3), cut by [`figure_trace.py`](consistent-global-state-experiments/figure_trace.py) around snapshot 36, with the window bounded on both sides by consistent cuts. Timing differs on every run, so rerunning produces a different window.
+>
+> **Reproduce:** `sh run_all.sh` in the experiments folder (about four minutes). Outputs: [`summary.json`](consistent-global-state-experiments/summary.json), [`lattice.json`](consistent-global-state-experiments/lattice.json) and [`figure-trace.json`](consistent-global-state-experiments/figure-trace.json).
+
+## Related notes
+
+- [[systems/distributed-systems/clocks|Clocks]]: Lamport, vector and hybrid logical clocks, which timestamp the events whose cuts are checked here.
+- [[systems/distributed-systems/ordering-events-in-distributed-systems|Time, Clocks, and the Ordering of Events]]: the happens-before relation.
+- [[systems/distributed-systems/two-phase-commit|Two-phase commit]]: atomic commitment, another protocol that coordinates a decision across processes through logged local states.
+- [[systems/distributed-systems/consistency|Consistency models]]: correctness conditions on histories of reads and writes, which are predicates over runs rather than over single global states.

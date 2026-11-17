@@ -1,0 +1,262 @@
+// The snapshot cut figure (snapshot-cut). The shaded region is the cut's
+// past; red arrows are orphans (received inside, sent outside), orange ones
+// are in flight across the cut, dashed purple ones are Chandy-Lamport markers.
+figure.sc {
+  --sc-bad: var(--fig-red);
+  --sc-flight: var(--fig-orange);
+  --sc-good: var(--fig-green);
+  --sc-marker: var(--fig-purple);
+  @include fig-frame;
+
+  .sc-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.5rem;
+
+    button {
+      @include fig-button(0.25rem 0.6rem, 0.86rem);
+      @include fig-button-hover;
+      cursor: pointer;
+    }
+
+    button[aria-pressed="true"] {
+      @include fig-pressed;
+    }
+
+    button[data-idle] {
+      opacity: 0.55;
+    }
+
+    :disabled {
+      cursor: progress;
+      opacity: 0.6;
+    }
+  }
+
+  .sc-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+    font-size: 0.88rem;
+
+    input {
+      @include fig-native-check;
+      accent-color: var(--secondary);
+    }
+  }
+
+  .sc-plot {
+    margin-top: 0.4rem;
+  }
+
+  .sc-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    font-family: var(--bodyFont);
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: pan-x pan-y;
+  }
+
+  .sc-past {
+    fill: var(--highlight);
+  }
+
+  .sc-proc {
+    stroke: var(--darkgray);
+    stroke-width: 1.5;
+  }
+
+  .sc-pname {
+    fill: var(--dark);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .sc-band {
+    fill: transparent;
+    cursor: pointer;
+  }
+
+  .sc-msg {
+    stroke: var(--gray);
+    fill: var(--gray);
+    stroke-width: 1.2;
+
+    .sc-amt {
+      stroke: none;
+      fill: var(--gray);
+      font-size: 10px;
+      font-variant-numeric: tabular-nums;
+      paint-order: stroke;
+    }
+
+    &.sc-stub line {
+      stroke-dasharray: 1 3;
+    }
+
+    &.sc-flight {
+      stroke: var(--sc-flight);
+      fill: var(--sc-flight);
+      stroke-width: 2;
+
+      .sc-amt {
+        fill: var(--sc-flight);
+        font-weight: 600;
+      }
+    }
+
+    &.sc-orphan {
+      stroke: var(--sc-bad);
+      fill: var(--sc-bad);
+      stroke-width: 2.4;
+
+      .sc-amt {
+        fill: var(--sc-bad);
+        font-weight: 700;
+      }
+    }
+  }
+
+  .sc-marker {
+    stroke: var(--sc-marker);
+    fill: var(--sc-marker);
+    stroke-width: 1.4;
+    opacity: 0.85;
+
+    line {
+      stroke-dasharray: 5 3;
+    }
+  }
+
+  .sc-ev {
+    fill: var(--light);
+    stroke: var(--darkgray);
+    stroke-width: 1.5;
+    pointer-events: none;
+
+    &.sc-send {
+      fill: var(--darkgray);
+    }
+
+    &.sc-in {
+      stroke: var(--dark);
+    }
+  }
+
+  .sc-cut {
+    fill: none;
+    stroke: var(--sc-good);
+    stroke-width: 2;
+    stroke-dasharray: 6 3;
+    pointer-events: none;
+
+    &.sc-bad {
+      stroke: var(--sc-bad);
+    }
+  }
+
+  .sc-handle {
+    cursor: ew-resize;
+    outline: none;
+    touch-action: none;
+
+    .sc-hit {
+      fill: transparent;
+    }
+
+    .sc-knob {
+      fill: var(--secondary);
+      stroke: var(--light);
+      stroke-width: 1.5;
+    }
+
+    &:hover .sc-hit,
+    &:focus-visible .sc-hit {
+      fill: var(--highlight);
+      stroke: var(--secondary);
+      stroke-width: 1;
+    }
+  }
+
+  .sc-readout {
+    min-height: 13rem;
+    overflow-x: auto;
+    font-size: 0.9rem;
+
+    p {
+      margin: 0.35rem 0;
+    }
+  }
+
+  .sc-verdict[data-tone="good"] strong {
+    color: var(--sc-good);
+  }
+
+  .sc-verdict[data-tone="bad"] strong {
+    color: var(--sc-bad);
+  }
+
+  // Quartz wraps build-time tables in .table-container with its own spacing;
+  // the client wraps redrawn ones the same way, and both get these values.
+  .sc-table {
+    width: 100%;
+    margin: 0.3rem 0;
+    padding: 0;
+    border-collapse: collapse;
+    font-size: 0.86rem;
+
+    > * {
+      line-height: 1.4;
+    }
+
+    th,
+    td {
+      min-width: 0;
+      padding: 0.2rem 0.5rem;
+      border-bottom: 1px solid var(--lightgray);
+      text-align: left;
+    }
+
+    td {
+      font-family: var(--codeFont);
+      font-size: 0.82rem;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+  }
+
+  .sc-summary {
+    margin: 0.6rem 0 0;
+    padding: 0.45rem 0.7rem;
+    border-left: 3px solid var(--gray);
+    border-radius: 2px;
+    background: var(--highlight);
+    font-size: 0.88rem;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    padding: 0.8rem 0.7rem;
+
+    // At phone width the labels would shrink below 7px, so the diagram keeps
+    // a readable size and scrolls sideways inside the figure.
+    .sc-plot {
+      overflow-x: auto;
+    }
+
+    .sc-svg {
+      min-width: 520px;
+    }
+
+    .sc-table th,
+    .sc-table td {
+      padding: 0.2rem 0.3rem;
+    }
+  }
+}

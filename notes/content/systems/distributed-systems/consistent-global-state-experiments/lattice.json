@@ -1,0 +1,50 @@
+[
+ {
+  "procs": 4,
+  "window": 25,
+  "cuts": 456976,
+  "consistent": 911,
+  "fraction": 0.0019935401421518856,
+  "messages_inside_window": 43
+ },
+ {
+  "procs": 4,
+  "window": 25,
+  "cuts": 456976,
+  "consistent": 1037,
+  "fraction": 0.0022692657820104337,
+  "messages_inside_window": 47
+ },
+ {
+  "procs": 4,
+  "window": 25,
+  "cuts": 456976,
+  "consistent": 1557,
+  "fraction": 0.0034071811211092047,
+  "messages_inside_window": 45
+ },
+ {
+  "procs": 4,
+  "window": 25,
+  "cuts": 456976,
+  "consistent": 932,
+  "fraction": 0.0020394944154616436,
+  "messages_inside_window": 43
+ },
+ {
+  "procs": 4,
+  "window": 25,
+  "cuts": 456976,
+  "consistent": 1026,
+  "fraction": 0.0022451944959910367,
+  "messages_inside_window": 48
+ },
+ {
+  "procs": 4,
+  "window": 25,
+  "cuts": 456976,
+  "consistent": 1212,
+  "fraction": 0.002652218059591751,
+  "messages_inside_window": 46
+ }
+]
