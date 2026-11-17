@@ -1,0 +1,233 @@
+---
+title: "Software Prefetching Benchmark: __builtin_prefetch vs Hardware"
+aliases:
+  - operating-systems/benchmarks/prefetch
+category: Performance Engineering
+tags:
+  - prefetching
+  - cache
+  - memory-latency
+  - hardware-prefetcher
+  - memory-level-parallelism
+  - performance
+  - benchmarks
+date: 2025-12-29
+updated: 2026-11-17
+authors:
+  - elimelt
+  - claude-opus-5-5
+status: needs-review
+description: GCC's __builtin_prefetch on an indexed gather and a sequential sum, measured on an Emerald Rapids cloud VM, where the speedup from prefetching grows from 1.07x to 3.7x with the work done per element, the best distance follows Mowry's ceil(L / c), and prefetcht1 outperforms prefetcht0 by 1.5x on a gather with no work.
+sources:
+  - title: Original benchmark measurements by Elijah Melton
+    type: experiment
+  - title: GCC documentation, Other Built-in Functions (__builtin_prefetch)
+    url: https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html
+    type: docs
+  - title: GCC documentation, Options That Control Optimization (-fprefetch-loop-arrays)
+    url: https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html
+    type: docs
+  - title: PREFETCHh, Intel 64 and IA-32 Architectures Software Developer's Manual (HTML extract)
+    url: https://www.felixcloutier.com/x86/prefetchh
+    type: docs
+  - title: "Mowry, Lam, Gupta (1992), Design and Evaluation of a Compiler Algorithm for Prefetching, ASPLOS V"
+    url: https://doi.org/10.1145/143365.143488
+    type: paper
+  - title: "Callahan, Kennedy, Porterfield (1991), Software Prefetching, ASPLOS IV"
+    url: https://doi.org/10.1145/106972.106979
+    type: paper
+  - title: "Lee, Kim, Vuduc (2012), When Prefetching Works, When It Doesn't, and Why, ACM TACO 9(1)"
+    url: https://doi.org/10.1145/2133382.2133384
+    type: paper
+  - title: "Ainsworth, Jones (2017), Software Prefetching for Indirect Memory Accesses, CGO"
+    url: https://www.cl.cam.ac.uk/~sa614/papers/Software-Prefetching-CGO2017.pdf
+    type: paper
+  - title: "Chen, Ailamaki, Gibbons, Mowry (2004), Improving Hash Join Performance through Prefetching, ICDE"
+    url: https://www.pdl.cmu.edu/ftp/Database/icde04.pdf
+    type: paper
+  - title: "Corbet (2011), The problem with prefetch, LWN"
+    url: https://lwn.net/Articles/444336/
+    type: article
+---
+
+A software prefetch is an instruction that asks the memory system to bring the cache line containing a given address closer to the core, without loading a value into a register. On x86 the instructions are `PREFETCHT0`, `PREFETCHT1`, `PREFETCHT2` and `PREFETCHNTA`, which the [SDM](https://www.felixcloutier.com/x86/prefetchh) describes as "merely a hint" that "does not affect program behavior": a prefetch of an invalid address does not fault, and the processor may ignore it.
+
+A load that misses every cache stalls the instructions that depend on it for the full memory latency, about 150 ns on the machine measured here. If the program knows the address several iterations before it needs the value, a prefetch issued that early overlaps the miss with the intervening work, and the later load hits in cache. Hardware prefetchers do the same for addresses they can predict from the access history, such as a sequential stream; software prefetching covers addresses the program can compute but the hardware cannot predict, such as `a[idx[i]]`.
+
+The measurements below sweep the prefetch distance, the amount of work per element and the locality hint on a cloud VM whose CPU is recorded, and keep the original measurements from the author's unrecorded machine separately under [[#Author's machine]].
+
+## The instruction
+
+GCC exposes the instruction as `__builtin_prefetch(addr, rw, locality)` ([GCC docs](https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html)). `rw` is 0 for a read (the default), 1 for a write and 2 for a shared read; `locality` runs from 0, "no temporal locality", to 3, "should be left in all levels of cache possible", and defaults to 3. Both must be compile-time constants. GCC 13 on x86-64 emits the following instructions for a read, as `objdump` of the benchmark binary shows:
+
+| `locality` | Instruction | SDM description |
+|---:|---|---|
+| 3 | `prefetcht0` | "into all levels of the cache hierarchy" |
+| 2 | `prefetcht1` | "into level 2 cache and higher" |
+| 1 | `prefetcht2` | "into level 3 cache and higher, or an implementation-specific choice" |
+| 0 | `prefetchnta` | "into non-temporal cache structure and into a location close to the processor, minimizing cache pollution" |
+
+The address expression is still evaluated, so `__builtin_prefetch(&p->next->next)` dereferences `p->next`. GCC can also insert prefetches itself for loops over large arrays with `-fprefetch-loop-arrays`, which is not in the option sets of `-O1`, `-O2` or `-O3` and which the [manual](https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html) warns "may generate better or worse code".
+
+## Prefetch distance
+
+A prefetch issued $D$ iterations ahead, in a loop that takes $t$ ns per iteration, is issued $D \cdot t$ ns before its load. It hides the whole miss when this lead time is at least the miss latency $L$. [Mowry, Lam and Gupta](https://doi.org/10.1145/143365.143488) set the distance from the latency and "the length of the shortest path through the loop body" $s$:
+
+$$D^* = \left\lceil \frac{L}{s} \right\rceil.$$
+
+Below, $s$ is measured as $c$, the time per iteration of the same loop when its data fits in L1. A shorter distance leaves part of each miss exposed; a much longer one holds prefetched lines in the cache for longer before use, where other lines can evict them.
+
+Prefetching does not create memory parallelism beyond what the core can track. A prefetch that misses L1 occupies a fill buffer, the L1D structure that tracks outstanding misses, until its line arrives, and Intel documents 16 per Golden Cove core (the VM's Raptor Cove cores are assumed to match, as [[systems/operating-systems/benchmarks/mlp|memory-level parallelism]] explains). By [Little's law](https://doi.org/10.1287/opre.9.3.383) the throughput of misses is then at most $16 / L$, which is the floor $L / 16$ on time per element when every element misses (the same note measures the plateau of independent random loads on this VM at 9.8 ns). Without any prefetch the out-of-order core already overlaps misses from different iterations, as many as fit in its reorder buffer; a prefetch adds overlap when the work per iteration fills the reorder buffer before enough misses are in flight.
+
+## Workload
+
+The gather sums a mixing function of 4 million randomly indexed 8-byte elements of a 4 GiB array. The indices are uniform over the whole array and precomputed, so the prefetch address `&a[idx[i + D]]` is known $D$ iterations ahead, and no hardware prefetcher can predict it:
+
+```c
+static inline uint64_t mix(uint64_t x, int w) {
+    for (int r = 0; r < w; r++) x = (x ^ (x >> 31)) * 0x9e3779b97f4a7c15ull;
+    return x;
+}
+
+for (size_t i = 0; i < n; i++) {
+    __builtin_prefetch(&a[idx[i + D]], 0, H);   // omitted entirely when D = 0
+    sum += mix(a[idx[i]], W);
+}
+```
+
+`mix` is $W$ rounds of a shift, an exclusive or and a multiply, a dependent chain of about 5 cycles per round. Different elements' chains are independent, so the core can overlap them as far as its reorder buffer allows. $W$ is 0, 4, 16 or 64. A "hot" run of the same loop indexes a 32 KiB array that stays in L1 and gives $c$ for each $W$.
+
+The sequential variant streams through the first 1 GiB of the array and prefetches $B$ bytes ahead, one prefetch per element as in the original version of the note, so seven of every eight prefetches name a line already requested:
+
+```c
+for (size_t i = 0; i < n; i++) {
+    __builtin_prefetch(&a[i + B / 8], 0, H);
+    sum += a[i];
+}
+```
+
+GCC 13.3 at `-O2` compiles both sequential loops (with and without the prefetch) to one scalar `add` from memory per element; neither is vectorized, so the prefetch is the only difference.
+
+## Cloud VM (Emerald Rapids)
+
+The VM is a 4-vCPU KVM guest whose CPU reports family 6, model 207, the Emerald Rapids Xeon that [[systems/operating-systems/benchmarks/mlp|memory-level parallelism]] measured. $L$ is that note's single-chain pointer-chase median on the same VM, 151.6 ns with 2 MB pages and 243.8 ns with 4 KB pages. Every value below is a median of 12 runs (4 processes of 3 blocks), with the minimum and maximum in parentheses where given.
+
+### Distance and work per element
+
+With 2 MB pages and `prefetcht0`:
+
+| $W$ | $c$ (data in L1) | $D^* = \lceil L/c \rceil$ | No prefetch | Best $D$ | ns at best $D$ | Speedup |
+|---:|---:|---:|---:|---:|---:|---:|
+| 0 | 0.92 | 165 | 12.39 (11.72–14.09) | 32 | 11.60 (10.53–13.29) | 1.07x |
+| 4 | 2.98 | 51 | 30.22 (28.36–34.21) | 16 | 16.03 (14.58–19.01) | 1.89x |
+| 16 | 11.21 | 14 | 96.78 (92.74–107.99) | 16 | 26.17 (22.05–28.31) | 3.70x |
+| 64 | 73.36 | 3 | 267.68 (256.01–278.35) | 16 | 87.16 (72.75–102.87) | 3.07x |
+
+<PrefetchDistance work="16" />
+
+The benefit grows with the work per element. With $W = 0$ the loop body is a few instructions, the reorder buffer holds many iterations, and the core keeps $151.6 / 12.39 = 12.2$ misses in flight without any prefetch, close to the 16 fill buffers. A prefetch has little left to add, and the best distance improves on no prefetch by 7%, within the spread of the runs (the first pass, described under How this was measured, gave 1.21x). With $W = 16$ each iteration is about 120 instructions and only a few iterations fit in the reorder buffer, so without prefetching the core holds $151.6 / 96.78 = 1.6$ misses in flight; a prefetch 16 elements ahead raises that to 5.8 and cuts the time per element by a factor of 3.7.
+
+The best distance agrees with $\lceil L / c \rceil$ where the loop is compute-bound. For $W = 16$, $D^* = 14$ and the measured minimum is at 16, the nearest swept distance. For $W = 64$, $D^* = 3$, and the time per element falls from 267.68 ns with no prefetch to 111.97 ns at $D = 2$ and 88.01 ns at $D = 4$, then stays within the run-to-run spread out to $D = 1024$. For $W = 0$ and $W = 4$ the formula asks for 165 and 51 iterations, but the time per element stops falling at $D = 16$ to 32. In those loops the limit is the number of misses the core can track, so a distance that keeps all of them busy is enough.
+
+<PrefetchDistance work="64" />
+
+None of the loops reaches either floor. With $W = 64$ the best time is 87 ns against $c = 73$ ns, and with $W = 16$ it is 26 ns against 11 ns, with 5.8 misses in flight against 16 fill buffers. The remaining time was not attributed; the guest has no performance counters. One candidate is address translation, since every prefetch and every load touches a random 2 MB page of a 4 GiB array and the host's page size is invisible to the guest.
+
+A distance much longer than needed costs time. With $W = 0$ the time per element at $D = 4096$ is 15.91 ns, 28% slower than no prefetch. At that distance 4,096 lines, 256 KB, have been requested and not yet used, more than the 48 KB L1, which is consistent with `prefetcht0` lines being evicted from L1 before their loads and fetched again from L2.
+
+### Locality hints
+
+<PrefetchDistance work="0" hints="3,2,1,0" distance="64" />
+
+With $W = 0$ and 2 MB pages the hint changes the result more than the distance does. `prefetcht1` at $D = 64$ gives 7.87 ns per element (7.50–9.97), 1.57 times faster than no prefetch and 1.56 times faster than `prefetcht0` at the same distance (12.27 ns); `prefetcht2` gives 9.00 ns. The first pass gave 8.29 and 9.06 ns for the two hints against 12.13 ns for `prefetcht0`.
+
+By Little's law, 7.87 ns per element means $151.6 / 7.87 = 19.3$ misses from DRAM in flight, more than the 16 fill buffers allow if each miss holds one for its whole latency. The result is consistent with a `prefetcht1` that fills L2 without holding an L1 fill buffer for the DRAM latency, so that the demand load later holds a fill buffer only for an L2 hit; Intel's [optimization manual](https://cdrdv2-public.intel.com/930023/355308-051-optimization-reference-manual-changes-doc.pdf) deepens Golden Cove's L2 miss queues to 48 entries, three times the L1's 16. The benchmark cannot observe fill buffer occupancy directly, so this explanation is inferred from throughput.
+
+`prefetchnta` is the slowest hint at every distance from 4 on, and its time rises from 13.36 ns at $D = 64$ to 24.04 ns at $D = 512$, twice the time without a prefetch. The SDM places NTA lines "close to the processor, minimizing cache pollution"; the rise is consistent with NTA lines that, once evicted from L1 by the lines prefetched after them, are not found in L2 and are fetched from DRAM a second time. With $W = 16$ and $W = 64$ the four hints at $D = 64$ are within 20% of one another, and their ranges overlap.
+
+### 4 KB pages
+
+With 4 KB pages every access also misses the TLB, and in a VM each miss starts a two-dimensional page walk ([[systems/operating-systems/benchmarks/mlp|memory-level parallelism]] measures it at 92 ns on top of the miss).
+
+| $W$ | $c$ | No prefetch | Best $D$ (`prefetcht0`) | ns at best $D$ | Speedup |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 0.86 | 25.53 (24.72–31.67) | 8 | 26.84 (24.93–30.40) | 0.95x |
+| 4 | 2.90 | 42.99 (37.58–46.95) | 512 | 27.84 (24.93–34.94) | 1.54x |
+| 16 | 10.96 | 154.06 (129.93–186.04) | 16 | 50.54 (43.36–59.28) | 3.05x |
+| 64 | 74.49 | 425.89 (395.13–458.39) | 16 | 201.53 (178.55–239.70) | 2.11x |
+
+The gather with no work gains nothing from any hint or distance. Every median for `prefetcht0`, `prefetcht1` and `prefetcht2` from $D = 4$ to $D = 512$ lies between 25.1 and 28.7 ns, and the lowest `prefetchnta` median, 24.6 ns at $D = 64$, is 4% below the baseline's. Its baseline of 25.53 ns is about twice the 2 MB baseline, and whatever limits it (fill buffers held by page-table loads, or the number of concurrent walks) also limits prefetches, which need a translation before they can fetch. Where the work per element leaves the miss capacity idle, prefetching helps by a factor of 2 to 3, and the best distance stays at 16. With $W = 4$ the times from $D = 16$ to $D = 512$ (27.84 to 29.33 ns) are within one another's ranges, so the 512 in the table is not a meaningful optimum.
+
+### Sequential sum
+
+| Prefetch | 2 MB pages | 4 KB pages |
+|---|---:|---:|
+| none (hardware prefetchers only) | 0.87 (0.60–1.27) | 0.90 (0.82–1.27) |
+| `prefetcht0`, 512 B ahead | 0.61 (0.52–1.38) | 0.75 (0.68–1.18) |
+| `prefetcht0`, 4 KB ahead | 0.63 (0.44–0.72) | 0.62 (0.54–0.80) |
+| `prefetcht0`, 16 KB ahead | 0.52 (0.43–0.58) | 0.62 (0.50–0.77) |
+| `prefetcht1`, 2 KB ahead | 0.52 (0.48–0.85) | 0.77 (0.58–0.90) |
+| `prefetchnta`, 512 B ahead | 0.80 (0.72–1.55) | 1.42 (0.72–2.32) |
+
+The hardware prefetchers alone give 0.87 ns per element, 9.2 GB/s, with a wide spread: the per-process medians ranged from 0.65 to 1.14 ns. `prefetcht0` or `prefetcht1` 2 to 16 KB ahead gives 0.52 to 0.63 ns, up to 1.67 times faster. The loop's serial `add` chain allows at most one element per cycle, and the fastest single run, 0.43 ns, implies a clock of at least 2.3 GHz; the best medians are within 21% of that run. `prefetchnta` is not faster than the hardware prefetchers at any distance with 2 MB pages (0.80 to 1.26 ns) and no faster with 4 KB pages (0.92 to 1.42 ns).
+
+The original version of the note measured `prefetchnta` 512 B ahead (`locality` 0 in its code) at 2.5 times the hardware-only speed. On this VM the same configuration gives 1.09 times, within the spread, so that result does not carry over. Its explanation, that the hardware prefetcher limits its distance to avoid pollution, was not tested there or here.
+
+> [!note]- How this was measured
+> - **Machine:** a shared 4-vCPU KVM guest (kernel `6.18.44-fc-v553`) whose CPU reports "Intel(R) Xeon(R) Processor @ 2.10GHz", family 6, model 207, stepping 2; L1D 48 KB, L2 2 MB and L3 260 MB per `/sys/devices/system/cpu/cpu1/cache`; 15 GB of RAM. The guest exposes no hardware performance counters and no MSRs, so the hardware prefetchers could not be disabled and miss counts were not measured.
+> - **Code:** [`prefetch_bench.c`](prefetch_bench.c), compiled by [`run_prefetch_bench.sh`](run_prefetch_bench.sh) with GCC 13.3.0 (`-O2 -std=gnu11 -Wall -Wextra`). The script records the CPU, caches, kernel, compiler, flags, THP mode and the source's SHA-256 at the top of the results.
+> - **Pages:** 2 MB pages through transparent huge pages (`madvise(MADV_HUGEPAGE)`, THP mode `madvise`); `/proc/self/smaps` reported all 4,194,304 KiB of the array as huge pages in every 2 MB process and 0 KiB in every 4 KB process (`MADV_NOHUGEPAGE`).
+> - **Procedure:** each process fills the 4 GiB array and draws 4,000,000 uniform indices (plus 8,192 for the prefetch to read past the end) from its own seed, runs one untimed gather and one untimed sequential pass, then runs each of 117 configurations once per block in an order shuffled by the seed, for 3 blocks. A gather run times 4,000,000 elements and a sequential run 134,217,728 elements (1 GiB), each with `CLOCK_MONOTONIC_RAW`. Eight processes run in the page-size order 2m, 4k, 4k, 2m, 2m, 4k, 4k, 2m, pinned with `taskset` to CPU 1. The pass took 9 minutes.
+> - **Load:** single-threaded; the 1-minute load average before each process was 0.61 to 1.06, and the busiest other process used at most 3.2% of a CPU.
+> - **Two passes:** the tables use the second pass ([raw output](prefetch_bench-results.txt)). A first pass 9 minutes earlier with the same binary and 84 of the configurations ([raw output](prefetch_bench-results-pass1.txt)) gave, with 2 MB pages, 14.22 ns without a prefetch and 11.73 ns at the best `prefetcht0` distance for $W = 0$; 97.48 and 24.77 ns for $W = 16$; 271.27 and 87.46 ns for $W = 64$; 0.91 ns for the hardware-only sequential sum; and 8.29 ns for `prefetcht1` at $D = 64$.
+> - **Results:** [`analyze_prefetch_bench.py`](analyze_prefetch_bench.py) (Python 3, standard library only) prints the tables and writes [`prefetch_bench-summary.json`](prefetch_bench-summary.json). The figures draw those medians and ranges, and their test checks every drawn point, and every derived number in the readout, against the JSON and against the MLP benchmark's latency.
+
+## Author's machine
+
+These numbers come from the original version of the note. The CPU model, compiler and flags were not recorded. The array was 256 MB and the prefetch used `locality` 0 (`prefetchnta`). The hardware-only sequential time (1.37 ns) and the random baseline (7.61 ns) are within 2% and 4% of the sequential and random figures in [[systems/operating-systems/benchmarks/README|measuring real DRAM latency]], measured on an Intel Core i9-13900HK, which suggests the same machine without establishing it.
+
+| Variant | Distance | ns/access | vs baseline |
+|---------|----------|-----------|-------------|
+| random, no prefetch | 0 | 7.61 | 1.0x |
+| random | +8 | 6.23 | 1.2x |
+| random | +32 | 5.91 | 1.3x |
+| random | +128 | 5.99 | 1.3x |
+| sequential, hardware only | 0 | 1.37 | 1.0x |
+| sequential | +64 elements (512 B) | 0.54 | 2.5x |
+
+The random loop did no work per element, like $W = 0$ above, and gained 1.3x from prefetching where the VM gained 1.07x to 1.21x with `prefetcht0`. The sequential gain of 2.5x is larger than any the VM showed, and on the VM `prefetchnta` was the hint least likely to help. The original note attributed the 7.61 ns random baseline to the loop being "close to bandwidth-bound"; at 7.61 ns per 64-byte line one core reads 8.4 GB/s, and the [[systems/operating-systems/benchmarks/mlp|memory-level parallelism]] measurements place the plateau of independent random loads in the core's miss tracking.
+
+## When software prefetching helps
+
+The measurements and the literature agree on the conditions. Software prefetching helps when the address is computable ahead of time and unpredictable to hardware, when each iteration does enough work that the out-of-order window alone keeps few misses in flight, and when the distance is near $\lceil L / c \rceil$. [Ainsworth and Jones](https://www.cl.cam.ac.uk/~sa614/papers/Software-Prefetching-CGO2017.pdf) automate this for indirect accesses `a[b[i]]`, prefetching `b[i + 2c]` and `a[b[i + c]]` in staggered pairs, and report average speedups of 1.3x on an Intel Haswell, 2.1x on an in-order ARM Cortex-A53 and 2.7x on an Intel Xeon Phi. [Chen, Ailamaki, Gibbons and Mowry](https://www.pdl.cmu.edu/ftp/Database/icde04.pdf) restructure hash joins so that the cache misses of a group of probes overlap (group prefetching and software-pipelined prefetching), and report 2.0 to 2.9 times faster join phases.
+
+It does not help when the core already tracks as many misses as it can, as in the gather with no work, or when the data is already in cache, where it adds instructions. [Lee, Kim and Vuduc](https://doi.org/10.1145/2133382.2133384) found that software prefetches can train the hardware prefetchers or slow their training, and conclude that "it is generally better not to train hardware prefetching with software prefetching requests". In 2011 Linux removed `prefetch()` from its linked-list and `sk_buff` traversal macros after profiling by Linus Torvalds and measurements by Ingo Molnar showed that the prefetches "caused a performance loss of about 0.5%", partly because a prefetch of the NULL at a list's end "causes a translation lookaside buffer miss and a pipeline stall" ([LWN](https://lwn.net/Articles/444336/)).
+
+A single pointer chase gains nothing from a prefetch, because the address of the next node is the value the current load returns. Several independent chases, interleaved as in [[systems/operating-systems/benchmarks/mlp|memory-level parallelism]] or in group prefetching, overlap their misses without any prefetch instruction.
+
+## Reproduction
+
+On Linux x86-64, from this directory:
+
+```bash
+./run_prefetch_bench.sh                      # 4 GiB array, 4,000,000 elements per gather run, 3 blocks, CPU 1
+CPU=3 ./run_prefetch_bench.sh 4096 4000000 3
+python3 analyze_prefetch_bench.py            # tables and prefetch_bench-summary.json
+```
+
+The runner needs about 4.2 GB of free memory and overwrites `prefetch_bench-results.txt`. `CPU` should name an idle logical CPU.
+
+> [!note]- Potentially interesting ideas
+> - With performance counters (on bare metal), `L1D_PEND_MISS.FB_FULL` and the L2 outstanding-request events would show directly whether `prefetcht1` sidesteps the L1 fill buffers, and whether the $W = 16$ loop at its best distance waits for translations, fill buffers or neither.
+> - The four hints were swept over distance only for $W = 0$. A sweep for $W = 4$ would show whether `prefetcht1`'s advantage persists once the out-of-order window, and not the fill buffers, limits the loop.
+> - Ainsworth and Jones's staggered prefetch of the index array as well as the data would matter when `idx` itself misses; here `idx` is read sequentially and the hardware prefetchers cover it.
+> - Rerunning this harness on the author's machine with its CPU recorded would show whether its 2.5x sequential result comes from that core's prefetchers or from `prefetchnta`.
+
+## Related notes
+
+- [[systems/operating-systems/benchmarks/mlp|memory-level parallelism]], for fill buffers, Little's law and the latency $L$ used here
+- [[systems/operating-systems/benchmarks/README|measuring real DRAM latency]]
+- [[hardware/computer-architecture/caches-virtual-memory|caches and virtual memory]], for MSHRs, TLBs and hardware prefetching
+- [[systems/operating-systems/benchmarks/tlb|TLB and page walks]]
+- [[systems/operating-systems/benchmarks/bandwidth|memory bandwidth]]
+- [[systems/performance/streaming_benchmarks/cache_line_efficiency/README|cache line efficiency]]

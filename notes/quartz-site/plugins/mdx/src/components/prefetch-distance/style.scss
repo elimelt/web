@@ -1,0 +1,160 @@
+// Prefetch distance chart (prefetch-distance).
+figure.pd {
+  @include fig-frame;
+  font-size: 0.9rem;
+
+  .pd-slider {
+    @include fig-slider;
+    font-size: 0.85rem;
+    color: var(--darkgray);
+    margin-bottom: 0.4rem;
+  }
+
+  .pd-chart {
+    @include fig-chart;
+    aspect-ratio: 640 / 250;
+  }
+
+  .pd-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .pd-tick {
+    fill: var(--gray);
+    font-size: 12px;
+  }
+
+  .pd-axis {
+    fill: var(--darkgray);
+    font-size: 12.5px;
+  }
+
+  .pd-note {
+    fill: var(--gray);
+    font-size: 11px;
+  }
+
+  .pd-floor {
+    stroke: var(--gray);
+    stroke-width: 1;
+    stroke-dasharray: 5 4;
+  }
+
+  .pd-mowry {
+    stroke: var(--gray);
+    stroke-width: 1;
+    stroke-dasharray: 1 3;
+  }
+
+  .pd-cursor {
+    stroke: var(--secondary);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+  }
+
+  .pd-series {
+    polyline {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linejoin: round;
+    }
+
+    circle {
+      fill: currentColor;
+    }
+
+    .pd-here {
+      stroke: var(--light);
+      stroke-width: 1.5;
+    }
+
+    .pd-range {
+      stroke: currentColor;
+      stroke-width: 1.4;
+      opacity: 0.55;
+    }
+  }
+
+  .pd-h3 {
+    color: var(--fig-blue);
+  }
+
+  .pd-h2 {
+    color: var(--fig-green);
+  }
+
+  .pd-h1 {
+    color: var(--fig-purple);
+  }
+
+  .pd-h0 {
+    color: var(--fig-orange);
+  }
+
+  .pd-keys {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem 1rem;
+    margin: 0.1rem 0 0.3rem;
+    color: var(--gray);
+    font-size: 0.8rem;
+
+    > span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+  }
+
+  i.pd-key {
+    display: inline-block;
+    width: 0.9rem;
+    height: 0;
+    border-top: 2px solid currentColor;
+  }
+
+  i.pd-key-floor {
+    border-top: 1px dashed var(--gray);
+  }
+
+  i.pd-key-mowry {
+    width: 0;
+    height: 0.8rem;
+    border-top: 0;
+    border-left: 1px dotted var(--gray);
+  }
+
+  .pd-readout {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    margin: 0.2rem 0 0.5rem;
+    color: var(--darkgray);
+    font-variant-numeric: tabular-nums;
+
+    b {
+      color: var(--dark);
+    }
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .pd-tick {
+      font-size: 20px;
+    }
+
+    .pd-note {
+      font-size: 18px;
+    }
+
+    .pd-axis,
+    .pd-minor {
+      display: none;
+    }
+  }
+}
