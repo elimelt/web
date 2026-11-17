@@ -1,0 +1,1827 @@
+{
+ "runs": [
+  {
+   "seed": 1,
+   "heartbeats": 6000,
+   "lost": 0,
+   "minutes": 9.998,
+   "interval": {
+    "idle": {
+     "mean": 99.997,
+     "p50": 99.999,
+     "p99": 101.843,
+     "p999": 105.399,
+     "max": 111.284
+    },
+    "gc": {
+     "mean": 100,
+     "p50": 99.989,
+     "p90": 157.988,
+     "p99": 265.078,
+     "max": 576.683,
+     "over150": 245
+    }
+   },
+   "transit": {
+    "p50": 0.204,
+    "p99": 0.794,
+    "max": 11.558
+   },
+   "lateness": {
+    "p99": 148.364,
+    "max": 476.533
+   },
+   "windows": {
+    "100": {
+     "phiNormal": {
+      "points": {
+       "1": {
+        "detection": 132.729,
+        "mistakes": 323,
+        "mistakesPerHour": 2326.066,
+        "accuracy": 0.972,
+        "mistakeDuration": 43.551,
+        "gcPhase": 235,
+        "firstMinuteOfWorkload": 53,
+        "afterWorkload": 69
+       },
+       "2": {
+        "detection": 159.412,
+        "mistakes": 181,
+        "mistakesPerHour": 1303.461,
+        "accuracy": 0.991,
+        "mistakeDuration": 24.327,
+        "gcPhase": 126,
+        "firstMinuteOfWorkload": 32,
+        "afterWorkload": 39
+       },
+       "3": {
+        "detection": 178.921,
+        "mistakes": 77,
+        "mistakesPerHour": 554.511,
+        "accuracy": 0.998,
+        "mistakeDuration": 15.102,
+        "gcPhase": 40,
+        "firstMinuteOfWorkload": 13,
+        "afterWorkload": 25
+       },
+       "5": {
+        "detection": 208.921,
+        "mistakes": 32,
+        "mistakesPerHour": 230.446,
+        "accuracy": 0.999,
+        "mistakeDuration": 18.962,
+        "gcPhase": 2,
+        "firstMinuteOfWorkload": 2,
+        "afterWorkload": 22
+       },
+       "8": {
+        "detection": 243.324,
+        "mistakes": 27,
+        "mistakesPerHour": 194.439,
+        "accuracy": 0.999,
+        "mistakeDuration": 21.03,
+        "gcPhase": 2,
+        "firstMinuteOfWorkload": 2,
+        "afterWorkload": 18
+       },
+       "12": {
+        "detection": 279.653,
+        "mistakes": 26,
+        "mistakesPerHour": 187.237,
+        "accuracy": 0.999,
+        "mistakeDuration": 20.291,
+        "gcPhase": 2,
+        "firstMinuteOfWorkload": 2,
+        "afterWorkload": 17
+       },
+       "16": {
+        "detection": 309.983,
+        "mistakes": 19,
+        "mistakesPerHour": 136.827,
+        "accuracy": 0.999,
+        "mistakeDuration": 26.102,
+        "gcPhase": 2,
+        "firstMinuteOfWorkload": 2,
+        "afterWorkload": 11
+       }
+      },
+      "atDetection": {
+       "200": {
+        "mph": 256.767,
+        "threshold": 4.348
+       },
+       "300": {
+        "mph": 144.199,
+        "threshold": 14.618
+       },
+       "500": null,
+       "1000": null
+      }
+     },
+     "phiExp": {
+      "points": {
+       "1": {
+        "detection": 230.258,
+        "mistakes": 95,
+        "mistakesPerHour": 684.137,
+        "accuracy": 0.994,
+        "mistakeDuration": 29.315,
+        "gcPhase": 95,
+        "firstMinuteOfWorkload": 35,
+        "afterWorkload": 0
+       },
+       "2": {
+        "detection": 460.517,
+        "mistakes": 1,
+        "mistakesPerHour": 7.201,
+        "accuracy": 1,
+        "mistakeDuration": 116.167,
+        "gcPhase": 1,
+        "firstMinuteOfWorkload": 1,
+        "afterWorkload": 0
+       },
+       "3": {
+        "detection": 690.775,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "5": {
+        "detection": 1151.292,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "8": {
+        "detection": 1842.068,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "12": {
+        "detection": 2763.101,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "16": {
+        "detection": 3684.135,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       }
+      },
+      "atDetection": {
+       "200": {
+        "mph": 1195.377,
+        "threshold": 0.869
+       },
+       "300": {
+        "mph": 47.599,
+        "threshold": 1.304
+       },
+       "500": {
+        "mph": 7.201,
+        "threshold": 2.172
+       },
+       "1000": {
+        "mph": 0,
+        "threshold": 4.345
+       }
+      }
+     },
+     "timeout": {
+      "points": {
+       "150": {
+        "detection": 150,
+        "mistakes": 245,
+        "mistakesPerHour": 1764.353,
+        "accuracy": 0.965,
+        "mistakeDuration": 70.762,
+        "gcPhase": 245,
+        "firstMinuteOfWorkload": 55,
+        "afterWorkload": 0
+       },
+       "200": {
+        "detection": 200,
+        "mistakes": 168,
+        "mistakesPerHour": 1209.842,
+        "accuracy": 0.987,
+        "mistakeDuration": 39.763,
+        "gcPhase": 168,
+        "firstMinuteOfWorkload": 48,
+        "afterWorkload": 0
+       },
+       "300": {
+        "detection": 300,
+        "mistakes": 4,
+        "mistakesPerHour": 28.806,
+        "accuracy": 0.999,
+        "mistakeDuration": 95.901,
+        "gcPhase": 4,
+        "firstMinuteOfWorkload": 4,
+        "afterWorkload": 0
+       },
+       "400": {
+        "detection": 400,
+        "mistakes": 1,
+        "mistakesPerHour": 7.201,
+        "accuracy": 1,
+        "mistakeDuration": 176.683,
+        "gcPhase": 1,
+        "firstMinuteOfWorkload": 1,
+        "afterWorkload": 0
+       },
+       "500": {
+        "detection": 500,
+        "mistakes": 1,
+        "mistakesPerHour": 7.201,
+        "accuracy": 1,
+        "mistakeDuration": 76.683,
+        "gcPhase": 1,
+        "firstMinuteOfWorkload": 1,
+        "afterWorkload": 0
+       },
+       "700": {
+        "detection": 700,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "1000": {
+        "detection": 1000,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "2000": {
+        "detection": 2000,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       }
+      },
+      "atDetection": {
+       "200": {
+        "mph": 1207.475,
+        "threshold": 200.018
+       },
+       "300": {
+        "mph": 38.691,
+        "threshold": 300.192
+       },
+       "500": {
+        "mph": 7.201,
+        "threshold": 500.043
+       },
+       "1000": {
+        "mph": 0,
+        "threshold": 1000
+       }
+      }
+     }
+    },
+    "1000": {
+     "phiNormal": {
+      "points": {
+       "1": {
+        "detection": 137.204,
+        "mistakes": 259,
+        "mistakesPerHour": 1865.174,
+        "accuracy": 0.97,
+        "mistakeDuration": 58.001,
+        "gcPhase": 231,
+        "firstMinuteOfWorkload": 55,
+        "afterWorkload": 12
+       },
+       "2": {
+        "detection": 167.536,
+        "mistakes": 148,
+        "mistakesPerHour": 1065.813,
+        "accuracy": 0.988,
+        "mistakeDuration": 40.975,
+        "gcPhase": 132,
+        "firstMinuteOfWorkload": 50,
+        "afterWorkload": 8
+       },
+       "3": {
+        "detection": 189.712,
+        "mistakes": 71,
+        "mistakesPerHour": 511.302,
+        "accuracy": 0.994,
+        "mistakeDuration": 42.476,
+        "gcPhase": 63,
+        "firstMinuteOfWorkload": 41,
+        "afterWorkload": 5
+       },
+       "5": {
+        "detection": 223.813,
+        "mistakes": 27,
+        "mistakesPerHour": 194.439,
+        "accuracy": 0.997,
+        "mistakeDuration": 61.316,
+        "gcPhase": 23,
+        "firstMinuteOfWorkload": 23,
+        "afterWorkload": 2
+       },
+       "8": {
+        "detection": 262.921,
+        "mistakes": 14,
+        "mistakesPerHour": 100.82,
+        "accuracy": 0.998,
+        "mistakeDuration": 83.852,
+        "gcPhase": 11,
+        "firstMinuteOfWorkload": 11,
+        "afterWorkload": 1
+       },
+       "12": {
+        "detection": 304.217,
+        "mistakes": 8,
+        "mistakesPerHour": 57.612,
+        "accuracy": 0.998,
+        "mistakeDuration": 112.513,
+        "gcPhase": 7,
+        "firstMinuteOfWorkload": 7,
+        "afterWorkload": 0
+       },
+       "16": {
+        "detection": 338.694,
+        "mistakes": 7,
+        "mistakesPerHour": 50.41,
+        "accuracy": 0.998,
+        "mistakeDuration": 111.496,
+        "gcPhase": 6,
+        "firstMinuteOfWorkload": 6,
+        "afterWorkload": 0
+       }
+      },
+      "atDetection": {
+       "200": {
+        "mph": 348.194,
+        "threshold": 3.546
+       },
+       "300": {
+        "mph": 65.458,
+        "threshold": 11.555
+       },
+       "500": {
+        "mph": 14.666,
+        "threshold": 42.769
+       },
+       "1000": null
+      }
+     },
+     "phiExp": {
+      "points": {
+       "1": {
+        "detection": 230.258,
+        "mistakes": 95,
+        "mistakesPerHour": 684.137,
+        "accuracy": 0.994,
+        "mistakeDuration": 29.288,
+        "gcPhase": 95,
+        "firstMinuteOfWorkload": 35,
+        "afterWorkload": 0
+       },
+       "2": {
+        "detection": 460.517,
+        "mistakes": 1,
+        "mistakesPerHour": 7.201,
+        "accuracy": 1,
+        "mistakeDuration": 116.166,
+        "gcPhase": 1,
+        "firstMinuteOfWorkload": 1,
+        "afterWorkload": 0
+       },
+       "3": {
+        "detection": 690.775,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "5": {
+        "detection": 1151.292,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "8": {
+        "detection": 1842.068,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "12": {
+        "detection": 2763.102,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "16": {
+        "detection": 3684.135,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       }
+      },
+      "atDetection": {
+       "200": {
+        "mph": 1195.377,
+        "threshold": 0.869
+       },
+       "300": {
+        "mph": 47.599,
+        "threshold": 1.304
+       },
+       "500": {
+        "mph": 7.201,
+        "threshold": 2.172
+       },
+       "1000": {
+        "mph": 0,
+        "threshold": 4.345
+       }
+      }
+     },
+     "timeout": {
+      "points": {
+       "150": {
+        "detection": 150,
+        "mistakes": 245,
+        "mistakesPerHour": 1764.353,
+        "accuracy": 0.965,
+        "mistakeDuration": 70.762,
+        "gcPhase": 245,
+        "firstMinuteOfWorkload": 55,
+        "afterWorkload": 0
+       },
+       "200": {
+        "detection": 200,
+        "mistakes": 168,
+        "mistakesPerHour": 1209.842,
+        "accuracy": 0.987,
+        "mistakeDuration": 39.763,
+        "gcPhase": 168,
+        "firstMinuteOfWorkload": 48,
+        "afterWorkload": 0
+       },
+       "300": {
+        "detection": 300,
+        "mistakes": 4,
+        "mistakesPerHour": 28.806,
+        "accuracy": 0.999,
+        "mistakeDuration": 95.901,
+        "gcPhase": 4,
+        "firstMinuteOfWorkload": 4,
+        "afterWorkload": 0
+       },
+       "400": {
+        "detection": 400,
+        "mistakes": 1,
+        "mistakesPerHour": 7.201,
+        "accuracy": 1,
+        "mistakeDuration": 176.683,
+        "gcPhase": 1,
+        "firstMinuteOfWorkload": 1,
+        "afterWorkload": 0
+       },
+       "500": {
+        "detection": 500,
+        "mistakes": 1,
+        "mistakesPerHour": 7.201,
+        "accuracy": 1,
+        "mistakeDuration": 76.683,
+        "gcPhase": 1,
+        "firstMinuteOfWorkload": 1,
+        "afterWorkload": 0
+       },
+       "700": {
+        "detection": 700,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "1000": {
+        "detection": 1000,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "2000": {
+        "detection": 2000,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       }
+      },
+      "atDetection": {
+       "200": {
+        "mph": 1207.475,
+        "threshold": 200.018
+       },
+       "300": {
+        "mph": 38.691,
+        "threshold": 300.192
+       },
+       "500": {
+        "mph": 7.201,
+        "threshold": 500.043
+       },
+       "1000": {
+        "mph": 0,
+        "threshold": 1000
+       }
+      }
+     }
+    }
+   },
+   "phiNormal8Tau": {
+    "idleMedian": 104.258,
+    "gcMedian": 380.386,
+    "gcMax": 413.119
+   }
+  },
+  {
+   "seed": 2,
+   "heartbeats": 6000,
+   "lost": 0,
+   "minutes": 9.998,
+   "interval": {
+    "idle": {
+     "mean": 99.999,
+     "p50": 99.999,
+     "p99": 101.727,
+     "p999": 107.334,
+     "max": 109.829
+    },
+    "gc": {
+     "mean": 100,
+     "p50": 99.993,
+     "p90": 151.419,
+     "p99": 261.257,
+     "max": 342.133,
+     "over150": 241
+    }
+   },
+   "transit": {
+    "p50": 0.2,
+    "p99": 0.8,
+    "max": 6.046
+   },
+   "lateness": {
+    "p99": 139.532,
+    "max": 241.952
+   },
+   "windows": {
+    "100": {
+     "phiNormal": {
+      "points": {
+       "1": {
+        "detection": 130.899,
+        "mistakes": 309,
+        "mistakesPerHour": 2225.245,
+        "accuracy": 0.974,
+        "mistakeDuration": 42.678,
+        "gcPhase": 234,
+        "firstMinuteOfWorkload": 57,
+        "afterWorkload": 47
+       },
+       "2": {
+        "detection": 156.09,
+        "mistakes": 176,
+        "mistakesPerHour": 1267.453,
+        "accuracy": 0.992,
+        "mistakeDuration": 23.753,
+        "gcPhase": 126,
+        "firstMinuteOfWorkload": 35,
+        "afterWorkload": 33
+       },
+       "3": {
+        "detection": 174.508,
+        "mistakes": 89,
+        "mistakesPerHour": 640.928,
+        "accuracy": 0.998,
+        "mistakeDuration": 12.901,
+        "gcPhase": 50,
+        "firstMinuteOfWorkload": 20,
+        "afterWorkload": 27
+       },
+       "5": {
+        "detection": 202.83,
+        "mistakes": 31,
+        "mistakesPerHour": 223.245,
+        "accuracy": 0.999,
+        "mistakeDuration": 12.793,
+        "gcPhase": 5,
+        "firstMinuteOfWorkload": 5,
+        "afterWorkload": 19
+       },
+       "8": {
+        "detection": 235.31,
+        "mistakes": 29,
+        "mistakesPerHour": 208.842,
+        "accuracy": 0.999,
+        "mistakeDuration": 11.12,
+        "gcPhase": 5,
+        "firstMinuteOfWorkload": 5,
+        "afterWorkload": 18
+       },
+       "12": {
+        "detection": 269.607,
+        "mistakes": 21,
+        "mistakesPerHour": 151.23,
+        "accuracy": 1,
+        "mistakeDuration": 11.726,
+        "gcPhase": 4,
+        "firstMinuteOfWorkload": 4,
+        "afterWorkload": 13
+       },
+       "16": {
+        "detection": 298.241,
+        "mistakes": 19,
+        "mistakesPerHour": 136.827,
+        "accuracy": 1,
+        "mistakeDuration": 9.672,
+        "gcPhase": 4,
+        "firstMinuteOfWorkload": 4,
+        "afterWorkload": 11
+       }
+      },
+      "atDetection": {
+       "200": {
+        "mph": 240.597,
+        "threshold": 4.777
+       },
+       "300": {
+        "mph": 136.827,
+        "threshold": 16.275
+       },
+       "500": null,
+       "1000": null
+      }
+     },
+     "phiExp": {
+      "points": {
+       "1": {
+        "detection": 230.259,
+        "mistakes": 82,
+        "mistakesPerHour": 590.518,
+        "accuracy": 0.996,
+        "mistakeDuration": 23.454,
+        "gcPhase": 82,
+        "firstMinuteOfWorkload": 31,
+        "afterWorkload": 0
+       },
+       "2": {
+        "detection": 460.517,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "3": {
+        "detection": 690.776,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "5": {
+        "detection": 1151.293,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "8": {
+        "detection": 1842.068,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "12": {
+        "detection": 2763.103,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "16": {
+        "detection": 3684.137,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       }
+      },
+      "atDetection": {
+       "200": {
+        "mph": 1087.02,
+        "threshold": 0.869
+       },
+       "300": {
+        "mph": 29.438,
+        "threshold": 1.304
+       },
+       "500": {
+        "mph": 0,
+        "threshold": 2.172
+       },
+       "1000": {
+        "mph": 0,
+        "threshold": 4.345
+       }
+      }
+     },
+     "timeout": {
+      "points": {
+       "150": {
+        "detection": 150,
+        "mistakes": 241,
+        "mistakesPerHour": 1735.547,
+        "accuracy": 0.969,
+        "mistakeDuration": 65.006,
+        "gcPhase": 241,
+        "firstMinuteOfWorkload": 56,
+        "afterWorkload": 0
+       },
+       "200": {
+        "detection": 200,
+        "mistakes": 146,
+        "mistakesPerHour": 1051.41,
+        "accuracy": 0.989,
+        "mistakeDuration": 36.984,
+        "gcPhase": 146,
+        "firstMinuteOfWorkload": 46,
+        "afterWorkload": 0
+       },
+       "300": {
+        "detection": 300,
+        "mistakes": 4,
+        "mistakesPerHour": 28.806,
+        "accuracy": 1,
+        "mistakeDuration": 20.271,
+        "gcPhase": 4,
+        "firstMinuteOfWorkload": 3,
+        "afterWorkload": 0
+       },
+       "400": {
+        "detection": 400,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "500": {
+        "detection": 500,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "700": {
+        "detection": 700,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "1000": {
+        "detection": 1000,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "2000": {
+        "detection": 2000,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       }
+      },
+      "atDetection": {
+       "200": {
+        "mph": 1072.873,
+        "threshold": 200.018
+       },
+       "300": {
+        "mph": 24.288,
+        "threshold": 300.192
+       },
+       "500": {
+        "mph": 0,
+        "threshold": 500.043
+       },
+       "1000": {
+        "mph": 0,
+        "threshold": 1000
+       }
+      }
+     }
+    },
+    "1000": {
+     "phiNormal": {
+      "points": {
+       "1": {
+        "detection": 134.893,
+        "mistakes": 263,
+        "mistakesPerHour": 1893.978,
+        "accuracy": 0.971,
+        "mistakeDuration": 54.217,
+        "gcPhase": 229,
+        "firstMinuteOfWorkload": 57,
+        "afterWorkload": 15
+       },
+       "2": {
+        "detection": 163.339,
+        "mistakes": 161,
+        "mistakesPerHour": 1159.432,
+        "accuracy": 0.988,
+        "mistakeDuration": 37.234,
+        "gcPhase": 135,
+        "firstMinuteOfWorkload": 55,
+        "afterWorkload": 10
+       },
+       "3": {
+        "detection": 184.138,
+        "mistakes": 79,
+        "mistakesPerHour": 568.914,
+        "accuracy": 0.994,
+        "mistakeDuration": 39.787,
+        "gcPhase": 63,
+        "firstMinuteOfWorkload": 46,
+        "afterWorkload": 8
+       },
+       "5": {
+        "detection": 216.12,
+        "mistakes": 35,
+        "mistakesPerHour": 252.05,
+        "accuracy": 0.996,
+        "mistakeDuration": 52.334,
+        "gcPhase": 28,
+        "firstMinuteOfWorkload": 27,
+        "afterWorkload": 3
+       },
+       "8": {
+        "detection": 252.798,
+        "mistakes": 20,
+        "mistakesPerHour": 144.029,
+        "accuracy": 0.998,
+        "mistakeDuration": 61.054,
+        "gcPhase": 17,
+        "firstMinuteOfWorkload": 17,
+        "afterWorkload": 2
+       },
+       "12": {
+        "detection": 291.528,
+        "mistakes": 17,
+        "mistakesPerHour": 122.424,
+        "accuracy": 0.998,
+        "mistakeDuration": 52.651,
+        "gcPhase": 14,
+        "firstMinuteOfWorkload": 14,
+        "afterWorkload": 2
+       },
+       "16": {
+        "detection": 323.863,
+        "mistakes": 13,
+        "mistakesPerHour": 93.619,
+        "accuracy": 0.999,
+        "mistakeDuration": 53.892,
+        "gcPhase": 10,
+        "firstMinuteOfWorkload": 10,
+        "afterWorkload": 2
+       }
+      },
+      "atDetection": {
+       "200": {
+        "mph": 336.1,
+        "threshold": 3.922
+       },
+       "300": {
+        "mph": 119.271,
+        "threshold": 12.998
+       },
+       "500": {
+        "mph": 28.806,
+        "threshold": 48.468
+       },
+       "1000": null
+      }
+     },
+     "phiExp": {
+      "points": {
+       "1": {
+        "detection": 230.258,
+        "mistakes": 82,
+        "mistakesPerHour": 590.518,
+        "accuracy": 0.996,
+        "mistakeDuration": 23.405,
+        "gcPhase": 82,
+        "firstMinuteOfWorkload": 31,
+        "afterWorkload": 0
+       },
+       "2": {
+        "detection": 460.517,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "3": {
+        "detection": 690.775,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "5": {
+        "detection": 1151.292,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "8": {
+        "detection": 1842.068,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "12": {
+        "detection": 2763.102,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "16": {
+        "detection": 3684.136,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       }
+      },
+      "atDetection": {
+       "200": {
+        "mph": 1087.019,
+        "threshold": 0.869
+       },
+       "300": {
+        "mph": 29.438,
+        "threshold": 1.304
+       },
+       "500": {
+        "mph": 0,
+        "threshold": 2.172
+       },
+       "1000": {
+        "mph": 0,
+        "threshold": 4.345
+       }
+      }
+     },
+     "timeout": {
+      "points": {
+       "150": {
+        "detection": 150,
+        "mistakes": 241,
+        "mistakesPerHour": 1735.547,
+        "accuracy": 0.969,
+        "mistakeDuration": 65.006,
+        "gcPhase": 241,
+        "firstMinuteOfWorkload": 56,
+        "afterWorkload": 0
+       },
+       "200": {
+        "detection": 200,
+        "mistakes": 146,
+        "mistakesPerHour": 1051.41,
+        "accuracy": 0.989,
+        "mistakeDuration": 36.984,
+        "gcPhase": 146,
+        "firstMinuteOfWorkload": 46,
+        "afterWorkload": 0
+       },
+       "300": {
+        "detection": 300,
+        "mistakes": 4,
+        "mistakesPerHour": 28.806,
+        "accuracy": 1,
+        "mistakeDuration": 20.271,
+        "gcPhase": 4,
+        "firstMinuteOfWorkload": 3,
+        "afterWorkload": 0
+       },
+       "400": {
+        "detection": 400,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "500": {
+        "detection": 500,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "700": {
+        "detection": 700,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "1000": {
+        "detection": 1000,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "2000": {
+        "detection": 2000,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       }
+      },
+      "atDetection": {
+       "200": {
+        "mph": 1072.873,
+        "threshold": 200.018
+       },
+       "300": {
+        "mph": 24.288,
+        "threshold": 300.192
+       },
+       "500": {
+        "mph": 0,
+        "threshold": 500.043
+       },
+       "1000": {
+        "mph": 0,
+        "threshold": 1000
+       }
+      }
+     }
+    }
+   },
+   "phiNormal8Tau": {
+    "idleMedian": 103.293,
+    "gcMedian": 365.979,
+    "gcMax": 401.061
+   }
+  },
+  {
+   "seed": 3,
+   "heartbeats": 6000,
+   "lost": 0,
+   "minutes": 9.998,
+   "interval": {
+    "idle": {
+     "mean": 99.999,
+     "p50": 100,
+     "p99": 100.304,
+     "p999": 102.407,
+     "max": 114.708
+    },
+    "gc": {
+     "mean": 100,
+     "p50": 99.996,
+     "p90": 134.992,
+     "p99": 234.448,
+     "max": 335.746,
+     "over150": 200
+    }
+   },
+   "transit": {
+    "p50": 0.189,
+    "p99": 0.397,
+    "max": 3.692
+   },
+   "lateness": {
+    "p99": 115.719,
+    "max": 235.763
+   },
+   "windows": {
+    "100": {
+     "phiNormal": {
+      "points": {
+       "1": {
+        "detection": 125.257,
+        "mistakes": 357,
+        "mistakesPerHour": 2570.914,
+        "accuracy": 0.98,
+        "mistakeDuration": 27.798,
+        "gcPhase": 201,
+        "firstMinuteOfWorkload": 52,
+        "afterWorkload": 119
+       },
+       "2": {
+        "detection": 145.847,
+        "mistakes": 168,
+        "mistakesPerHour": 1209.842,
+        "accuracy": 0.993,
+        "mistakeDuration": 20.303,
+        "gcPhase": 115,
+        "firstMinuteOfWorkload": 31,
+        "afterWorkload": 36
+       },
+       "3": {
+        "detection": 160.902,
+        "mistakes": 74,
+        "mistakesPerHour": 532.907,
+        "accuracy": 0.998,
+        "mistakeDuration": 15.253,
+        "gcPhase": 46,
+        "firstMinuteOfWorkload": 14,
+        "afterWorkload": 16
+       },
+       "5": {
+        "detection": 184.052,
+        "mistakes": 15,
+        "mistakesPerHour": 108.022,
+        "accuracy": 0.999,
+        "mistakeDuration": 26.314,
+        "gcPhase": 5,
+        "firstMinuteOfWorkload": 4,
+        "afterWorkload": 6
+       },
+       "8": {
+        "detection": 210.601,
+        "mistakes": 10,
+        "mistakesPerHour": 72.014,
+        "accuracy": 0.999,
+        "mistakeDuration": 30.907,
+        "gcPhase": 4,
+        "firstMinuteOfWorkload": 4,
+        "afterWorkload": 3
+       },
+       "12": {
+        "detection": 238.635,
+        "mistakes": 9,
+        "mistakesPerHour": 64.813,
+        "accuracy": 1,
+        "mistakeDuration": 26.668,
+        "gcPhase": 3,
+        "firstMinuteOfWorkload": 3,
+        "afterWorkload": 3
+       },
+       "16": {
+        "detection": 262.04,
+        "mistakes": 8,
+        "mistakesPerHour": 57.612,
+        "accuracy": 1,
+        "mistakeDuration": 25.714,
+        "gcPhase": 2,
+        "firstMinuteOfWorkload": 2,
+        "afterWorkload": 3
+       }
+      },
+      "atDetection": {
+       "200": {
+        "mph": 79.216,
+        "threshold": 6.713
+       },
+       "300": {
+        "mph": 50.41,
+        "threshold": 23.786
+       },
+       "500": null,
+       "1000": null
+      }
+     },
+     "phiExp": {
+      "points": {
+       "1": {
+        "detection": 230.258,
+        "mistakes": 28,
+        "mistakesPerHour": 201.64,
+        "accuracy": 0.999,
+        "mistakeDuration": 22.469,
+        "gcPhase": 28,
+        "firstMinuteOfWorkload": 17,
+        "afterWorkload": 0
+       },
+       "2": {
+        "detection": 460.517,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "3": {
+        "detection": 690.775,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "5": {
+        "detection": 1151.292,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "8": {
+        "detection": 1842.068,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "12": {
+        "detection": 2763.102,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "16": {
+        "detection": 3684.136,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       }
+      },
+      "atDetection": {
+       "200": {
+        "mph": 682.332,
+        "threshold": 0.869
+       },
+       "300": {
+        "mph": 14.403,
+        "threshold": 1.304
+       },
+       "500": {
+        "mph": 0,
+        "threshold": 2.172
+       },
+       "1000": {
+        "mph": 0,
+        "threshold": 4.345
+       }
+      }
+     },
+     "timeout": {
+      "points": {
+       "150": {
+        "detection": 150,
+        "mistakes": 200,
+        "mistakesPerHour": 1440.288,
+        "accuracy": 0.98,
+        "mistakeDuration": 49.534,
+        "gcPhase": 200,
+        "firstMinuteOfWorkload": 55,
+        "afterWorkload": 0
+       },
+       "200": {
+        "detection": 200,
+        "mistakes": 95,
+        "mistakesPerHour": 684.137,
+        "accuracy": 0.995,
+        "mistakeDuration": 25.549,
+        "gcPhase": 95,
+        "firstMinuteOfWorkload": 33,
+        "afterWorkload": 0
+       },
+       "300": {
+        "detection": 300,
+        "mistakes": 2,
+        "mistakesPerHour": 14.403,
+        "accuracy": 1,
+        "mistakeDuration": 34.297,
+        "gcPhase": 2,
+        "firstMinuteOfWorkload": 2,
+        "afterWorkload": 0
+       },
+       "400": {
+        "detection": 400,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "500": {
+        "detection": 500,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "700": {
+        "detection": 700,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "1000": {
+        "detection": 1000,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "2000": {
+        "detection": 2000,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       }
+      },
+      "atDetection": {
+       "200": {
+        "mph": 675.904,
+        "threshold": 200.018
+       },
+       "300": {
+        "mph": 14.403,
+        "threshold": 300.192
+       },
+       "500": {
+        "mph": 0,
+        "threshold": 500.043
+       },
+       "1000": {
+        "mph": 0,
+        "threshold": 1000
+       }
+      }
+     }
+    },
+    "1000": {
+     "phiNormal": {
+      "points": {
+       "1": {
+        "detection": 128.761,
+        "mistakes": 259,
+        "mistakesPerHour": 1865.173,
+        "accuracy": 0.979,
+        "mistakeDuration": 41.323,
+        "gcPhase": 202,
+        "firstMinuteOfWorkload": 57,
+        "afterWorkload": 49
+       },
+       "2": {
+        "detection": 152.208,
+        "mistakes": 139,
+        "mistakesPerHour": 1001,
+        "accuracy": 0.991,
+        "mistakeDuration": 33.774,
+        "gcPhase": 121,
+        "firstMinuteOfWorkload": 48,
+        "afterWorkload": 14
+       },
+       "3": {
+        "detection": 169.352,
+        "mistakes": 74,
+        "mistakesPerHour": 532.907,
+        "accuracy": 0.995,
+        "mistakeDuration": 32.474,
+        "gcPhase": 62,
+        "firstMinuteOfWorkload": 40,
+        "afterWorkload": 8
+       },
+       "5": {
+        "detection": 195.713,
+        "mistakes": 33,
+        "mistakesPerHour": 237.648,
+        "accuracy": 0.997,
+        "mistakeDuration": 41.19,
+        "gcPhase": 27,
+        "firstMinuteOfWorkload": 27,
+        "afterWorkload": 2
+       },
+       "8": {
+        "detection": 225.945,
+        "mistakes": 20,
+        "mistakesPerHour": 144.029,
+        "accuracy": 0.998,
+        "mistakeDuration": 44.297,
+        "gcPhase": 14,
+        "firstMinuteOfWorkload": 14,
+        "afterWorkload": 2
+       },
+       "12": {
+        "detection": 257.869,
+        "mistakes": 13,
+        "mistakesPerHour": 93.619,
+        "accuracy": 0.999,
+        "mistakeDuration": 53.691,
+        "gcPhase": 9,
+        "firstMinuteOfWorkload": 9,
+        "afterWorkload": 2
+       },
+       "16": {
+        "detection": 284.521,
+        "mistakes": 10,
+        "mistakesPerHour": 72.014,
+        "accuracy": 0.999,
+        "mistakeDuration": 59.465,
+        "gcPhase": 8,
+        "firstMinuteOfWorkload": 8,
+        "afterWorkload": 1
+       }
+      },
+      "atDetection": {
+       "200": {
+        "mph": 230.792,
+        "threshold": 5.38
+       },
+       "300": {
+        "mph": 64.813,
+        "threshold": 18.605
+       },
+       "500": null,
+       "1000": null
+      }
+     },
+     "phiExp": {
+      "points": {
+       "1": {
+        "detection": 230.258,
+        "mistakes": 28,
+        "mistakesPerHour": 201.64,
+        "accuracy": 0.999,
+        "mistakeDuration": 21.849,
+        "gcPhase": 28,
+        "firstMinuteOfWorkload": 17,
+        "afterWorkload": 0
+       },
+       "2": {
+        "detection": 460.517,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "3": {
+        "detection": 690.775,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "5": {
+        "detection": 1151.292,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "8": {
+        "detection": 1842.068,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "12": {
+        "detection": 2763.101,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "16": {
+        "detection": 3684.135,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       }
+      },
+      "atDetection": {
+       "200": {
+        "mph": 673.724,
+        "threshold": 0.869
+       },
+       "300": {
+        "mph": 14.403,
+        "threshold": 1.304
+       },
+       "500": {
+        "mph": 0,
+        "threshold": 2.172
+       },
+       "1000": {
+        "mph": 0,
+        "threshold": 4.345
+       }
+      }
+     },
+     "timeout": {
+      "points": {
+       "150": {
+        "detection": 150,
+        "mistakes": 200,
+        "mistakesPerHour": 1440.288,
+        "accuracy": 0.98,
+        "mistakeDuration": 49.534,
+        "gcPhase": 200,
+        "firstMinuteOfWorkload": 55,
+        "afterWorkload": 0
+       },
+       "200": {
+        "detection": 200,
+        "mistakes": 95,
+        "mistakesPerHour": 684.137,
+        "accuracy": 0.995,
+        "mistakeDuration": 25.549,
+        "gcPhase": 95,
+        "firstMinuteOfWorkload": 33,
+        "afterWorkload": 0
+       },
+       "300": {
+        "detection": 300,
+        "mistakes": 2,
+        "mistakesPerHour": 14.403,
+        "accuracy": 1,
+        "mistakeDuration": 34.297,
+        "gcPhase": 2,
+        "firstMinuteOfWorkload": 2,
+        "afterWorkload": 0
+       },
+       "400": {
+        "detection": 400,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "500": {
+        "detection": 500,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "700": {
+        "detection": 700,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "1000": {
+        "detection": 1000,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       },
+       "2000": {
+        "detection": 2000,
+        "mistakes": 0,
+        "mistakesPerHour": 0,
+        "accuracy": 1,
+        "mistakeDuration": 0,
+        "gcPhase": 0,
+        "firstMinuteOfWorkload": 0,
+        "afterWorkload": 0
+       }
+      },
+      "atDetection": {
+       "200": {
+        "mph": 675.904,
+        "threshold": 200.018
+       },
+       "300": {
+        "mph": 14.403,
+        "threshold": 300.192
+       },
+       "500": {
+        "mph": 0,
+        "threshold": 500.043
+       },
+       "1000": {
+        "mph": 0,
+        "threshold": 1000
+       }
+      }
+     }
+    }
+   },
+   "phiNormal8Tau": {
+    "idleMedian": 101.138,
+    "gcMedian": 323.587,
+    "gcMax": 343.925
+   }
+  }
+ ],
+ "meta": {
+  "churn": [
+   180000,
+   420000
+  ],
+  "judgeFrom": 1000,
+  "node": "v22.23.4"
+ }
+}
