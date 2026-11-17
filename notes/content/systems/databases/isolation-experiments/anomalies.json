@@ -1,0 +1,5371 @@
+{
+ "versions": {
+  "postgresql": "16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+  "mysql": "8.0.46-0ubuntu0.24.04.5"
+ },
+ "wait_s": 0.4,
+ "schedules": {
+  "P0_dirty_write": "w1[x] w2[x] a1 c2",
+  "P1_dirty_read": "w1[x] r2[x] a1 c2; T2 reads 10 if the read is dirty",
+  "P2_fuzzy_read": "r1[x] w2[x] c2 r1[x] c1; fuzzy if T1's two reads differ",
+  "P3_phantom": "r1[P] w2[insert y in P] c2 r1[P] c1; phantom if the two counts differ",
+  "P4_lost_update": "r1[x] r2[x] w2[x] c2 w1[x] c1; lost if x ends at 110",
+  "A5A_read_skew": "r1[x] w2[x] w2[y] c2 r1[y] c1; skew if T1 sees x + y = 110",
+  "A5B_write_skew": "r1[x,y] r2[x,y] w1[x] w2[y] c1 c2; skew if both commit and x + y = 0",
+  "H1_transfer_dirty_read": "Critique H1: T1 moves 40 from x to y; T2 reads x + y = 60 mid-transfer (P1 but not A1)",
+  "H2_transfer_fuzzy_read": "Critique H2: T2 moves 40 from x to y; T1 reads x = 50 before and y = 90 after (P2 but not A2)"
+ },
+ "runs": {
+  "P0_dirty_write": {
+   "postgresql": {
+    "ru": {
+     "steps": [
+      {
+       "step": [
+        "w",
+        1,
+        "x",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "x",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": true,
+       "released_after_step": 2
+      },
+      {
+       "step": [
+        "a",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 2
+     }
+    },
+    "rc": {
+     "steps": [
+      {
+       "step": [
+        "w",
+        1,
+        "x",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "x",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": true,
+       "released_after_step": 2
+      },
+      {
+       "step": [
+        "a",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 2
+     }
+    },
+    "rr": {
+     "steps": [
+      {
+       "step": [
+        "w",
+        1,
+        "x",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "x",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": true,
+       "released_after_step": 2
+      },
+      {
+       "step": [
+        "a",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 2
+     }
+    },
+    "ser": {
+     "steps": [
+      {
+       "step": [
+        "w",
+        1,
+        "x",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "x",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": true,
+       "released_after_step": 2
+      },
+      {
+       "step": [
+        "a",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 2
+     }
+    }
+   },
+   "mysql": {
+    "ru": {
+     "steps": [
+      {
+       "step": [
+        "w",
+        1,
+        "x",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "x",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": true,
+       "released_after_step": 2
+      },
+      {
+       "step": [
+        "a",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 2
+     }
+    },
+    "rc": {
+     "steps": [
+      {
+       "step": [
+        "w",
+        1,
+        "x",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "x",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": true,
+       "released_after_step": 2
+      },
+      {
+       "step": [
+        "a",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 2
+     }
+    },
+    "rr": {
+     "steps": [
+      {
+       "step": [
+        "w",
+        1,
+        "x",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "x",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": true,
+       "released_after_step": 2
+      },
+      {
+       "step": [
+        "a",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 2
+     }
+    },
+    "ser": {
+     "steps": [
+      {
+       "step": [
+        "w",
+        1,
+        "x",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "x",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": true,
+       "released_after_step": 2
+      },
+      {
+       "step": [
+        "a",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 2
+     }
+    }
+   }
+  },
+  "P1_dirty_read": {
+   "postgresql": {
+    "ru": {
+     "steps": [
+      {
+       "step": [
+        "w",
+        1,
+        "x",
+        10
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "a",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 50,
+      "y": 50
+     }
+    },
+    "rc": {
+     "steps": [
+      {
+       "step": [
+        "w",
+        1,
+        "x",
+        10
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "a",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 50,
+      "y": 50
+     }
+    },
+    "rr": {
+     "steps": [
+      {
+       "step": [
+        "w",
+        1,
+        "x",
+        10
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "a",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 50,
+      "y": 50
+     }
+    },
+    "ser": {
+     "steps": [
+      {
+       "step": [
+        "w",
+        1,
+        "x",
+        10
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "a",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 50,
+      "y": 50
+     }
+    }
+   },
+   "mysql": {
+    "ru": {
+     "steps": [
+      {
+       "step": [
+        "w",
+        1,
+        "x",
+        10
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 10,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "a",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 50,
+      "y": 50
+     }
+    },
+    "rc": {
+     "steps": [
+      {
+       "step": [
+        "w",
+        1,
+        "x",
+        10
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "a",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 50,
+      "y": 50
+     }
+    },
+    "rr": {
+     "steps": [
+      {
+       "step": [
+        "w",
+        1,
+        "x",
+        10
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "a",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 50,
+      "y": 50
+     }
+    },
+    "ser": {
+     "steps": [
+      {
+       "step": [
+        "w",
+        1,
+        "x",
+        10
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": true,
+       "released_after_step": 2
+      },
+      {
+       "step": [
+        "a",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 50,
+      "y": 50
+     }
+    }
+   }
+  },
+  "P2_fuzzy_read": {
+   "postgresql": {
+    "ru": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "x",
+        5
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 5,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 5
+     }
+    },
+    "rc": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "x",
+        5
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 5,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 5
+     }
+    },
+    "rr": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "x",
+        5
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 5
+     }
+    },
+    "ser": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "x",
+        5
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 5
+     }
+    }
+   },
+   "mysql": {
+    "ru": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "x",
+        5
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 5,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 5
+     }
+    },
+    "rc": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "x",
+        5
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 5,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 5
+     }
+    },
+    "rr": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "x",
+        5
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 5
+     }
+    },
+    "ser": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "x",
+        5
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": true,
+       "released_after_step": 4
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": true,
+       "released_after_step": 4
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 5
+     }
+    }
+   }
+  },
+  "P3_phantom": {
+   "postgresql": {
+    "ru": {
+     "steps": [
+      {
+       "step": [
+        "count",
+        1,
+        1
+       ],
+       "status": "ok",
+       "value": 2,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "ins",
+        2,
+        "n",
+        1,
+        10
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "count",
+        1,
+        1
+       ],
+       "status": "ok",
+       "value": 3,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "n": 10,
+      "x": 10,
+      "y": 10,
+      "z": 10
+     }
+    },
+    "rc": {
+     "steps": [
+      {
+       "step": [
+        "count",
+        1,
+        1
+       ],
+       "status": "ok",
+       "value": 2,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "ins",
+        2,
+        "n",
+        1,
+        10
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "count",
+        1,
+        1
+       ],
+       "status": "ok",
+       "value": 3,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "n": 10,
+      "x": 10,
+      "y": 10,
+      "z": 10
+     }
+    },
+    "rr": {
+     "steps": [
+      {
+       "step": [
+        "count",
+        1,
+        1
+       ],
+       "status": "ok",
+       "value": 2,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "ins",
+        2,
+        "n",
+        1,
+        10
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "count",
+        1,
+        1
+       ],
+       "status": "ok",
+       "value": 2,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "n": 10,
+      "x": 10,
+      "y": 10,
+      "z": 10
+     }
+    },
+    "ser": {
+     "steps": [
+      {
+       "step": [
+        "count",
+        1,
+        1
+       ],
+       "status": "ok",
+       "value": 2,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "ins",
+        2,
+        "n",
+        1,
+        10
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "count",
+        1,
+        1
+       ],
+       "status": "ok",
+       "value": 2,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "n": 10,
+      "x": 10,
+      "y": 10,
+      "z": 10
+     }
+    }
+   },
+   "mysql": {
+    "ru": {
+     "steps": [
+      {
+       "step": [
+        "count",
+        1,
+        1
+       ],
+       "status": "ok",
+       "value": 2,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "ins",
+        2,
+        "n",
+        1,
+        10
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "count",
+        1,
+        1
+       ],
+       "status": "ok",
+       "value": 3,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "n": 10,
+      "x": 10,
+      "y": 10,
+      "z": 10
+     }
+    },
+    "rc": {
+     "steps": [
+      {
+       "step": [
+        "count",
+        1,
+        1
+       ],
+       "status": "ok",
+       "value": 2,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "ins",
+        2,
+        "n",
+        1,
+        10
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "count",
+        1,
+        1
+       ],
+       "status": "ok",
+       "value": 3,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "n": 10,
+      "x": 10,
+      "y": 10,
+      "z": 10
+     }
+    },
+    "rr": {
+     "steps": [
+      {
+       "step": [
+        "count",
+        1,
+        1
+       ],
+       "status": "ok",
+       "value": 2,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "ins",
+        2,
+        "n",
+        1,
+        10
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "count",
+        1,
+        1
+       ],
+       "status": "ok",
+       "value": 2,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "n": 10,
+      "x": 10,
+      "y": 10,
+      "z": 10
+     }
+    },
+    "ser": {
+     "steps": [
+      {
+       "step": [
+        "count",
+        1,
+        1
+       ],
+       "status": "ok",
+       "value": 2,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "ins",
+        2,
+        "n",
+        1,
+        10
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": true,
+       "released_after_step": 4
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": true,
+       "released_after_step": 4
+      },
+      {
+       "step": [
+        "count",
+        1,
+        1
+       ],
+       "status": "ok",
+       "value": 2,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "n": 10,
+      "x": 10,
+      "y": 10,
+      "z": 10
+     }
+    }
+   }
+  },
+  "P4_lost_update": {
+   "postgresql": {
+    "ru": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 100,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 100,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        2,
+        "x",
+        20
+       ],
+       "status": "ok",
+       "value": 120,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        1,
+        "x",
+        10
+       ],
+       "status": "ok",
+       "value": 110,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 110
+     }
+    },
+    "rc": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 100,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 100,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        2,
+        "x",
+        20
+       ],
+       "status": "ok",
+       "value": 120,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        1,
+        "x",
+        10
+       ],
+       "status": "ok",
+       "value": 110,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 110
+     }
+    },
+    "rr": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 100,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 100,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        2,
+        "x",
+        20
+       ],
+       "status": "ok",
+       "value": 120,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        1,
+        "x",
+        10
+       ],
+       "status": "error",
+       "error": "40001",
+       "message": "could not serialize access due to concurrent update",
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "skipped"
+      }
+     ],
+     "final": {
+      "x": 120
+     }
+    },
+    "ser": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 100,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 100,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        2,
+        "x",
+        20
+       ],
+       "status": "ok",
+       "value": 120,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        1,
+        "x",
+        10
+       ],
+       "status": "error",
+       "error": "40001",
+       "message": "could not serialize access due to concurrent update",
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "skipped"
+      }
+     ],
+     "final": {
+      "x": 120
+     }
+    }
+   },
+   "mysql": {
+    "ru": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 100,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 100,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        2,
+        "x",
+        20
+       ],
+       "status": "ok",
+       "value": 120,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        1,
+        "x",
+        10
+       ],
+       "status": "ok",
+       "value": 110,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 110
+     }
+    },
+    "rc": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 100,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 100,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        2,
+        "x",
+        20
+       ],
+       "status": "ok",
+       "value": 120,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        1,
+        "x",
+        10
+       ],
+       "status": "ok",
+       "value": 110,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 110
+     }
+    },
+    "rr": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 100,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 100,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        2,
+        "x",
+        20
+       ],
+       "status": "ok",
+       "value": 120,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        1,
+        "x",
+        10
+       ],
+       "status": "ok",
+       "value": 110,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 110
+     }
+    },
+    "ser": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 100,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 100,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        2,
+        "x",
+        20
+       ],
+       "status": "ok",
+       "value": 120,
+       "waited": true,
+       "released_after_step": 4
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": true,
+       "released_after_step": 4
+      },
+      {
+       "step": [
+        "add",
+        1,
+        "x",
+        10
+       ],
+       "status": "error",
+       "error": "1213",
+       "message": "(1213, 'Deadlock found when trying to get lock; try restarting transaction')",
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "skipped"
+      }
+     ],
+     "final": {
+      "x": 120
+     }
+    }
+   }
+  },
+  "A5A_read_skew": {
+   "postgresql": {
+    "ru": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "x",
+        40
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "y",
+        60
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 60,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 40,
+      "y": 60
+     }
+    },
+    "rc": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "x",
+        40
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "y",
+        60
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 60,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 40,
+      "y": 60
+     }
+    },
+    "rr": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "x",
+        40
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "y",
+        60
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 40,
+      "y": 60
+     }
+    },
+    "ser": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "x",
+        40
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "y",
+        60
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 40,
+      "y": 60
+     }
+    }
+   },
+   "mysql": {
+    "ru": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "x",
+        40
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "y",
+        60
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 60,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 40,
+      "y": 60
+     }
+    },
+    "rc": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "x",
+        40
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "y",
+        60
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 60,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 40,
+      "y": 60
+     }
+    },
+    "rr": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "x",
+        40
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "y",
+        60
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 40,
+      "y": 60
+     }
+    },
+    "ser": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "x",
+        40
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": true,
+       "released_after_step": 5
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "y",
+        60
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": true,
+       "released_after_step": 5
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": true,
+       "released_after_step": 5
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 40,
+      "y": 60
+     }
+    }
+   }
+  },
+  "A5B_write_skew": {
+   "postgresql": {
+    "ru": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "y"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        1,
+        "x",
+        0
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "y",
+        0
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "rc": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "y"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        1,
+        "x",
+        0
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "y",
+        0
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "rr": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "y"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        1,
+        "x",
+        0
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "y",
+        0
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "ser": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "y"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        1,
+        "x",
+        0
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "y",
+        0
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "error",
+       "error": "40001",
+       "message": "could not serialize access due to read/write dependencies among transactions",
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 0,
+      "y": 1
+     }
+    }
+   },
+   "mysql": {
+    "ru": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "y"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        1,
+        "x",
+        0
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "y",
+        0
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "rc": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "y"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        1,
+        "x",
+        0
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "y",
+        0
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "rr": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "y"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        1,
+        "x",
+        0
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "y",
+        0
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "ser": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "y"
+       ],
+       "status": "ok",
+       "value": 1,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "w",
+        1,
+        "x",
+        0
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": true,
+       "released_after_step": 5
+      },
+      {
+       "step": [
+        "w",
+        2,
+        "y",
+        0
+       ],
+       "status": "error",
+       "error": "1213",
+       "message": "(1213, 'Deadlock found when trying to get lock; try restarting transaction')",
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "skipped"
+      }
+     ],
+     "final": {
+      "x": 0,
+      "y": 1
+     }
+    }
+   }
+  },
+  "H1_transfer_dirty_read": {
+   "postgresql": {
+    "ru": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        1,
+        "x",
+        -40
+       ],
+       "status": "ok",
+       "value": 10,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        1,
+        "y",
+        40
+       ],
+       "status": "ok",
+       "value": 90,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 10,
+      "y": 90
+     }
+    },
+    "rc": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        1,
+        "x",
+        -40
+       ],
+       "status": "ok",
+       "value": 10,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        1,
+        "y",
+        40
+       ],
+       "status": "ok",
+       "value": 90,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 10,
+      "y": 90
+     }
+    },
+    "rr": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        1,
+        "x",
+        -40
+       ],
+       "status": "ok",
+       "value": 10,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        1,
+        "y",
+        40
+       ],
+       "status": "ok",
+       "value": 90,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 10,
+      "y": 90
+     }
+    },
+    "ser": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        1,
+        "x",
+        -40
+       ],
+       "status": "ok",
+       "value": 10,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        1,
+        "y",
+        40
+       ],
+       "status": "ok",
+       "value": 90,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 10,
+      "y": 90
+     }
+    }
+   },
+   "mysql": {
+    "ru": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        1,
+        "x",
+        -40
+       ],
+       "status": "ok",
+       "value": 10,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 10,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        1,
+        "y",
+        40
+       ],
+       "status": "ok",
+       "value": 90,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 10,
+      "y": 90
+     }
+    },
+    "rc": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        1,
+        "x",
+        -40
+       ],
+       "status": "ok",
+       "value": 10,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        1,
+        "y",
+        40
+       ],
+       "status": "ok",
+       "value": 90,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 10,
+      "y": 90
+     }
+    },
+    "rr": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        1,
+        "x",
+        -40
+       ],
+       "status": "ok",
+       "value": 10,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        1,
+        "y",
+        40
+       ],
+       "status": "ok",
+       "value": 90,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 10,
+      "y": 90
+     }
+    },
+    "ser": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        1,
+        "x",
+        -40
+       ],
+       "status": "ok",
+       "value": 10,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 10,
+       "waited": true,
+       "released_after_step": 7
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "y"
+       ],
+       "status": "ok",
+       "value": 90,
+       "waited": true,
+       "released_after_step": 7
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": true,
+       "released_after_step": 7
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        1,
+        "y",
+        40
+       ],
+       "status": "ok",
+       "value": 90,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 10,
+      "y": 90
+     }
+    }
+   }
+  },
+  "H2_transfer_fuzzy_read": {
+   "postgresql": {
+    "ru": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        2,
+        "x",
+        -40
+       ],
+       "status": "ok",
+       "value": 10,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        2,
+        "y",
+        40
+       ],
+       "status": "ok",
+       "value": 90,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 90,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 10,
+      "y": 90
+     }
+    },
+    "rc": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        2,
+        "x",
+        -40
+       ],
+       "status": "ok",
+       "value": 10,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        2,
+        "y",
+        40
+       ],
+       "status": "ok",
+       "value": 90,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 90,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 10,
+      "y": 90
+     }
+    },
+    "rr": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        2,
+        "x",
+        -40
+       ],
+       "status": "ok",
+       "value": 10,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        2,
+        "y",
+        40
+       ],
+       "status": "ok",
+       "value": 90,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 10,
+      "y": 90
+     }
+    },
+    "ser": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        2,
+        "x",
+        -40
+       ],
+       "status": "ok",
+       "value": 10,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        2,
+        "y",
+        40
+       ],
+       "status": "ok",
+       "value": 90,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 10,
+      "y": 90
+     }
+    }
+   },
+   "mysql": {
+    "ru": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        2,
+        "x",
+        -40
+       ],
+       "status": "ok",
+       "value": 10,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        2,
+        "y",
+        40
+       ],
+       "status": "ok",
+       "value": 90,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 90,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 10,
+      "y": 90
+     }
+    },
+    "rc": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        2,
+        "x",
+        -40
+       ],
+       "status": "ok",
+       "value": 10,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        2,
+        "y",
+        40
+       ],
+       "status": "ok",
+       "value": 90,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 90,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 10,
+      "y": 90
+     }
+    },
+    "rr": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        2,
+        "x",
+        -40
+       ],
+       "status": "ok",
+       "value": 10,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        2,
+        "y",
+        40
+       ],
+       "status": "ok",
+       "value": 90,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 10,
+      "y": 90
+     }
+    },
+    "ser": {
+     "steps": [
+      {
+       "step": [
+        "r",
+        1,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "x"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "add",
+        2,
+        "x",
+        -40
+       ],
+       "status": "ok",
+       "value": 10,
+       "waited": true,
+       "released_after_step": 7
+      },
+      {
+       "step": [
+        "r",
+        2,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": true,
+       "released_after_step": 7
+      },
+      {
+       "step": [
+        "add",
+        2,
+        "y",
+        40
+       ],
+       "status": "ok",
+       "value": 90,
+       "waited": true,
+       "released_after_step": 7
+      },
+      {
+       "step": [
+        "c",
+        2
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": true,
+       "released_after_step": 7
+      },
+      {
+       "step": [
+        "r",
+        1,
+        "y"
+       ],
+       "status": "ok",
+       "value": 50,
+       "waited": false,
+       "released_after_step": null
+      },
+      {
+       "step": [
+        "c",
+        1
+       ],
+       "status": "ok",
+       "value": null,
+       "waited": false,
+       "released_after_step": null
+      }
+     ],
+     "final": {
+      "x": 10,
+      "y": 90
+     }
+    }
+   }
+  }
+ }
+}
