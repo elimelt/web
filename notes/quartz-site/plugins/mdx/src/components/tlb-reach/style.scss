@@ -1,0 +1,258 @@
+// TLB reach and page walk figure (tlb-reach).
+figure.tr {
+  @include fig-frame;
+  font-size: 0.9rem;
+
+  .tr-controls {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 0.4rem 1.2rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .tr-slider {
+    @include fig-slider;
+    font-size: 0.85rem;
+    color: var(--darkgray);
+  }
+
+  .tr-pages {
+    display: flex;
+    gap: 0.3rem;
+
+    button {
+      @include fig-button($font-size: 0.82rem);
+      @include fig-button-hover;
+
+      &[aria-pressed="true"] {
+        @include fig-pressed;
+      }
+    }
+  }
+
+  .tr-chart,
+  .tr-addr {
+    @include fig-chart;
+  }
+
+  .tr-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .tr-tick {
+    fill: var(--gray);
+    font-size: 12px;
+  }
+
+  .tr-axis {
+    fill: var(--darkgray);
+    font-size: 12.5px;
+  }
+
+  .tr-mark {
+    stroke-width: 1;
+    stroke-dasharray: 2 3;
+  }
+
+  .tr-marklabel {
+    font-size: 10.5px;
+  }
+
+  .tr-mark-tlb {
+    stroke: var(--fig-purple);
+    fill: var(--fig-purple);
+  }
+
+  .tr-mark-data {
+    stroke: var(--gray);
+    fill: var(--gray);
+  }
+
+  .tr-cursor {
+    stroke: var(--secondary);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+  }
+
+  .tr-series {
+    polyline {
+      fill: none;
+      stroke-width: 1.6;
+      stroke-linejoin: round;
+      opacity: 0.75;
+    }
+
+    .tr-range {
+      stroke-width: 3;
+      opacity: 0.3;
+    }
+
+    circle {
+      stroke: var(--light);
+      stroke-width: 1.5;
+    }
+
+    &.tr-sel polyline {
+      stroke-width: 2.6;
+      opacity: 1;
+    }
+  }
+
+  @each $name, $color in (s4k: --fig-blue, s2m: --fig-orange, s1g: --fig-green) {
+    .tr-#{$name} {
+      polyline,
+      .tr-range {
+        stroke: var(#{$color});
+      }
+
+      circle {
+        fill: var(#{$color});
+      }
+    }
+  }
+
+  .tr-key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem 1rem;
+    margin: 0.1rem 0 0.3rem;
+    color: var(--gray);
+    font-size: 0.8rem;
+
+    > span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    i {
+      display: inline-block;
+      width: 0.9rem;
+      height: 0;
+      border-top: 2.5px solid;
+    }
+
+    .tr-key-4k {
+      border-color: var(--fig-blue);
+    }
+
+    .tr-key-2m {
+      border-color: var(--fig-orange);
+    }
+
+    .tr-key-1g {
+      border-color: var(--fig-green);
+    }
+  }
+
+  .tr-label {
+    margin: 0.4rem 0 0.1rem;
+    color: var(--darkgray);
+    font-size: 0.8rem;
+  }
+
+  .tr-readout {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 1.1rem;
+    margin: 0.2rem 0 0.5rem;
+    color: var(--darkgray);
+    font-variant-numeric: tabular-nums;
+
+    b {
+      color: var(--dark);
+    }
+  }
+
+  .tr-walkbox {
+    border-top: 1px solid var(--lightgray);
+    padding-top: 0.4rem;
+  }
+
+  .tr-walkhead {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+
+    .tr-label {
+      margin: 0;
+    }
+
+    button {
+      @include fig-button($font-size: 0.82rem);
+      @include fig-button-hover;
+    }
+  }
+
+  .tr-field {
+    stroke: var(--gray);
+    stroke-width: 0.8;
+    fill: var(--highlight);
+  }
+
+  .tr-f-off {
+    fill: var(--light);
+  }
+
+  .tr-fname {
+    fill: var(--gray);
+    font-size: 11px;
+  }
+
+  .tr-fval {
+    fill: var(--dark);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tr-walk {
+    margin: 0.25rem 0;
+    color: var(--darkgray);
+    font-size: 0.85rem;
+    overflow-wrap: anywhere;
+
+    b {
+      color: var(--dark);
+    }
+  }
+
+  .tr-table {
+    @include fig-table;
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+    margin-top: 0.3rem;
+
+    th,
+    td {
+      padding: 0.15rem 0.5rem;
+      text-align: right;
+      border-bottom: 1px solid var(--lightgray);
+    }
+
+    th:first-child,
+    td:first-child {
+      text-align: left;
+    }
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .tr-controls {
+      grid-template-columns: 1fr;
+    }
+
+    .tr-fname {
+      font-size: 9.5px;
+    }
+
+    .tr-fval {
+      font-size: 12px;
+    }
+  }
+}
