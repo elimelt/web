@@ -1,0 +1,356 @@
+---
+title: Tokenization, Segmentation, and Edit Distance
+aliases:
+  - natural-language-processing/reading/tokenization
+category: Natural Language Processing
+tags:
+  - tokenization
+  - segmentation
+  - edit distance
+  - bpe
+  - byte-pair encoding
+  - subword tokenization
+  - tiktoken
+  - sentencepiece
+  - nltk
+  - tr
+  - regex
+date: 2025-02-12
+updated: 2026-11-17
+authors:
+  - elimelt
+  - claude-opus-5-5
+status: draft
+description: Ways to split text into tokens, from Unix one-liners and regex tokenizers to byte-pair encoding, with the BPE training and encoding algorithms stated exactly and a measurement of how vocabulary size, training data and pre-tokenization set compression on English, Python and 23 languages; also sentence segmentation and minimum edit distance.
+sources:
+  - title: Jurafsky & Martin, Speech and Language Processing (3rd ed. draft)
+    url: https://web.stanford.edu/~jurafsky/slp3/
+    type: textbook
+  - title: NLTK Book, ch. 3
+    url: https://www.nltk.org/book/ch03.html
+    type: book
+  - title: "Gage (1994), A New Algorithm for Data Compression"
+    url: https://drdobbs.com/a-new-algorithm-for-data-compression/184402829
+    type: article
+  - title: "Sennrich, Haddow and Birch (2016), Neural Machine Translation of Rare Words with Subword Units"
+    url: https://aclanthology.org/P16-1162/
+    type: paper
+  - title: "Radford et al. (2019), Language Models are Unsupervised Multitask Learners"
+    url: https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf
+    type: paper
+  - title: "Kudo (2018), Subword Regularization"
+    url: https://aclanthology.org/P18-1007/
+    type: paper
+  - title: "Kudo and Richardson (2018), SentencePiece"
+    url: https://aclanthology.org/D18-2012/
+    type: paper
+  - title: "Zouhar et al. (2023), A Formal Perspective on Byte-Pair Encoding"
+    url: https://aclanthology.org/2023.findings-acl.38
+    type: paper
+  - title: "Kozma and Voderholzer (2024), Theoretical Analysis of Byte-Pair Encoding"
+    url: https://arxiv.org/abs/2411.08671
+    type: paper
+  - title: "Petrov et al. (2023), Language Model Tokenizers Introduce Unfairness Between Languages"
+    url: https://arxiv.org/abs/2305.15425
+    type: paper
+  - title: openai/tiktoken
+    url: https://github.com/openai/tiktoken
+    type: code
+---
+
+Tokenization is the segmentation of running text into tokens, the units on which later processing operates: words and punctuation marks in classical NLP pipelines, and in neural language models subwords drawn from a fixed vocabulary of a few tens of thousands to a few hundred thousand entries. Rule-based tokenizers, from Unix one-liners to regular expressions, state the token grammar by hand. Byte-pair encoding (BPE) learns its vocabulary from a corpus instead, by repeatedly merging the most frequent adjacent pair of symbols. Sentence segmentation and minimum edit distance are treated alongside it, following [SLP3](https://web.stanford.edu/~jurafsky/slp3/).
+
+Tokenization defines the terms consumed by [[ml/nlp/reading/information-retrieval|information retrieval]] systems, the vocabulary over which [[ml/nlp/word-embeddings|embeddings]] and [[ml/deep-learning/decoder-only-transformers|decoder-only transformers]] are defined, and the units in which [[ml/nlp/prompting|prompts]] and context windows are measured.
+
+## Unix Tokenization
+
+A single Unix pipeline implements a crude word tokenizer. `tr -sc 'A-Za-z' '\n'` squeezes every run of non-letters into a single newline, which puts one word per line. The remaining commands sort and count the words.
+
+```bash
+# output all words in a file, one per line
+tr -sc 'A-Za-z' '\n' < input.txt
+
+# count the words in a file
+tr -sc 'A-Za-z' '\n' < input.txt | sort | uniq -c
+
+# count the words in a file, case-insensitive
+tr -sc 'A-Za-z' '\n' < input.txt | tr A-Z a-z | sort | uniq -c
+
+# most frequent words
+tr -sc 'A-Za-z' '\n' < input.txt | tr A-Z a-z | sort | uniq -c | sort -n -r
+```
+
+## Top-Down Regex Tokenization
+
+A top-down tokenizer states the token grammar explicitly as alternations in a verbose regular expression, which NLTK applies to the text. The following pattern (adapted from the [NLTK book, ch. 3](https://www.nltk.org/book/ch03.html)) handles abbreviations, hyphenated words, currency, percentages, and ellipses.
+
+```python
+import nltk
+
+pattern = r'''(?x)     # set flag to allow verbose regexps
+  (?:[A-Z]\.)+         # abbreviations, e.g. U.S.A.
+| \w+(?:-\w+)*         # words with optional internal hyphens
+| \$?\d+(?:\.\d+)?%?   # currency and percentages, e.g. $12.40, 82%
+| \.\.\.               # ellipsis
+| [.,;"'?():-_`]       # these are separate tokens
+'''
+
+text = "This is a sentence.  This is another sentence."
+nltk.regexp_tokenize(text, pattern)
+```
+
+Both methods produce an open vocabulary: a word not seen in training is out of vocabulary for any model built on their output. Subword tokenizers still use a regular expression of this kind as a pre-tokenizer, but only to cut text into pieces that BPE then segments further (see [[#Byte-level BPE and pre-tokenization]]).
+
+## Subword tokenization
+
+A word-level vocabulary cannot represent unseen words, names or misspellings, and a vocabulary large enough to cover a corpus's long tail enlarges the embedding and output layers. A character- or byte-level vocabulary covers every input but produces long sequences, which raises the cost of every layer whose cost grows with sequence length. Subword tokenizers sit between the two: frequent words become single tokens, and rare words decompose into frequent pieces. In two of the three English tokenizers trained [[#Measured compression|below]], ` unlocking` becomes ` unlo` + `cking`; in the third it becomes ` unlock` + `ing`. The splits follow pair frequencies in the training text, and they coincide with morpheme boundaries only some of the time.
+
+A tokenizer's efficiency on a text is summarized by its **compression rate**, the average number of UTF-8 bytes (or characters) per token. A higher rate on a language means more text per context window and fewer forward passes per document for a model of fixed size. [Sennrich, Haddow and Birch (2016)](https://aclanthology.org/P16-1162/) adapted BPE to learn such a vocabulary for neural machine translation. BPE was originally a data compression scheme: [Gage (1994)](https://drdobbs.com/a-new-algorithm-for-data-compression/184402829) replaced the most frequent pair of adjacent bytes with a byte value unused in the data, and repeated.
+
+## Byte-pair encoding
+
+### Training
+
+The training input is a corpus $C$ and a number of merges $k$, or equivalently a target vocabulary size.
+
+1. **Pre-tokenize.** Split the corpus into pieces with a fixed rule (whitespace, or a regular expression), and count each distinct piece: $c(w)$ is the number of times piece $w$ occurs. Merges never cross piece boundaries.
+2. **Initialize.** Write each piece as a sequence of symbols from a base alphabet $A$: characters in the original formulation, or the 256 byte values in byte-level BPE.
+3. **Count pairs.** For every adjacent pair of symbols $(a, b)$, compute its frequency weighted by piece counts,
+   $$f(a, b) = \sum_{w} c(w) \cdot \#\{i : w_i = a,\ w_{i+1} = b\}.$$
+4. **Merge.** Take the pair with the largest $f$ and append it to the merge list. In every piece, replace each occurrence of $a$ followed by $b$ with the new symbol $ab$, scanning left to right so that replaced occurrences do not overlap.
+5. Repeat from step 3 until $k$ merges have been made, or until no pair occurs at least a minimum number of times.
+
+The vocabulary is $A$ plus one new symbol per merge. [Sennrich et al.](https://aclanthology.org/P16-1162/) give its size as "the size of the initial vocabulary, plus the number of merge operations", which holds when no two merges produce the same string; none did in the tokenizers trained below. The merge list, in order, is the tokenizer, and a merge's position in the list is its **rank**.
+
+Three details differ across implementations:
+
+- **Ties.** The paper fixes no tie-break. The code on this page takes the first pair counted, which is the order Python's `max` returns; the figure takes the pair that occurs first in the text; Hugging Face `tokenizers` and SentencePiece each use their own order. Different tie-breaks give different merge lists from the same corpus.
+- **Overlaps.** $f$ counts overlapping occurrences, so a run of three spaces contributes 2 to $f(\text{space}, \text{space})$, while the merge replaces only one of them. A merge of $(a, a)$ can therefore remove fewer tokens than its count; a merge of $(a, b)$ with $a \neq b$ removes exactly $f(a, b)$.
+- **Stopping.** A minimum count of 2 ends training once every remaining pair is unique. Every English-only run below stopped this way before reaching 65,536 entries, at 39,791 to 42,745.
+
+Training is deterministic and greedy, so a run to $k$ merges reproduces the first $k$ merges of any longer run on the same corpus with the same tie-break. In the experiment below, the first 3,840 merges of an 8,192-entry tokenizer equalled the merge list of a separate 4,096-entry run exactly, and every vocabulary size was evaluated by truncating one run.
+
+### Encoding new text
+
+To tokenize new text, pre-tokenize it with the same rule, write each piece in base symbols, and apply the merges in rank order. Two procedures are in use. Sennrich et al.'s [`apply_bpe`](https://github.com/rsennrich/subword-nmt) replays the merge list in order, applying each merge wherever it matches. GPT-2's encoder and [tiktoken](https://github.com/openai/tiktoken) repeatedly merge the lowest-ranked pair present in the piece. The two give the same segmentation, because a symbol created by merge $j$ can only occur in pairs ranked after $j$, so the lowest-ranked pair present is always the next merge in the list that applies.
+
+The result is not the shortest segmentation the vocabulary allows. Encoding replays training's greedy choices, and a different order of the same merges can cover a word in fewer tokens.
+
+### A small trace and a correct implementation
+
+> [!example] Tracing the first merges on a six-word corpus
+> The corpus is `low lowest newer wider new width`, split on spaces, with no end-of-word marker. Each round counts adjacent pairs across the whole corpus and merges the most frequent one. Ties are broken in favor of the pair counted first, since `max` keeps the first maximum in insertion order.
+>
+> | Round | Best pair | Count | New symbol | Affected words |
+> | --- | --- | --- | --- | --- |
+> | 1 | `l` + `o` | 2 | `lo` | `lo w`, `lo w e s t` |
+> | 2 | `lo` + `w` | 2 | `low` | `low`, `low e s t` |
+> | 3 | `n` + `e` | 2 | `ne` | `ne w e r`, `ne w` |
+> | 4 | `ne` + `w` | 2 | `new` | `new e r`, `new` |
+> | 5 | `e` + `r` | 2 | `er` | `new er`, `w i d er` |
+> | 6 | `w` + `i` | 2 | `wi` | `wi d er`, `wi d t h` |
+>
+> After six merges, `low` and `new` are single tokens, and `newer` and `wider` share the suffix token `er`, which the merges then reuse on unseen words: `lower` encodes as `low` + `er`. Without an end-of-word marker, the `er` that ends `newer` and an `er` inside a word are the same token. Sennrich et al. append an end-of-word symbol (`</w>` in their code) so that word-final pieces get merges of their own; GPT-2 attaches each word's leading space to the word instead.
+
+A piece is stored as its symbols joined by spaces, so a merge must match whole symbols only. The version below follows the reference code in [Sennrich et al. (2016)](https://aclanthology.org/P16-1162/), which anchors the pattern with lookarounds:
+
+```python
+import re
+from collections import Counter, defaultdict
+
+def pair_counts(vocab: dict[str, int]) -> dict[tuple[str, str], int]:
+    pairs = defaultdict(int)
+    for word, freq in vocab.items():
+        symbols = word.split()
+        for a, b in zip(symbols, symbols[1:]):
+            pairs[a, b] += freq
+    return pairs
+
+def merge_vocab(pair: tuple[str, str], vocab: dict[str, int]) -> dict[str, int]:
+    # match "a b" only where a and b are whole symbols
+    pattern = re.compile(r"(?<!\S)" + re.escape(" ".join(pair)) + r"(?!\S)")
+    return {pattern.sub("".join(pair), word): freq for word, freq in vocab.items()}
+
+def learn_bpe(words: list[str], k: int) -> list[tuple[str, str]]:
+    vocab = dict(Counter(" ".join(w) for w in words))
+    merges = []
+    for _ in range(k):
+        pairs = pair_counts(vocab)
+        if not pairs:
+            break
+        best = max(pairs, key=pairs.get)  # ties: first pair counted
+        merges.append(best)
+        vocab = merge_vocab(best, vocab)
+    return merges
+
+def apply_bpe(word: str, merges: list[tuple[str, str]]) -> list[str]:
+    symbols = " ".join(word)
+    for pair in merges:
+        symbols = merge_vocab(pair, {symbols: 1}).popitem()[0]
+    return symbols.split()
+
+merges = learn_bpe(["low", "lowest", "newer", "wider", "new", "width"], 10)
+apply_bpe("lower", merges)  # ['low', 'er']
+```
+
+> [!warning]- Plain string replacement merges across symbols
+> An earlier version of `merge_vocab` on this page used `word.replace(" ".join(pair), "".join(pair))`. Substring replacement also matches where `a` is the end of a longer symbol or `b` the start of one. Trained on the lowercased words of *Alice's Adventures in Wonderland*, the sixth merge is `i` + `t`, and at that point `either` is stored as `e i the r`. The substring `i t` occurs inside `i the`, so the replacement produces `e ithe r`, containing a symbol that no merge created. From there the merge lists differ: the tenth merge is `in` + `g` with substring replacement and `r` + `e` with the lookaround version. On the six-word corpus the bug never fires, so the trace above was correct.
+
+### Byte-level BPE and pre-tokenization
+
+[GPT-2](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf) runs BPE on UTF-8 bytes: "a byte-level version of BPE only requires a base vocabulary of size 256", and no input is out of vocabulary. Its vocabulary has 50,257 entries, which are 256 bytes, 50,000 merges and one end-of-text token. To keep merges from joining a word to the punctuation after it, GPT-2 prevents "BPE from merging across character categories", which its code implements as a pre-tokenizer: a regular expression that splits text into contractions, runs of letters, runs of digits, runs of other symbols, and whitespace, each optionally preceded by one space.
+
+```python
+# GPT-2 (encoder.py); \p{L} is any letter, \p{N} any number
+r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
+```
+
+The pre-tokenizer caps compression for any vocabulary: no token spans two pieces, so bytes per token cannot exceed bytes per piece. For scripts that write vowels as combining marks, the cap is low. Devanagari vowel signs such as `ा` and `ि` are in Unicode category M (marks), not L (letters), so GPT-2's rule cuts `मानव अधिकारों` into `म`, `ा`, `नव`, ` अध`, `ि`, `क`, `ा`, `र`, `ों`. On the Hindi Universal Declaration of Human Rights, the GPT-2 rule yields 3.87 bytes per piece, about 1.5 characters. tiktoken's `cl100k_base` rule lets a mark begin the next piece and reaches 5.31 bytes per piece; `o200k_base` includes `\p{M}` in its letter classes and reaches 12.94 (the [[#Measured compression|UDHR table]] has other languages). `cl100k_base` and `o200k_base` also split digit runs into groups of at most three (`\p{N}{1,3}`), whatever the merges would learn.
+
+## Stepping through the merges
+
+The figure trains BPE in the browser on real text: the opening of *Alice's Adventures in Wonderland*, two functions from CPython's `bisect.py`, the preamble of the Universal Declaration of Human Rights in Finnish or Hindi, or any text pasted into the box. The step controls move through the merges, showing the pair counts that choose each one and the token count after it. The base units switch between characters and UTF-8 bytes, and the pre-tokenizer between the GPT-2 and `o200k_base` rules. The bottom panel applies the learned merges to a held-out passage from the same source.
+
+<BpeMerges preset="alice" />
+
+On the English preset the first merges are `he`, ` t` and ` a`; ` the` is merge 10 and ` she` merge 24. With UTF-8 bytes as base units, the Hindi preset's first two merges join the lead bytes `e0 a4` and `e0 a5` that every Devanagari character in that range starts with, and most of the next 20 merges complete single characters. Under the GPT-2 rule the Hindi preset's 1,165 characters split into 779 pieces, so no vocabulary could encode it in fewer than 779 tokens, and training on characters stops at 844 tokens after 56 merges. Under the `o200k_base` rule the same text forms 223 pieces and training stops at 480 tokens. The figure's merge sequence matches an independent Python implementation, [`bpe_reference.py`](https://github.com/elimelt/web/blob/main/notes/content/ml/nlp/reading/tokenization/bpe_reference.py), for all four presets, both base units and both rules.
+
+## Measured compression
+
+Byte-level BPE tokenizers were trained with Hugging Face `tokenizers` (GPT-2 pre-tokenizer, minimum pair count 2) on 8 MB from each of three training mixes, three times per mix on different random 80% subsets of the training documents, and evaluated on held-out text at vocabulary sizes from 1,024 to 65,536. The mixes were English fiction from Project Gutenberg; half that fiction and half Python source from the CPython 3.13 standard library; and European Parliament proceedings (Europarl) in 11 languages, 0.73 MB per language. Three OpenAI encodings were measured on the same text with tiktoken: `r50k_base`, essentially the GPT-2 vocabulary and the encoding of the original GPT-3 models; `cl100k_base`, used by GPT-4 and GPT-3.5 Turbo; and `o200k_base`, used by GPT-4o and later models ([`model.py`](https://github.com/openai/tiktoken/blob/main/tiktoken/model.py)).
+
+**Vocabulary size and training data.** UTF-8 bytes per token on held-out text, mean ± standard deviation over the three subsets. The English mix stopped short of 65,536 entries (at 39,791 to 42,745) and the English-plus-code mix at 47,132 to 50,979.
+
+| Evaluated on | Trained on | 1,024 | 4,096 | 16,384 | 32,768 | 65,536 or all merges |
+| --- | --- | --- | --- | --- | --- | --- |
+| English fiction | English | 2.53 ± 0.01 | 3.29 ± 0.01 | 3.92 ± 0.01 | 4.13 ± 0.00 | 4.18 ± 0.01 |
+| | English + code | 2.43 ± 0.04 | 3.15 ± 0.05 | 3.78 ± 0.05 | 4.02 ± 0.04 | 4.13 ± 0.03 |
+| | Europarl, 11 languages | 2.03 ± 0.00 | 2.49 ± 0.00 | 2.92 ± 0.01 | 3.12 ± 0.00 | 3.33 ± 0.00 |
+| Python | English | 1.68 ± 0.00 | 1.99 ± 0.00 | 2.41 ± 0.04 | 2.61 ± 0.06 | 2.66 ± 0.06 |
+| | English + code | 2.31 ± 0.00 | 2.99 ± 0.01 | 3.47 ± 0.00 | 3.60 ± 0.00 | 3.66 ± 0.01 |
+| | Europarl, 11 languages | 1.40 ± 0.00 | 1.52 ± 0.00 | 1.64 ± 0.00 | 1.70 ± 0.00 | 1.78 ± 0.01 |
+| Finnish (Europarl) | English | 1.53 ± 0.01 | 1.68 ± 0.00 | 1.84 ± 0.01 | 1.92 ± 0.02 | 1.93 ± 0.01 |
+| | Europarl, 11 languages | 2.08 ± 0.00 | 2.98 ± 0.01 | 4.12 ± 0.00 | 4.82 ± 0.01 | 5.54 ± 0.01 |
+
+On the same held-out text, `r50k_base`, `cl100k_base` and `o200k_base` reach 4.08, 4.19 and 4.22 bytes per token on English fiction, and 2.17, 3.73 and 3.70 on Python.
+
+**Languages on parallel text.** Europarl's sessions are translations of the same proceedings, so the ratio of a language's token count to English's on the same sessions measures how many more tokens the same content costs, the **premium** of [Petrov et al. (2023)](https://arxiv.org/abs/2305.15425). The UTF-8 column gives the same ratio for raw bytes. The trained columns use the full-size tokenizers; their standard deviation over subsets was at most 0.13.
+
+| Language | UTF-8 bytes | `r50k_base` | `cl100k_base` | `o200k_base` | trained on English | trained on Europarl |
+| --- | --- | --- | --- | --- | --- | --- |
+| English | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 |
+| French | 1.40 | 2.27 | 1.82 | 1.54 | 2.24 | 1.42 |
+| German | 1.38 | 2.64 | 1.87 | 1.49 | 2.60 | 1.27 |
+| Spanish | 1.33 | 2.27 | 1.70 | 1.41 | 2.36 | 1.29 |
+| Swedish | 1.25 | 2.47 | 1.96 | 1.63 | 2.52 | 1.18 |
+| Finnish | 1.31 | 2.86 | 2.45 | 1.84 | 2.95 | 1.15 |
+| Greek | 2.47 | 7.86 | 6.15 | 2.38 | 10.69 | 1.49 |
+
+**Other scripts.** The Universal Declaration of Human Rights (UDHR) translations differ in front matter and some are incomplete, so they are compared by bytes per token rather than by premium. The ceiling columns give UTF-8 bytes per pre-tokenized piece under each encoding's own rule, the highest rate any vocabulary could reach under it.
+
+| Language | bytes per character | `r50k` | `cl100k` | `o200k` | ceiling, `r50k` rule | ceiling, `cl100k` | ceiling, `o200k` |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| English | 1.00 | 5.43 | 5.32 | 5.32 | 5.50 | 5.44 | 5.44 |
+| Finnish | 1.04 | 2.31 | 2.68 | 3.50 | 7.69 | 7.70 | 7.70 |
+| Vietnamese | 1.28 | 1.45 | 1.92 | 2.39 | 2.75 | 3.57 | 6.07 |
+| Russian | 1.84 | 1.69 | 4.23 | 7.78 | 11.83 | 11.67 | 11.67 |
+| Arabic | 1.81 | 1.82 | 2.60 | 5.78 | 9.32 | 9.15 | 9.27 |
+| Hindi | 2.60 | 1.68 | 2.66 | 8.85 | 3.87 | 5.31 | 12.94 |
+| Tamil | 2.78 | 1.00 | 1.99 | 7.59 | 3.77 | 6.08 | 25.13 |
+| Thai | 2.91 | 1.50 | 3.05 | 7.03 | 7.97 | 12.55 | 70.27 |
+| Amharic | 2.97 | 1.00 | 1.01 | 1.50 | 7.74 | 13.73 | 13.73 |
+| Korean | 2.42 | 1.15 | 2.45 | 4.17 | 8.56 | 8.37 | 8.37 |
+| Chinese (simplified) | 2.87 | 1.47 | 2.48 | 3.63 | 19.35 | 27.98 | 27.98 |
+
+The measurements support four statements.
+
+- **Compression rises with vocabulary size at a falling rate.** On English fiction, the doublings from 1,024 to 16,384 entries add 0.40, 0.36, 0.34 and 0.29 bytes per token; going from 16,384 to the full vocabulary of about 40,000 adds 0.26 in total. A 40,000-entry tokenizer trained on 8 MB of fiction (4.18) matches `cl100k_base` (4.19) on held-out fiction.
+- **Compression follows the training data.** Adding Python to the training mix raised compression of held-out Python from 2.66 to 3.66 bytes per token and lowered English fiction from 4.18 to 4.13. The Europarl tokenizer compresses English fiction to 3.33 bytes per token against 4.18 for the fiction-trained one, though both training sets contain English, so domain affects the rate as well as language.
+- **A language absent from training is encoded nearly byte by byte.** The English-trained tokenizers encode Greek at 1.01 bytes per token, one token per byte of each two-byte letter, a premium of 10.69 over English. With Greek as one of 11 training languages the premium falls to 1.49. Sharing the vocabulary across languages lowers compression on each: the Europarl tokenizer at 65,536 entries encodes English Europarl at 4.89 bytes per token, against 4.36 for the English-only tokenizer, whose 40,000 entries come from different text.
+- **Larger multilingual vocabularies reduce the premium, and the pre-tokenizer bounds it.** From `r50k_base` to `o200k_base`, the Greek premium falls from 7.86 to 2.38 and the Finnish premium from 2.86 to 1.84. On the UDHR, `o200k_base` encodes Hindi at 8.85 bytes per token, above the 3.87 and 5.31 ceilings of the GPT-2 and `cl100k_base` rules, so the new rule was necessary for that rate. Amharic stays near one byte per token under all three encodings although its ceilings are 7.7 to 13.7, so its limit is the vocabulary. On the FLORES-200 parallel corpus, [Petrov et al.](https://arxiv.org/abs/2305.15425) report premiums of up to 15 for `cl100k_base` (Shan relative to English).
+
+> [!note]- How this was measured
+> - **Data.** All three corpora come from the [`nltk_data`](https://github.com/nltk/nltk_data) repository. From `gutenberg` (18 books), *Persuasion*, *Alice's Adventures in Wonderland*, *The Man Who Was Thursday* and *Leaves of Grass* were held out (1.61 MB); two files are Latin-1 and were decoded as such. From `europarl_raw` (10 session files per language), the first 8 files were used for training and the last 2 held out (0.91 MB of English to 2.25 MB of Greek). From `udhr2` (UTF-8 UDHR translations), each line was stripped of its indentation. Python is CPython 3.13.18's `Lib/` without tests, `idlelib` or `site-packages`, split by a hash of the path into 431 training files and 106 held-out files (1.91 MB). NLTK's Europarl text is already word-tokenized, with spaces around punctuation, which lowers every tokenizer's bytes per token on it; premiums compare tokenizers on the same text and are less affected.
+> - **Training.** Hugging Face `tokenizers` 0.23.3: `BpeTrainer` with the 256-byte initial alphabet, the `ByteLevel` pre-tokenizer (GPT-2 rule, no added prefix space) and `min_frequency=2`, trained once per mix and subset to at most 65,536 entries. Smaller vocabularies are the same model truncated to its first $V - 256$ merges, checked against a direct run at 4,096. Each run took 3 to 6 s on a 4-vCPU Intel Xeon at 2.10 GHz.
+> - **Measurement.** Text was encoded line by line, with newlines excluded from both bytes and tokens. Bytes per token is UTF-8 bytes divided by tokens. Spread is over the three random training subsets; held-out sets are fixed.
+> - **tiktoken.** tiktoken 0.14.0. OpenAI's download host was unreachable from the sandbox, so the rank files were rebuilt from the copies bundled in the npm package `js-tiktoken` 1.0.21. Each rebuilt file's SHA-256 equals the `expected_hash` that tiktoken checks (`306cd27f…` for `r50k_base`, `223921b7…` for `cl100k_base`, `446a9538…` for `o200k_base`). Pieces for the ceilings were counted with each encoding's own `pat_str`.
+> - **Reproduce.** In [`tokenization/`](https://github.com/elimelt/web/tree/main/notes/content/ml/nlp/reading/tokenization), with the three NLTK corpora unzipped under `$TOKDATA` and the rank files in `$TIKTOKEN_DIR` (written by `node rebuild_tiktoken.mjs <js-tiktoken package dir> <out dir>`), run `python3 bpe_compression.py`, then `python3 udhr_eval.py` and `python3 summarize.py`. The results are in `results/`.
+
+### Complexity and optimality
+
+A direct implementation recounts all pairs after every merge, $O(N)$ work per merge on a corpus of $N$ symbols and $O(Nk)$ for $k$ merges. Production trainers keep the pair counts and an index from each pair to the pieces containing it, update only the pieces a merge changes, and take the best pair from a priority queue. [Zouhar et al. (2023)](https://aclanthology.org/2023.findings-acl.38) describe an implementation that lowers the running time from $O(NM)$ to $O(N \log M)$ for $M$ merges.
+
+BPE's greedy choice does not minimize the token count. Zouhar et al. state the choice of merges as maximizing the reduction in sequence length and prove, through a submodularity argument, that greedy BPE achieves a constant fraction of the optimum, with an empirical estimate of about 0.37 for that fraction's lower bound. [Kozma and Voderholzer (2024)](https://arxiv.org/abs/2411.08671) show that finding an optimal merge sequence is APX-complete, so no polynomial-time algorithm approximates it to within every constant factor unless P = NP, and bound BPE's worst-case ratio between 0.333 and 0.625.
+
+## Other subword tokenizers
+
+- **WordPiece** ([Schuster and Nakajima 2012](https://ieeexplore.ieee.org/document/6289079); [Wu et al. 2016](https://arxiv.org/abs/1609.08144)) builds its vocabulary bottom-up as BPE does, but adds the unit that most increases the likelihood of a language model on the training data instead of the most frequent pair. BERT uses it.
+- **Unigram language model** ([Kudo 2018](https://aclanthology.org/P18-1007/)) starts from a large candidate vocabulary and prunes it, keeping the subwords whose removal would most lower the corpus likelihood under a unigram model, and segments text by its most probable segmentation. [Bostrom and Durrett (2020)](https://aclanthology.org/2020.findings-emnlp.414/) found that unigram tokenization "matches or outperforms BPE" on downstream tasks in English and Japanese after pretraining.
+- **SentencePiece** ([Kudo and Richardson 2018](https://aclanthology.org/D18-2012/)) is a library that trains BPE or unigram models directly on raw sentences. It treats whitespace as an ordinary symbol (written `▁`), so tokenization is lossless and needs no language-specific pre-tokenizer.
+- **BPE-dropout** ([Provilkov et al. 2020](https://aclanthology.org/2020.acl-main.170/)) randomly skips merges when segmenting a model's training data, so the model sees several segmentations of the same word. The authors report gains of up to 2.3 BLEU over BPE in translation.
+
+Deployed vocabularies have grown with multilingual coverage. GPT-2's has 50,257 entries; `cl100k_base` has 100,277 including special tokens, and `o200k_base` 200,019. Llama 3's 128K-entry vocabulary combines "100K tokens from the tiktoken tokenizer with 28K additional tokens" for languages other than English, and improves compression on an English sample from 3.17 to 3.94 characters per token over Llama 2's ([Llama Team 2024](https://arxiv.org/abs/2407.21783)).
+
+Two lines of recent work relax BPE's assumptions. [SuperBPE (Liu et al. 2025)](https://arxiv.org/abs/2503.13423) lets later merges cross whitespace to form multi-word tokens and reports up to 33% fewer tokens than BPE at a 200K vocabulary, with a 4.0-point average gain over 30 downstream tasks at 8B parameters. Byte-level models remove the learned vocabulary: [ByT5 (Xue et al. 2022)](https://aclanthology.org/2022.tacl-1.17/) operates on raw UTF-8 bytes, and the [Byte Latent Transformer (Pagnoni et al. 2024)](https://arxiv.org/abs/2412.09871) groups bytes into patches whose boundaries depend on the entropy of the next byte, matching Llama 3 in a FLOP-controlled comparison at 8B parameters.
+
+## Segmentation and Tokenization
+
+NLTK's built-in functions segment text into sentences, after which the words within each sentence are tokenized and POS-tagged.
+
+```python
+import nltk
+
+sent_text = nltk.sent_tokenize(text)
+
+for sentence in sent_text:
+    tokenized_text = nltk.word_tokenize(sentence)
+    tagged = nltk.pos_tag(tokenized_text)
+    print(tagged)
+```
+
+## Edit Distance
+
+Minimum edit distance is computed by dynamic programming. `dp[i][j]` is the edit distance between the first $i$ characters of `w1` and the first $j$ characters of `w2`, built up from insertions, deletions, and substitutions. This version assigns cost 1 to every operation; SLP3 also presents a variant where substitution costs 2.
+
+```python
+def min_edit_distance(w1, w2):
+    n, m = len(w1), len(w2)
+    dp = [[0] * (m + 1) for _ in range(n + 1)]
+
+    for i in range(n + 1):
+        dp[i][0] = i
+
+    for j in range(m + 1):
+        dp[0][j] = j
+
+    for i in range(1, n + 1):
+        for j in range(1, m + 1):
+            if w1[i - 1] == w2[j - 1]:
+                dp[i][j] = dp[i - 1][j - 1]
+            else:
+                dp[i][j] = 1 + min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1])
+
+    return dp[n][m]
+```
+
+## Sources
+
+- [Jurafsky & Martin, Speech and Language Processing (3rd ed. draft)](https://web.stanford.edu/~jurafsky/slp3/)
+- [NLTK Book, ch. 3](https://www.nltk.org/book/ch03.html)
+- [Gage (1994), A New Algorithm for Data Compression](https://drdobbs.com/a-new-algorithm-for-data-compression/184402829), *C Users Journal* 12(2)
+- [Sennrich, Haddow and Birch (2016), Neural Machine Translation of Rare Words with Subword Units](https://aclanthology.org/P16-1162/), and the [subword-nmt](https://github.com/rsennrich/subword-nmt) code
+- [Radford et al. (2019), Language Models are Unsupervised Multitask Learners](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf)
+- [Schuster and Nakajima (2012), Japanese and Korean Voice Search](https://ieeexplore.ieee.org/document/6289079)
+- [Wu et al. (2016), Google's Neural Machine Translation System](https://arxiv.org/abs/1609.08144)
+- [Kudo (2018), Subword Regularization](https://aclanthology.org/P18-1007/)
+- [Kudo and Richardson (2018), SentencePiece](https://aclanthology.org/D18-2012/)
+- [Provilkov, Emelianenko and Voita (2020), BPE-Dropout](https://aclanthology.org/2020.acl-main.170/)
+- [Bostrom and Durrett (2020), Byte Pair Encoding is Suboptimal for Language Model Pretraining](https://aclanthology.org/2020.findings-emnlp.414/)
+- [Zouhar et al. (2023), A Formal Perspective on Byte-Pair Encoding](https://aclanthology.org/2023.findings-acl.38)
+- [Kozma and Voderholzer (2024), Theoretical Analysis of Byte-Pair Encoding](https://arxiv.org/abs/2411.08671)
+- [Petrov et al. (2023), Language Model Tokenizers Introduce Unfairness Between Languages](https://arxiv.org/abs/2305.15425)
+- [Llama Team (2024), The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783)
+- [Liu et al. (2025), SuperBPE: Space Travel for Language Models](https://arxiv.org/abs/2503.13423)
+- [Xue et al. (2022), ByT5](https://aclanthology.org/2022.tacl-1.17/)
+- [Pagnoni et al. (2024), Byte Latent Transformer](https://arxiv.org/abs/2412.09871)
+- [openai/tiktoken](https://github.com/openai/tiktoken)
