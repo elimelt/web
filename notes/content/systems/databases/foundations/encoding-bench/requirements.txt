@@ -1,0 +1,8 @@
+# Versions used for the measurements in ch4-encoding-and-evolution (2026-11-17).
+msgpack==1.2.4
+protobuf==7.36.1
+grpcio-tools==1.85.1
+fastavro==1.13.1
+orjson==3.13.0
+thriftpy2==0.7.1
+zstandard==0.25.0

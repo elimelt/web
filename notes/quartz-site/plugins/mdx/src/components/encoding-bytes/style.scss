@@ -1,0 +1,189 @@
+// Encoding figure (encoding-bytes). Stacked size bars per format, a grid of
+// byte cells coloured by role, and in the misread preset a small table.
+
+figure.eb {
+  @include fig-frame;
+  font-size: 0.86rem;
+
+  --eb-name: color-mix(in srgb, var(--fig-orange) 34%, transparent);
+  --eb-tag: color-mix(in srgb, var(--fig-purple) 38%, transparent);
+  --eb-meta: color-mix(in srgb, var(--gray) 30%, transparent);
+  --eb-value: color-mix(in srgb, var(--fig-blue) 26%, transparent);
+  --eb-punct: transparent;
+  --eb-right: color-mix(in srgb, var(--fig-green) 30%, transparent);
+  --eb-wrong: color-mix(in srgb, var(--fig-red) 40%, transparent);
+  --eb-skipped: color-mix(in srgb, var(--gray) 30%, transparent);
+
+  button {
+    @include fig-button(0.2rem 0.55rem, 0.82rem);
+    @include fig-button-hover;
+  }
+  button[aria-pressed="true"] {
+    @include fig-pressed;
+  }
+  select {
+    @include fig-button(0.15rem 0.35rem, 0.82rem);
+  }
+
+  .eb-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.9rem;
+    align-items: center;
+    margin-bottom: 0.6rem;
+  }
+  .eb-group {
+    display: inline-flex;
+    gap: 0.25rem;
+  }
+  .eb-rec {
+    color: var(--darkgray);
+    display: inline-flex;
+    gap: 0.35rem;
+    align-items: center;
+  }
+
+  .eb-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    margin-bottom: 0.55rem;
+  }
+  button.eb-bar {
+    display: grid;
+    grid-template-columns: 7.2rem minmax(0, 1fr) 3.4rem;
+    align-items: center;
+    column-gap: 0.5rem;
+    width: 100%;
+    padding: 0.18rem 0.45rem;
+    text-align: left;
+  }
+  .eb-bar-label {
+    white-space: nowrap;
+  }
+  .eb-bar-track {
+    display: flex;
+    height: 0.8rem;
+  }
+  .eb-seg {
+    display: block;
+    height: 100%;
+  }
+  .eb-seg.eb-punct {
+    background: color-mix(in srgb, var(--gray) 12%, transparent);
+  }
+  .eb-bar-n {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .eb-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.9rem;
+    color: var(--darkgray);
+    font-size: 0.78rem;
+    margin-bottom: 0.45rem;
+  }
+  .eb-key {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .eb-sw {
+    display: inline-block;
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 2px;
+    border: 1px solid var(--lightgray);
+  }
+
+  .eb-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(1.45rem, 1fr));
+    gap: 2px;
+    font-family: var(--codeFont);
+    font-size: 0.74rem;
+    line-height: 1.35rem;
+  }
+  .eb-b {
+    text-align: center;
+    border-radius: 2px;
+    color: var(--darkgray);
+    cursor: default;
+    outline: 1px solid transparent;
+  }
+  .eb-ch {
+    color: var(--dark);
+    font-weight: 600;
+  }
+  .eb-hl {
+    outline: 2px solid var(--secondary);
+    outline-offset: -1px;
+  }
+
+  .eb-name { background: var(--eb-name); }
+  .eb-tag { background: var(--eb-tag); }
+  .eb-meta { background: var(--eb-meta); }
+  .eb-value { background: var(--eb-value); }
+  .eb-punct { background: var(--eb-punct); }
+  .eb-right { background: var(--eb-right); }
+  .eb-wrong { background: var(--eb-wrong); }
+  .eb-skipped {
+    background: repeating-linear-gradient(135deg, var(--eb-skipped) 0 3px, transparent 3px 6px);
+  }
+  .eb-unread {
+    background: transparent;
+    color: var(--gray);
+  }
+  .eb-sw.eb-unread {
+    border-style: dashed;
+  }
+
+  .eb-readout {
+    min-height: 2.6em;
+    margin: 0.6rem 0 0.3rem;
+    color: var(--darkgray);
+  }
+
+  .eb-table {
+    table {
+      @include fig-table;
+      width: 100%;
+      font-size: 0.8rem;
+      table-layout: fixed;
+    }
+    td,
+    th {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    td:nth-child(2),
+    td:nth-child(3) {
+      font-family: var(--codeFont);
+    }
+    tr.eb-row-wrong td:nth-child(2) {
+      color: var(--fig-red);
+      font-weight: 600;
+    }
+    tr.eb-hl td {
+      background: var(--highlight);
+    }
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    button.eb-bar {
+      grid-template-columns: 5.6rem minmax(0, 1fr) 3rem;
+      font-size: 0.76rem;
+    }
+    .eb-grid {
+      grid-template-columns: repeat(auto-fill, minmax(1.3rem, 1fr));
+      font-size: 0.68rem;
+    }
+  }
+}
