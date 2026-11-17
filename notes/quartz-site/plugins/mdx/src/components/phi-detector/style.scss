@@ -1,0 +1,218 @@
+figure.phd {
+  @include fig-frame;
+
+  .phd-kinds {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.7rem;
+  }
+
+  button,
+  select {
+    @include fig-button(0.25rem 0.6rem, 0.88rem);
+    @include fig-button-hover;
+  }
+
+  button[aria-pressed="true"] {
+    @include fig-pressed;
+  }
+
+  input:disabled,
+  button:disabled {
+    cursor: progress;
+  }
+
+  select:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+
+  .phd-controls {
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+    flex-wrap: wrap;
+    font-size: 0.92rem;
+  }
+
+  .phd-slider {
+    flex: 1 1 16rem;
+    font-size: 0.92rem;
+    @include fig-slider;
+  }
+
+  .phd-viewslider {
+    margin: 0.2rem 0 0.4rem;
+  }
+
+  .phd-select {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .phd-plot {
+    margin-top: 0.5rem;
+  }
+
+  .phd-overview,
+  .phd-detail,
+  .phd-tradeoff {
+    @include fig-chart;
+  }
+
+  .phd-overview {
+    aspect-ratio: 640 / 92;
+    cursor: pointer;
+  }
+
+  .phd-detail {
+    aspect-ratio: 640 / 210;
+  }
+
+  .phd-tradeoff {
+    aspect-ratio: 640 / 250;
+  }
+
+  .phd-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .phd-tick,
+  .phd-axis {
+    fill: var(--gray);
+    font-size: 11px;
+  }
+
+  .phd-axis {
+    font-size: 12px;
+  }
+
+  .phd-phase {
+    fill: var(--highlight);
+    stroke: none;
+  }
+
+  .phd-iv {
+    stroke: var(--darkgray);
+    stroke-width: 0.6;
+    opacity: 0.7;
+  }
+
+  .phd-mist {
+    stroke: var(--fig-red);
+    stroke-width: 1.2;
+  }
+
+  .phd-view {
+    fill: none;
+    stroke: var(--secondary);
+    stroke-width: 1.5;
+  }
+
+  .phd-saw {
+    fill: none;
+    stroke: var(--darkgray);
+    stroke-width: 1.2;
+  }
+
+  .phd-thr {
+    fill: none;
+    stroke: var(--secondary);
+    stroke-width: 1.6;
+  }
+
+  .phd-sus {
+    fill: var(--fig-red);
+    opacity: 0.28;
+  }
+
+  .phd-curve {
+    fill: none;
+    stroke-width: 1.6;
+    opacity: 0.55;
+    stroke-linejoin: round;
+  }
+
+  .phd-curve.phd-on {
+    stroke-width: 2.6;
+    opacity: 1;
+  }
+
+  .phd-blue {
+    --phd-c: var(--fig-blue);
+  }
+
+  .phd-orange {
+    --phd-c: var(--fig-orange);
+  }
+
+  .phd-green {
+    --phd-c: var(--fig-green);
+  }
+
+  .phd-curve {
+    stroke: var(--phd-c);
+  }
+
+  .phd-dot {
+    fill: var(--phd-c);
+    stroke: var(--light);
+    stroke-width: 2;
+  }
+
+  .phd-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    margin: 0.7rem 0 0;
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  .phd-key::before {
+    content: "";
+    display: inline-block;
+    width: 1.3rem;
+    height: 0;
+    margin-right: 0.35rem;
+    vertical-align: middle;
+    border-top: 2.5px solid var(--phd-c);
+  }
+
+  .phd-k::before {
+    content: "";
+    display: inline-block;
+    width: 0.6rem;
+    height: 0.6rem;
+    margin-right: 0.35rem;
+    border-radius: 50%;
+    background: var(--phd-c);
+  }
+
+  .phd-readout {
+    margin: 0.5rem 0 0;
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .phd-tick {
+      font-size: 17px;
+    }
+
+    .phd-axis {
+      font-size: 18px;
+    }
+
+    .phd-overview {
+      aspect-ratio: 640 / 110;
+    }
+  }
+}
