@@ -1,0 +1,108 @@
+maxBallot=1 mutant=none distinct_states=3921 violation=False secs=0.1
+maxBallot=1 mutant=ignore_votes distinct_states=4653 violation=True secs=0.1
+shortest counterexample: 12 steps
+   1a b=0
+   1a b=1
+   1b a0 b=0
+   1b a1 b=0
+   1b a0 b=1
+   2a b=0 v=1
+   2b a1 b=0 v=1
+   1b a1 b=1
+   2a b=1 v=2
+   2b a0 b=1 v=2
+   2b a1 b=1 v=2
+   2b a2 b=0 v=1
+maxBallot=1 mutant=accept_below_promise distinct_states=9500 violation=True secs=0.1
+shortest counterexample: 12 steps
+   1a b=0
+   1a b=1
+   1b a0 b=1
+   1b a1 b=0
+   1b a1 b=1
+   1b a2 b=0
+   2a b=0 v=1
+   2a b=1 v=2
+   2b a0 b=1 v=2
+   2b a0 b=0 v=1
+   2b a1 b=0 v=1
+   2b a1 b=1 v=2
+maxBallot=1 mutant=minority_quorum distinct_states=3189 violation=True secs=0.0
+shortest counterexample: 9 steps
+   1a b=0
+   1a b=1
+   1b a2 b=0
+   1b a0 b=1
+   1b a1 b=1
+   2a b=0 v=1
+   2a b=1 v=2
+   2b a2 b=0 v=1
+   2b a2 b=1 v=2
+maxBallot=1 mutant=no_persist distinct_states=10694 violation=True secs=0.2
+shortest counterexample: 12 steps
+   1a b=0
+   1a b=1
+   1b a0 b=0
+   1b a1 b=0
+   1b a0 b=1
+   1b a1 b=1
+   2a b=0 v=1
+   2a b=1 v=2
+   2b a0 b=0 v=1
+   2b a1 b=0 v=1
+   2b a0 b=1 v=2
+   2b a1 b=1 v=2
+maxBallot=2 mutant=none distinct_states=185369 violation=False secs=5.2
+maxBallot=2 mutant=ignore_votes distinct_states=65477 violation=True secs=1.1
+shortest counterexample: 12 steps
+   1a b=0
+   1a b=1
+   1b a0 b=0
+   1b a1 b=0
+   1b a0 b=1
+   2a b=0 v=1
+   2b a1 b=0 v=1
+   1b a1 b=1
+   2a b=1 v=2
+   2b a0 b=1 v=2
+   2b a1 b=1 v=2
+   2b a2 b=0 v=1
+maxBallot=2 mutant=accept_below_promise distinct_states=139543 violation=True secs=2.3
+shortest counterexample: 12 steps
+   1a b=0
+   1a b=1
+   1b a0 b=1
+   1b a1 b=0
+   1b a1 b=1
+   1b a2 b=0
+   2a b=0 v=1
+   2a b=1 v=2
+   2b a0 b=0 v=1
+   2b a0 b=1 v=2
+   2b a1 b=1 v=2
+   2b a1 b=0 v=1
+maxBallot=2 mutant=minority_quorum distinct_states=21305 violation=True secs=0.3
+shortest counterexample: 9 steps
+   1a b=0
+   1a b=1
+   1b a2 b=0
+   1b a0 b=1
+   1b a1 b=1
+   2a b=0 v=1
+   2a b=1 v=2
+   2b a2 b=0 v=1
+   2b a2 b=1 v=2
+maxBallot=2 mutant=no_persist distinct_states=162506 violation=True secs=3.0
+shortest counterexample: 12 steps
+   1a b=0
+   1a b=1
+   1b a0 b=0
+   1b a1 b=0
+   1b a0 b=1
+   1b a1 b=1
+   2a b=0 v=1
+   2a b=1 v=2
+   2b a0 b=0 v=1
+   2b a1 b=0 v=1
+   2b a0 b=1 v=2
+   2b a1 b=1 v=2

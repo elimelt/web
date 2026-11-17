@@ -1,0 +1,281 @@
+// Paxos stepper (paxos-stepper). Message kinds use the shared series colors:
+// prepare blue, promise purple, accept orange, accepted green.
+figure.px {
+  @include fig-frame;
+  font-size: 0.92rem;
+
+  .k-prepare {
+    --k: var(--fig-blue);
+  }
+  .k-promise {
+    --k: var(--fig-purple);
+  }
+  .k-accept {
+    --k: var(--fig-orange);
+  }
+  .k-accepted {
+    --k: var(--fig-green);
+  }
+
+  button {
+    @include fig-button(0.25rem 0.7rem, 0.85rem);
+    @include fig-button-hover;
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.55;
+    }
+  }
+
+  .px-controls {
+    margin: 0 0 0.4rem;
+
+    label {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.45rem;
+      font-size: 0.88rem;
+    }
+
+    input[type="checkbox"] {
+      @include fig-native-check;
+      flex: none;
+      margin-top: 0.2rem;
+    }
+  }
+
+  .px-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0.2rem 0;
+
+    .px-primary {
+      border-color: var(--secondary);
+      color: var(--secondary);
+      font-weight: 600;
+    }
+  }
+
+  .px-next {
+    color: var(--gray);
+    font-size: 0.85rem;
+    margin-left: 0.3rem;
+  }
+
+  .px-headline {
+    margin: 0.5rem 0 0.4rem;
+    padding: 0.45rem 0.7rem;
+    border-left: 3px solid var(--gray);
+    border-radius: 2px;
+    background: var(--highlight);
+    min-height: 2.9em;
+
+    &[data-tone="good"] {
+      border-left-color: var(--fig-green);
+    }
+    &[data-tone="bad"] {
+      border-left-color: var(--fig-red);
+    }
+    &[data-tone="warn"] {
+      border-left-color: var(--fig-orange);
+    }
+  }
+
+  .px-plot {
+    max-width: 32rem;
+    margin: 0 auto;
+  }
+
+  .px-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 360 / 214;
+
+    text {
+      font-size: 11.5px;
+      fill: var(--darkgray);
+    }
+
+    .px-name {
+      font-weight: 600;
+      fill: var(--dark);
+    }
+
+    .px-dim {
+      fill: var(--gray);
+      font-weight: 400;
+    }
+  }
+
+  .px-link {
+    stroke: var(--lightgray);
+    stroke-width: 1.2;
+  }
+
+  .px-node rect {
+    fill: var(--light);
+    stroke: var(--gray);
+    stroke-width: 1.2;
+  }
+
+  .px-prop.learned rect {
+    stroke: var(--fig-green);
+    stroke-width: 2;
+  }
+
+  .px-prop.down rect {
+    stroke-dasharray: 4 3;
+    opacity: 0.7;
+  }
+
+  .px-prop.down text {
+    fill: var(--gray);
+  }
+
+  .px-acc.holds-chosen rect {
+    stroke: var(--fig-green);
+    stroke-width: 2;
+  }
+
+  .px-dot {
+    fill: var(--k);
+    stroke: var(--light);
+    stroke-width: 1.2;
+  }
+
+  .px-head {
+    fill: var(--k);
+  }
+
+  .px-last {
+    stroke: var(--k);
+    stroke-width: 2.6;
+
+    &.ignored {
+      stroke-dasharray: 5 4;
+    }
+
+    &.lost {
+      stroke-dasharray: 2 4;
+      opacity: 0.6;
+    }
+  }
+
+  .px-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.3rem 1rem;
+    font-size: 0.8rem;
+    color: var(--darkgray);
+
+    i {
+      display: inline-block;
+      width: 0.6rem;
+      height: 0.6rem;
+      margin-right: 0.3rem;
+      border-radius: 50%;
+      background: var(--k);
+      vertical-align: -0.02rem;
+    }
+  }
+
+  .px-history ol {
+    margin: 0.6rem 0 0.2rem;
+    padding-left: 1.2rem;
+    font-size: 0.85rem;
+    color: var(--darkgray);
+
+    li {
+      margin: 0.1rem 0;
+    }
+
+    li.latest {
+      color: var(--dark);
+    }
+  }
+
+  .px-more {
+    margin: 0.4rem 0;
+    font-size: 0.86rem;
+
+    summary {
+      cursor: pointer;
+      color: var(--secondary);
+    }
+  }
+
+  .px-flight {
+    ul {
+      list-style: none;
+      margin: 0.4rem 0;
+      padding: 0;
+    }
+
+    li {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.35rem;
+      margin: 0.2rem 0;
+    }
+
+    .px-msg {
+      flex: 1 1 12rem;
+      min-width: 0;
+    }
+
+    button {
+      @include fig-button(0.1rem 0.5rem, 0.8rem);
+    }
+  }
+
+  .px-tag {
+    flex: none;
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    background: var(--k);
+  }
+
+  .px-empty {
+    margin: 0.4rem 0;
+    color: var(--gray);
+  }
+
+  .px-procs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1rem;
+    margin-top: 0.3rem;
+
+    .px-proc {
+      display: inline-flex;
+      gap: 0.3rem;
+    }
+  }
+
+  .px-counts {
+    margin: 0.3rem 0 0;
+    font-size: 0.85rem;
+    color: var(--darkgray);
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .px-svg text {
+      font-size: 14px;
+    }
+
+    .px-next {
+      flex-basis: 100%;
+      margin-left: 0;
+    }
+  }
+}

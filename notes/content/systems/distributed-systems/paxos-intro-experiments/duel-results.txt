@@ -1,0 +1,4 @@
+5 batches x 20000 runs, backoff U[0,4.0); ranges are min-max over batches
+leader time p50 2.75-2.76  p99 4.34-4.41  max 6.09-6.53 | rounds mean 1.00-1.00  p99 1.00-1.00  max 1.00-1.00 | undecided 0
+fixed  time p50 3.68-3.69  p99 10.96-11.21  max 21.37-27.22 | rounds mean 3.04-3.06  p99 7.00-7.00  max 13.00-16.00 | undecided 0
+random time p50 3.52-3.53  p99 6.27-6.45  max 9.36-11.87 | rounds mean 2.14-2.14  p99 3.00-3.00  max 5.00-5.00 | undecided 0
