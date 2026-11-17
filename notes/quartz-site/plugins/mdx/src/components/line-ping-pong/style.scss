@@ -1,0 +1,184 @@
+// Cache-line ping-pong (line-ping-pong): the memory layout on top, one column
+// per core with its line state, and the running counts below. Core colors:
+// 0 blue, 1 orange, 2 green, 3 purple.
+figure.lp {
+  @include fig-frame;
+  font-size: 0.92rem;
+
+  button {
+    @include fig-button(0.3rem 0.8rem, 0.86rem);
+    @include fig-button-hover;
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.5;
+    }
+  }
+
+  .lp-c0 { --lp-color: var(--fig-blue); }
+  .lp-c1 { --lp-color: var(--fig-orange); }
+  .lp-c2 { --lp-color: var(--fig-green); }
+  .lp-c3 { --lp-color: var(--fig-purple); }
+
+  .lp-mem {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.8rem;
+    justify-content: center;
+    margin-bottom: 0.8rem;
+  }
+
+  .lp-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+  }
+
+  .lp-lname {
+    color: var(--darkgray);
+    font-size: 0.75rem;
+  }
+
+  .lp-slots {
+    display: inline-grid;
+    grid-template-columns: repeat(8, 1.45rem);
+    border: 1px solid var(--gray);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .lp-slot {
+    height: 1.4rem;
+    border-right: 1px solid var(--lightgray);
+    font-family: var(--codeFont);
+    font-size: 0.7rem;
+    line-height: 1.4rem;
+    text-align: center;
+    color: var(--light);
+
+    &:last-child {
+      border-right: none;
+    }
+
+    &[class*="lp-c"] {
+      background: var(--lp-color);
+      font-weight: 600;
+    }
+  }
+
+  .lp-cores {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .lp-core {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+    padding: 0.4rem 0.5rem 0.5rem;
+    border: 1px solid var(--lightgray);
+    border-top: 3px solid var(--lp-color);
+    border-radius: 4px;
+  }
+
+  .lp-cbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .lp-cname {
+    font-weight: 600;
+    color: var(--lp-color);
+  }
+
+  .lp-role,
+  .lp-val {
+    color: var(--darkgray);
+    font-size: 0.8rem;
+  }
+
+  .lp-val {
+    font-family: var(--codeFont);
+  }
+
+  .lp-state {
+    font-size: 0.85rem;
+
+    b {
+      display: inline-block;
+      min-width: 1.4rem;
+      padding: 0 0.25rem;
+      border-radius: 3px;
+      font-family: var(--codeFont);
+      text-align: center;
+      background: var(--highlight);
+    }
+  }
+
+  .lp-sM b {
+    background: var(--lp-color);
+    color: var(--light);
+  }
+
+  .lp-sI b {
+    color: var(--gray);
+  }
+
+  .lp-event {
+    min-height: 2.6em;
+    margin: 0.7rem 0 0.5rem;
+    font-size: 0.86rem;
+  }
+
+  .lp-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .lp-counts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 0.9rem;
+  }
+
+  .lp-count {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    font-size: 0.82rem;
+    color: var(--darkgray);
+
+    b {
+      font-family: var(--codeFont);
+      color: var(--dark);
+    }
+  }
+
+  .lp-buttons {
+    display: inline-flex;
+    gap: 0.4rem;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    font-size: 0.85rem;
+
+    .lp-slots {
+      grid-template-columns: repeat(8, 1.2rem);
+    }
+
+    .lp-cores {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+}
