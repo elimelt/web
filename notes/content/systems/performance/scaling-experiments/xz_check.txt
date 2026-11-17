@@ -1,0 +1,5 @@
+# xz -T+1 and -T2 alternated after the main runs, wall-clock seconds
+T+1 47.715927567
+T2 25.655321730
+T+1 51.233014906
+T2 27.501119963

@@ -1,0 +1,226 @@
+figure.sf {
+  @include fig-frame;
+
+  .sf-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .sf-choices button {
+    @include fig-button(0.25rem 0.6rem, 0.85rem);
+    @include fig-button-hover;
+
+    &[aria-pressed="true"] {
+      @include fig-pressed;
+    }
+  }
+
+  button:disabled,
+  input:disabled {
+    cursor: progress;
+  }
+
+  .sf-slider {
+    display: block;
+    margin-top: 0.7rem;
+    font-size: 0.92rem;
+    @include fig-slider;
+  }
+
+  .sf-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    margin: 0.7rem 0 0.2rem;
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  .sf-key::before {
+    content: "";
+    display: inline-block;
+    width: 1.3rem;
+    height: 0;
+    margin-right: 0.35rem;
+    vertical-align: middle;
+    border-top: 2px solid currentColor;
+  }
+
+  .sf-key-pt::before {
+    width: 0.55rem;
+    height: 0.55rem;
+    border: none;
+    border-radius: 50%;
+    background: var(--darkgray);
+  }
+
+  .sf-key-amdahl::before {
+    border-color: var(--fig-blue);
+  }
+
+  .sf-key-usl::before {
+    border-top-style: dashed;
+    border-color: var(--fig-orange);
+  }
+
+  .sf-key-linear::before {
+    border-top: 1.5px dashed var(--gray);
+  }
+
+  .sf-chart {
+    @include fig-chart;
+  }
+
+  .sf-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .sf-tick,
+  .sf-axis,
+  .sf-note {
+    fill: var(--gray);
+    font-size: 11px;
+  }
+
+  .sf-axis {
+    font-size: 12px;
+  }
+
+  .sf-held {
+    fill: var(--highlight);
+    opacity: 0.7;
+  }
+
+  .sf-linear {
+    stroke: var(--gray);
+    stroke-width: 1.2;
+    stroke-dasharray: 4 4;
+  }
+
+  .sf-amdahl,
+  .sf-usl {
+    fill: none;
+    stroke-width: 2;
+    stroke-linejoin: round;
+  }
+
+  .sf-amdahl {
+    stroke: var(--fig-blue);
+  }
+
+  .sf-usl {
+    stroke: var(--fig-orange);
+    stroke-dasharray: 7 4;
+  }
+
+  .sf-whisker {
+    stroke: var(--darkgray);
+    stroke-width: 1.4;
+  }
+
+  .sf-pt {
+    fill: var(--darkgray);
+    stroke: var(--light);
+    stroke-width: 1;
+  }
+
+  .sf-out {
+    fill: var(--light);
+    stroke: var(--darkgray);
+    stroke-width: 1.5;
+  }
+
+  .sf-table {
+    @include fig-table;
+    width: 100%;
+    margin: 0.5rem 0 0;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+
+    th,
+    td {
+      padding: 0.2rem 0.4rem;
+      text-align: right;
+      border: none;
+    }
+
+    thead th {
+      border-bottom: 1px solid var(--lightgray);
+      font-weight: 600;
+    }
+
+    th[scope="row"] {
+      text-align: left;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    .sf-key::before {
+      width: 0.9rem;
+    }
+  }
+
+  .sf-kf {
+    margin-top: 0.4rem;
+  }
+
+  .sf-kf-label {
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  .sf-kf-table {
+    margin-top: 0.15rem;
+
+    td {
+      text-align: left;
+    }
+
+    td span {
+      display: block;
+      color: var(--gray);
+      font-size: 0.75rem;
+    }
+  }
+
+  .sf-dim {
+    opacity: 0.55;
+  }
+
+  .sf-source {
+    margin: 0.4rem 0 0;
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .sf-tick,
+    .sf-note {
+      font-size: 16px;
+    }
+
+    .sf-axis {
+      font-size: 17px;
+    }
+
+    .sf-table {
+      font-size: 0.78rem;
+
+      th,
+      td {
+        padding: 0.15rem 0.25rem;
+      }
+    }
+
+    .sf-kf-table tr {
+      display: flex;
+      flex-wrap: wrap;
+    }
+  }
+}
