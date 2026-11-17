@@ -1,0 +1,363 @@
+[
+ {
+  "method": "nestloop",
+  "times_ms": [
+   327.274,
+   297.755,
+   312.173,
+   279.503,
+   244.316
+  ],
+  "median_ms": 297.755,
+  "est_cost": 113241.42,
+  "startup_cost": 113241.41,
+  "join": "Nested Loop",
+  "join_est_rows": 24177,
+  "join_act_rows": 200000,
+  "nodes": [
+   "Aggregate",
+   "Nested Loop[Inner]",
+   "Seq Scan",
+   "Index Scan"
+  ],
+  "planning_ms": 0.142,
+  "shared_hit": 268367,
+  "shared_read": 0,
+  "temp_written": 0,
+  "hash_batches": null,
+  "stage": "per-column statistics",
+  "filter_est_rows": 2427,
+  "filter_act_rows": 20000
+ },
+ {
+  "method": "hash",
+  "times_ms": [
+   857.37,
+   960.715,
+   1019.067,
+   981.555,
+   959.823
+  ],
+  "median_ms": 960.715,
+  "est_cost": 203802.35,
+  "startup_cost": 203802.34,
+  "join": "Hash Join",
+  "join_est_rows": 24177,
+  "join_act_rows": 200000,
+  "nodes": [
+   "Aggregate",
+   "Hash Join[Inner]",
+   "Seq Scan",
+   "Hash",
+   "Seq Scan"
+  ],
+  "planning_ms": 0.217,
+  "shared_hit": 62464,
+  "shared_read": 0,
+  "temp_written": 0,
+  "hash_batches": 1,
+  "stage": "per-column statistics",
+  "filter_est_rows": 2427,
+  "filter_act_rows": 20000
+ },
+ {
+  "method": "merge",
+  "times_ms": [
+   9781.665,
+   9865.305,
+   6518.856
+  ],
+  "median_ms": 9781.665,
+  "est_cost": 461272.1,
+  "startup_cost": 461272.09,
+  "join": "Merge Join",
+  "join_est_rows": 24177,
+  "join_act_rows": 200000,
+  "nodes": [
+   "Aggregate",
+   "Merge Join[Inner]",
+   "Index Scan",
+   "Sort",
+   "Seq Scan"
+  ],
+  "planning_ms": 0.195,
+  "shared_hit": 10018620,
+  "shared_read": 0,
+  "temp_written": 0,
+  "hash_batches": null,
+  "stage": "per-column statistics",
+  "filter_est_rows": 2427,
+  "filter_act_rows": 20000
+ },
+ {
+  "method": "planner",
+  "times_ms": [
+   300.753,
+   241.512,
+   272.475,
+   264.86,
+   237.821
+  ],
+  "median_ms": 264.86,
+  "est_cost": 113241.42,
+  "startup_cost": 113241.41,
+  "join": "Nested Loop",
+  "join_est_rows": 24177,
+  "join_act_rows": 200000,
+  "nodes": [
+   "Aggregate",
+   "Nested Loop[Inner]",
+   "Seq Scan",
+   "Index Scan"
+  ],
+  "planning_ms": 0.218,
+  "shared_hit": 268367,
+  "shared_read": 0,
+  "temp_written": 0,
+  "hash_batches": null,
+  "stage": "per-column statistics",
+  "filter_est_rows": 2427,
+  "filter_act_rows": 20000
+ },
+ {
+  "method": "nestloop",
+  "times_ms": [
+   244.592,
+   235.297,
+   231.478,
+   232.297,
+   231.187
+  ],
+  "median_ms": 232.297,
+  "est_cost": 298491.21,
+  "startup_cost": 298491.2,
+  "join": "Nested Loop",
+  "join_est_rows": 205877,
+  "join_act_rows": 200000,
+  "nodes": [
+   "Aggregate",
+   "Nested Loop[Inner]",
+   "Seq Scan",
+   "Index Scan"
+  ],
+  "planning_ms": 0.137,
+  "shared_hit": 268367,
+  "shared_read": 0,
+  "temp_written": 0,
+  "hash_batches": null,
+  "stage": "create statistics (dependencies, mcv)",
+  "filter_est_rows": 20667,
+  "filter_act_rows": 20000
+ },
+ {
+  "method": "hash",
+  "times_ms": [
+   746.96,
+   787.074,
+   935.552,
+   940.613,
+   829.287
+  ],
+  "median_ms": 829.287,
+  "est_cost": 204484.6,
+  "startup_cost": 204484.59,
+  "join": "Hash Join",
+  "join_est_rows": 205877,
+  "join_act_rows": 200000,
+  "nodes": [
+   "Aggregate",
+   "Hash Join[Inner]",
+   "Seq Scan",
+   "Hash",
+   "Seq Scan"
+  ],
+  "planning_ms": 0.196,
+  "shared_hit": 62464,
+  "shared_read": 0,
+  "temp_written": 0,
+  "hash_batches": 1,
+  "stage": "create statistics (dependencies, mcv)",
+  "filter_est_rows": 20667,
+  "filter_act_rows": 20000
+ },
+ {
+  "method": "merge",
+  "times_ms": [
+   7015.757,
+   7201.754,
+   7389.42
+  ],
+  "median_ms": 7201.754,
+  "est_cost": 464990.86,
+  "startup_cost": 464990.85,
+  "join": "Merge Join",
+  "join_est_rows": 205877,
+  "join_act_rows": 200000,
+  "nodes": [
+   "Aggregate",
+   "Merge Join[Inner]",
+   "Index Scan",
+   "Sort",
+   "Seq Scan"
+  ],
+  "planning_ms": 0.185,
+  "shared_hit": 10018620,
+  "shared_read": 0,
+  "temp_written": 0,
+  "hash_batches": null,
+  "stage": "create statistics (dependencies, mcv)",
+  "filter_est_rows": 20667,
+  "filter_act_rows": 20000
+ },
+ {
+  "method": "planner",
+  "times_ms": [
+   711.299,
+   710.376,
+   712.558,
+   712.01,
+   710.43
+  ],
+  "median_ms": 711.299,
+  "est_cost": 204484.6,
+  "startup_cost": 204484.59,
+  "join": "Hash Join",
+  "join_est_rows": 205877,
+  "join_act_rows": 200000,
+  "nodes": [
+   "Aggregate",
+   "Hash Join[Inner]",
+   "Seq Scan",
+   "Hash",
+   "Seq Scan"
+  ],
+  "planning_ms": 0.174,
+  "shared_hit": 62464,
+  "shared_read": 0,
+  "temp_written": 0,
+  "hash_batches": 1,
+  "stage": "create statistics (dependencies, mcv)",
+  "filter_est_rows": 20667,
+  "filter_act_rows": 20000
+ },
+ {
+  "method": "nestloop",
+  "times_ms": [
+   224.301,
+   226.819,
+   230.983,
+   228.691,
+   222.954
+  ],
+  "median_ms": 226.819,
+  "est_cost": 110049.98,
+  "startup_cost": 110049.97,
+  "join": "Nested Loop",
+  "join_est_rows": 205877,
+  "join_act_rows": 200000,
+  "nodes": [
+   "Aggregate",
+   "Nested Loop[Inner]",
+   "Seq Scan",
+   "Index Scan"
+  ],
+  "planning_ms": 0.125,
+  "shared_hit": 268367,
+  "shared_read": 0,
+  "temp_written": 0,
+  "hash_batches": null,
+  "stage": "create statistics, random_page_cost 1.1",
+  "filter_est_rows": 20667,
+  "filter_act_rows": 20000
+ },
+ {
+  "method": "hash",
+  "times_ms": [
+   709.662,
+   740.041,
+   783.828,
+   792.166,
+   1061.539
+  ],
+  "median_ms": 783.828,
+  "est_cost": 204484.6,
+  "startup_cost": 204484.59,
+  "join": "Hash Join",
+  "join_est_rows": 205877,
+  "join_act_rows": 200000,
+  "nodes": [
+   "Aggregate",
+   "Hash Join[Inner]",
+   "Seq Scan",
+   "Hash",
+   "Seq Scan"
+  ],
+  "planning_ms": 0.155,
+  "shared_hit": 62464,
+  "shared_read": 0,
+  "temp_written": 0,
+  "hash_batches": 1,
+  "stage": "create statistics, random_page_cost 1.1",
+  "filter_est_rows": 20667,
+  "filter_act_rows": 20000
+ },
+ {
+  "method": "merge",
+  "times_ms": [
+   7351.467,
+   7159.892,
+   7332.782
+  ],
+  "median_ms": 7332.782,
+  "est_cost": 274715.1,
+  "startup_cost": 274715.09,
+  "join": "Merge Join",
+  "join_est_rows": 205877,
+  "join_act_rows": 200000,
+  "nodes": [
+   "Aggregate",
+   "Merge Join[Inner]",
+   "Index Scan",
+   "Sort",
+   "Seq Scan"
+  ],
+  "planning_ms": 0.203,
+  "shared_hit": 10018620,
+  "shared_read": 0,
+  "temp_written": 0,
+  "hash_batches": null,
+  "stage": "create statistics, random_page_cost 1.1",
+  "filter_est_rows": 20667,
+  "filter_act_rows": 20000
+ },
+ {
+  "method": "planner",
+  "times_ms": [
+   223.582,
+   224.375,
+   223.828,
+   231.212,
+   233.749
+  ],
+  "median_ms": 224.375,
+  "est_cost": 110049.98,
+  "startup_cost": 110049.97,
+  "join": "Nested Loop",
+  "join_est_rows": 205877,
+  "join_act_rows": 200000,
+  "nodes": [
+   "Aggregate",
+   "Nested Loop[Inner]",
+   "Seq Scan",
+   "Index Scan"
+  ],
+  "planning_ms": 0.185,
+  "shared_hit": 268367,
+  "shared_read": 0,
+  "temp_written": 0,
+  "hash_batches": null,
+  "stage": "create statistics, random_page_cost 1.1",
+  "filter_est_rows": 20667,
+  "filter_act_rows": 20000
+ }
+]

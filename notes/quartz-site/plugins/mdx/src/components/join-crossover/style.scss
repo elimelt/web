@@ -1,0 +1,207 @@
+// Join crossover charts (join-crossover). Each join method keeps its color in
+// both copies of the chart and in the strips under it.
+figure.jx {
+  @include fig-frame;
+  font-size: 0.9rem;
+
+  .jx-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.8rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .jx-seg {
+    display: inline-flex;
+
+    button {
+      @include fig-button(0.15rem 0.55rem, 0.82rem, 0);
+      @include fig-button-hover;
+
+      &:first-child {
+        border-radius: 4px 0 0 4px;
+      }
+
+      &:last-child {
+        border-radius: 0 4px 4px 0;
+      }
+
+      & + button {
+        margin-left: -1px;
+      }
+
+      &[aria-pressed="true"] {
+        @include fig-pressed;
+      }
+    }
+  }
+
+  .jx-summary {
+    margin: 0.2rem 0 0.3rem;
+    color: var(--darkgray);
+    font-size: 0.85rem;
+  }
+
+  .jx-plot {
+    touch-action: pan-y;
+    cursor: crosshair;
+    border-radius: 4px;
+
+    &:focus-visible {
+      outline: 2px solid var(--secondary);
+      outline-offset: 2px;
+    }
+  }
+
+  .jx-chart {
+    @include fig-chart;
+    aspect-ratio: 640 / 300;
+  }
+
+  .jx-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .jx-tick,
+  .jx-strip-label {
+    fill: var(--gray);
+    font-size: 12px;
+  }
+
+  .jx-axis {
+    fill: var(--darkgray);
+    font-size: 12.5px;
+  }
+
+  .jx-cursor {
+    stroke: var(--secondary);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+  }
+
+  .jx-series {
+    polyline {
+      fill: none;
+      stroke: var(--jx-color);
+      stroke-width: 2.2;
+      stroke-linejoin: round;
+    }
+
+    circle {
+      fill: var(--jx-color);
+    }
+
+    .jx-whisker {
+      stroke: var(--jx-color);
+      stroke-width: 1.4;
+      opacity: 0.6;
+    }
+  }
+
+  .jx-cell {
+    fill: var(--jx-color);
+    opacity: 0.85;
+  }
+
+  .jx-nestloop {
+    --jx-color: var(--fig-blue);
+  }
+
+  .jx-hash {
+    --jx-color: var(--fig-orange);
+  }
+
+  .jx-merge {
+    --jx-color: var(--fig-green);
+  }
+
+  .jx-readout {
+    margin-top: 0.4rem;
+  }
+
+  .jx-at {
+    color: var(--darkgray);
+    font-size: 0.82rem;
+    margin-bottom: 0.2rem;
+  }
+
+  ul.jx-rows {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(12.5rem, 1fr));
+    gap: 0.1rem 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      align-items: baseline;
+      gap: 0.4rem;
+      margin: 0;
+      padding: 0;
+      font-size: 0.85rem;
+
+      &::before {
+        content: none;
+      }
+    }
+
+    b {
+      margin-left: auto;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    small {
+      display: block;
+      font-weight: normal;
+      color: var(--gray);
+      font-size: 0.75rem;
+    }
+  }
+
+  .jx-swatch {
+    flex: none;
+    width: 0.8rem;
+    height: 0.25rem;
+    border-radius: 2px;
+    background: var(--jx-color);
+    align-self: center;
+  }
+
+  .jx-name {
+    color: var(--darkgray);
+  }
+
+  .jx-verdict {
+    margin: 0.35rem 0 0;
+    font-size: 0.85rem;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    padding: 0.8rem 0.7rem 0.7rem;
+
+    .jx-tick,
+    .jx-axis {
+      font-size: 19px;
+    }
+
+    .jx-strip-label {
+      font-size: 16px;
+    }
+
+    // The tick labels carry the unit; the rotated title would collide with them.
+    .jx-ytitle {
+      display: none;
+    }
+
+    ul.jx-rows {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}
