@@ -1,0 +1,219 @@
+---
+title: Performance Modeling for LLM Serving Systems
+aliases:
+  - llm-serving-systems/performance-modeling
+category: Machine Learning Systems
+tags:
+  - batching
+  - performance
+  - roofline
+  - arithmetic-intensity
+  - gqa
+  - kv-cache
+  - machine-learning
+date: 2025-05-10
+updated: 2026-11-17
+authors:
+  - elimelt
+  - claude-opus-5-5
+status: evergreen
+description: The roofline model, measured on a four-core AVX-512 CPU and applied to the H100, and the NanoFlow execution-time model for memory, compute and network that predicts when LLM serving is compute bound.
+sources:
+  - title: CSE 599K, LLM Serving Systems, University of Washington, Spring 2025 (lecture notes)
+    type: lecture
+  - title: "Roofline: An Insightful Visual Performance Model for Multicore Architectures (Williams, Waterman, Patterson, CACM 2009)"
+    url: https://dl.acm.org/doi/10.1145/1498765.1498785
+    type: paper
+  - title: "NanoFlow: Towards Optimal Large Language Model Serving Throughput (Zhu et al., OSDI 2025)"
+    url: https://www.usenix.org/conference/osdi25/presentation/zhu-kan
+    type: paper
+  - title: "Roofline Model Toolkit: A Practical Tool for Architectural and Program Analysis (Lo et al., PMBS 2014)"
+    url: https://www.osti.gov/biblio/1407288
+    type: paper
+  - title: "Cache-aware Roofline model: Upgrading the loft (Ilic, Pratas, Sousa, IEEE Computer Architecture Letters 2014)"
+    url: https://doi.org/10.1109/L-CA.2013.6
+    type: paper
+  - title: How to Scale Your Model, All About Rooflines
+    url: https://jax-ml.github.io/scaling-book/roofline/
+    type: book
+---
+
+A performance model estimates how long a kernel, or one iteration of a serving system, must take from the work it performs and the hardware's peak rates for arithmetic, memory traffic and communication. The estimate is a lower bound on time: an implementation can match it but not beat it. For LLM serving, two models do most of the work. The roofline model bounds a single kernel by its operational intensity, and a whole-iteration model compares the time an iteration needs for memory, compute and network to find which resource limits throughput.
+
+Both models need only a handful of numbers per machine, so they can be applied before any code exists. The bound can also sit far above what a given implementation achieves. The measurements below, taken on a four-core CPU, show the bound and the distance between it and two real matrix multiplication implementations.
+
+A compact version of the formulas is in the [[ml/serving-systems/roofline-reference|Roofline reference]]. The same reasoning guides [[ml/serving-systems/optimizing-gpu-kernels|kernel optimization]] and system-level choices such as [[ml/serving-systems/batching|batching]]. The material began as notes for CSE 599K "LLM Serving Systems" at the University of Washington, Spring 2025, taught by Baris Kasikci with TA Kan Zhu; the whole-iteration model is from [NanoFlow](https://www.usenix.org/conference/osdi25/presentation/zhu-kan) (Zhu et al., OSDI 2025).
+
+## The roofline model
+
+The [roofline model](https://dl.acm.org/doi/10.1145/1498765.1498785) of Williams, Waterman and Patterson characterizes a kernel by its operational intensity $I$, the FLOPs it performs per byte it moves to or from memory:
+
+$$I = \frac{\text{FLOPs performed}}{\text{bytes moved}}$$
+
+A machine with peak arithmetic rate $\pi$ (FLOP/s) and memory bandwidth $\beta$ (bytes/s) cannot run a kernel of intensity $I$ faster than
+
+$$P(I) = \min(\pi,\ \beta I).$$
+
+On log-log axes, $P(I)$ is a diagonal line of slope 1 (the bandwidth limit) that meets a horizontal line (the compute limit) at the ridge point
+
+$$I^{*} = \frac{\pi}{\beta}.$$
+
+A kernel with $I$ below $I^{*}$ is memory bound: its attainable rate grows with intensity, and it speeds up only if it moves fewer bytes or the bytes move faster (coalescing, tiling, prefetching, placing data near the core that uses it). A kernel with $I$ above $I^{*}$ is compute bound: it speeds up only through fewer FLOPs or faster arithmetic (wider SIMD, tensor cores, lower precision).
+
+Three refinements make the model useful on real hardware.
+
+- Each level of the memory hierarchy has its own bandwidth, so a kernel has a different intensity, and a different diagonal, for each level. The [cache-aware roofline](https://doi.org/10.1109/L-CA.2013.6) of Ilic, Pratas and Sousa draws all of them on one plot, with bytes counted as they arrive at the core.
+- The original paper adds lower horizontal ceilings for code that does not use the machine's widest instructions: scalar code on a SIMD machine, or code without fused multiply-adds on a machine whose peak counts an FMA as two FLOPs.
+- $\pi$ and $\beta$ should be measured rather than read from a datasheet. The [Empirical Roofline Toolkit](https://www.osti.gov/biblio/1407288) of Lo et al. measures them with a kernel whose intensity is a parameter, which is the method used below.
+
+## A measured roofline
+
+The measurements in this section come from a KVM guest with four cores of an Intel Xeon (CPUID family 6, model 173) with AVX-512, 48 KiB of L1 data cache and 2 MiB of L2 per core, and a large shared L3. The benchmark sources and the full method are under [How this was measured](#how-this-was-measured).
+
+The compute ceiling comes from sixteen independent chains of fused multiply-adds per core, enough to keep every FMA unit busy. With four threads, the median of seven runs was **888 GFLOP/s** in FP32 with 512-bit FMAs, 512 GFLOP/s with 256-bit FMAs and 64.1 GFLOP/s with scalar FMAs. On one core the AVX-512 figure was 237 GFLOP/s, or 64 FLOPs per cycle at about 3.7 GHz. Two 512-bit FMA units per core at that clock would produce exactly this rate, but the guest does not report its clock speed, so the clock is inferred.
+
+The bandwidth ceilings come from a kernel that loads each float of a buffer, applies $K$ dependent FMAs to it, and stores it back. Each float costs 8 bytes of traffic and $2K$ FLOPs, so the intensity is $K/4$ FLOP/byte, and sweeping $K$ from 1 to 1024 moves the kernel from deep in the memory-bound region to deep in the compute-bound region. The buffer size selects the level of the hierarchy: 32 KiB per core stays in L1, 1 MiB per core in L2, 64 MiB in L3, and 2 GiB in DRAM.
+
+<RooflineLab preset="levels" />
+
+For each level, the highest rate the kernel reached sets that level's diagonal: 526 GB/s in L1, 436 GB/s in L2, 149 GB/s in L3 and **77.8 GB/s** from DRAM, all with four cores. The DRAM ridge therefore sits at $888 / 77.8 \approx 11.4$ FLOP/byte. A kernel resident in L2 is compute bound above about 2 FLOP/byte; the same kernel streaming from DRAM needs more than five times that intensity.
+
+The measured points fall below the roof near the ridge. At 16 FLOP/byte from DRAM the kernel ran at 614 GFLOP/s, 69% of the 888 GFLOP/s bound, and at 8 FLOP/byte it reached 375 of a possible 622. The model assumes that memory traffic and arithmetic overlap perfectly. Near the ridge both are close to saturation, so a stall in either one costs time. Far from the ridge one resource has slack, and the points meet the line.
+
+> [!note]- Deep dive: the bandwidth ceiling depends on the access pattern and the core count
+> A datasheet gives one bandwidth. The measured ceilings depend on at least two other variables.
+>
+> **Reads and writes.** A pure read stream (a sum over the buffer) reached 50.8 GB/s from DRAM with four cores, against 77.8 GB/s for the read-modify-write kernel above. The sweep counts the 4 bytes written per float as traffic, so its read rate was 38.9 GB/s, lower than the pure read stream; the higher total comes from writes added to reads, not from faster reads. A kernel that mostly reads, such as a matrix multiplication streaming its weights, should be compared against the read ceiling. The opposite holds in L1, where the read stream reached 1,303 GB/s and the sweep kernel 526 GB/s: there the limit is the rate at which a core issues stores, not the cache.
+>
+> **Cores.** One core read 12.2 GB/s from DRAM and four cores read 50.8 GB/s, 4.2 times as much. A core can have only a bounded number of cache-line misses outstanding, so by [Little's law](https://en.wikipedia.org/wiki/Little%27s_law) its bandwidth is at most that number times 64 bytes divided by the memory latency. A few cores of a large server CPU cannot saturate its memory channels, and the ceiling of a four-core VM is a property of the VM rather than of the socket.
+
+## Intensity of the kernels in serving
+
+### Dot product
+
+An FP32 dot product of length $N$ performs $2N$ FLOPs ($N$ multiplies and $N$ adds) and reads $8N$ bytes, plus 4 bytes for the result:
+
+$$I = \frac{2N}{8N + 4} \approx \frac{1}{4}.$$
+
+At a quarter of a FLOP per byte, a dot product is memory bound on both machines in this note: 45 times below the DRAM ridge of the CPU above and more than 1,000 times below that of an H100. Storing the vectors in FP16 doubles the intensity and changes neither conclusion.
+
+### Matrix multiplication and the batch dimension
+
+For $C = AB$ with $A$ of shape $[M, K]$, $B$ of shape $[K, N]$ and $S$-byte elements, the multiplication performs $2MKN$ FLOPs and, if each operand crosses the memory boundary once, moves $S(MK + KN + MN)$ bytes:
+
+$$I = \frac{2MKN}{S\,(MK + KN + MN)} \approx \frac{2M}{S} \quad \text{when } K, N \gg M.$$
+
+In a serving iteration, $B$ is a weight matrix and $M$ is the number of tokens in the batch. The weight matrix dominates the traffic, so intensity grows in proportion to the batch: $M/2$ FLOP/byte in FP32 and $M$ in BF16. A decode step for one request ($M = 1$) is a matrix-vector product with the intensity of a dot product. A batch of $M$ tokens uses each weight $M$ times per read, and the weights are read once for the whole batch.
+
+The measurement below multiplies a 16384 × 16384 FP32 weight matrix (1 GiB, so it streams from DRAM) by $M$ rows, for $M$ from 1 to 1024, on the same four cores. It compares two implementations: OpenBLAS 0.3.34, called through NumPy, and [`skinny.c`](https://github.com/elimelt/web/blob/main/notes/content/ml/serving-systems/performance-modeling/skinny.c), a kernel written for $M \le 64$ that stores the weights transposed, so each byte of the weight matrix is read from DRAM once, and keeps a 4 × 4 block of dot products in registers.
+
+<RooflineLab preset="gemm" />
+
+The roof uses the read ceiling, 50.8 GB/s, because almost all the traffic is reads of the weights. The ridge is at $888 / 50.8 \approx 17.5$ FLOP/byte, which an FP32 multiplication of this shape crosses at $M \approx 35$.
+
+- At $M = 1$ both implementations reach 82 to 88% of the bound; each runs a matrix-vector product that streams the weights.
+- For $M$ from 2 to 16, OpenBLAS stays at 14 to 16% of the bound. Each call takes 136 to 157 ms for any $M$ in that range, five to six times its time at $M = 1$, so a cost that does not depend on $M$ dominates. The pattern is consistent with a code path organized for large matrices; the measurement does not identify the cost. `skinny.c` reaches 79% of the bound at $M = 2$ and 46% at $M = 16$.
+- With `skinny.c`, multiplying 16 rows took 46 ms and multiplying one row took 24 ms. Sixteen tokens cost 1.9 times as much as one, which is the effect batching exploits on any memory-bound machine.
+- `skinny.c` slows at $M = 32$, where its 32 × 16384 block of inputs (2 MiB) no longer fits in L2 beside the weights and the inputs start to come from L3. Above $M = 64$ only OpenBLAS was run; it reaches 523 GFLOP/s at $M = 1024$, 59% of the compute ceiling.
+
+The roof bounds every implementation of the multiplication, and how close an implementation comes depends on whether its code was written for the shape. Serving systems ship separate kernels for small-batch decode and large-batch prefill for this reason.
+
+## The H100
+
+On an [H100 SXM](https://www.nvidia.com/en-us/data-center/h100/), peak dense BF16 tensor throughput is 989 TFLOP/s (NVIDIA lists 1,979 with 2:4 structured sparsity) and HBM3 bandwidth is 3.35 TB/s, so the ridge is at
+
+$$I^{*} = \frac{989 \times 10^{12}}{3.35 \times 10^{12}} \approx 295 \text{ FLOP/byte}.$$
+
+The CPU above has a DRAM ridge of 11 to 17 FLOP/byte, depending on the access pattern; the H100's is 17 to 26 times higher. A BF16 multiplication against a weight matrix has intensity close to $M$, so the H100 runs weight-streaming matrix multiplications memory bound until the batch holds a few hundred tokens. For one 8192 × 8192 projection of Llama 2 70B, the exact intensity $8192M / (2M + 8192)$ reaches 295 at $M \approx 318$.
+
+<RooflineLab preset="h100" />
+
+Below the ridge, the time for a projection is the time to read its 134 MB of weights: 40 µs for one token and 43 µs for 256. By this bound, the first few hundred tokens of a batch add almost no time to a weight-streaming matrix multiplication, which is the motivation for the large batches in [[ml/serving-systems/batching|Batching]].
+
+Attention during decode does not gain intensity from batching. For one query token over a context of $c$ tokens, a layer with $h_q$ query heads, $h_{kv}$ key-value heads and head dimension $d_h$ performs $4 c\, d_h h_q$ FLOPs (the scores and the weighted sum of values) and reads $2 c\, d_h h_{kv} S$ bytes of cached keys and values, so
+
+$$I_{\text{attn}} = \frac{2 h_q}{h_{kv} S} = \frac{2 R_{GQA}}{S},$$
+
+where $R_{GQA} = h_q / h_{kv}$ is the [grouped-query attention](https://arxiv.org/abs/2305.13245) group size. Each request reads its own cache, so the intensity does not depend on the batch size. Llama 2 70B has $R_{GQA} = 8$, which gives 8 FLOP/byte in BF16 and a bound of 2.7% of the H100's compute ceiling. GQA raises this intensity in proportion to the group size, and it shrinks the cache, which leaves memory for a larger batch of dense operations.
+
+## A whole-iteration model
+
+The roofline bounds one kernel. NanoFlow bounds a whole serving iteration by computing how long it would take if it were limited only by memory, only by compute, or only by the network; the largest of the three is the bottleneck. In the form used here, hardware quantities are totals over all $N_{GPU}$ GPUs.
+
+- Hardware: memory capacity $\text{MemSize}$, memory bandwidth $\text{MemBW}$, compute $\text{Compute}$, interconnect bandwidth $\text{NetBW}$.
+- Model: hidden size $D_{model}$, layers $L$, parameters $P_{model}$, element size $S_{type}$ (2 bytes for BF16).
+- Workload: $B_{dense}$, the number of tokens (prefill and decode together) in the batch for the dense, weight-multiplying operations.
+
+The paper assumes the system runs at the largest batch whose weights and KV caches fit in memory. Each iteration then reads nearly all of GPU memory (weights and KV cache) once:
+
+$$T_{mem} = \frac{\text{MemSize}}{\text{MemBW}}.$$
+
+Dense operations perform 2 FLOPs per parameter per token:
+
+$$T_{compute} = \frac{2 B_{dense} P_{model}}{\text{Compute}}.$$
+
+With tensor parallelism, each layer performs collectives equivalent to about four all-gathers of an activation of shape $B_{dense} \times D_{model}$ (an all-reduce costs about two all-gathers). In a ring all-gather the GPUs together send $N_{GPU} - 1$ copies of the gathered tensor, which the paper rounds to $N_{GPU}$:
+
+$$T_{net} \approx \frac{4 N_{GPU} B_{dense} D_{model} S_{type} L}{\text{NetBW}}.$$
+
+### Network against compute
+
+Dividing,
+
+$$\frac{T_{net}}{T_{compute}} = \frac{2 D_{model} L}{P_{model}} \cdot \frac{N_{GPU}\, S_{type}\, \text{Compute}}{\text{NetBW}}.$$
+
+The batch size cancels. A transformer has $P_{model} \approx 12 D_{model}^2 L$ parameters, so the ratio falls as $1/D_{model}$, and larger models spend relatively less time communicating. With per-GPU compute $c$ and per-GPU link bandwidth $b$, so that $\text{Compute} = N_{GPU} c$ and $\text{NetBW} = N_{GPU} b$, the ratio is about $N_{GPU} S_{type}\, c / (6 D_{model}\, b)$. For Llama 2 70B on eight A100s (312 TFLOP/s and 600 GB/s of NVLink each), this is $8 \cdot 2 \cdot 312 \times 10^{12} / (6 \cdot 8192 \cdot 600 \times 10^9) \approx 0.17$: network time is about a sixth of compute time before any overlap of the two.
+
+Bandwidth in a cluster is hierarchical. HBM moves terabytes per second, NVLink hundreds of gigabytes per second, and a 200 Gb/s NIC 25 GB/s. Replacing 600 GB/s of NVLink with 25 GB/s of network multiplies the ratio by 24, which is why tensor parallelism is kept inside a node ([[ml/serving-systems/parallelism|Parallelism]], [[ml/serving-systems/gpu-interconnects|GPU interconnects]]).
+
+### Memory against compute
+
+$$\frac{T_{mem}}{T_{compute}} = \frac{\text{Compute}}{\text{MemBW}} \cdot \frac{\text{MemSize}}{P_{model}} \cdot \frac{1}{2 B_{dense}}.$$
+
+The first factor is the hardware's ridge point in FLOP/byte, the second is the memory per parameter in bytes, and the third shrinks as the batch grows. For eight A100s (80 GB, 2 TB/s and 312 TFLOP/s each) and a 70B-parameter model, the ratio is $156 \cdot (640 / 70) / (2 B_{dense}) \approx 713 / B_{dense}$. NanoFlow reports that with GQA the batch for Llama 2 70B on eight A100s reaches $B_{dense} = 2048$, against 256 for a model of the same size without GQA, because the smaller KV cache leaves room for more requests. The two batch sizes give ratios of about 0.35 and 2.8: the GQA model is compute bound and the other memory bound. A batch dominated by long decodes moves toward the memory-bound side, since decode attention reads the whole KV cache at the low, batch-independent intensity derived above.
+
+The model counts attention traffic in $T_{mem}$ and leaves attention FLOPs out of $T_{compute}$, and it assumes the three resources can be used at the same time. Kernels that each saturate one resource while the others idle cannot reach the bound. NanoFlow's contribution is to split a batch into nano-batches, so that memory-bound, compute-bound and network-bound operations from different nano-batches run concurrently on one GPU.
+
+## Optimal throughput and the gap in practice
+
+If compute is the binding constraint, throughput per GPU is at most
+
+$$\text{Throughput}_{\text{optimal}} = \frac{B_{dense}}{T_{compute}} = \frac{\text{Compute}}{2 P_{model}}.$$
+
+The bound depends only on arithmetic throughput and model size. NanoFlow evaluates it for Llama 2 70B on eight A100 80 GB GPUs with tensor parallelism, using a profiled peak of 280 TFLOP/s per GPU rather than the datasheet's 312, and reports 1,857 tokens/s per GPU. The stated inputs give $280 \times 10^{12} / (2 \cdot 70 \times 10^9) = 2{,}000$ tokens/s, and the paper does not say what accounts for the difference. With the datasheet's 312 TFLOP/s the bound is 2,229 tokens/s per GPU.
+
+Against that bound, the paper measured vLLM, DeepSpeed-FastGen and TensorRT-LLM at 22.0%, 22.9% and 37.8% of optimal throughput on offline workloads, and NanoFlow itself at 68.5% for Llama 2 70B. The CPU measurements above show the same pattern on one machine: the hardware sets the bound, and the fraction of it a system reaches depends on how well its kernels and its schedule keep every resource busy.
+
+## How this was measured
+
+> [!note]- How this was measured
+> **Machine.** A KVM guest with 4 vCPUs of an Intel Xeon reported as "Intel(R) Xeon(R) Processor @ 2.30GHz" (CPUID family 6, model 173, stepping 1; AVX-512 and AMX), one thread per core, 48 KiB L1d and 2 MiB L2 per core, a 504 MiB L3 shared with the rest of the host, and 15 GiB of memory. Linux 6.18, GCC 13.3.0 with `-O3 -march=native -fopenmp`, Python 3.13.18, NumPy 2.5.3 with OpenBLAS 0.3.34 (`DYNAMIC_ARCH`). Threads were pinned with `OMP_PROC_BIND=close`. The guest shares the host with other tenants, so some run-to-run spread comes from outside the guest; the whiskers in the figures show it.
+>
+> **Peaks.** [`roofline.c`](https://github.com/elimelt/web/blob/main/notes/content/ml/serving-systems/performance-modeling/roofline.c) `peak` runs 2 × 10⁷ iterations of 16 independent 512-bit FMA chains per thread (12 chains for the 256-bit and scalar variants), seven timed runs after a warm-up, and reports the median, minimum and maximum.
+>
+> **Sweep.** `roofline.c sweep BYTES` allocates `BYTES` of floats, splits them evenly over the threads with first-touch placement, and for each $K$ in 1, 2, 4, ..., 1024 repeats the load, $K$ FMAs, store kernel over each thread's part. Each kernel step works on 16 vector registers (256 floats), so 16 FMA chains are in flight. A sample repeats whole passes until it lasts at least 0.15 s, and each point is the median of seven samples. The L1 and L2 working sets are per thread (32 KiB and 1 MiB); the L3 and DRAM sets (64 MiB and 2 GiB) are totals. The DRAM set is four times the L3's nominal size.
+>
+> **Read bandwidth.** `roofline.c read BYTES` sums the buffer with 16 vector accumulators per thread, under the same timing rules.
+>
+> **Matrix multiplication.** [`gemm_batch.py`](https://github.com/elimelt/web/blob/main/notes/content/ml/serving-systems/performance-modeling/gemm_batch.py) times `np.matmul(X, W, out=Y)` with $W$ a 16384 × 16384 (or 4096 × 4096) FP32 matrix and $X$ holding $M$ rows. `skinny.c` computes the same product with the weights stored transposed and checks itself against a naive double-precision loop (`./skinny check`; maximum absolute error below 10⁻⁶). Both were run with 4 and 1 threads; the figure shows 4.
+>
+> **Reproducing.** [`run.sh`](https://github.com/elimelt/web/blob/main/notes/content/ml/serving-systems/performance-modeling/run.sh) builds everything, writes the raw output to [`results/`](https://github.com/elimelt/web/tree/main/notes/content/ml/serving-systems/performance-modeling/results) as one JSON object per line, and runs [`summarize.py`](https://github.com/elimelt/web/blob/main/notes/content/ml/serving-systems/performance-modeling/summarize.py), which writes `roofline-summary.json`, the file the figures draw from. It takes about 15 minutes on this VM.
+>
+> | quantity (4 threads) | median | slowest run | fastest run |
+> |---|---|---|---|
+> | AVX-512 FMA peak | 888 GFLOP/s | 566 | 900 |
+> | AVX2 FMA peak | 512 GFLOP/s | 492 | 525 |
+> | scalar FMA peak | 64.1 GFLOP/s | 58.6 | 66.3 |
+> | DRAM read | 50.8 GB/s | 44.1 | 54.8 |
+> | L3 read | 78.6 GB/s | 67.1 | 97.0 |
+>
+> With one thread: AVX-512 peak 237 GFLOP/s, DRAM read 12.2 GB/s, and a DRAM ceiling in the sweep of 27.4 GB/s.
+
+## Related notes
+
+- [[ml/serving-systems/roofline-reference|Roofline reference]]
+- [[ml/serving-systems/batching|Batching]]
+- [[ml/serving-systems/optimizing-gpu-kernels|Optimizing GPU Kernels]]
+- [[ml/serving-systems/parallelism|Parallelism]]
+- [[ml/serving-systems/gpu-interconnects|GPU interconnects]]
+- [[hardware/computer-architecture/caches-virtual-memory|Caches and virtual memory]]

@@ -1,0 +1,1226 @@
+{
+ "threads": {
+  "4": {
+   "peaks": {
+    "avx512": {
+     "median": 888.48,
+     "min": 566.33,
+     "max": 899.84
+    },
+    "avx2": {
+     "median": 511.91,
+     "min": 491.79,
+     "max": 525.12
+    },
+    "scalar": {
+     "median": 64.11,
+     "min": 58.64,
+     "max": 66.3
+    }
+   },
+   "bandwidth": {
+    "L1": 526.32,
+    "L2": 436.45,
+    "L3": 149.24,
+    "DRAM": 77.84
+   },
+   "read": {
+    "L1": 1302.67,
+    "L2": 654.75,
+    "L3": 78.56,
+    "DRAM": 50.81
+   },
+   "sweep": {
+    "L1": [
+     {
+      "fma": 1,
+      "intensity": 0.25,
+      "median": 131.58,
+      "min": 115.12,
+      "max": 147.9
+     },
+     {
+      "fma": 2,
+      "intensity": 0.5,
+      "median": 190.05,
+      "min": 178.19,
+      "max": 204.52
+     },
+     {
+      "fma": 4,
+      "intensity": 1.0,
+      "median": 318.12,
+      "min": 283.42,
+      "max": 340.84
+     },
+     {
+      "fma": 8,
+      "intensity": 2.0,
+      "median": 503.73,
+      "min": 491.07,
+      "max": 509.01
+     },
+     {
+      "fma": 16,
+      "intensity": 4.0,
+      "median": 666.23,
+      "min": 587.76,
+      "max": 706.41
+     },
+     {
+      "fma": 32,
+      "intensity": 8.0,
+      "median": 768.7,
+      "min": 515.15,
+      "max": 791.89
+     },
+     {
+      "fma": 64,
+      "intensity": 16.0,
+      "median": 834.89,
+      "min": 779.38,
+      "max": 842.51
+     },
+     {
+      "fma": 128,
+      "intensity": 32.0,
+      "median": 844.41,
+      "min": 802.67,
+      "max": 866.95
+     },
+     {
+      "fma": 256,
+      "intensity": 64.0,
+      "median": 873.45,
+      "min": 819.1,
+      "max": 876.68
+     },
+     {
+      "fma": 512,
+      "intensity": 128.0,
+      "median": 861.96,
+      "min": 792.6,
+      "max": 880.62
+     },
+     {
+      "fma": 1024,
+      "intensity": 256.0,
+      "median": 863.51,
+      "min": 797.84,
+      "max": 889.4
+     }
+    ],
+    "L2": [
+     {
+      "fma": 1,
+      "intensity": 0.25,
+      "median": 101.7,
+      "min": 94.92,
+      "max": 104.64
+     },
+     {
+      "fma": 2,
+      "intensity": 0.5,
+      "median": 209.99,
+      "min": 183.76,
+      "max": 219.56
+     },
+     {
+      "fma": 4,
+      "intensity": 1.0,
+      "median": 436.45,
+      "min": 338.47,
+      "max": 439.27
+     },
+     {
+      "fma": 8,
+      "intensity": 2.0,
+      "median": 685.47,
+      "min": 550.71,
+      "max": 727.66
+     },
+     {
+      "fma": 16,
+      "intensity": 4.0,
+      "median": 756.02,
+      "min": 623.0,
+      "max": 785.55
+     },
+     {
+      "fma": 32,
+      "intensity": 8.0,
+      "median": 811.65,
+      "min": 771.14,
+      "max": 836.93
+     },
+     {
+      "fma": 64,
+      "intensity": 16.0,
+      "median": 847.01,
+      "min": 681.41,
+      "max": 861.29
+     },
+     {
+      "fma": 128,
+      "intensity": 32.0,
+      "median": 859.69,
+      "min": 701.23,
+      "max": 926.02
+     },
+     {
+      "fma": 256,
+      "intensity": 64.0,
+      "median": 878.7,
+      "min": 853.5,
+      "max": 889.88
+     },
+     {
+      "fma": 512,
+      "intensity": 128.0,
+      "median": 838.47,
+      "min": 712.58,
+      "max": 893.17
+     },
+     {
+      "fma": 1024,
+      "intensity": 256.0,
+      "median": 806.52,
+      "min": 630.23,
+      "max": 852.67
+     }
+    ],
+    "L3": [
+     {
+      "fma": 1,
+      "intensity": 0.25,
+      "median": 37.31,
+      "min": 36.03,
+      "max": 37.76
+     },
+     {
+      "fma": 2,
+      "intensity": 0.5,
+      "median": 68.3,
+      "min": 56.68,
+      "max": 76.17
+     },
+     {
+      "fma": 4,
+      "intensity": 1.0,
+      "median": 136.18,
+      "min": 106.1,
+      "max": 144.75
+     },
+     {
+      "fma": 8,
+      "intensity": 2.0,
+      "median": 274.23,
+      "min": 272.3,
+      "max": 275.1
+     },
+     {
+      "fma": 16,
+      "intensity": 4.0,
+      "median": 471.82,
+      "min": 443.93,
+      "max": 473.87
+     },
+     {
+      "fma": 32,
+      "intensity": 8.0,
+      "median": 750.75,
+      "min": 722.27,
+      "max": 761.2
+     },
+     {
+      "fma": 64,
+      "intensity": 16.0,
+      "median": 794.97,
+      "min": 694.58,
+      "max": 820.84
+     },
+     {
+      "fma": 128,
+      "intensity": 32.0,
+      "median": 811.4,
+      "min": 654.02,
+      "max": 848.8
+     },
+     {
+      "fma": 256,
+      "intensity": 64.0,
+      "median": 819.51,
+      "min": 714.69,
+      "max": 869.87
+     },
+     {
+      "fma": 512,
+      "intensity": 128.0,
+      "median": 885.61,
+      "min": 715.68,
+      "max": 890.15
+     },
+     {
+      "fma": 1024,
+      "intensity": 256.0,
+      "median": 891.38,
+      "min": 670.4,
+      "max": 896.71
+     }
+    ],
+    "DRAM": [
+     {
+      "fma": 1,
+      "intensity": 0.25,
+      "median": 19.46,
+      "min": 17.2,
+      "max": 19.63
+     },
+     {
+      "fma": 2,
+      "intensity": 0.5,
+      "median": 36.03,
+      "min": 34.78,
+      "max": 36.62
+     },
+     {
+      "fma": 4,
+      "intensity": 1.0,
+      "median": 59.05,
+      "min": 54.87,
+      "max": 60.98
+     },
+     {
+      "fma": 8,
+      "intensity": 2.0,
+      "median": 110.3,
+      "min": 93.36,
+      "max": 112.71
+     },
+     {
+      "fma": 16,
+      "intensity": 4.0,
+      "median": 191.85,
+      "min": 161.19,
+      "max": 201.47
+     },
+     {
+      "fma": 32,
+      "intensity": 8.0,
+      "median": 374.69,
+      "min": 318.31,
+      "max": 376.24
+     },
+     {
+      "fma": 64,
+      "intensity": 16.0,
+      "median": 613.79,
+      "min": 601.23,
+      "max": 628.94
+     },
+     {
+      "fma": 128,
+      "intensity": 32.0,
+      "median": 711.4,
+      "min": 695.25,
+      "max": 837.95
+     },
+     {
+      "fma": 256,
+      "intensity": 64.0,
+      "median": 781.7,
+      "min": 736.44,
+      "max": 786.03
+     },
+     {
+      "fma": 512,
+      "intensity": 128.0,
+      "median": 847.39,
+      "min": 806.99,
+      "max": 877.86
+     },
+     {
+      "fma": 1024,
+      "intensity": 256.0,
+      "median": 836.51,
+      "min": 815.95,
+      "max": 852.16
+     }
+    ]
+   },
+   "gemm": {
+    "openblas": [
+     {
+      "M": 1,
+      "intensity": 0.4999,
+      "median": 20.76,
+      "min": 18.31,
+      "max": 23.0
+     },
+     {
+      "M": 2,
+      "intensity": 0.9998,
+      "median": 7.53,
+      "min": 7.18,
+      "max": 7.61
+     },
+     {
+      "M": 4,
+      "intensity": 1.999,
+      "median": 15.33,
+      "min": 14.29,
+      "max": 15.53
+     },
+     {
+      "M": 8,
+      "intensity": 3.9961,
+      "median": 31.52,
+      "min": 30.35,
+      "max": 33.16
+     },
+     {
+      "M": 16,
+      "intensity": 7.9844,
+      "median": 54.85,
+      "min": 50.41,
+      "max": 58.29
+     },
+     {
+      "M": 32,
+      "intensity": 15.9377,
+      "median": 100.76,
+      "min": 85.52,
+      "max": 104.12
+     },
+     {
+      "M": 64,
+      "intensity": 31.7519,
+      "median": 175.16,
+      "min": 138.18,
+      "max": 190.42
+     },
+     {
+      "M": 128,
+      "intensity": 63.0154,
+      "median": 254.66,
+      "min": 238.81,
+      "max": 289.24
+     },
+     {
+      "M": 256,
+      "intensity": 124.1212,
+      "median": 356.18,
+      "min": 344.01,
+      "max": 386.06
+     },
+     {
+      "M": 512,
+      "intensity": 240.9412,
+      "median": 475.18,
+      "min": 418.97,
+      "max": 499.82
+     },
+     {
+      "M": 1024,
+      "intensity": 455.1111,
+      "median": 522.68,
+      "min": 481.51,
+      "max": 572.97
+     }
+    ],
+    "skinny": [
+     {
+      "M": 1,
+      "intensity": 0.4999,
+      "median": 22.26,
+      "min": 20.29,
+      "max": 26.79
+     },
+     {
+      "M": 2,
+      "intensity": 0.9998,
+      "median": 40.21,
+      "min": 37.33,
+      "max": 40.79
+     },
+     {
+      "M": 4,
+      "intensity": 1.999,
+      "median": 73.54,
+      "min": 72.02,
+      "max": 75.84
+     },
+     {
+      "M": 8,
+      "intensity": 3.9961,
+      "median": 117.04,
+      "min": 103.44,
+      "max": 127.61
+     },
+     {
+      "M": 16,
+      "intensity": 7.9844,
+      "median": 185.15,
+      "min": 147.88,
+      "max": 198.51
+     },
+     {
+      "M": 32,
+      "intensity": 15.9377,
+      "median": 146.0,
+      "min": 139.12,
+      "max": 148.82
+     },
+     {
+      "M": 64,
+      "intensity": 31.7519,
+      "median": 176.4,
+      "min": 166.64,
+      "max": 195.67
+     }
+    ],
+    "openblas_l3": [
+     {
+      "M": 1,
+      "intensity": 0.4998,
+      "median": 38.78,
+      "min": 34.53,
+      "max": 39.44
+     },
+     {
+      "M": 2,
+      "intensity": 0.999,
+      "median": 15.32,
+      "min": 10.41,
+      "max": 16.24
+     },
+     {
+      "M": 4,
+      "intensity": 1.9961,
+      "median": 31.2,
+      "min": 30.68,
+      "max": 31.97
+     },
+     {
+      "M": 8,
+      "intensity": 3.9844,
+      "median": 63.77,
+      "min": 60.34,
+      "max": 65.14
+     },
+     {
+      "M": 16,
+      "intensity": 7.938,
+      "median": 114.17,
+      "min": 108.07,
+      "max": 116.86
+     },
+     {
+      "M": 32,
+      "intensity": 15.7538,
+      "median": 197.98,
+      "min": 174.05,
+      "max": 201.14
+     },
+     {
+      "M": 64,
+      "intensity": 31.0303,
+      "median": 240.95,
+      "min": 234.88,
+      "max": 244.54
+     },
+     {
+      "M": 128,
+      "intensity": 60.2353,
+      "median": 376.49,
+      "min": 358.5,
+      "max": 396.73
+     },
+     {
+      "M": 256,
+      "intensity": 113.7778,
+      "median": 467.68,
+      "min": 432.96,
+      "max": 477.48
+     },
+     {
+      "M": 512,
+      "intensity": 204.8,
+      "median": 527.66,
+      "min": 502.87,
+      "max": 586.12
+     },
+     {
+      "M": 1024,
+      "intensity": 341.3333,
+      "median": 545.99,
+      "min": 456.62,
+      "max": 591.91
+     }
+    ],
+    "skinny_l3": [
+     {
+      "M": 1,
+      "intensity": 0.4998,
+      "median": 39.46,
+      "min": 27.27,
+      "max": 48.05
+     },
+     {
+      "M": 2,
+      "intensity": 0.999,
+      "median": 81.91,
+      "min": 75.74,
+      "max": 91.91
+     },
+     {
+      "M": 4,
+      "intensity": 1.9961,
+      "median": 150.55,
+      "min": 141.72,
+      "max": 160.63
+     },
+     {
+      "M": 8,
+      "intensity": 3.9844,
+      "median": 240.61,
+      "min": 222.29,
+      "max": 249.76
+     },
+     {
+      "M": 16,
+      "intensity": 7.938,
+      "median": 323.29,
+      "min": 312.0,
+      "max": 334.15
+     },
+     {
+      "M": 32,
+      "intensity": 15.7538,
+      "median": 335.71,
+      "min": 265.36,
+      "max": 364.02
+     },
+     {
+      "M": 64,
+      "intensity": 31.0303,
+      "median": 357.34,
+      "min": 350.14,
+      "max": 378.13
+     }
+    ]
+   }
+  },
+  "1": {
+   "peaks": {
+    "avx512": {
+     "median": 237.17,
+     "min": 233.35,
+     "max": 238.2
+    },
+    "avx2": {
+     "median": 131.28,
+     "min": 94.78,
+     "max": 133.42
+    },
+    "scalar": {
+     "median": 16.43,
+     "min": 15.89,
+     "max": 16.73
+    }
+   },
+   "bandwidth": {
+    "L1": 304.36,
+    "L2": 111.91,
+    "L3": 39.52,
+    "DRAM": 27.36
+   },
+   "read": {
+    "L1": 342.37,
+    "L2": 173.35,
+    "L3": 19.65,
+    "DRAM": 12.18
+   },
+   "sweep": {
+    "L1": [
+     {
+      "fma": 1,
+      "intensity": 0.25,
+      "median": 76.09,
+      "min": 74.87,
+      "max": 80.48
+     },
+     {
+      "fma": 2,
+      "intensity": 0.5,
+      "median": 119.74,
+      "min": 117.96,
+      "max": 121.4
+     },
+     {
+      "fma": 4,
+      "intensity": 1.0,
+      "median": 148.17,
+      "min": 135.05,
+      "max": 158.34
+     },
+     {
+      "fma": 8,
+      "intensity": 2.0,
+      "median": 191.82,
+      "min": 140.84,
+      "max": 195.44
+     },
+     {
+      "fma": 16,
+      "intensity": 4.0,
+      "median": 202.32,
+      "min": 164.56,
+      "max": 214.5
+     },
+     {
+      "fma": 32,
+      "intensity": 8.0,
+      "median": 216.36,
+      "min": 180.75,
+      "max": 218.34
+     },
+     {
+      "fma": 64,
+      "intensity": 16.0,
+      "median": 220.07,
+      "min": 194.76,
+      "max": 226.54
+     },
+     {
+      "fma": 128,
+      "intensity": 32.0,
+      "median": 222.95,
+      "min": 215.01,
+      "max": 225.95
+     },
+     {
+      "fma": 256,
+      "intensity": 64.0,
+      "median": 224.22,
+      "min": 193.15,
+      "max": 229.82
+     },
+     {
+      "fma": 512,
+      "intensity": 128.0,
+      "median": 223.33,
+      "min": 169.45,
+      "max": 224.64
+     },
+     {
+      "fma": 1024,
+      "intensity": 256.0,
+      "median": 217.46,
+      "min": 203.56,
+      "max": 221.51
+     }
+    ],
+    "L2": [
+     {
+      "fma": 1,
+      "intensity": 0.25,
+      "median": 27.11,
+      "min": 24.17,
+      "max": 27.61
+     },
+     {
+      "fma": 2,
+      "intensity": 0.5,
+      "median": 55.37,
+      "min": 54.06,
+      "max": 59.17
+     },
+     {
+      "fma": 4,
+      "intensity": 1.0,
+      "median": 111.91,
+      "min": 100.19,
+      "max": 116.72
+     },
+     {
+      "fma": 8,
+      "intensity": 2.0,
+      "median": 193.97,
+      "min": 173.41,
+      "max": 197.27
+     },
+     {
+      "fma": 16,
+      "intensity": 4.0,
+      "median": 206.41,
+      "min": 169.2,
+      "max": 218.64
+     },
+     {
+      "fma": 32,
+      "intensity": 8.0,
+      "median": 204.77,
+      "min": 165.16,
+      "max": 214.87
+     },
+     {
+      "fma": 64,
+      "intensity": 16.0,
+      "median": 226.91,
+      "min": 217.7,
+      "max": 230.55
+     },
+     {
+      "fma": 128,
+      "intensity": 32.0,
+      "median": 225.2,
+      "min": 217.14,
+      "max": 228.2
+     },
+     {
+      "fma": 256,
+      "intensity": 64.0,
+      "median": 209.3,
+      "min": 196.31,
+      "max": 222.74
+     },
+     {
+      "fma": 512,
+      "intensity": 128.0,
+      "median": 226.04,
+      "min": 225.03,
+      "max": 228.1
+     },
+     {
+      "fma": 1024,
+      "intensity": 256.0,
+      "median": 224.68,
+      "min": 224.12,
+      "max": 225.25
+     }
+    ],
+    "L3": [
+     {
+      "fma": 1,
+      "intensity": 0.25,
+      "median": 9.88,
+      "min": 9.84,
+      "max": 9.89
+     },
+     {
+      "fma": 2,
+      "intensity": 0.5,
+      "median": 19.71,
+      "min": 16.94,
+      "max": 19.74
+     },
+     {
+      "fma": 4,
+      "intensity": 1.0,
+      "median": 35.98,
+      "min": 35.22,
+      "max": 36.96
+     },
+     {
+      "fma": 8,
+      "intensity": 2.0,
+      "median": 70.24,
+      "min": 69.65,
+      "max": 70.41
+     },
+     {
+      "fma": 16,
+      "intensity": 4.0,
+      "median": 118.32,
+      "min": 107.31,
+      "max": 120.82
+     },
+     {
+      "fma": 32,
+      "intensity": 8.0,
+      "median": 178.66,
+      "min": 153.63,
+      "max": 204.83
+     },
+     {
+      "fma": 64,
+      "intensity": 16.0,
+      "median": 208.21,
+      "min": 204.13,
+      "max": 213.45
+     },
+     {
+      "fma": 128,
+      "intensity": 32.0,
+      "median": 218.05,
+      "min": 215.48,
+      "max": 219.48
+     },
+     {
+      "fma": 256,
+      "intensity": 64.0,
+      "median": 211.82,
+      "min": 169.33,
+      "max": 220.56
+     },
+     {
+      "fma": 512,
+      "intensity": 128.0,
+      "median": 223.07,
+      "min": 175.64,
+      "max": 223.84
+     },
+     {
+      "fma": 1024,
+      "intensity": 256.0,
+      "median": 224.56,
+      "min": 223.95,
+      "max": 227.07
+     }
+    ],
+    "DRAM": [
+     {
+      "fma": 1,
+      "intensity": 0.25,
+      "median": 5.53,
+      "min": 5.23,
+      "max": 5.73
+     },
+     {
+      "fma": 2,
+      "intensity": 0.5,
+      "median": 13.68,
+      "min": 13.46,
+      "max": 13.95
+     },
+     {
+      "fma": 4,
+      "intensity": 1.0,
+      "median": 18.13,
+      "min": 17.43,
+      "max": 25.21
+     },
+     {
+      "fma": 8,
+      "intensity": 2.0,
+      "median": 33.79,
+      "min": 31.59,
+      "max": 34.12
+     },
+     {
+      "fma": 16,
+      "intensity": 4.0,
+      "median": 56.09,
+      "min": 54.25,
+      "max": 56.83
+     },
+     {
+      "fma": 32,
+      "intensity": 8.0,
+      "median": 102.35,
+      "min": 100.99,
+      "max": 103.14
+     },
+     {
+      "fma": 64,
+      "intensity": 16.0,
+      "median": 163.5,
+      "min": 160.78,
+      "max": 166.01
+     },
+     {
+      "fma": 128,
+      "intensity": 32.0,
+      "median": 211.16,
+      "min": 197.41,
+      "max": 216.06
+     },
+     {
+      "fma": 256,
+      "intensity": 64.0,
+      "median": 208.62,
+      "min": 196.48,
+      "max": 221.5
+     },
+     {
+      "fma": 512,
+      "intensity": 128.0,
+      "median": 219.77,
+      "min": 212.24,
+      "max": 223.57
+     },
+     {
+      "fma": 1024,
+      "intensity": 256.0,
+      "median": 216.81,
+      "min": 209.24,
+      "max": 222.08
+     }
+    ]
+   },
+   "gemm": {
+    "openblas": [
+     {
+      "M": 1,
+      "intensity": 0.4999,
+      "median": 6.35,
+      "min": 5.54,
+      "max": 7.2
+     },
+     {
+      "M": 2,
+      "intensity": 0.9998,
+      "median": 2.36,
+      "min": 2.01,
+      "max": 2.44
+     },
+     {
+      "M": 4,
+      "intensity": 1.999,
+      "median": 4.43,
+      "min": 3.92,
+      "max": 5.0
+     },
+     {
+      "M": 8,
+      "intensity": 3.9961,
+      "median": 7.92,
+      "min": 7.75,
+      "max": 7.96
+     },
+     {
+      "M": 16,
+      "intensity": 7.9844,
+      "median": 15.07,
+      "min": 14.81,
+      "max": 15.3
+     },
+     {
+      "M": 32,
+      "intensity": 15.9377,
+      "median": 27.48,
+      "min": 27.13,
+      "max": 29.69
+     },
+     {
+      "M": 64,
+      "intensity": 31.7519,
+      "median": 49.25,
+      "min": 45.93,
+      "max": 60.18
+     },
+     {
+      "M": 128,
+      "intensity": 63.0154,
+      "median": 78.44,
+      "min": 73.01,
+      "max": 83.96
+     },
+     {
+      "M": 256,
+      "intensity": 124.1212,
+      "median": 106.35,
+      "min": 105.96,
+      "max": 106.77
+     },
+     {
+      "M": 512,
+      "intensity": 240.9412,
+      "median": 131.72,
+      "min": 124.39,
+      "max": 138.14
+     },
+     {
+      "M": 1024,
+      "intensity": 455.1111,
+      "median": 150.42,
+      "min": 144.8,
+      "max": 153.96
+     }
+    ],
+    "skinny": [
+     {
+      "M": 1,
+      "intensity": 0.4999,
+      "median": 6.82,
+      "min": 6.65,
+      "max": 6.9
+     },
+     {
+      "M": 2,
+      "intensity": 0.9998,
+      "median": 13.0,
+      "min": 12.62,
+      "max": 14.86
+     },
+     {
+      "M": 4,
+      "intensity": 1.999,
+      "median": 23.25,
+      "min": 22.41,
+      "max": 23.55
+     },
+     {
+      "M": 8,
+      "intensity": 3.9961,
+      "median": 33.29,
+      "min": 32.0,
+      "max": 43.16
+     },
+     {
+      "M": 16,
+      "intensity": 7.9844,
+      "median": 51.17,
+      "min": 50.11,
+      "max": 51.72
+     },
+     {
+      "M": 32,
+      "intensity": 15.9377,
+      "median": 32.85,
+      "min": 30.37,
+      "max": 44.77
+     },
+     {
+      "M": 64,
+      "intensity": 31.7519,
+      "median": 55.33,
+      "min": 38.62,
+      "max": 56.3
+     }
+    ],
+    "openblas_l3": [
+     {
+      "M": 1,
+      "intensity": 0.4998,
+      "median": 12.39,
+      "min": 11.73,
+      "max": 12.88
+     },
+     {
+      "M": 2,
+      "intensity": 0.999,
+      "median": 4.77,
+      "min": 4.44,
+      "max": 5.11
+     },
+     {
+      "M": 4,
+      "intensity": 1.9961,
+      "median": 8.03,
+      "min": 7.28,
+      "max": 10.32
+     },
+     {
+      "M": 8,
+      "intensity": 3.9844,
+      "median": 15.3,
+      "min": 12.89,
+      "max": 16.53
+     },
+     {
+      "M": 16,
+      "intensity": 7.938,
+      "median": 25.83,
+      "min": 25.54,
+      "max": 26.24
+     },
+     {
+      "M": 32,
+      "intensity": 15.7538,
+      "median": 50.88,
+      "min": 44.77,
+      "max": 51.45
+     },
+     {
+      "M": 64,
+      "intensity": 31.0303,
+      "median": 70.97,
+      "min": 67.43,
+      "max": 75.98
+     },
+     {
+      "M": 128,
+      "intensity": 60.2353,
+      "median": 94.4,
+      "min": 83.15,
+      "max": 95.45
+     },
+     {
+      "M": 256,
+      "intensity": 113.7778,
+      "median": 134.77,
+      "min": 116.67,
+      "max": 137.4
+     },
+     {
+      "M": 512,
+      "intensity": 204.8,
+      "median": 140.51,
+      "min": 103.27,
+      "max": 150.22
+     },
+     {
+      "M": 1024,
+      "intensity": 341.3333,
+      "median": 157.83,
+      "min": 148.6,
+      "max": 161.35
+     }
+    ],
+    "skinny_l3": [
+     {
+      "M": 1,
+      "intensity": 0.4998,
+      "median": 14.0,
+      "min": 13.79,
+      "max": 14.36
+     },
+     {
+      "M": 2,
+      "intensity": 0.999,
+      "median": 25.54,
+      "min": 22.58,
+      "max": 29.46
+     },
+     {
+      "M": 4,
+      "intensity": 1.9961,
+      "median": 59.35,
+      "min": 43.37,
+      "max": 60.96
+     },
+     {
+      "M": 8,
+      "intensity": 3.9844,
+      "median": 76.27,
+      "min": 53.19,
+      "max": 80.56
+     },
+     {
+      "M": 16,
+      "intensity": 7.938,
+      "median": 72.42,
+      "min": 67.58,
+      "max": 85.99
+     },
+     {
+      "M": 32,
+      "intensity": 15.7538,
+      "median": 90.48,
+      "min": 81.61,
+      "max": 104.34
+     },
+     {
+      "M": 64,
+      "intensity": 31.0303,
+      "median": 93.76,
+      "min": 79.16,
+      "max": 100.19
+     }
+    ]
+   }
+  }
+ }
+}

@@ -1,0 +1,8 @@
+{"kind":"read","bytes":131072,"threads":4,"gbs_median":1302.67,"gbs_min":1165.79,"gbs_max":1355.17,"sink":1}
+{"kind":"read","bytes":4194304,"threads":4,"gbs_median":654.75,"gbs_min":621.07,"gbs_max":669.53,"sink":1}
+{"kind":"read","bytes":67108864,"threads":4,"gbs_median":78.56,"gbs_min":67.10,"gbs_max":97.02,"sink":1}
+{"kind":"read","bytes":2147483648,"threads":4,"gbs_median":50.81,"gbs_min":44.06,"gbs_max":54.80,"sink":1}
+{"kind":"read","bytes":32768,"threads":1,"gbs_median":342.37,"gbs_min":281.91,"gbs_max":342.93,"sink":1}
+{"kind":"read","bytes":1048576,"threads":1,"gbs_median":173.35,"gbs_min":170.10,"gbs_max":177.31,"sink":1}
+{"kind":"read","bytes":67108864,"threads":1,"gbs_median":19.65,"gbs_min":16.91,"gbs_max":19.74,"sink":1}
+{"kind":"read","bytes":2147483648,"threads":1,"gbs_median":12.18,"gbs_min":11.39,"gbs_max":13.76,"sink":1}
