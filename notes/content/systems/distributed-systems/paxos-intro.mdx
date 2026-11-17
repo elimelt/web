@@ -1,0 +1,162 @@
+---
+title: Paxos Introduction
+aliases:
+  - distributed-systems/paxos-intro
+category: Distributed Systems
+tags:
+  - paxos
+  - consensus
+  - distributed-systems
+  - state-machine-replication
+  - flp
+date: 2024-04-24
+updated: 2026-11-17
+authors:
+  - elimelt
+  - claude-opus-5-5
+status: evergreen
+description: "Single-decree Paxos: the consensus problem and the FLP result, the prepare and accept phases, why proposing the highest-numbered reported value preserves agreement, why two proposers can prevent progress, and the step to a replicated log; with an exhaustive check of a small instance and a simulation of duelling proposers."
+sources:
+  - title: "Fischer, Lynch, Paterson (1985), Impossibility of Distributed Consensus with One Faulty Process, JACM 32(2)"
+    url: https://groups.csail.mit.edu/tds/papers/Lynch/jacm85.pdf
+    type: paper
+  - title: "Dwork, Lynch, Stockmeyer (1988), Consensus in the Presence of Partial Synchrony, JACM 35(2)"
+    url: https://groups.csail.mit.edu/tds/papers/Lynch/jacm88.pdf
+    type: paper
+  - title: "Chandra, Hadzilacos, Toueg (1996), The Weakest Failure Detector for Solving Consensus, JACM 43(4)"
+    url: https://www.cs.utexas.edu/~lorenzo/corsi/cs380d/papers/p685-chandra.pdf
+    type: paper
+  - title: "Lamport (1998), The Part-Time Parliament, ACM TOCS 16(2)"
+    url: https://lamport.azurewebsites.net/pubs/lamport-paxos.pdf
+    type: paper
+  - title: "Lamport (2001), Paxos Made Simple"
+    url: https://lamport.azurewebsites.net/pubs/paxos-simple.pdf
+    type: paper
+  - title: "Lamport, Paxos.tla (TLA+ specification of Paxos, tlaplus/Examples)"
+    url: https://github.com/tlaplus/Examples/tree/master/specifications/Paxos
+    type: code
+  - title: "Chandra, Griesemer, Redstone (2007), Paxos Made Live: An Engineering Perspective, PODC"
+    url: https://research.google.com/archive/paxos_made_live.pdf
+    type: paper
+  - title: "van Renesse, Paxos Made Moderately Complex"
+    url: https://www.cs.cornell.edu/home/rvr/Paxos/paxos.pdf
+    type: paper
+  - title: "Howard, Malkhi, Spiegelman (2016), Flexible Paxos: Quorum Intersection Revisited"
+    url: https://arxiv.org/abs/1608.06696
+    type: paper
+  - title: "Ongaro, Ousterhout (2014), In Search of an Understandable Consensus Algorithm, USENIX ATC"
+    url: https://raft.github.io/raft.pdf
+    type: paper
+---
+
+Paxos is a protocol by which a set of processes that communicate by messages agree on a single value. Its safety properties are that only a value that some process proposed can be chosen and that at most one value is chosen. They hold when any number of processes crash and restart and when messages are delayed, reordered, duplicated or lost. A value is chosen once a majority of the $2f + 1$ acceptors have accepted it in the same round, so the protocol makes progress with up to $f$ acceptors crashed, provided that a single proposer can communicate with a majority of acceptors for long enough to finish a round.
+
+Put plainly, several processes may each suggest a value, and Paxos ensures that they settle on one of the suggestions and never on two. A round consists of two exchanges with the acceptors. The first exchange reserves a round number and finds out whether some value might already have been chosen; the second asks the acceptors to accept a value, which must be that earlier value if one was found. Each acceptor records its promises and acceptances on stable storage, so a crash followed by a restart does not erase them.
+
+Lamport described the protocol in [The Part-Time Parliament](https://lamport.azurewebsites.net/pubs/lamport-paxos.pdf) (ACM TOCS, 1998) and restated it without the parliamentary allegory in [Paxos Made Simple](https://lamport.azurewebsites.net/pubs/paxos-simple.pdf) (2001), whose derivation is summarized in [[systems/distributed-systems/paxos-made-simple|Paxos Made Simple]]. Its main use is [state machine replication](#from-one-value-to-a-replicated-log), in which one instance of Paxos chooses each entry of a replicated log.
+
+## Consensus and the FLP result
+
+In the consensus problem each process starts with a proposed value, and a correct protocol satisfies three properties:
+
+- **Agreement:** no two processes decide different values.
+- **Validity:** a decided value was proposed by some process.
+- **Termination:** every process that does not crash eventually decides.
+
+[Fischer, Lynch and Paterson](https://groups.csail.mit.edu/tds/papers/Lynch/jacm85.pdf) (1985) proved that "no completely asynchronous consensus protocol can tolerate even a single unannounced process death". In an asynchronous system, message delays and relative process speeds have no bound, so a process cannot distinguish a crashed peer from a slow one. The proof constructs, for any deterministic protocol, an infinite execution in which every message is eventually delivered, at most one process fails, and no process ever decides.
+
+A protocol for an asynchronous network therefore guarantees agreement and validity in every execution and termination only under additional assumptions. [Dwork, Lynch and Stockmeyer](https://groups.csail.mit.edu/tds/papers/Lynch/jacm88.pdf) (1988) showed that under partial synchrony, where bounds on delay exist but are unknown or hold only after some unknown time, consensus tolerating $t$ crash failures among $N$ processes is possible if and only if $N \geq 2t + 1$. [Chandra, Hadzilacos and Toueg](https://www.cs.utexas.edu/~lorenzo/corsi/cs380d/papers/p685-chandra.pdf) (1996) showed that the eventually weak failure detector $\Diamond\mathcal{W}$ is the weakest failure detector with which consensus is solvable when a majority of processes are correct. Paxos fits this pattern: its safety does not depend on timing, and its progress depends on electing a single proposer, which [Paxos Made Simple](https://lamport.azurewebsites.net/pubs/paxos-simple.pdf) (section 2.4) notes must use "either randomness or real time". [[systems/distributed-systems/failure-detectors-leases-leader-election|Failure detectors, leases and leader election]] covers the mechanisms used for that election.
+
+## Roles and rounds
+
+Paxos assigns three roles, and a single process may play all three, as each server does in the replicated logs described [below](#from-one-value-to-a-replicated-log):
+
+- **Proposers** start rounds and propose values.
+- **Acceptors** promise and accept; any majority of acceptors forms a quorum.
+- **Learners** find out which value was chosen.
+
+Each round carries a proposal number (also called a ballot or round number). Proposal numbers must be totally ordered and no two proposers may use the same one, which can be arranged by pairing a counter with the proposer's identifier, or, with two proposers, by giving one the odd numbers and the other the even numbers. Each acceptor keeps two variables on stable storage: the highest proposal number it has promised, and the highest-numbered proposal $(n, v)$ it has accepted, if any.
+
+### Phase 1: prepare and promise
+
+- **1a.** A proposer selects a proposal number $n$ and sends `prepare(n)` to the acceptors.
+- **1b.** An acceptor that receives `prepare(n)` with $n$ greater than every proposal number it has promised records the promise and replies `promise(n, (n', v'))`, where $(n', v')$ is the highest-numbered proposal it has accepted, or nothing if it has accepted none. The promise is not to accept any proposal numbered less than $n$. An acceptor that has already promised a higher number may ignore the request or reply with that number so that the proposer can abandon the round.
+
+### Phase 2: accept and accepted
+
+- **2a.** A proposer that has received promises for round $n$ from a majority of acceptors sends `accept(n, v)`. The value $v$ is the value of the highest-numbered proposal reported in those promises, or, if none of them reported a proposal, any value, normally the proposer's own.
+- **2b.** An acceptor that receives `accept(n, v)` accepts the proposal unless it has promised a number greater than $n$, records it, and replies `accepted(n, v)` to the proposer and to the learners.
+
+The value $v$ is chosen when a majority of acceptors have accepted $(n, v)$ for a single $n$. A learner learns this by receiving `accepted` from a majority. With three acceptors and no failures, one round exchanges 12 messages: three each of `prepare`, `promise`, `accept` and `accepted`. The value is chosen after three one-way message delays and the proposer learns it after four.
+
+<PaxosStepper preset="basic" />
+
+The acceptor rules are also the actions `Phase1b` and `Phase2b` of Lamport's [TLA+ specification of Paxos](https://github.com/tlaplus/Examples/tree/master/specifications/Paxos), which models the network as a set of messages that only grows: a message can be received any number of times, in any order, or never.
+
+## Why the phase 2 rule preserves agreement
+
+The chosen value cannot change because of one invariant: **if a value $v$ has been chosen in round $m$, then every `accept(n, w)` with $n > m$ has $w = v$.** Phase 2a enforces it through quorum intersection. Suppose $v$ was chosen in round $m$ by a majority $C$, and a proposer is choosing a value for round $n > m$ after receiving promises from a majority $Q$. Since $C$ and $Q$ are both majorities of the same acceptors, they share at least one acceptor $a$. That acceptor accepted $(m, v)$, and it accepted it before it promised $n$: had it promised $n$ first, it would have rejected $\text{accept}(m, v)$ because $m < n$. Its promise therefore reports a proposal numbered at least $m$. By induction on the rounds between $m$ and $n$, every proposal numbered from $m$ to $n - 1$ that any acceptor accepted has value $v$, so the highest-numbered proposal reported in $Q$ has value $v$, and the proposer sends `accept(n, v)`.
+
+The rule binds a proposer to a reported value even when that value was not chosen, because a minority of promises cannot reveal whether the acceptors outside the quorum completed a majority. In the figure below, P1 gets $x$ accepted by A1 and A2 and crashes before anyone learns that $x$ was chosen. P2 then reaches A2 and A3. A2 reports $(1, x)$, so P2 proposes $x$ in round 2. With the rule switched off, P2 proposes its own value $y$, A2 and A3 accept it, and a second value is chosen.
+
+<PaxosStepper preset="takeover" />
+
+Each of the other rules is necessary as well. An exhaustive breadth-first search of a small instance (three acceptors, two values, proposal numbers 0 to 2, and the network of the TLA+ specification) visits all 185,369 reachable states of the protocol and finds none in which two values are chosen. Weakening one rule at a time produces a violation, and the search returns the shortest execution that reaches it:
+
+| Rule weakened | Shortest execution with two chosen values |
+| --- | --- |
+| Phase 2a proposes the proposer's own value, ignoring reported proposals | 12 steps |
+| Phase 2b accepts a proposal numbered below the acceptor's promise | 12 steps |
+| Phase 1b replies without recording the promise (an acceptor that loses its promise in a restart) | 12 steps |
+| Quorums are $\{A_1, A_2\}$ and $\{A_3\}$, which do not intersect | 9 steps |
+
+The third row corresponds to a failure reported by [Paxos Made Live](https://research.google.com/archive/paxos_made_live.pdf) (section 5.1): replicas occasionally saw their disks corrupted, and a replica that has lost its state "may renege on promises it has made to other replicas in the past". In Google's implementation a replica with a corrupted disk rebuilds its state as a non-voting member, sending no promises or acknowledgments, until it observes a complete instance of Paxos that started after it began rebuilding. The last row is the reason that quorums are majorities. [Flexible Paxos](https://arxiv.org/abs/1608.06696) (Howard, Malkhi and Spiegelman, 2016) showed that the requirement is weaker: every phase 1 quorum must intersect every phase 2 quorum, while two phase 2 quorums need not intersect, so a deployment can trade larger phase 1 quorums for smaller phase 2 quorums.
+
+> [!note]- Deep dive: the safety argument as Lamport states it
+> [Paxos Made Simple](https://lamport.azurewebsites.net/pubs/paxos-simple.pdf) derives the protocol by strengthening the requirement that only one value is chosen into a sequence of conditions, each implied by the next:
+>
+> - **P2.** If a proposal with value $v$ is chosen, every higher-numbered proposal that is chosen has value $v$.
+> - **P2a.** If a proposal with value $v$ is chosen, every higher-numbered proposal accepted by any acceptor has value $v$.
+> - **P2b.** If a proposal with value $v$ is chosen, every higher-numbered proposal issued by any proposer has value $v$.
+> - **P2c.** For any $v$ and $n$, if a proposal $(n, v)$ is issued, there is a majority $S$ such that either no acceptor in $S$ has accepted a proposal numbered less than $n$, or $v$ is the value of the highest-numbered proposal among all proposals numbered less than $n$ accepted by the acceptors in $S$.
+>
+> P2c can be enforced by a proposer alone if it learns the relevant acceptances and prevents future ones below $n$, which is what phase 1 does: the promise is P1a ("an acceptor can accept a proposal numbered $n$ iff it has not responded to a prepare request having a number greater than $n$"), and the reported proposal is the information P2c needs. The [[systems/distributed-systems/paxos-made-simple|Paxos Made Simple]] note follows the derivation step by step.
+
+## Progress and duelling proposers
+
+Agreement holds for any number of concurrent proposers, but progress does not. [Paxos Made Simple](https://lamport.azurewebsites.net/pubs/paxos-simple.pdf) (section 2.4) describes the execution: proposer P1 completes phase 1 for round 1; before its `accept` requests arrive, P2 completes phase 1 for round 2, so the acceptors reject P1's requests; P1 then completes phase 1 for round 3, so P2's `accept` requests are rejected; and the sequence can continue indefinitely. No message is lost and no process crashes. The figure below follows that schedule: whenever one proposer's `accept` requests could succeed, the other proposer's timer fires and its `prepare` requests arrive first.
+
+<PaxosStepper preset="duel" />
+
+This execution is an instance of what the FLP result permits. Paxos Made Simple's remedy is to elect a distinguished proposer, the only one that issues proposals; if it can communicate with a majority of acceptors and no other proposer interferes, its round completes. Elections are themselves unreliable under asynchrony, so implementations combine a leader election with randomized retry delays to make repeated collisions unlikely.
+
+A discrete-event simulation of two competing proposers shows the size of the effect. In the simulation, acceptors reply to a rejected request with the number they have promised, a proposer that receives such a reply abandons its round and retries with a higher number, and each one-way message delay is $0.5 + \text{Exp}(\text{mean } 0.5)$ time units, so the mean delay is one unit. P1 starts at time 0 and P2 at a uniformly random time in $[0, 2)$. Over five batches of 20,000 runs (ranges are the minimum and maximum over batches):
+
+| Policy | Rounds, mean | Rounds, 99th percentile | Rounds, maximum | Time to choose, median | Time to choose, 99th percentile |
+| --- | --- | --- | --- | --- | --- |
+| Single proposer | 1.00 | 1 | 1 | 2.75 to 2.76 | 4.34 to 4.41 |
+| Two proposers, retry immediately | 3.04 to 3.06 | 7 | 13 to 16 | 3.68 to 3.69 | 10.96 to 11.21 |
+| Two proposers, retry after a delay uniform in $[0, 4)$ | 2.14 | 3 | 5 | 3.52 to 3.53 | 6.27 to 6.45 |
+
+Every run chose a value, since random delays eventually separate the proposers; the adversarial schedule in the figure never does. With immediate retries the 99th percentile of the time to choose is 2.5 times that of a single proposer, and a randomized retry delay reduces it to 1.5 times. These are properties of the simulated model, not measurements of a deployed system.
+
+## From one value to a replicated log
+
+Single-decree Paxos chooses one value. State machine replication runs one instance per log entry: the value chosen by instance $i$ is the $i$th command, and every replica applies the commands in log order, so all replicas pass through the same states (see [[systems/distributed-systems/primary-backup|primary-backup replication]] for a design with weaker fault tolerance). Running both phases for every entry would cost two round trips per command. In the construction usually called Multi-Paxos, described in section 3 of Paxos Made Simple, a newly elected leader runs phase 1 at once for every log entry it has not learned, including all entries beyond the end of its log, "using the same proposal number for all instances" and "a single reasonably short message". It re-proposes, under the phase 2a rule, any values that the promises report for those entries. While it remains leader, each command costs only phase 2: one round trip from the leader to a majority of acceptors.
+
+Engineering accounts describe what the protocol leaves out. [Paxos Made Live](https://research.google.com/archive/paxos_made_live.pdf) (Chandra, Griesemer and Redstone, 2007), on the Paxos library behind Google's Chubby lock service, where "a typical Chubby cell consists of five replicas", covers disk corruption, master leases that let the leader serve reads without running Paxos, group membership changes, and snapshots of the log. [Paxos Made Moderately Complex](https://www.cs.cornell.edu/home/rvr/Paxos/paxos.pdf) (van Renesse) gives complete pseudocode for Multi-Paxos with replicas, leaders and acceptors, where a leader runs phase 1 in a "scout" and phase 2 in a "commander", and notes that tolerating $f$ crashes needs at least $f + 1$ replicas and $2f + 1$ acceptors. [Raft](https://raft.github.io/raft.pdf) (Ongaro and Ousterhout, 2014) is a leader-based log replication protocol with the same majority quorums, designed to be easier to understand and implement. [[systems/distributed-systems/paxos-architecture|Distributed architectures with Paxos]] compares message costs with other replication schemes and describes running Paxos only for lease changes, and [[systems/distributed-systems/two-phase-commit|two-phase commit]] covers a commit protocol that, unlike Paxos, blocks when its coordinator fails.
+
+> [!note]- How this was measured
+> The code is in [paxos-intro-experiments](https://github.com/elimelt/web/tree/main/notes/content/systems/distributed-systems/paxos-intro-experiments), beside the note. It ran with Python 3.13.18 on a shared cloud VM (4-vCPU Intel Xeon x86-64).
+>
+> - **Exhaustive check:** `paxos_check.py` transcribes the actions `Phase1a`, `Phase1b`, `Phase2a` and `Phase2b` of Lamport's [Paxos.tla](https://github.com/tlaplus/Examples/tree/master/specifications/Paxos) into Python, with three acceptors, values $\{1, 2\}$, majority quorums and the specification's message set, and searches every reachable state breadth first, checking that at most one value is chosen. `python3 paxos_check.py 2` (proposal numbers 0 to 2) visits 185,369 states in about 5 seconds; with proposal numbers 0 and 1 it visits 3,921. `python3 paxos_check.py 2 MUTANT`, for each of `ignore_votes`, `accept_below_promise`, `no_persist` and `minority_quorum`, stops at the first violation, so the step counts in the table are shortest counterexamples; the traces are in `check-results.txt`. The search is a transcription, not the TLC model checker run on the specification itself.
+> - **Duelling proposers:** `python3 duel_sim.py 5 20000` writes `duel-results.txt`. Seeds are the run indices 0 to 99,999, so the output is reproducible. A run that chose nothing by time 1,000 would count as undecided; none did.
+> - **Figure:** `quartz-site/plugins/mdx/src/components/paxos-stepper/model.ts` implements the same acceptor and proposer rules in TypeScript with message-by-message delivery. Its test searches every interleaving of the instance with rounds 1 and 2 (174,892 states) and finds no state with two chosen values, finds one when the phase 2a rule is switched off, checks 1,500 random runs with crashes, losses and reordering, and checks the three presets.
+
+## Related notes
+
+- [[systems/distributed-systems/paxos-made-simple|Paxos Made Simple]]
+- [[systems/distributed-systems/paxos-architecture|Distributed architectures with Paxos]]
+- [[systems/distributed-systems/failure-detectors-leases-leader-election|Failure detectors, leases and leader election]]
+- [[systems/distributed-systems/two-phase-commit|Two-phase commit]]
+- [[systems/distributed-systems/ordering-events-in-distributed-systems|Ordering events in distributed systems]]
