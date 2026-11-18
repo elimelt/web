@@ -1,0 +1,168 @@
+figure.dq {
+  @include fig-frame;
+
+  .dq-controls {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.8rem 1.2rem;
+    flex-wrap: wrap;
+  }
+
+  .dq-policy {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+
+  .dq-slider {
+    flex: 1 1 12rem;
+    font-size: 0.92rem;
+    @include fig-slider;
+  }
+
+  button {
+    @include fig-button($font-size: 0.85rem);
+    @include fig-button-hover;
+
+    &[aria-pressed="true"] {
+      @include fig-pressed;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  }
+
+  .dq-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 1rem;
+    margin: 0.8rem 0 0.2rem;
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  .dq-count {
+    margin-left: auto;
+    color: var(--darkgray);
+  }
+
+  .dq-key::before {
+    content: "";
+    display: inline-block;
+    width: 1.3rem;
+    height: 0;
+    margin-right: 0.35rem;
+    vertical-align: middle;
+    border-top: 2px solid currentColor;
+  }
+
+  .dq-key-seek::before {
+    border-color: var(--fig-blue);
+  }
+
+  .dq-key-rot::before {
+    border-top: 2px dashed var(--fig-orange);
+  }
+
+  .dq-key-done::before {
+    width: 0.5rem;
+    height: 0.5rem;
+    border: none;
+    border-radius: 50%;
+    background: var(--darkgray);
+  }
+
+  .dq-chart {
+    @include fig-chart;
+  }
+
+  .dq-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .dq-axisline {
+    stroke: var(--gray);
+    stroke-width: 1;
+  }
+
+  .dq-tick,
+  .dq-axis {
+    fill: var(--gray);
+    font-size: 11px;
+  }
+
+  .dq-axis {
+    font-size: 12px;
+  }
+
+  .dq-seek,
+  .dq-rot {
+    fill: none;
+    stroke-linecap: round;
+  }
+
+  .dq-seek {
+    stroke: var(--fig-blue);
+    stroke-width: 1.8;
+  }
+
+  .dq-rot {
+    stroke: var(--fig-orange);
+    stroke-width: 2.2;
+    stroke-dasharray: 4 3;
+  }
+
+  .dq-done {
+    fill: var(--darkgray);
+  }
+
+  .dq-readout {
+    margin: 0.4rem 0 0;
+    font-size: 0.88rem;
+  }
+
+  .dq-table {
+    @include fig-table;
+    width: 100%;
+
+    th,
+    td {
+      text-align: right;
+      padding: 0.15rem 0.5rem;
+    }
+
+    th:first-child,
+    td:first-child {
+      text-align: left;
+    }
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .dq-count {
+      margin-left: 0;
+      width: 100%;
+    }
+
+    .dq-tick {
+      font-size: 17px;
+    }
+
+    .dq-axis {
+      font-size: 18px;
+    }
+
+    .dq-table th,
+    .dq-table td {
+      padding: 0.15rem 0.25rem;
+      font-size: 0.8rem;
+    }
+  }
+}
