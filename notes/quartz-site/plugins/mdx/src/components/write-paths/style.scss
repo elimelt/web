@@ -1,0 +1,265 @@
+// The write-paths figure. Blue is the B-tree and green the LSM-tree in the
+// chart and the table; orange marks what the last commit wrote, and the
+// site's --secondary marks what the chosen lookup reads.
+figure.wp {
+  @include fig-frame;
+  font-size: 0.9rem;
+
+  .wp-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.5rem 1.2rem;
+    margin: 0 0 0.5rem;
+  }
+
+  .wp-wide {
+    grid-column: 1 / -1;
+  }
+
+  .wp-select {
+    display: flex;
+    min-width: 0;
+    gap: 0.5rem;
+    align-items: center;
+
+    span {
+      color: var(--gray);
+      white-space: nowrap;
+    }
+
+    select {
+      @include fig-button(0.15rem 0.4rem, 0.85rem);
+      @include fig-button-hover;
+      min-width: 0;
+      flex: 1;
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+    }
+  }
+
+  .wp-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+
+    button {
+      @include fig-button(0.2rem 0.6rem, 0.85rem);
+      @include fig-button-hover;
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+    }
+  }
+
+  .wp-slider {
+    @include fig-slider;
+  }
+
+  .wp-event {
+    min-height: 3em;
+    margin: 0.2rem 0 0.4rem;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .wp-head {
+    margin-top: 0.5rem;
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  .wp-plot svg {
+    @include fig-chart;
+  }
+
+  .wp-row,
+  .wp-tick {
+    fill: var(--gray);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .wp-axis,
+  .wp-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .wp-axis {
+    stroke: var(--gray);
+  }
+
+  .wp-page,
+  .wp-file,
+  .wp-mem {
+    fill: var(--highlight);
+    stroke: var(--gray);
+    stroke-width: 1;
+  }
+
+  .wp-inner {
+    fill: var(--light);
+  }
+
+  .wp-mem {
+    fill: none;
+    stroke-dasharray: 3 3;
+  }
+
+  .wp-sep {
+    stroke: var(--darkgray);
+    stroke-width: 1.2;
+  }
+
+  .wp-dot {
+    fill: var(--darkgray);
+  }
+
+  .wp-new {
+    fill: color-mix(in srgb, var(--fig-orange) 35%, transparent);
+    stroke: var(--fig-orange);
+  }
+
+  .wp-path,
+  .wp-read,
+  .wp-hit {
+    stroke: var(--secondary);
+    stroke-width: 2.5;
+  }
+
+  .wp-hit {
+    fill: color-mix(in srgb, var(--secondary) 25%, transparent);
+  }
+
+  .wp-skip {
+    stroke: var(--secondary);
+    stroke-width: 1.5;
+    stroke-dasharray: 2 3;
+  }
+
+  .wp-keyline {
+    stroke: var(--secondary);
+    stroke-width: 1;
+    stroke-dasharray: 2 3;
+  }
+
+  .wp-phase {
+    stroke: var(--gray);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+  }
+
+  .wp-line-bt,
+  .wp-line-lsm {
+    fill: none;
+    stroke-width: 2;
+    stroke-linejoin: round;
+  }
+
+  .wp-line-bt {
+    stroke: var(--fig-blue);
+  }
+
+  .wp-line-lsm {
+    stroke: var(--fig-green);
+  }
+
+  .wp-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 1rem;
+    margin-top: 0.3rem;
+    color: var(--gray);
+    font-size: 0.78rem;
+  }
+
+  .wp-key::before {
+    display: inline-block;
+    width: 0.9em;
+    height: 0.7em;
+    margin-right: 0.35em;
+    border: 1.5px solid;
+    border-radius: 2px;
+    content: "";
+    vertical-align: -0.05em;
+  }
+
+  .wp-key-new::before {
+    border-color: var(--fig-orange);
+    background: color-mix(in srgb, var(--fig-orange) 35%, transparent);
+  }
+
+  .wp-key-path::before {
+    border-color: var(--secondary);
+  }
+
+  .wp-key-skip::before {
+    border-style: dashed;
+    border-color: var(--secondary);
+  }
+
+  .wp-table {
+    @include fig-table;
+    margin: 0.5rem 0 0;
+    font-variant-numeric: tabular-nums;
+
+    th,
+    td {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.85rem;
+      text-align: left;
+    }
+  }
+
+  .wp-table td:first-child {
+    white-space: nowrap;
+  }
+
+  .wp-swatch {
+    display: inline-block;
+    width: 0.8em;
+    height: 3px;
+    margin-right: 0.4em;
+    vertical-align: middle;
+  }
+
+  .wp-sw-bt {
+    background: var(--fig-blue);
+  }
+
+  .wp-sw-lsm {
+    background: var(--fig-green);
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .wp-controls {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .wp-buttons {
+      justify-content: flex-start;
+    }
+
+    .wp-row,
+    .wp-tick {
+      font-size: 19px;
+    }
+
+    .wp-table {
+      th,
+      td {
+        padding: 0.2rem 0.3rem;
+        font-size: 0.78rem;
+      }
+    }
+  }
+}
