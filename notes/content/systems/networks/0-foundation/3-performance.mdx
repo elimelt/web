@@ -1,0 +1,171 @@
+---
+title: Performance
+aliases:
+  - networks/0-foundation/3-performance
+category: Networks
+tags:
+  - bandwidth
+  - throughput
+  - latency
+  - delay
+  - rtt
+  - bandwidth-delay-product
+  - slow-start
+  - transfer-time
+date: 2024-01-12
+updated: 2026-11-17
+authors:
+  - elimelt
+  - claude-opus-5-5
+status: evergreen
+description: "Bandwidth, throughput, latency, round-trip time and the bandwidth-delay product; the four components of delay; and the time to transfer a message, which round trips determine below the bandwidth-delay product and L/R determines above it, with transfer times measured on the Linux TCP stack over an emulated path."
+sources:
+  - title: "Peterson and Davie, Computer Networks: A Systems Approach, §1.5 Performance"
+    url: https://book.systemsapproach.org/foundation/performance.html
+    type: textbook
+  - title: "CSE 461: Computer Networks, University of Washington"
+    url: https://courses.cs.washington.edu/courses/cse461/
+    type: lecture
+  - title: "Cardwell, Savage and Anderson, Modeling TCP Latency, IEEE INFOCOM 2000"
+    url: https://cseweb.ucsd.edu/~savage/papers/Infocom2000tcp.pdf
+    type: paper
+  - title: "Patterson, Latency Lags Bandwidth, Communications of the ACM 47(10), 2004"
+    url: https://doi.org/10.1145/1022594.1022596
+    type: paper
+  - title: "Singla, Chandrasekaran, Godfrey and Maggs, The Internet at the Speed of Light, HotNets 2014"
+    url: https://doi.org/10.1145/2670518.2673876
+    type: paper
+  - title: "Cheshire, It's the Latency, Stupid (1996)"
+    url: http://www.stuartcheshire.org/rants/latency.html
+    type: article
+  - title: "RFC 5681: TCP Congestion Control"
+    url: https://www.rfc-editor.org/rfc/rfc5681
+    type: spec
+  - title: "RFC 6928: Increasing TCP's Initial Window"
+    url: https://www.rfc-editor.org/rfc/rfc6928
+    type: spec
+  - title: "RFC 7323: TCP Extensions for High Performance"
+    url: https://www.rfc-editor.org/rfc/rfc7323
+    type: spec
+  - title: "Gettys and Nichols, Bufferbloat: Dark Buffers in the Internet, Communications of the ACM 55(1), 2012"
+    url: https://doi.org/10.1145/2063176.2063196
+    type: paper
+---
+
+The performance of a network path is described by a small set of quantities. **Bandwidth** (or capacity) is the maximum rate, in bits per second, at which the path can carry data; for a path of several links it is the rate of the slowest link, the bottleneck. **Throughput** is the rate a particular transfer actually achieves, which is at most the bandwidth and often far below it. **Latency** (or delay) is the time between a bit leaving the sender and arriving at the receiver, and the **round-trip time** (RTT) is the time from sending a message to receiving an immediate reply.
+
+Bandwidth determines how long it takes to place a message's bits on the path, and latency how long the first bit takes to cross it. The time to deliver a message depends on both, and which of the two dominates depends on the message's size relative to the [bandwidth-delay product](#bandwidth-delay-product), the amount of data the path holds in flight. [Peterson and Davie](https://book.systemsapproach.org/foundation/performance.html) distinguish bandwidth from throughput in the same way: throughput is "the measured performance of a system", as when a 10 Mbit/s link carries 2 Mbit/s for some application. In signal processing, bandwidth instead means the width of a frequency band in hertz; [[systems/networks/0-foundation/information-theory|information theory]] relates that quantity to capacity in bits per second.
+
+## Components of delay
+
+The one-way latency of a packet across a single link is the sum of four terms.
+
+- **Propagation delay** $D/S$ is the distance $D$ divided by the signal speed $S$. Light in standard single-mode fiber travels at $c/1.468$, about 204,000 km/s, since the fiber's group index at 1550 nm is 1.4682 ([Corning SMF-28 Ultra data sheet](https://csmedia.corning.com/media/worldwide/coc/documents/Fiber/product-information-sheets/PI-1424-AEN.pdf)). Propagation therefore costs 4.9 µs per km of fiber, or 4.9 ms per 1000 km. Copper is comparable; Peterson and Davie use $2.3 \times 10^8$ m/s for copper and $2.0 \times 10^8$ m/s for fiber.
+- **Transmission delay** (serialization) $L/R$ is the time to place $L$ bits onto a link of rate $R$. A 1500-byte packet takes 1.2 ms at 10 Mbit/s, 120 µs at 100 Mbit/s and 12 µs at 1 Gbit/s.
+- **Queueing delay** is the time the packet waits in a buffer behind other packets before transmission. It is zero on an idle path and can reach seconds when a large buffer in front of a slow link stays full, the condition [Gettys and Nichols](https://doi.org/10.1145/2063176.2063196) named bufferbloat; they report queues "frequently in excess of 600 ms" on DSL upstream links.
+- **Processing delay** is the time a router or host spends examining the packet's header and selecting an output link. Peterson and Davie's decomposition, Latency = Propagation + Transmit + Queue, has no separate term for it.
+
+For a message of $L$ bits sent as one unit across one idle link with one-way propagation delay $d$,
+
+$$T = d + \frac{L}{R}.$$
+
+[[systems/networks/0-foundation/2-physical-layer#Message latency|The physical layer]] works this formula for a 1 MB message over a 10 Mbit/s link with $d = 50$ ms: 0.8 s of transmission and 0.05 s of propagation.
+
+> [!note]- Deep dive: several hops, store-and-forward and packetization
+> A router that stores and forwards receives a whole packet before it begins to transmit it on the next link. Over $h$ links of equal rate $R$, a message sent as one unit of $L$ bits therefore pays the transmission delay $h$ times:
+>
+> $$T_\text{message} = \sum_{i=1}^{h} d_i + h\frac{L}{R}.$$
+>
+> Splitting the message into packets of $P$ bits lets the links work in parallel: while the second link forwards packet 1, the first link carries packet 2. The last packet leaves the sender at $L/R$ and then needs $h - 1$ further packet transmissions, so
+>
+> $$T_\text{packets} = \sum_{i=1}^{h} d_i + \frac{L}{R} + (h-1)\frac{P}{R},$$
+>
+> ignoring headers. For $L = 1$ MB, $P = 1500$ bytes, $h = 4$ and $R = 100$ Mbit/s, the transmission terms fall from 320 ms to 80.4 ms. Each packet carries its own header, so smaller packets reduce the pipelining term and increase header overhead. Cut-through switching, which begins forwarding once the header has arrived, reduces the per-hop term further ([[systems/networks/0-foundation/2-physical-layer#Cut-through routing|cut-through routing]]).
+
+## Bandwidth-delay product
+
+The **bandwidth-delay product** (BDP) is the number of bits a path holds in flight when it is kept full:
+
+$$\text{BDP} = R \times RTT.$$
+
+It can also be computed with the one-way delay, which gives the bits on the wire in one direction; Peterson and Davie define both and use the round-trip version by default. The round-trip version is the relevant one for a sender, because a bit sent now is acknowledged one RTT later, so a sender must have a full BDP of unacknowledged data outstanding to keep the bottleneck busy.
+
+| Path | Rate | RTT | BDP |
+| --- | --- | --- | --- |
+| Within a data center | 10 Gbit/s | 0.1 ms | 125 KB |
+| Home broadband to a nearby server | 100 Mbit/s | 20 ms | 250 KB |
+| Same rate across a continent | 100 Mbit/s | 100 ms | 1.25 MB |
+| Gigabit across a continent | 1 Gbit/s | 100 ms | 12.5 MB |
+
+A path whose BDP is large is a "long, fat network" (LFN). [RFC 1072](https://www.rfc-editor.org/rfc/rfc1072) gave $10^5$ bits as an example of a product large enough to cause problems for TCP, and [RFC 7323 §1.1](https://www.rfc-editor.org/rfc/rfc7323#section-1.1) keeps the term without a threshold. The original TCP header limits the window to 65,535 bytes, which caps a connection at $65{,}535 \times 8 / 0.1 \text{ s} = 5.2$ Mbit/s on a 100 ms path regardless of the link rate; the window scale option removes that limit. [[systems/networks/4-transport/flow-control|Flow control]] measures goodput against window size on Linux, and [[systems/networks/1-physical/coding-and-modulation#Bandwidth-delay product|coding and modulation]] gives the product at the level of a single link.
+
+## Latency-bound and bandwidth-bound transfers
+
+A request-response exchange over an open connection takes one round trip plus the time to transmit the response ([Peterson and Davie](https://book.systemsapproach.org/foundation/performance.html)):
+
+$$T = RTT + \frac{L}{R}, \qquad \text{throughput} = \frac{L}{T}.$$
+
+Writing $x = L / \text{BDP}$ for the response size in units of the bandwidth-delay product, the fraction of the link rate the transfer achieves is
+
+$$\frac{L/T}{R} = \frac{L}{R \cdot RTT + L} = \frac{x}{1 + x}.$$
+
+A response exactly one BDP in size achieves half the link rate, and reaching 90% requires $x = 9$, nine BDPs. Below one BDP the round trip dominates and the transfer is **latency-bound**: increasing $R$ shortens only the smaller term. Above it the transfer is **bandwidth-bound**. Peterson and Davie's example is a 1 MB file on a 1 Gbit/s path with a 100 ms RTT: transmission takes 8 ms, the transfer 108 ms, and the throughput is 74.1 Mbit/s. The same file at 1 Mbit/s takes about 8.1 s, and the 1000-fold faster link shortens it 75-fold.
+
+TCP adds round trips that the formula omits. A new connection spends one RTT on the three-way handshake before the request can be sent. The sender then starts with a congestion window of 10 segments ([RFC 6928](https://www.rfc-editor.org/rfc/rfc6928) sets the initial window to $\min(10 \cdot \text{MSS}, \max(2 \cdot \text{MSS}, 14600))$ bytes, and Linux defines `TCP_INIT_CWND` as 10) and, in slow start, roughly doubles the window each round trip. A response therefore needs one further RTT for each doubling until the window covers the BDP. [Cardwell, Savage and Anderson](https://cseweb.ucsd.edu/~savage/papers/Infocom2000tcp.pdf) model this startup phase, together with loss and delayed acknowledgements, and show that it dominates the latency of short transfers.
+
+## Measured transfer times
+
+These formulas were tested against the Linux TCP stack over an emulated path. Two network namespaces were joined through a relay in user space that holds each packet for its serialization time at a set rate plus a fixed one-way delay; the test kernel has no netem, so `tc` could not shape the path ([measurement record](#measurement-record)). Rates were 10, 100 and 1000 Mbit/s, round trips 2, 20 and 100 ms, and messages 1 KiB to 64 MiB in factors of four. Each message was sent in four ways:
+
+- as a burst of UDP datagrams, timed from the first send to the last arrival, which measures the one-way floor $d + L/R$;
+- as the response on a new TCP connection, timed from `connect()` to the last byte;
+- as the response on an open connection that had just carried four BDPs of data (at least 1 MiB), so that its congestion window had grown;
+- as the same response after the open connection had been idle for 1 s.
+
+The TCP cases were run with both of Linux's common congestion controllers, BBR and CUBIC. The UDP bursts arrived within 0.2 to 0.6 ms of $d + L_\text{wire}/R$ on every path, where $L_\text{wire}$ counts 28 bytes of IP and UDP header per datagram; a 16 MiB burst at 100 Mbit/s with a 20 ms round trip took 1377.96 ms against 1377.71 ms computed. The relay therefore adds well under a millisecond, and the remaining differences belong to TCP.
+
+The TCP times are compared with a packet-level model of slow start. On a new connection the request reaches the server 1.5 RTT after `connect()`. The server sends 10 segments of 1448 bytes (52 bytes of header each), and each acknowledgement adds one segment to the window, so the window doubles every round trip; the transfer ends when the last segment arrives. An open connection is modelled the same way, starting from the congestion window the server reported in `TCP_INFO` when the request arrived. The model was within 5% or 2 ms of the measured median in 117 of 144 cases on new connections, 134 of 144 on open ones and 130 of 144 after idle time. Most of the exceptions are explained below.
+
+<TransferTime rate={100} rtt={20} cc="bbr" size={65536} />
+
+**A new connection costs two round trips before the first byte arrives.** A 1 KiB response took 201.9 ms on a new connection with a 100 ms round trip, against 50.7 ms for the UDP burst and 100.9 ms on an open connection: one round trip for the handshake and one for the request and response. On the 2 ms paths the same response took 5.5 ms against 4.0 ms in the model; the endpoints add a fixed 0.5 to 2 ms that the model omits and that only the short round trips reveal.
+
+**Below the BDP, a faster link does not shorten the transfer.** On a new connection with a 100 ms round trip, a 1 MiB response took 1328 ms at 10 Mbit/s, 855 ms at 100 Mbit/s and 854 ms at 1 Gbit/s with BBR (1300, 817 and 808 ms with CUBIC). At 10 Mbit/s the response is eight times the BDP and transmission takes 869 ms of the total. At the two higher rates the response is below the BDP, and the time is eight round trips: one for the handshake and seven flights of 10, 20, 40, 80, 160, 320 and 95 segments. The tenfold faster link changed the time by 1 to 9 ms. At 1 Gbit/s the transfer achieved 9.8 Mbit/s, 1% of the link.
+
+**An open connection removes most of that cost.** The same 1 MiB response at 100 Mbit/s took 187.4 ms on an open connection, against $RTT + L_\text{wire}/R = 186.9$ ms, and at 1 Gbit/s it took 109.2 ms (CUBIC), close to Peterson and Davie's 108 ms. The new connection took 808 ms for the same transfer.
+
+**After 1 s of idle time, CUBIC lost part of its window and BBR did not.** [RFC 5681 §4.1](https://www.rfc-editor.org/rfc/rfc5681#section-4.1) recommends that a sender that has not sent for longer than its retransmission timeout (RTO) reduce its window to the restart window, the smaller of the initial window and the current window, because it no longer has acknowledgements to pace its sending. Linux implements this in [`tcp_cwnd_restart`](https://github.com/torvalds/linux/blob/v6.18/net/ipv4/tcp_output.c#L146-L162) when `net.ipv4.tcp_slow_start_after_idle` is 1, the default: it halves the window once for each RTO of idle time beyond the first, stops at the restart window, and sets the slow-start threshold to at least three quarters of the old window, so that the window regrows in slow start. The [check](https://github.com/torvalds/linux/blob/v6.18/include/net/tcp.h#L1585-L1597) skips the restart for a controller that implements its own `cong_control` hook, as BBR does. At 100 Mbit/s and 100 ms, CUBIC's window was 1184 segments with an RTO of 336 ms; about 1.1 s after its last transmission, three halvings left 148 segments. A 256 KiB response then took 205.4 ms against 122.3 ms with the window intact, and 1 MiB took 335.8 ms against 187.4 ms. BBR's idle transfers were within 0.5 ms of its warm ones (122.7 and 187.8 ms). The model, given the measured window and RTO, reproduces CUBIC's idle times within 1 to 4 ms on most paths. A persistent connection therefore keeps its full window across an idle period longer than the RTO only if the sender disables the restart or uses a controller that bypasses it.
+
+**At 1 Gbit/s and 100 ms, the sender's buffer limited the open connection.** That path's BDP is 12.5 MB, larger than the default maximum send buffer of 4 MiB (the third value of `net.ipv4.tcp_wmem`), so the sender could not keep a BDP of data in flight. A 64 MiB response on an open connection took 2504 ms with BBR, 214 Mbit/s. With the server's maximum raised to 64 MiB, the same transfer took 656.7 ms (818 Mbit/s), within 1 ms of $RTT + L_\text{wire}/R$, and 16 MiB fell from 688 to 240 ms. The figure's model does not include this limit. [[systems/networks/4-transport/flow-control|Flow control]] measures the corresponding limit at the receiver.
+
+**BBR's new connections were up to half a round trip slower than CUBIC's** for responses of 64 KiB to 1 MiB on the 20 and 100 ms paths: 444.9 against 404.6 ms for 64 KiB at 100 Mbit/s and 100 ms. This is consistent with BBR pacing its startup at about 2.89 times its estimated rate, which spreads each flight over part of a round trip, where CUBIC sends each flight as a burst when the acknowledgements arrive.
+
+## Why round trips dominate on fast paths
+
+Each increase in link rate shortens only the $L/R$ term, so more transfers fall below the BDP and become latency-bound as rates grow. [Patterson](https://doi.org/10.1145/1022594.1022596) observed across processors, memory, disks and networks that "bandwidth improves by at least the square of the improvement in latency"; for Ethernet, his [keynote figures](https://archive.ll.mit.edu/HPEC/agendas/proc04/invited/patterson_keynote.pdf) run from 10 Mbit/s with 3000 µs latency (802.3, 1978) to 10 Gbit/s with 190 µs (802.3ae, 2003), a 1000-fold gain in bandwidth against a 16-fold gain in latency. [Cheshire](http://www.stuartcheshire.org/rants/latency.html) made the same argument in 1996 for modems: capacity can be added by running links in parallel, while the latency of a device cannot be reduced after it is built. Propagation delay has a floor set by the speed of light, and measured paths are well above it. [Singla et al.](https://doi.org/10.1145/2670518.2673876) found that the median minimum ping time between hosts was 3.2 times the round-trip time of light in vacuum along the great-circle path, and the median time to fetch the HTML of a popular page 34 times that floor, because the fetch adds DNS resolution, the TCP handshake and the transfer itself, each of which takes one or more inflated round trips.
+
+The techniques that reduce transfer time for small messages therefore remove round trips or shorten them, since adding bandwidth does not reduce them:
+
+- **Reuse connections.** HTTP persistent connections and connection pools avoid the handshake and keep a congestion window that has already grown, subject to the idle restart [measured above](#measured-transfer-times).
+- **Combine handshakes.** [TCP Fast Open](https://www.rfc-editor.org/rfc/rfc7413) carries data in the SYN and "saves up to one full round-trip time"; TLS 1.3 completes a full handshake in one round trip ([RFC 8446 §2](https://www.rfc-editor.org/rfc/rfc8446#section-2)), where TLS 1.2 needed two; and QUIC uses "a combined cryptographic and transport handshake" ([RFC 9000 §7](https://www.rfc-editor.org/rfc/rfc9000#section-7)), so that "most new connections can be established and secured within a single round trip" ([RFC 9001 §1](https://www.rfc-editor.org/rfc/rfc9001#section-1)).
+- **Start with a larger window.** RFC 6928 raised the initial window from at most 4380 bytes ([RFC 3390](https://www.rfc-editor.org/rfc/rfc3390)) to about 14,600 bytes for this reason. A response of ten 1460-byte segments needed three flights (3, 6 and 12 segments) under the old window and needs one under the new.
+- **Shorten the path.** Content delivery networks serve responses from caches near the client, reducing $D$ and therefore every round trip.
+
+## Measurement record
+
+> [!note]- Setup, method and raw results
+> - **Code**: [`linkem.c`](performance-lab/linkem.c) is the link emulator, copied from the [[systems/networks/4-transport/flow-control|flow control]] lab; [`endpoint.py`](performance-lab/endpoint.py) is the TCP server, UDP sink and timing client; [`run_experiments.py`](performance-lab/run_experiments.py) is the driver; [`summarize.py`](performance-lab/summarize.py) prints medians against the floor and writes the figure's data; and [`model_reference.py`](performance-lab/model_reference.py) is an independent event-driven simulation of the model that the figure's tests compare against. Run as root from `performance-lab`: `cc -O2 -Wall -o linkem linkem.c`, then `python3 run_experiments.py` for the sweep and `python3 run_experiments.py --wmem-max 67108864 --out results_sndbuf.json` for the send-buffer follow-up. Raw results are in [`results.json`](performance-lab/results.json) and [`results_sndbuf.json`](performance-lab/results_sndbuf.json), and the figure's medians in [`transfer-times.json`](performance-lab/transfer-times.json).
+> - **Path**: each endpoint lives in its own network namespace with a TUN device. `linkem` reads every IP packet from one device, holds it for its serialization time at the set rate plus half the round trip, and writes it into the other, in both directions. Both TCP stacks are the kernel's own; only the wire is emulated. MTU 1500, MSS 1448 with timestamps. The relay sustained 961 Mbit/s of TCP goodput at the 1 Gbit/s setting.
+> - **Queues**: for TCP, two BDPs of drop-tail buffering at the bottleneck, and at least 200 packets. The data direction dropped packets in 7 of the 18 TCP passes, at most 2.3% of them (BBR at 1 Gbit/s and 2 ms) and otherwise under 1.5%; the model assumes no loss. The UDP passes used a 64 MiB queue so that no burst lost a datagram, and every burst arrived complete.
+> - **Sweep**: paths in order of decreasing round trip; for each path a UDP pass, then a BBR pass and a CUBIC pass, each with 5 repetitions of every size and mode. Sizes whose transmission alone would exceed 4 s were skipped, and UDP bursts stopped at 16 MiB. An open connection was first primed with $\max(4\,\text{BDP}, 1\text{ MiB})$ on the same socket; the idle case then slept 1 s. The server logged `TCP_INFO` (window, RTO, smoothed RTT) when each request arrived; the window at the warm request is the figure's starting window for open connections. Transfers were 50 ms apart.
+> - **Send-buffer follow-up**: 1 Gbit/s and 100 ms only, with the server namespace's `tcp_wmem` maximum raised to 64 MiB; warm transfers of 1 to 64 MiB, 3 repetitions, BBR and CUBIC.
+> - **Environment**: Linux 6.18.44 in a KVM guest, Intel Xeon at 2.10 GHz with 4 cores, Python 3.13.18. `tcp_rmem` 4096 131072 33554432, `tcp_wmem` 4096 16384 4194304, `tcp_slow_start_after_idle` 1, default congestion control BBR. The container restarted during the sweep, which resumed from the saved results; the first 16 passes ran on build `6.18.44-fc-v553` and the remaining 11 on `6.18.44-fc-v595`, which `results.json` records for those passes.
+> - **Limits**: one machine, one emulated path at a time, no competing traffic, and no loss except the drops above. The model ignores delayed acknowledgements, pacing and the send-buffer limit. CUBIC's idle transfers at 10 Mbit/s and 100 ms took 24 to 83 ms longer than the model predicts for 64 KiB to 1 MiB, which these measurements do not explain.
+
+## Related notes
+
+- [[systems/networks/0-foundation/2-physical-layer|The physical layer]], for transmission and propagation delay on one link
+- [[systems/networks/1-physical/coding-and-modulation|Coding and modulation]], for the bandwidth-delay product of a link
+- [[systems/networks/4-transport/flow-control|Flow control]], for windows and the BDP measured on Linux
+- [[systems/networks/4-transport/TCP|TCP]], for slow start and congestion control
+- [[systems/networks/0-foundation/information-theory|Information theory]], for the limits on link capacity

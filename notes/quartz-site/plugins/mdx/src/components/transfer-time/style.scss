@@ -1,0 +1,203 @@
+// transfer-time (systems/networks/0-foundation/3-performance).
+
+figure.tt {
+  @include fig-frame;
+  font-size: 0.9rem;
+
+  .tt-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem 1.1rem;
+    align-items: center;
+  }
+
+  .tt-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+
+    button {
+      @include fig-button(0.2rem 0.6rem, 0.85rem);
+      @include fig-button-hover;
+      font-variant-numeric: tabular-nums;
+    }
+
+    button[aria-pressed="true"] {
+      @include fig-pressed;
+    }
+  }
+
+  .tt-glabel {
+    color: var(--gray);
+    font-size: 0.8rem;
+    margin-right: 0.15rem;
+  }
+
+  .tt-slider {
+    flex: 1 1 15rem;
+    max-width: 22rem;
+    font-size: 0.88rem;
+    @include fig-slider;
+
+    input:disabled {
+      cursor: progress;
+    }
+  }
+
+  .tt-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem 0.95rem;
+    margin: 0.65rem 0 0.1rem;
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  .tt-blue-key {
+    color: var(--fig-blue);
+  }
+
+  .tt-orange-key {
+    color: var(--fig-orange);
+  }
+
+  .tt-green-key {
+    color: var(--fig-green);
+  }
+
+  .tt-gray-key {
+    color: var(--gray);
+  }
+
+  .tt-chart {
+    @include fig-chart;
+    aspect-ratio: 640 / 340;
+  }
+
+  .tt-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .tt-tick {
+    fill: var(--gray);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tt-axis {
+    fill: var(--darkgray);
+    font-size: 12.5px;
+  }
+
+  .tt-label {
+    fill: var(--gray);
+    font-size: 11.5px;
+  }
+
+  .tt-bdp {
+    stroke: var(--gray);
+    stroke-width: 1.2;
+    stroke-dasharray: 2 3;
+  }
+
+  .tt-cursor {
+    stroke: var(--secondary);
+    stroke-width: 1;
+    stroke-dasharray: 4 3;
+  }
+
+  .tt-curve {
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linejoin: round;
+  }
+
+  .tt-floor {
+    stroke: var(--gray);
+    stroke-dasharray: 6 4;
+  }
+
+  .tt-blue-line {
+    stroke: var(--fig-blue);
+  }
+
+  .tt-orange-line {
+    stroke: var(--fig-orange);
+    stroke-dasharray: 3 3;
+  }
+
+  .tt-green-line {
+    stroke: var(--fig-green);
+  }
+
+  .tt-series {
+    circle {
+      fill: var(--tt-color);
+      stroke: var(--light);
+      stroke-width: 1;
+    }
+
+    .tt-whisker {
+      stroke: var(--tt-color);
+      stroke-width: 1.4;
+    }
+
+    .tt-sel {
+      stroke: var(--secondary);
+      stroke-width: 2.2;
+    }
+  }
+
+  .tt-blue {
+    --tt-color: var(--fig-blue);
+  }
+
+  .tt-orange {
+    --tt-color: var(--fig-orange);
+  }
+
+  .tt-green {
+    --tt-color: var(--fig-green);
+  }
+
+  .tt-gray {
+    --tt-color: var(--gray);
+  }
+
+  .tt-readout {
+    margin: 0.4rem 0 0;
+    min-height: 4.4em;
+    font-size: 0.88rem;
+    line-height: 1.45;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .tt-controls {
+      gap: 0.4rem 0.8rem;
+    }
+
+    .tt-slider {
+      max-width: none;
+    }
+
+    .tt-tick,
+    .tt-label {
+      font-size: 18px;
+    }
+
+    .tt-axis {
+      font-size: 18px;
+    }
+
+    // The enlarged tick labels reach the rotated title; the ticks carry the unit.
+    .tt-yaxis {
+      display: none;
+    }
+  }
+}
