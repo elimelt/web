@@ -1,0 +1,20 @@
+date: 2026-11-18T00:14:07Z
+kernel: 6.18.44-fc-v595
+gcc: gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+clang: Ubuntu clang version 18.1.3 (1ubuntu1)
+model name	: Intel(R) Xeon(R) Processor @ 2.10GHz
+cpu family	: 6
+model		: 207
+nproc: 4
+cache L1 Data: 48K
+cache L1 Instruction: 32K
+cache L2 Unified: 2048K
+cache L3 Unified: 266240K
+thp: always [madvise] never
+MemTotal:       16473760 kB
+load before run 1: 0.22 0.33 0.32
+load before run 2: 1.03 0.58 0.41
+load before run 3: 1.09 0.73 0.48
+load before run 4: 0.97 0.78 0.53
+load before run 5: 1.01 0.86 0.57
+finished: 2026-11-18T00:20:50Z
