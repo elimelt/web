@@ -1,0 +1,266 @@
+{
+ "params": {
+  "rtrun": "/tmp/rtrun",
+  "out": "/tmp/rtx/sweep-n5.json",
+  "n": 5,
+  "sets": 25,
+  "reps": 3,
+  "dur": 1000,
+  "budget": 2,
+  "slack": 1000,
+  "seed": 1,
+  "utils": "0.70,0.75,0.80,0.85,0.90,0.95,0.98,1.00",
+  "cpuset": "/sys/fs/cgroup/cpuset/rt/tasks"
+ },
+ "reps_aggregated": 3,
+ "levels": [
+  {
+   "target_u": 0.7,
+   "sets": 25,
+   "mean_u": 0.6999162898770127,
+   "rta_schedulable": 1.0,
+   "ll_bound_ok": 1.0,
+   "rm": {
+    "sets_with_miss_mean": 0.02666666666666667,
+    "sets_with_miss_min": 0.0,
+    "sets_with_miss_max": 0.04,
+    "job_miss_ratio": 0.0002882259691598213,
+    "errors": 0,
+    "tasks_missing_per_missed_run": 1.0,
+    "runs_with_overrun": 0
+   },
+   "edf": {
+    "sets_with_miss_mean": 0.06666666666666667,
+    "sets_with_miss_min": 0.0,
+    "sets_with_miss_max": 0.12,
+    "job_miss_ratio": 0.00043233895373973193,
+    "errors": 0,
+    "tasks_missing_per_missed_run": 1.0,
+    "runs_with_overrun": 6
+   },
+   "rm_vs_rta": {
+    "sched_no_miss": 73,
+    "sched_missed": 2,
+    "unsched_missed": 0,
+    "unsched_no_miss": 0
+   }
+  },
+  {
+   "target_u": 0.75,
+   "sets": 25,
+   "mean_u": 0.7499058191843787,
+   "rta_schedulable": 1.0,
+   "ll_bound_ok": 0.0,
+   "rm": {
+    "sets_with_miss_mean": 0.09333333333333334,
+    "sets_with_miss_min": 0.08,
+    "sets_with_miss_max": 0.12,
+    "job_miss_ratio": 0.002000400080016003,
+    "errors": 0,
+    "tasks_missing_per_missed_run": 2.2857142857142856,
+    "runs_with_overrun": 0
+   },
+   "edf": {
+    "sets_with_miss_mean": 0.09333333333333334,
+    "sets_with_miss_min": 0.0,
+    "sets_with_miss_max": 0.2,
+    "job_miss_ratio": 0.0008001600320064013,
+    "errors": 0,
+    "tasks_missing_per_missed_run": 1.5714285714285714,
+    "runs_with_overrun": 8
+   },
+   "rm_vs_rta": {
+    "sched_no_miss": 68,
+    "sched_missed": 7,
+    "unsched_missed": 0,
+    "unsched_no_miss": 0
+   }
+  },
+  {
+   "target_u": 0.8,
+   "sets": 25,
+   "mean_u": 0.8000028947848159,
+   "rta_schedulable": 1.0,
+   "ll_bound_ok": 0.0,
+   "rm": {
+    "sets_with_miss_mean": 0.09333333333333334,
+    "sets_with_miss_min": 0.04,
+    "sets_with_miss_max": 0.2,
+    "job_miss_ratio": 0.0010914647456887142,
+    "errors": 0,
+    "tasks_missing_per_missed_run": 1.7142857142857142,
+    "runs_with_overrun": 0
+   },
+   "edf": {
+    "sets_with_miss_mean": 0.05333333333333334,
+    "sets_with_miss_min": 0.0,
+    "sets_with_miss_max": 0.12,
+    "job_miss_ratio": 0.0007276431637924761,
+    "errors": 0,
+    "tasks_missing_per_missed_run": 1.75,
+    "runs_with_overrun": 4
+   },
+   "rm_vs_rta": {
+    "sched_no_miss": 68,
+    "sched_missed": 7,
+    "unsched_missed": 0,
+    "unsched_no_miss": 0
+   }
+  },
+  {
+   "target_u": 0.85,
+   "sets": 25,
+   "mean_u": 0.8499968985854893,
+   "rta_schedulable": 0.84,
+   "ll_bound_ok": 0.0,
+   "rm": {
+    "sets_with_miss_mean": 0.3066666666666667,
+    "sets_with_miss_min": 0.2,
+    "sets_with_miss_max": 0.4,
+    "job_miss_ratio": 0.0019603407977079094,
+    "errors": 0,
+    "tasks_missing_per_missed_run": 1.1304347826086956,
+    "runs_with_overrun": 0
+   },
+   "edf": {
+    "sets_with_miss_mean": 0.16,
+    "sets_with_miss_min": 0.12,
+    "sets_with_miss_max": 0.2,
+    "job_miss_ratio": 0.0024127271356405035,
+    "errors": 0,
+    "tasks_missing_per_missed_run": 2.0833333333333335,
+    "runs_with_overrun": 12
+   },
+   "rm_vs_rta": {
+    "sched_no_miss": 52,
+    "sched_missed": 11,
+    "unsched_missed": 12,
+    "unsched_no_miss": 0
+   }
+  },
+  {
+   "target_u": 0.9,
+   "sets": 25,
+   "mean_u": 0.8999992318295955,
+   "rta_schedulable": 0.6,
+   "ll_bound_ok": 0.0,
+   "rm": {
+    "sets_with_miss_mean": 0.48,
+    "sets_with_miss_min": 0.44,
+    "sets_with_miss_max": 0.52,
+    "job_miss_ratio": 0.006745948953334724,
+    "errors": 0,
+    "tasks_missing_per_missed_run": 1.2222222222222223,
+    "runs_with_overrun": 0
+   },
+   "edf": {
+    "sets_with_miss_mean": 0.04,
+    "sets_with_miss_min": 0.04,
+    "sets_with_miss_max": 0.04,
+    "job_miss_ratio": 0.0022254676959454762,
+    "errors": 0,
+    "tasks_missing_per_missed_run": 3.0,
+    "runs_with_overrun": 3
+   },
+   "rm_vs_rta": {
+    "sched_no_miss": 39,
+    "sched_missed": 6,
+    "unsched_missed": 30,
+    "unsched_no_miss": 0
+   }
+  },
+  {
+   "target_u": 0.95,
+   "sets": 25,
+   "mean_u": 0.9499087242126322,
+   "rta_schedulable": 0.04,
+   "ll_bound_ok": 0.0,
+   "rm": {
+    "sets_with_miss_mean": 0.9733333333333333,
+    "sets_with_miss_min": 0.96,
+    "sets_with_miss_max": 1.0,
+    "job_miss_ratio": 0.024122349669794926,
+    "errors": 0,
+    "tasks_missing_per_missed_run": 1.3287671232876712,
+    "runs_with_overrun": 0
+   },
+   "edf": {
+    "sets_with_miss_mean": 0.13333333333333333,
+    "sets_with_miss_min": 0.04,
+    "sets_with_miss_max": 0.2,
+    "job_miss_ratio": 0.01251303441084463,
+    "errors": 0,
+    "tasks_missing_per_missed_run": 3.0,
+    "runs_with_overrun": 10
+   },
+   "rm_vs_rta": {
+    "sched_no_miss": 2,
+    "sched_missed": 1,
+    "unsched_missed": 72,
+    "unsched_no_miss": 0
+   }
+  },
+  {
+   "target_u": 0.98,
+   "sets": 25,
+   "mean_u": 0.9800507813401508,
+   "rta_schedulable": 0.0,
+   "ll_bound_ok": 0.0,
+   "rm": {
+    "sets_with_miss_mean": 1.0,
+    "sets_with_miss_min": 1.0,
+    "sets_with_miss_max": 1.0,
+    "job_miss_ratio": 0.0751552397413738,
+    "errors": 0,
+    "tasks_missing_per_missed_run": 1.6266666666666667,
+    "runs_with_overrun": 0
+   },
+   "edf": {
+    "sets_with_miss_mean": 0.25333333333333335,
+    "sets_with_miss_min": 0.2,
+    "sets_with_miss_max": 0.32,
+    "job_miss_ratio": 0.05460597913065745,
+    "errors": 0,
+    "tasks_missing_per_missed_run": 3.6842105263157894,
+    "runs_with_overrun": 20
+   },
+   "rm_vs_rta": {
+    "sched_no_miss": 0,
+    "sched_missed": 0,
+    "unsched_missed": 75,
+    "unsched_no_miss": 0
+   }
+  },
+  {
+   "target_u": 1.0,
+   "sets": 25,
+   "mean_u": 0.9998772433641274,
+   "rta_schedulable": 0.0,
+   "ll_bound_ok": 0.0,
+   "rm": {
+    "sets_with_miss_mean": 1.0,
+    "sets_with_miss_min": 1.0,
+    "sets_with_miss_max": 1.0,
+    "job_miss_ratio": 0.11388734653587514,
+    "errors": 0,
+    "tasks_missing_per_missed_run": 1.6,
+    "runs_with_overrun": 0
+   },
+   "edf": {
+    "sets_with_miss_mean": 0.84,
+    "sets_with_miss_min": 0.8,
+    "sets_with_miss_max": 0.88,
+    "job_miss_ratio": 0.1681781726201493,
+    "errors": 0,
+    "tasks_missing_per_missed_run": 3.9206349206349205,
+    "runs_with_overrun": 62
+   },
+   "rm_vs_rta": {
+    "sched_no_miss": 0,
+    "sched_missed": 0,
+    "unsched_missed": 75,
+    "unsched_no_miss": 0
+   }
+  }
+ ]
+}

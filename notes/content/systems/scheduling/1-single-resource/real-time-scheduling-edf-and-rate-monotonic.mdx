@@ -1,0 +1,239 @@
+---
+title: Real-Time Scheduling with EDF and Rate Monotonic
+category: Scheduling
+tags:
+  - scheduling
+  - real-time scheduling
+  - edf
+  - rate monotonic
+  - deadlines
+  - schedulability
+  - sched_deadline
+date: 2026-07-31
+updated: 2026-11-18
+authors:
+  - elimelt
+  - claude-opus-5-5
+status: evergreen
+description: Deadline-driven scheduling of periodic tasks on one processor, covering the Liu-Layland model, EDF's exact utilization test, the rate-monotonic bounds and response-time analysis, and measured deadline misses for 200 random task sets under SCHED_FIFO with rate-monotonic priorities and under SCHED_DEADLINE on Linux 6.18.
+sources:
+  - title: "Liu and Layland (1973), Scheduling Algorithms for Multiprogramming in a Hard-Real-Time Environment"
+    url: https://doi.org/10.1145/321738.321743
+    type: paper
+  - title: "Joseph and Pandya (1986), Finding response times in a real-time system"
+    url: https://ftp.math.utah.edu/pub/tex/bib/idx/compj1980/29/5/390-395.html
+    type: paper
+  - title: "Audsley, Burns, Richardson, Tindell and Wellings (1993), Applying new scheduling theory to static priority pre-emptive scheduling"
+    url: https://www.math.unipd.it/~tullio/RTS/2009/ABRTW-1993.pdf
+    type: paper
+  - title: "Lehoczky, Sha and Ding (1989), The rate monotonic scheduling algorithm: exact characterization and average case behavior"
+    url: https://dblp.uni-trier.de/rec/conf/rtss/LehoczkySD89.html
+    type: paper
+  - title: "Bini, Buttazzo and Buttazzo (2003), Rate monotonic analysis: the hyperbolic bound"
+    url: https://www.iris.sssup.it/handle/11382/200358
+    type: paper
+  - title: "Buttazzo (2005), Rate monotonic vs. EDF: judgment day"
+    url: https://iris.sssup.it/bitstream/11382/302823/1/rtsj05-rmedf.pdf
+    type: paper
+  - title: Linux kernel documentation, Deadline Task Scheduling
+    url: https://docs.kernel.org/scheduler/sched-deadline.html
+    type: documentation
+  - title: "Jones (1997), What really happened on Mars?"
+    url: https://www.cs.cornell.edu/courses/cs614/1999sp/papers/pathfinder.html
+    type: article
+---
+
+Real-time scheduling assigns a processor to jobs that carry deadlines, and a schedule is **feasible** if every job completes by its deadline. A task set is **schedulable** under a policy if the policy produces a feasible schedule for every pattern of releases the task model permits.
+
+The objective is feasibility, a property of the worst case. Policies such as SRPT or processor sharing ([[systems/scheduling/1-single-resource/fifo-sjf-srpt-rr-and-mlfq|FIFO, SJF, SRPT, RR, and MLFQ]]) are evaluated by means and percentiles of response time; in real-time scheduling those criteria matter only among feasible schedules. The two classical uniprocessor policies differ in one respect: earliest deadline first (EDF) derives each job's priority from its absolute deadline, and rate monotonic (RM) fixes one priority per task. That difference determines how much of the processor each policy can use, in the analysis and on a [real kernel](#measured-on-linux).
+
+## Task Model
+
+A periodic task $\tau_i$ releases a job every $T_i$ time units. Each job needs at most $C_i$ units of processor time and must finish within $D_i$ of its release:
+
+- $C_i$, the worst-case execution time (WCET)
+- $T_i$, the period
+- $D_i$, the relative deadline
+
+The classical setting uses implicit deadlines, $D_i = T_i$, so each job must finish before the next job of the same task is released. The utilization of the task set is
+
+$$
+U = \sum_i \frac{C_i}{T_i},
+$$
+
+the long-run fraction of the processor the tasks demand. The model is due to [Liu and Layland (1973)](https://doi.org/10.1145/321738.321743), and every theorem below depends on its assumptions: tasks are periodic and independent, deadlines equal periods, WCETs are known, preemption costs nothing, and there is one processor. A sporadic task, whose consecutive releases are *at least* $T_i$ apart, has the same worst case as a periodic one.
+
+For a fixed-priority policy the worst case is easy to locate. A **critical instant** of a task, a release time that maximizes its response time, occurs when it is released together with every higher-priority task (Liu and Layland, Theorem 1). A fixed-priority analysis therefore needs to examine only the synchronous release at $t = 0$.
+
+## Earliest Deadline First
+
+EDF is a dynamic-priority policy: among the ready jobs it runs the one whose absolute deadline is earliest, preempting the running job when a newly released job has an earlier deadline.
+
+For implicit deadlines on one processor, EDF meets every deadline if and only if
+
+$$
+U \le 1
+$$
+
+(Liu and Layland, Theorem 7). Necessity holds for every policy, since a set with $U > 1$ demands more processor time over a hyperperiod than the hyperperiod contains. Sufficiency follows from EDF's optimality: if any preemptive schedule is feasible, EDF's is. The proof is an exchange argument. Take a feasible schedule and the first time $t$ at which it runs a job $J_b$ while another ready job $J_a$ has an earlier deadline. Swap the unit at $t$ with the next unit of $J_a$'s execution. $J_a$ finishes no later than before, and $J_b$'s unit moves to a slot before $J_a$'s old completion, which precedes $J_a$'s deadline and therefore $J_b$'s. Repeating the swap turns the schedule into EDF's without creating a miss. The utilization test is therefore exact: a set that passes is schedulable, and one that fails is schedulable by no policy.
+
+> [!note]- Deep dive: constrained deadlines and the demand bound function
+> With $D_i < T_i$ the utilization test is no longer sufficient. EDF remains optimal, and the exact test compares, for each interval length $t$, the work that must both arrive and fall due inside an interval of that length with the length itself:
+>
+> $$
+> h(t) = \sum_i \max\!\left(0, \left\lfloor \frac{t - D_i}{T_i} \right\rfloor + 1\right) C_i \le t \quad \text{for all } t > 0 .
+> $$
+>
+> It suffices to check $t$ at absolute deadlines up to a computable bound $L$. The [Linux deadline-scheduling documentation](https://docs.kernel.org/scheduler/sched-deadline.html) describes this processor-demand test and notes that it is too expensive to run when a thread is admitted, which is why the kernel checks only a utilization sum ([SCHED_DEADLINE](#edf-in-the-kernel-sched_deadline)).
+
+## Rate Monotonic
+
+RM is a fixed-priority policy: a task with a shorter period receives a higher priority, and every job of a task runs at that priority. The assignment is optimal among fixed assignments; if any fixed-priority assignment schedules a task set, rate-monotonic order does (Liu and Layland, Theorem 2). The capacity RM gives up relative to EDF is therefore a consequence of fixing priorities per task, and no other fixed assignment recovers it.
+
+Liu and Layland's utilization bound guarantees an $n$-task set if
+
+$$
+U \le n(2^{1/n} - 1),
+$$
+
+which is 0.828 for $n = 2$, 0.780 for $n = 3$ and 0.743 for $n = 5$, and tends to $\ln 2 \approx 0.693$ as $n \to \infty$ (Theorems 3 to 5). It is the least upper bound: some task sets with utilization just above it are unschedulable under RM. It is also only *sufficient*, and many sets above it are schedulable. In a statistical study of randomly generated task sets, [Lehoczky, Sha and Ding (1989)](https://dblp.uni-trier.de/rec/conf/rtss/LehoczkySD89.html) found that RM schedules sets with utilization up to about 88%, a figure [Buttazzo (2005)](https://iris.sssup.it/bitstream/11382/302823/1/rtsj05-rmedf.pdf) cites with the caveat that it is a statistical result and not a bound.
+
+Two refinements narrow the gap between the bound and the exact answer.
+
+- **The hyperbolic bound.** [Bini, Buttazzo and Buttazzo](https://www.iris.sssup.it/handle/11382/200358) prove that RM schedules a set if $\prod_i (U_i + 1) \le 2$, where $U_i = C_i/T_i$. Every set that passes the Liu-Layland bound passes this test, and some sets that fail it pass.
+- **Harmonic periods.** If every period divides every longer one, RM schedules any set with $U \le 1$. At time $T_i$ each higher-priority task $\tau_j$ has released exactly $T_i / T_j$ jobs, so tasks $\tau_1, \dots, \tau_i$ have released $T_i \sum_{j \le i} U_j \le T_i$ units of work in $[0, T_i)$. Until that work is done the processor runs nothing else, so $\tau_i$'s first job completes by $T_i$, and by the critical-instant theorem so does every later job.
+
+<RtSchedule tasks="2:4, 2:8, 4:16" caption="A harmonic set at U = 1. The Liu-Layland bound for three tasks (0.780) and the hyperbolic bound both fail, and response-time analysis shows the set is schedulable under RM. Raising any C makes U exceed 1, and both policies then miss deadlines." />
+
+> [!warning] The two utilization tests make different kinds of claim
+> EDF's $U \le 1$ is exact for implicit deadlines. RM's $n(2^{1/n}-1)$ bound is sufficient only; a set that fails it may still be schedulable under RM, and [response-time analysis](#response-time-analysis) decides. The gap between $\ln 2$ and 1 is what fixing priorities can cost in the worst case, not what it costs on typical task sets.
+
+### Response-Time Analysis
+
+The exact fixed-priority test computes each task's worst-case response time as the least fixed point of
+
+$$
+R_i = C_i + \sum_{j \in hp(i)} \left\lceil \frac{R_i}{T_j} \right\rceil C_j ,
+$$
+
+where $hp(i)$ is the set of tasks with higher priority than $\tau_i$ ([Joseph and Pandya, 1986](https://ftp.math.utah.edu/pub/tex/bib/idx/compj1980/29/5/390-395.html); [Audsley et al., 1993](https://www.math.unipd.it/~tullio/RTS/2009/ABRTW-1993.pdf)). The ceiling counts the jobs of $\tau_j$ released in a window of length $R_i$ that starts at a critical instant, so the sum is the interference from higher-priority work. Iteration starts at $R_i = C_i$. The sequence is nondecreasing, and it either converges, in which case $\tau_i$ is schedulable if $R_i \le D_i$, or exceeds $D_i$, in which case it is not. The test is exact under the model's assumptions and also applies when $D_i < T_i$, a case the utilization bounds do not cover. With $D_i < T_i$, deadline-monotonic order (shorter relative deadline first) replaces rate-monotonic order as the optimal fixed assignment.
+
+## The Separating Example
+
+A task set whose utilization lies between RM's bound and 1 can separate the two policies. Take $\tau_1 = (C{=}2, T{=}5)$ and $\tau_2 = (C{=}4, T{=}7)$, so $U = 2/5 + 4/7 = 0.971$, above the two-task bound of 0.828 and below 1.
+
+Under RM, $\tau_1$ has the shorter period and the higher priority. It runs in $[0, 2)$, $\tau_2$ runs in $[2, 5)$, and $\tau_1$'s second job, released at 5, preempts $\tau_2$ with one unit of work left. $\tau_1$ runs in $[5, 7)$, and $\tau_2$ reaches its deadline at 7 having received 3 of its 4 units. Response-time analysis agrees: $R_2$ iterates $4 \to 6 \to 8$, and $8 > 7$. Under EDF, at $t = 5$ the running job of $\tau_2$ has deadline 7 and the new job of $\tau_1$ has deadline 10, so $\tau_2$ continues and finishes at 6. EDF meets every deadline over the hyperperiod of 35.
+
+<RtSchedule tasks="2:5, 4:7" measured="rm=2.02 7.02 12.02 17.0 22.03 27.03 32.02 8.07 14.12 22.19 28.29 34.38; edf=2.04 8.05 14.08 17.06 22.16 28.17 34.19 6.05 12.07 20.15 26.17 32.19" unit="10 ms" caption="The separating example, simulated tick by tick. Triangles mark finish times measured on Linux 6.18 with one tick scaled to 10 ms, from one of five runs per policy. Under RM the kernel missed four deadlines in the hyperperiod where the simulation misses one, because two jobs of τ₂ that finish exactly at their deadlines in the simulation finished 1 to 3 ms late. Lowering C₂ to 3 gives U = 0.829, still above the two-task bound, and RM then meets every deadline." />
+
+The simulation lets a late job run to completion, as the kernel does. Over the hyperperiod the two schedules are
+
+```plaintext
+RM:  1122211222112221122211222112221122.   tau2's first job finishes at 8, deadline 7
+EDF: 1122221122221121122211222211222211.   no misses
+```
+
+where each character is one tick and `.` is idle. A runtime that aborts a job at its deadline would instead discard $\tau_2$'s last unit at $t = 7$ and leave the processor idle at $t = 13$. The first miss is the same under both conventions; only the schedule after it differs.
+
+## Measured on Linux
+
+The theorems assume exact execution times and a scheduler that costs nothing. To see how much of the analysis survives a real kernel, periodic task sets were run on one isolated CPU of a Linux 6.18 virtual machine, once with `SCHED_FIFO` priorities in rate-monotonic order and once under `SCHED_DEADLINE`, with the kernel's own EDF. Each job spins until its thread has consumed exactly $C$ of CPU time, so the work matches the model and any lateness comes from the platform or the policy.
+
+The main sweep generated 25 random sets of five tasks at each of eight utilizations, with UUniFast utilizations and periods log-uniform between 10 and 100 ms, and ran each set for one second under each policy, three times. The table gives the fraction of sets in which at least one job missed its deadline, as the mean over the three repetitions with the range in brackets.
+
+| $U$ | RM-schedulable by RTA | RM: sets with a miss | EDF: sets with a miss |
+| --- | --- | --- | --- |
+| 0.70 | 1.00 | 0.03 [0.00, 0.04] | 0.07 [0.00, 0.12] |
+| 0.75 | 1.00 | 0.09 [0.08, 0.12] | 0.09 [0.00, 0.20] |
+| 0.80 | 1.00 | 0.09 [0.04, 0.20] | 0.05 [0.00, 0.12] |
+| 0.85 | 0.84 | 0.31 [0.20, 0.40] | 0.16 [0.12, 0.20] |
+| 0.90 | 0.60 | 0.48 [0.44, 0.52] | 0.04 [0.04, 0.04] |
+| 0.95 | 0.04 | 0.97 [0.96, 1.00] | 0.13 [0.04, 0.20] |
+| 0.98 | 0.00 | 1.00 [1.00, 1.00] | 0.25 [0.20, 0.32] |
+| 1.00 | 0.00 | 1.00 [1.00, 1.00] | 0.84 [0.80, 0.88] |
+
+- **Response-time analysis predicted every RM failure.** All 264 runs of sets that the analysis rejected missed a deadline. The Liu-Layland bound for five tasks, 0.743, admitted only the sets at $U = 0.70$, although the analysis accepted every set up to 0.80 and 60% of the sets at 0.90.
+- **Schedulable sets still missed occasionally.** 34 of the 336 runs of RTA-schedulable sets under RM missed a deadline, by 0.7 to 66 ms, and 26 of the 28 sets involved met every deadline in at least one of their other repetitions. The cause is the virtual CPU itself: a `SCHED_FIFO` busy loop on the same isolated CPU lost 0.52 s of a 60-s run to gaps longer than 0.2 ms, the longest 13 ms, while the host reported 0.66 s of steal time on that CPU. Analysis that ignores these stalls is optimistic on this platform for either policy.
+- **EDF kept its advantage up to $U = 0.98$, but not at 1.** Below 1 every set is feasible under EDF by Theorem 7, so every EDF miss in those rows is overhead or a stall, and at 0.95 EDF missed in 13% of sets where RM missed in 97%. At $U = 1$ a feasible set has no idle time to absorb either, and 84% of sets missed.
+- **Overload spreads differently.** At $U = 1$ a run that missed under RM did so in 1.6 of its 5 tasks on average, while a run that missed under EDF did so in 3.9 of 5, and EDF missed a larger fraction of all jobs (16.8% against 11.4%). Neither policy protects a chosen task under overload ([below](#edf-and-rm-in-practice)), but fixed priorities concentrated the misses in fewer tasks, and EDF spread them across most of the set.
+
+The separating example, scaled so that one tick is 10 ms, behaved as the theory predicts in direction but not in count. In five 700-ms runs per policy, RM missed 8, 8, 8, 9 and 8 deadlines and EDF missed none. The simulation misses one deadline per 35-tick hyperperiod, or two per run. In the simulated RM schedule $\tau_2$'s second and fourth jobs finish exactly at their deadlines, and in the kernel they finished 1 to 3 ms late; the second job's lateness also delayed the third past $\tau_1$'s next release, which cost it a further 2 ticks. A schedule with zero slack in the analysis has none in practice either.
+
+`SCHED_DEADLINE` needs a runtime above the job's execution time, because the kernel charges the thread for its own wakeup and scheduling work. On one $U = 0.70$ set from the sweep, a runtime of $1.02\,C$ produced runtime overruns in every run and 14 to 63 missed deadlines out of 194 jobs, because each overrun throttles the job until its next period. Adding 50 µs to every runtime reduced this to one miss in five runs, and 200 µs or 1 ms eliminated misses. The sweep used $1.02\,C + 1$ ms, with admission control disabled, because at high utilization those runtimes sum to more than one CPU.
+
+A single task with $C = 1$ ms and $T = 10$ ms gives the platform's baseline. Over three 5-s runs, a job started a median of 81 to 83 µs after its release, at the 99th percentile 157 to 211 µs, and at worst 1.0 to 5.8 ms.
+
+> [!note]- How this was measured
+> **Machine.** A Firecracker virtual machine with 4 vCPUs (Intel Xeon @ 2.10 GHz), Linux 6.18.44 with `PREEMPT_DYNAMIC`, gcc 13.3.0 and Python 3.13. CPU 3 was made its own root domain with a cgroup v1 cpuset, every movable task was moved to CPUs 0 to 2, `sched_rt_runtime_us` was set to $-1$ to disable RT throttling and deadline admission control, and the harness locked its memory with `mlockall`. Per-CPU kernel threads remained on CPU 3.
+>
+> **Harness.** `rtrun.c` creates one thread per task. Under `rm`, task $i$ in rate-monotonic order runs at `SCHED_FIFO` priority $90 - i$. Under `edf`, each thread calls `sched_setattr` with `SCHED_DEADLINE`, deadline and period $T$, runtime $C(1 + b) + s$, and `SCHED_FLAG_DL_OVERRUN`, which signals the thread with `SIGXCPU` when it overruns its runtime. All tasks release synchronously 50 ms after start. Each job sleeps with `clock_nanosleep` until its release, spins until `CLOCK_THREAD_CPUTIME_ID` has advanced by $C$, and records its finish time; a late job runs to completion and the next job is released on schedule. A job misses if its finish time exceeds its release plus $T$.
+>
+> **Task sets.** UUniFast with $n = 5$, periods log-uniform in $[10, 100]$ ms rounded to 1 ms, $C_i = \max(50\,\mu\text{s}, U_i T_i)$, seed 1. Response-time analysis was evaluated on the integer microsecond values. The three repetitions ran the whole sweep in turn, so the repetitions of one set are about 7 minutes apart.
+>
+> **Admission test.** With `sched_rt_runtime_us` at its default of 950000, one thread on the one-CPU root domain was admitted with bandwidth 0.800, 0.880, 0.898 and 0.900 and refused with 0.902, 0.904 and 0.920.
+>
+> **Files.** The harness, scripts and raw results are in [`rt-experiments/`](https://github.com/elimelt/web/tree/main/notes/content/systems/scheduling/1-single-resource/rt-experiments). As root:
+>
+> ```sh
+> sh setup.sh
+> gcc -O2 -Wall -o rtrun rtrun.c -lpthread
+> python3 sweep.py --rtrun ./rtrun --out results.json   # about 22 minutes
+> python3 aggregate.py results.json > summary.json
+> python3 side.py --rtrun ./rtrun --out side.json
+> gcc -O2 -Wall -o gapmon gapmon.c && ./gapmon fifo 60 /sys/fs/cgroup/cpuset/rt/tasks
+> python3 tick_sim.py --fixtures ../../../../../quartz-site/plugins/mdx/test/rt-schedule.fixture.json
+> ```
+>
+> The last command regenerates the 250 reference schedules against which the figure's simulator is tested.
+
+## EDF and RM in Practice
+
+The usual argument for RM is that it is simpler to implement. [Buttazzo (2005)](https://iris.sssup.it/bitstream/11382/302823/1/rtsj05-rmedf.pdf) examined that argument point by point. The basic kernel operations have the same complexity under both policies, and EDF adds only the update of absolute deadlines at each release. Because EDF preempts a running job only for a job with an earlier deadline, it typically causes far fewer preemptions than RM, and it introduces less runtime overhead than RM once context switches are counted. Under overload neither policy protects a chosen subset of tasks: under RM any task except the highest-priority one can miss its deadline, independently of its period. Buttazzo concludes that RM's actual advantage is its simpler implementation in commercial kernels, which provide fixed priorities and not deadlines.
+
+### EDF in the Kernel: SCHED_DEADLINE
+
+Linux has provided an EDF scheduling class, `SCHED_DEADLINE`, since version 3.14. A `SCHED_DEADLINE` thread declares a runtime $Q$, a relative deadline $D$ and a period $P$ through `sched_setattr`. The [kernel documentation](https://docs.kernel.org/scheduler/sched-deadline.html) describes two layers: the Constant Bandwidth Server (CBS) assigns each thread a *scheduling deadline* when it wakes and throttles a thread that exhausts its runtime until its next period, and EDF orders threads by those scheduling deadlines. The CBS layer isolates threads from one another, so a thread that runs longer than it declared delays only itself. `SCHED_DEADLINE` threads run ahead of `SCHED_FIFO` and `SCHED_RR` threads, which run ahead of ordinary threads scheduled by EEVDF.
+
+Three properties of the implementation bear on the theory above.
+
+- **Admission control is a utilization test.** `sched_setattr` fails with `EBUSY` unless the sum of $Q/P$ over the root domain stays below $M \cdot$ `sched_rt_runtime_us` / `sched_rt_period_us` for a domain of $M$ CPUs, 95% of each CPU by default. The test ignores $D$, so for $D < P$ it does not guarantee deadlines; writing $-1$ to `sched_rt_runtime_us` disables it. In Linux 6.18 each CPU also runs a deadline server of 50 ms per second that reserves time for ordinary threads ([`kernel/sched/deadline.c`](https://github.com/torvalds/linux/blob/v6.18/kernel/sched/deadline.c)), and its bandwidth counts against the same limit. On a one-CPU root domain with default settings, a thread of bandwidth 0.900 was admitted and one of 0.904 refused, so applications can use 90% of the CPU where Theorem 7 allows 100%.
+- **Scheduling is global EDF across a root domain.** On several CPUs, global EDF is not optimal, and a utilization test guarantees only bounded tardiness, not deadlines. A `SCHED_DEADLINE` thread cannot be pinned with `sched_setaffinity`; partitioned EDF needs a cpuset that forms its own root domain, which is how the measurements below confine every thread to one CPU.
+- **The runtime is a budget.** A job that consumes more than $Q$ is throttled until its next period even if the processor is otherwise idle, unless `SCHED_FLAG_RECLAIM` lets it use bandwidth that other threads left unused. $Q$ must therefore cover the job's execution time plus the kernel time charged to the thread.
+
+## Hard Real-Time Is Not Low Latency
+
+The two goals are often conflated, although their methods differ in nearly every respect:
+
+| | Hard real-time (EDF/RM) | Interactive low latency (MLFQ/EEVDF) |
+| --- | --- | --- |
+| Question | does *every* job meet its deadline? | are *most* responses fast? |
+| Failure | one miss = system failure | a slow p99 = degraded, not broken |
+| Analysis | offline schedulability proof from worst cases | online measurement of distributions |
+| Load | admission-controlled to proven-feasible sets | best effort at any load |
+| Optimizes | feasibility, then nothing else | means and percentiles |
+
+A hard real-time system may run a task set with a high average latency, provided the schedulability proofs hold; an interactive scheduler may miss any individual "deadline," provided the tail remains acceptable. The engineering methods differ accordingly: real-time systems invest in predictability (WCET analysis, priority-inheritance protocols, cache partitioning) and interactive systems in adaptivity. Linux provides both, with `SCHED_DEADLINE` and `SCHED_FIFO` for the first and EEVDF for ordinary threads ([[systems/operating-systems/v2-concurrency/7-multiprocessor-scheduling|multiprocessor scheduling]]).
+
+## Caveats
+
+The theorems rest on assumptions that deployed systems violate:
+
+- one processor
+- independent tasks, with no shared resources
+- known worst-case execution times
+- zero cost for preemption, release and context switching
+- periodic or sporadic releases
+
+Each relaxation (deadlines shorter than periods, release jitter, blocking on shared resources, preemption overhead) has a corresponding extension of response-time analysis, of which the recurrence above is the base case. Shared resources introduce **priority inversion**: a high-priority task blocks on a lock held by a low-priority task, which a medium-priority task then preempts, so the high-priority task waits for work of lower priority than its own. On the Mars Pathfinder lander in 1997, a high-priority bus-management task blocked on a VxWorks mutex held by a low-priority meteorological task while medium-priority work ran, and a watchdog reset the system whenever the bus task failed to run in time. The mutex had been created with priority inheritance disabled, and the fix uploaded to the spacecraft enabled it ([Jones, 1997](https://www.cs.cornell.edu/courses/cs614/1999sp/papers/pathfinder.html)). Priority inheritance raises a lock holder to the priority of the highest-priority task it blocks; the priority ceiling protocol of Sha, Rajkumar and Lehoczky (1990) also bounds each task's blocking time, which response-time analysis then adds to the recurrence as a term $B_i$.
+
+> [!note]- Potentially interesting ideas
+> - **Reclaiming instead of padding.** The sweep padded every `SCHED_DEADLINE` runtime by 1 ms to absorb kernel overhead. `SCHED_FLAG_RECLAIM`, the GRUB algorithm in the [kernel documentation](https://docs.kernel.org/scheduler/sched-deadline.html), lets a thread that exhausts its runtime use bandwidth others left unused, which might allow runtimes close to $C$ without the overrun misses measured above. It was not tested here.
+> - **Overhead in the analysis.** Adding a fixed per-job cost to each $C_i$ in response-time analysis may predict the four misses per hyperperiod that the kernel showed in the separating example, where the plain analysis predicts one. How large that cost must be, and whether one value fits the whole sweep, is unknown.
+> - **Bare metal.** The stalls measured here match the host's steal time on the virtual CPU. On bare metal with `PREEMPT_RT`, the misses in RTA-schedulable sets may disappear, which would make the analysis exact in both directions on this sweep; the sweep has not been run there.
+
+## Related Notes
+
+- [[systems/scheduling/1-single-resource/fifo-sjf-srpt-rr-and-mlfq|FIFO, SJF, SRPT, RR, and MLFQ]]: the same exchange argument applied to mean response time.
+- [[systems/operating-systems/v2-concurrency/7-uniprocessor-scheduling|Uniprocessor Scheduling]]
+- [[systems/operating-systems/v2-concurrency/7-multiprocessor-scheduling|Multiprocessor Scheduling]]: global and partitioned scheduling across several CPUs.
+- [[systems/scheduling/0-foundations/queueing-models-and-tail-latency|Queueing Models and Tail Latency]]: the latency-oriented view in the [table above](#hard-real-time-is-not-low-latency).

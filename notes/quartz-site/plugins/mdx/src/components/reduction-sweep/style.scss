@@ -1,0 +1,248 @@
+// Reductions size-sweep figure (reduction-sweep).
+figure.rs {
+  @include fig-frame;
+  font-size: 0.9rem;
+
+  button {
+    @include fig-button($padding: 0.2rem 0.5rem, $font-size: 0.8rem);
+    @include fig-button-hover;
+
+    &[aria-pressed="true"] {
+      @include fig-pressed;
+    }
+  }
+
+  .rs-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-bottom: 0.5rem;
+
+    button[name="model"] {
+      margin-left: auto;
+    }
+  }
+
+  .rs-variants {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .rs-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem;
+
+    button[aria-pressed="true"] {
+      font-weight: 400;
+    }
+
+    button[aria-pressed="false"] .rs-key {
+      opacity: 0.35;
+    }
+  }
+
+  .rs-glabel {
+    min-width: 8.5rem;
+    color: var(--gray);
+    font-size: 0.78rem;
+  }
+
+  .rs-dispatch {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 0.4rem 1rem;
+    margin-bottom: 0.4rem;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  .rs-slider {
+    @include fig-slider;
+    font-size: 0.82rem;
+    color: var(--darkgray);
+  }
+
+  .rs-quick {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .rs-chart {
+    @include fig-chart;
+    touch-action: pan-y;
+  }
+
+  .rs-band {
+    fill: var(--highlight);
+    opacity: 0.6;
+  }
+
+  .rs-level {
+    fill: var(--gray);
+    font-size: 11px;
+  }
+
+  .rs-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .rs-tick {
+    fill: var(--gray);
+    font-size: 11.5px;
+  }
+
+  .rs-axis {
+    fill: var(--darkgray);
+    font-size: 12px;
+  }
+
+  .rs-hit {
+    fill: transparent;
+    cursor: crosshair;
+  }
+
+  .rs-cursor {
+    stroke: var(--secondary);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+  }
+
+  .rs-even {
+    stroke: var(--darkgray);
+    stroke-width: 1.2;
+    stroke-dasharray: 1 3;
+  }
+
+  .rs-model {
+    fill: none;
+    stroke: var(--darkgray);
+    stroke-width: 2;
+    stroke-dasharray: 6 4;
+  }
+
+  .rs-line {
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linejoin: round;
+  }
+
+  .rs-spread {
+    stroke: none;
+    opacity: 0.16;
+  }
+
+  .rs-dot {
+    stroke: var(--light);
+    stroke-width: 1;
+  }
+
+  // One color and dash pattern per variant, used by the line, the spread,
+  // the cursor dot and the key swatch.
+  $series: (
+    "naive_scalar": (var(--gray), none),
+    "ilp_scalar": (var(--gray), "5 3"),
+    "naive": (var(--fig-blue), none),
+    "ilp": (var(--fig-blue), "5 3"),
+    "simd": (var(--fig-blue), "1.5 2.5"),
+    "ilp_simd": (var(--fig-purple), none),
+    "opt": (var(--fig-purple), "5 3"),
+    "ilp_avx512": (var(--fig-red), none),
+    "thread_spawn": (var(--fig-green), "5 3"),
+    "thread_pool": (var(--fig-green), none),
+    "all_spawn": (var(--fig-orange), "5 3"),
+    "all_pool": (var(--fig-orange), none),
+  );
+  @each $id, $style in $series {
+    $color: nth($style, 1);
+    $dash: nth($style, 2);
+    .rs-line.rs-v-#{$id} {
+      stroke: $color;
+      @if $dash != none {
+        stroke-dasharray: #{$dash};
+      }
+    }
+    .rs-spread.rs-v-#{$id},
+    .rs-dot.rs-v-#{$id} {
+      fill: $color;
+    }
+    .rs-key.rs-v-#{$id} {
+      border-top-color: $color;
+      @if $dash != none {
+        border-top-style: dashed;
+      }
+    }
+  }
+
+  .rs-key {
+    display: inline-block;
+    width: 1.2em;
+    margin-right: 0.35em;
+    vertical-align: middle;
+    border-top: 2.5px solid;
+  }
+
+  .rs-readout {
+    min-height: 3rem;
+    margin-top: 0.3rem;
+    font-size: 0.82rem;
+  }
+
+  table.rs-table {
+    @include fig-table;
+    font-variant-numeric: tabular-nums;
+
+    th,
+    td {
+      padding: 0.12rem 0.5rem 0.12rem 0;
+      border-bottom: 1px solid var(--lightgray);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    th:first-child,
+    td:first-child {
+      text-align: left;
+    }
+
+    th {
+      color: var(--darkgray);
+      font-weight: 600;
+    }
+  }
+
+  .rs-note {
+    margin: 0.4rem 0 0;
+    color: var(--darkgray);
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone(600px) {
+    .rs-minor {
+      display: none;
+    }
+
+    .rs-glabel {
+      min-width: 100%;
+    }
+
+    .rs-dispatch {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .rs-presets button[name="model"] {
+      margin-left: 0;
+    }
+  }
+}
