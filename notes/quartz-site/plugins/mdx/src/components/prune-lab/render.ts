@@ -26,7 +26,7 @@ export function render(props: Props = {}): string {
     `<p class="pl-sub">Output error per token</p>`,
     `<div class="pl-chips" data-part="chips">${chips(L, r)}</div>`,
     `<div data-part="sweep">${sweepChart(P.sweep, L, set)}</div>`,
-    `<figcaption>Top: your browser prunes 16 of the 768 output columns of the feed-forward output projection (<code>wo</code>) in encoder layer 8 of Google's T5 v1.1 base (LM-adapted), the layer the quantization figure uses, and multiplies by the real inputs of 24 tokens of a held-out Go blog post. Wanda weighs each weight by the RMS of its input channel over 128 calibration windows. "Whole layer" compares scores against a threshold computed over all 2048 × 768 weights. Bottom: perplexity of the whole model with every linear layer pruned the same way, measured offline with <code>run.py sweep</code>; the vertical line follows the slider.</figcaption>`,
+    `<figcaption>Top: your browser prunes 16 of the 768 output columns of the feed-forward output projection (<code>wo</code>) in encoder layer 8 of Google's T5 v1.1 base (LM-adapted), the layer the quantization figure uses, and multiplies by the real inputs of 24 tokens of a held-out Go blog post. Wanda weighs each weight by the RMS of its input channel over 128 calibration windows. "Whole layer" compares scores against a threshold computed over all 2048 × 768 weights. Bottom: perplexity of the whole model with every linear layer pruned the same way, measured offline with <code>run.py sweep</code> up to 70% sparsity; the vertical line follows the slider.</figcaption>`,
     `</figure>`,
   ].join("");
 }

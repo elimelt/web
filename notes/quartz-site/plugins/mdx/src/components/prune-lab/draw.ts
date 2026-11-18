@@ -116,9 +116,9 @@ export function sweepChart(S: Sweep, L: Layer, set: Settings): string {
     out.push(`<line class="pl-grid" x1="${SL}" x2="${SR}" y1="${yOf(p).toFixed(1)}" y2="${yOf(p).toFixed(1)}"/>`);
     out.push(`<text class="pl-tick" x="${SL - 5}" y="${(yOf(p) + 3.5).toFixed(1)}" text-anchor="end">${p}</text>`);
   }
-  for (const s of [0, 0.2, 0.4, 0.6, 0.8]) {
+  for (const s of [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]) {
     if (s > xMax + 1e-9) continue;
-    out.push(`<text class="pl-tick" x="${xOf(s)}" y="${ST + SH + 16}" text-anchor="middle">${s * 100}%</text>`);
+    out.push(`<text class="pl-tick" x="${xOf(s)}" y="${ST + SH + 16}" text-anchor="middle">${Math.round(s * 100)}%</text>`);
   }
   out.push(`<line class="pl-dense" x1="${SL}" x2="${SR}" y1="${yOf(S.dense).toFixed(1)}" y2="${yOf(S.dense).toFixed(1)}"/>`);
   const sp = sparsityOf(L, set);
@@ -143,7 +143,7 @@ export function sweepChart(S: Sweep, L: Layer, set: Settings): string {
 function niceTicks(lo: number, hi: number): number[] {
   const out: number[] = [];
   for (let e = Math.floor(Math.log10(lo)); e <= Math.ceil(Math.log10(hi)); e++)
-    for (const m of [1, 2, 5]) {
+    for (const m of [1, 2, 3, 5]) {
       const v = m * 10 ** e;
       if (v >= lo && v <= hi) out.push(v);
     }

@@ -22,13 +22,14 @@ print("results.json:", ", ".join(res))
 if "sweep" in res and "main-base" in res:
     sw = res["sweep"]
     dense = sw["dense"]["eval"]["ppl"]
-    levels = sorted({r["sparsity"] for r in sw["runs"]})
+    # the figure plots up to 70%; at 80% magnitude pruning reaches 8,541 and would flatten the rest
+    levels = sorted({r["sparsity"] for r in sw["runs"] if r["sparsity"] <= 0.7})
     labels = {"magnitude": "magnitude, per output", "magnitude-layer": "magnitude, whole layer",
               "wanda": "Wanda, per output", "sparsegpt": "SparseGPT"}
     curves = []
     for key, label in labels.items():
         by = {r["sparsity"]: r["eval"]["ppl"] for r in sw["runs"] if r["label"] == key}
-        if len(by) == len(levels):
+        if all(s in by for s in levels):
             curves.append({"key": key, "label": label, "ppl": [round(dense, 3)] + [round(by[s], 3) for s in levels]})
     nm = []
     main = res["main-base"]["runs"]
