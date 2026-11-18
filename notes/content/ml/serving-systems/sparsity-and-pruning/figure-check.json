@@ -1,0 +1,220 @@
+{
+ "cases": [
+  {
+   "method": "magnitude",
+   "group": "output",
+   "pattern": "unstructured",
+   "level": 0,
+   "relErr": 0.0,
+   "sparsity": 0.0,
+   "kept888": 16
+  },
+  {
+   "method": "magnitude",
+   "group": "layer",
+   "pattern": "unstructured",
+   "level": 0,
+   "relErr": 0.0,
+   "sparsity": 0.0,
+   "kept888": 16
+  },
+  {
+   "method": "magnitude",
+   "group": "output",
+   "pattern": "unstructured",
+   "level": 4,
+   "relErr": 0.7201749119996678,
+   "sparsity": 0.19970703125,
+   "kept888": 0
+  },
+  {
+   "method": "magnitude",
+   "group": "layer",
+   "pattern": "unstructured",
+   "level": 4,
+   "relErr": 0.7217623978481584,
+   "sparsity": 0.1995849609375,
+   "kept888": 0
+  },
+  {
+   "method": "magnitude",
+   "group": "output",
+   "pattern": "unstructured",
+   "level": 10,
+   "relErr": 0.7608462539687596,
+   "sparsity": 0.5,
+   "kept888": 0
+  },
+  {
+   "method": "magnitude",
+   "group": "layer",
+   "pattern": "unstructured",
+   "level": 10,
+   "relErr": 0.7569549891294077,
+   "sparsity": 0.498779296875,
+   "kept888": 0
+  },
+  {
+   "method": "magnitude",
+   "group": "output",
+   "pattern": "unstructured",
+   "level": 16,
+   "relErr": 0.9338650812280707,
+   "sparsity": 0.7998046875,
+   "kept888": 0
+  },
+  {
+   "method": "magnitude",
+   "group": "layer",
+   "pattern": "unstructured",
+   "level": 16,
+   "relErr": 0.9374223648628086,
+   "sparsity": 0.803466796875,
+   "kept888": 0
+  },
+  {
+   "method": "magnitude",
+   "group": "output",
+   "pattern": "unstructured",
+   "level": 19,
+   "relErr": 1.0197026389370232,
+   "sparsity": 0.94970703125,
+   "kept888": 0
+  },
+  {
+   "method": "magnitude",
+   "group": "layer",
+   "pattern": "unstructured",
+   "level": 19,
+   "relErr": 1.0257834354198183,
+   "sparsity": 0.955169677734375,
+   "kept888": 0
+  },
+  {
+   "method": "magnitude",
+   "group": "output",
+   "pattern": "2:4",
+   "level": 10,
+   "relErr": 0.7840865762073621,
+   "sparsity": 0.5,
+   "kept888": 0
+  },
+  {
+   "method": "magnitude",
+   "group": "output",
+   "pattern": "4:8",
+   "level": 10,
+   "relErr": 0.7231757588464978,
+   "sparsity": 0.5,
+   "kept888": 0
+  },
+  {
+   "method": "wanda",
+   "group": "output",
+   "pattern": "unstructured",
+   "level": 0,
+   "relErr": 0.0,
+   "sparsity": 0.0,
+   "kept888": 16
+  },
+  {
+   "method": "wanda",
+   "group": "layer",
+   "pattern": "unstructured",
+   "level": 0,
+   "relErr": 0.0,
+   "sparsity": 0.0,
+   "kept888": 16
+  },
+  {
+   "method": "wanda",
+   "group": "output",
+   "pattern": "unstructured",
+   "level": 4,
+   "relErr": 0.03525260464357158,
+   "sparsity": 0.19970703125,
+   "kept888": 16
+  },
+  {
+   "method": "wanda",
+   "group": "layer",
+   "pattern": "unstructured",
+   "level": 4,
+   "relErr": 0.03362317122720878,
+   "sparsity": 0.198486328125,
+   "kept888": 16
+  },
+  {
+   "method": "wanda",
+   "group": "output",
+   "pattern": "unstructured",
+   "level": 10,
+   "relErr": 0.1599105540120655,
+   "sparsity": 0.5,
+   "kept888": 16
+  },
+  {
+   "method": "wanda",
+   "group": "layer",
+   "pattern": "unstructured",
+   "level": 10,
+   "relErr": 0.15230645788612746,
+   "sparsity": 0.4964599609375,
+   "kept888": 16
+  },
+  {
+   "method": "wanda",
+   "group": "output",
+   "pattern": "unstructured",
+   "level": 16,
+   "relErr": 0.31238602286648215,
+   "sparsity": 0.7998046875,
+   "kept888": 16
+  },
+  {
+   "method": "wanda",
+   "group": "layer",
+   "pattern": "unstructured",
+   "level": 16,
+   "relErr": 0.308639888079395,
+   "sparsity": 0.802764892578125,
+   "kept888": 16
+  },
+  {
+   "method": "wanda",
+   "group": "output",
+   "pattern": "unstructured",
+   "level": 19,
+   "relErr": 0.4643458903051409,
+   "sparsity": 0.94970703125,
+   "kept888": 16
+  },
+  {
+   "method": "wanda",
+   "group": "layer",
+   "pattern": "unstructured",
+   "level": 19,
+   "relErr": 0.47049403208347806,
+   "sparsity": 0.954345703125,
+   "kept888": 16
+  },
+  {
+   "method": "wanda",
+   "group": "output",
+   "pattern": "2:4",
+   "level": 10,
+   "relErr": 0.2040575861806977,
+   "sparsity": 0.5,
+   "kept888": 16
+  },
+  {
+   "method": "wanda",
+   "group": "output",
+   "pattern": "4:8",
+   "level": 10,
+   "relErr": 0.18615254953586943,
+   "sparsity": 0.5,
+   "kept888": 16
+  }
+ ]
+}

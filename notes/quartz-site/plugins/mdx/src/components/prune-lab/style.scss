@@ -1,0 +1,235 @@
+// prune-lab (ml/serving-systems/sparsity-and-pruning)
+figure.pl {
+  @include fig-frame(0.9rem 1rem 0.8rem);
+
+  .pl-controls,
+  .pl-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .pl-row {
+    margin-top: 0.7rem;
+    font-size: 0.85rem;
+  }
+
+  .pl-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    align-items: center;
+  }
+
+  .pl-glabel {
+    color: var(--gray);
+    margin-right: 0.2rem;
+  }
+
+  button {
+    @include fig-button(0.22rem 0.55rem, 0.85rem);
+    @include fig-button-hover;
+  }
+
+  button[aria-pressed="true"] {
+    @include fig-pressed;
+  }
+
+  button:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+
+  .pl-slider {
+    @include fig-slider;
+    flex: 1 1 14rem;
+    min-width: 0;
+  }
+
+  .pl-slider:has(input:disabled) {
+    color: var(--gray);
+  }
+
+  .pl-readout {
+    margin: 0.7rem 0 0.2rem;
+    min-height: 2.8em;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .pl-chart {
+    @include fig-chart;
+  }
+
+  .pl-grid {
+    stroke: var(--lightgray);
+    stroke-width: 0.6;
+  }
+
+  .pl-tick,
+  .pl-count,
+  .pl-legend {
+    fill: var(--gray);
+    font-size: 10px;
+  }
+
+  .pl-legend {
+    fill: var(--darkgray);
+    font-size: 11px;
+  }
+
+  .pl-label {
+    fill: var(--darkgray);
+    font-size: 11px;
+  }
+
+  .pl-bar {
+    fill: var(--fig-blue);
+    opacity: 0.8;
+  }
+
+  .pl-dense {
+    stroke: var(--gray);
+    stroke-dasharray: 3 3;
+    stroke-width: 1;
+  }
+
+  .pl-now {
+    stroke: var(--secondary);
+    stroke-width: 1.2;
+  }
+
+  .pl-line {
+    fill: none;
+    stroke-width: 1.8;
+  }
+
+  .pl-s1 {
+    stroke: var(--fig-orange);
+    fill: var(--fig-orange);
+  }
+
+  .pl-s2 {
+    stroke: var(--fig-red);
+    fill: var(--fig-red);
+  }
+
+  .pl-s3 {
+    stroke: var(--fig-blue);
+    fill: var(--fig-blue);
+  }
+
+  .pl-s4 {
+    stroke: var(--fig-green);
+    fill: var(--fig-green);
+  }
+
+  polyline.pl-line,
+  line.pl-line {
+    fill: none;
+  }
+
+  .pl-dot {
+    stroke: var(--light);
+    stroke-width: 1;
+  }
+
+  ul.pl-key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 1rem;
+    list-style: none;
+    margin: 0.2rem 0 0;
+    padding: 0;
+    font-size: 0.8rem;
+    color: var(--darkgray);
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin: 0;
+      padding: 0;
+    }
+  }
+
+  .pl-swatch {
+    display: inline-block;
+    width: 1.1rem;
+    height: 0;
+    border-top: 2px solid;
+    border-color: inherit;
+
+    &.pl-s1 { border-color: var(--fig-orange); }
+    &.pl-s2 { border-color: var(--fig-red); }
+    &.pl-s3 { border-color: var(--fig-blue); }
+    &.pl-s4 { border-color: var(--fig-green); }
+  }
+
+  .pl-swatch-dense {
+    border-top: 2px dashed var(--gray);
+  }
+
+  .pl-swatch-dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border: none;
+    border-radius: 50%;
+    background: var(--gray);
+  }
+
+  .pl-sub {
+    margin: 0.6rem 0 0.3rem;
+    font-size: 0.8rem;
+    color: var(--gray);
+  }
+
+  .pl-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .pl-chip {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 2.4rem;
+    padding: 0.15rem 0.35rem;
+    border: 1px solid var(--lightgray);
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--fig-red) calc(var(--e) * 55%), transparent);
+    line-height: 1.2;
+  }
+
+  .pl-tok {
+    font-family: var(--codeFont);
+    font-size: 0.8rem;
+    color: var(--dark);
+  }
+
+  .pl-err {
+    font-size: 0.7rem;
+    color: var(--darkgray);
+    font-variant-numeric: tabular-nums;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .pl-tick,
+    .pl-count {
+      font-size: 17px;
+    }
+
+    .pl-label,
+    .pl-legend {
+      font-size: 17px;
+    }
+  }
+}

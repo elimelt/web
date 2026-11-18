@@ -1,0 +1,314 @@
+---
+title: Sparsity and Pruning in LLM Serving Systems
+aliases:
+  - llm-serving-systems/sparsity-and-pruning
+category: Machine Learning Systems
+tags:
+  - sparsity
+  - pruning
+  - performance-optimization
+  - machine-learning
+  - inference
+date: 2025-05-25
+updated: 2026-11-18
+authors:
+  - elimelt
+  - claude-opus-5-5
+status: evergreen
+description: Weight, activation and KV-cache sparsity in LLM serving. Derives magnitude pruning, Wanda and SparseGPT from one layer-wise reconstruction objective, measures them on Google's released T5 v1.1 checkpoints at 50%, 4:8 and 2:4 sparsity, and states when sparsity yields a speedup, with a figure that prunes a real layer in the browser.
+sources:
+  - title: CSE 599K, LLM Serving Systems, University of Washington, Spring 2025 (lecture notes)
+    type: lecture
+  - title: "LeCun, Denker and Solla (1989), Optimal Brain Damage"
+    url: https://papers.nips.cc/paper/1989/file/6c9882bbac1c7093bd25041881277658-Paper.pdf
+    type: paper
+  - title: "Hassibi and Stork (1992), Second Order Derivatives for Network Pruning: Optimal Brain Surgeon"
+    url: https://papers.nips.cc/paper_files/paper/1992/file/303ed4c69846ab36c2904d3ba8573050-Paper.pdf
+    type: paper
+  - title: "Han et al. (2015), Learning both Weights and Connections for Efficient Neural Networks"
+    url: https://papers.nips.cc/paper_files/paper/2015/file/ae0eb3eed39d2bcef4622b2499a05fe6-Paper.pdf
+    type: paper
+  - title: "Frankle and Carbin (2019), The Lottery Ticket Hypothesis: Finding Sparse, Trainable Neural Networks"
+    url: https://arxiv.org/abs/1803.03635
+    type: paper
+  - title: "Frankle et al. (2020), Linear Mode Connectivity and the Lottery Ticket Hypothesis"
+    url: http://proceedings.mlr.press/v119/frankle20a/frankle20a.pdf
+    type: paper
+  - title: "Frantar and Alistarh (2023), SparseGPT: Massive Language Models Can Be Accurately Pruned in One-Shot"
+    url: https://proceedings.mlr.press/v202/frantar23a.html
+    type: paper
+  - title: "Sun et al. (2024), A Simple and Effective Pruning Approach for Large Language Models (Wanda)"
+    url: https://arxiv.org/abs/2306.11695
+    type: paper
+  - title: Wanda reference implementation and results (locuslab/wanda)
+    url: https://github.com/locuslab/wanda
+    type: code
+  - title: "Zhang et al. (2024), Plug-and-Play: An Efficient Post-training Pruning Method for Large Language Models (RIA)"
+    url: https://proceedings.iclr.cc/paper_files/paper/2024/hash/db6ccc979860d7a233ecaf588bb23512-Abstract-Conference.html
+    type: paper
+  - title: NVIDIA (2021), Accelerating Inference with Sparsity Using the NVIDIA Ampere Architecture and NVIDIA TensorRT
+    url: https://developer.nvidia.com/blog/accelerating-inference-with-sparsity-using-ampere-and-tensorrt/
+    type: documentation
+  - title: "Liu et al. (2023), Deja Vu: Contextual Sparsity for Efficient LLMs at Inference Time"
+    url: https://proceedings.mlr.press/v202/liu23am/liu23am.pdf
+    type: paper
+  - title: "Liu et al. (2025), Training-Free Activation Sparsity in Large Language Models (TEAL)"
+    url: https://proceedings.iclr.cc/paper_files/paper/2025/file/f3f2ff9579ba6deeb89caa2fe1f0b99c-Paper-Conference.pdf
+    type: paper
+  - title: "Zhang et al. (2023), H2O: Heavy-Hitter Oracle for Efficient Generative Inference of Large Language Models"
+    url: https://proceedings.neurips.cc/paper_files/paper/2023/file/6ceefa7b15572587b78ecfcebb2827f8-Paper-Conference.pdf
+    type: paper
+  - title: "Tang et al. (2024), Quest: Query-Aware Sparsity for Efficient Long-Context LLM Inference"
+    url: https://hanlab.mit.edu/projects/quest
+    type: paper
+  - title: DeepSeek-V2 Technical Report (Multi-Head Latent Attention)
+    url: https://github.com/deepseek-ai/DeepSeek-V2
+    type: paper
+  - title: Google T5 v1.1 LM-adapted checkpoints (released_checkpoints.md)
+    url: https://github.com/google-research/text-to-text-transfer-transformer/blob/main/released_checkpoints.md
+    type: code
+---
+
+A tensor is $s$-sparse when a fraction $s$ of its entries are zero. Pruning produces sparsity in a trained network: it chooses a mask $M \in \{0,1\}$ of the same shape as a weight matrix $W$ and replaces $W$ by $M \odot W$, so that the multiplications and memory reads associated with the zeroed entries can be skipped. Sparsity can also be dynamic, when the zeros are in activations or attention scores that change with every input.
+
+For a serving system there are two separate questions: how much accuracy a given mask costs, and whether the hardware and kernels turn the zeros into lower latency or memory. The first depends on how the mask is chosen, which occupies most of the sections below. The second depends on the pattern of the zeros and on whether a step is bound by arithmetic or by memory traffic, as described in [[ml/serving-systems/performance-modeling|Performance Modeling]]. Like [[ml/serving-systems/quantization|Quantization]], pruning changes the representation of a trained model without retraining it, and the two are frequently combined.
+
+The material began as notes for CSE 599K "LLM Serving Systems" at the University of Washington, Spring 2025, taught by Prof. Baris Kasikci with TA Kan Zhu. The measurements in [Measured on T5](#measured-on-t5) are my own; numbers attributed to papers are quoted from them.
+
+## Kinds of sparsity
+
+- **Weight sparsity** is static: the mask is chosen once, offline, and is the same for every input. It reduces the bytes of weights stored and, with suitable kernels, the bytes read per decode step.
+- **Contextual or activation sparsity** is dynamic: for each token, some neurons, attention heads or input channels contribute little, and a predictor or a threshold skips them for that token only ([Deja Vu](#contextual-sparsity-deja-vu), [TEAL](#activation-sparsity-teal)).
+- **Attention and KV-cache sparsity** applies to attention scores: for a given query, most cached keys receive negligible weight, so attention can be computed over a subset of the cache ([KV cache sparsity](#kv-cache-sparsity)).
+
+Weight sparsity takes three structural forms, which trade the freedom in choosing the mask against the ease of executing it:
+
+- **Unstructured:** any entry may be zero. This gives the most freedom to choose the mask, and the irregular positions of the zeros make a speedup on GPUs difficult.
+- **Semi-structured ($N{:}M$):** in every group of $M$ consecutive weights along the reduction dimension, at most $N$ are nonzero. NVIDIA's sparse tensor cores since Ampere execute 2:4 at twice the dense math rate ([Conditions for a speedup](#conditions-for-a-speedup)).
+- **Structured:** whole rows, columns, heads or layers are removed, and the result is a smaller dense model that needs no special kernel.
+
+## Choosing what to prune
+
+### Saliency from the loss
+
+[Optimal Brain Damage](https://papers.nips.cc/paper/1989/file/6c9882bbac1c7093bd25041881277658-Paper.pdf) (LeCun, Denker and Solla, 1989) expands the loss to second order around a trained minimum, where the gradient term vanishes. If the off-diagonal entries of the Hessian $H$ are also neglected, deleting weight $w_k$ raises the loss by
+
+$$
+s_k = \tfrac{1}{2} h_{kk} w_k^2 .
+$$
+
+[Optimal Brain Surgeon](https://papers.nips.cc/paper_files/paper/1992/file/303ed4c69846ab36c2904d3ba8573050-Paper.pdf) (Hassibi and Stork, 1992) keeps the full Hessian and lets the remaining weights move to compensate. Deleting $w_q$ together with the best compensating update $\delta w = -\frac{w_q}{[H^{-1}]_{qq}} H^{-1} e_q$ raises the loss by
+
+$$
+L_q = \frac{w_q^2}{2\,[H^{-1}]_{qq}} .
+$$
+
+Both require second derivatives of the full training loss, which is impractical for a network with billions of weights. Weight magnitude $|w_k|$ is the inexpensive substitute; it ranks weights in the same order as the OBD saliency when every diagonal Hessian entry is equal.
+
+### The layer-wise reconstruction objective
+
+The methods used on LLMs replace the training loss by a local one. For a linear layer $y = xW$ with $W \in \mathbb{R}^{d_\text{in} \times d_\text{out}}$ and a calibration matrix $X \in \mathbb{R}^{n \times d_\text{in}}$ of real inputs recorded at that layer, they choose a pruned $\hat W$ to minimize
+
+$$
+\| X\hat W - XW \|_F^2 = \sum_{c=1}^{d_\text{out}} (\hat w_c - w_c)^\top A \,(\hat w_c - w_c), \qquad A = X^\top X ,
+$$
+
+where $w_c$ is column $c$ of $W$, the weights of output $c$. The objective splits into one quadratic per output, all with the same matrix $A$, whose diagonal entry $A_{jj} = \|X_j\|_2^2$ is the squared norm of input feature $j$ over the calibration tokens. Within one output, deleting weight $w_j$ (dropping the subscript $c$) has two possible costs.
+
+- **Without compensation**, setting $\hat w = w - w_j e_j$ costs $w_j^2 A_{jj} = \left(|w_j| \cdot \|X_j\|_2\right)^2$.
+- **With the best compensation** by the other weights of the same output, the OBS formula with $H = 2A$ gives $w_j^2 / [A^{-1}]_{jj}$, which is never larger, because $[A^{-1}]_{jj} \ge 1/A_{jj}$ for a positive definite $A$.
+
+The three methods measured below approximate this objective and differ in what they neglect.
+
+- **Magnitude pruning** scores $|w_j|$. It ranks weights by the no-compensation cost under the additional assumption that every input feature has the same norm.
+- **[Wanda](https://github.com/locuslab/wanda)** (Sun, Liu, Bair and Kolter, ICLR 2024) scores $|w_j| \cdot \|X_j\|_2$, the square root of the exact no-compensation cost of deleting that one weight. It neglects the cross terms $2 w_i w_j X_i^\top X_j$ that arise when several weights of one output are deleted together, and it does not update the remaining weights. One forward pass over the calibration data supplies the norms.
+- **[SparseGPT](https://proceedings.mlr.press/v202/frantar23a.html)** (Frantar and Alistarh, ICML 2023) applies OBS with the full $A$. It visits the input columns in order, chooses the mask for each block of 128 columns by the OBS cost with respect to the columns not yet visited (read off the Cholesky factor of $A^{-1}$), sets the pruned weights to zero and moves their error onto the columns not yet visited, the same column-by-column update that [[ml/serving-systems/quantization#gptq|GPTQ]] applies to rounding. The paper reports pruning OPT-175B to 50 to 60% unstructured sparsity in under 4.5 hours on one A100.
+
+```python
+def prune(W, X, s):  # Wanda as in the reference code; W is [out, in], PyTorch's layout
+    metric = W.abs() * X.norm(p=2, dim=0)      # |w| * ||x_j||, X is [tokens, in]
+    _, sorted_idx = torch.sort(metric, dim=1)  # sort within each output row
+    pruned_idx = sorted_idx[:, :int(C_in * s)] # lowest fraction s of each row
+    W.scatter_(dim=1, index=pruned_idx, src=0) # zero them
+    return W
+```
+
+The magnitude term and the activation term disagree because of a property of trained transformers: a few input features carry activations orders of magnitude larger than the rest, the same outliers that complicate [[ml/serving-systems/quantization#outliers|quantization]]. Weights that multiply such a feature can be small and still carry much of the layer's output. In the T5 layer of the figure below, input channel 888 has an RMS of 1,688 over the calibration tokens, against a median of 0.78 across channels. Magnitude pruning per output removes all 16 of the shown weights on that channel already at 20% sparsity, and Wanda keeps all 16 at 95%.
+
+### The comparison group
+
+A score alone does not fix the mask; the method must also decide which weights compete with each other. Removing the lowest-scoring fraction of the whole matrix lets some outputs lose more weights than others. Removing the lowest fraction of each output's weights (one row of PyTorch's `[out, in]` matrix) holds every output to the same sparsity, and Wanda's reference implementation does this. An $N{:}M$ pattern narrows the group further, to $M$ consecutive inputs of one output.
+
+<PruneLab src="/ml/serving-systems/quantization/outlier-layer.json" />
+
+## Measured on T5
+
+I pruned every linear layer of Google's released [T5 v1.1 LM-adapted](https://github.com/google-research/text-to-text-transfer-transformer/blob/main/released_checkpoints.md) checkpoints with each method and measured the perplexity of 64-token continuations of held-out Go blog posts, the setup of the [[ml/serving-systems/quantization#measured-on-t5|quantization measurements]]. The models are encoder-decoders of 77M (small), 248M (base) and 783M (large) parameters, so absolute perplexities are not comparable with the decoder-only WikiText-2 results in the papers; the comparisons below use the relative increase over the dense model on the same windows. I could not use OPT-125M and WikiText-2, the setting of SparseGPT's smallest result, because their download hosts are not reachable from the machine that ran the experiments. Details are in [How this was measured](#how-this-was-measured).
+
+### Unstructured 50%, 4:8 and 2:4 on T5 base
+
+The dense base model has perplexity 24.37 on the Go blog windows. The table gives the increase over that value; Wanda and SparseGPT are the mean over three calibration seeds, whose results differ by at most 0.5 points, and magnitude pruning uses no calibration data. The 95% bootstrap intervals for a single seed are 1.5 to 7.4 points wide, for example +12.0 to +13.9% for Wanda at 50%.
+
+| Score | Comparison group | 50% | 4:8 | 2:4 |
+|-------|------------------|-----|-----|-----|
+| Magnitude | whole layer | +40.4% | | |
+| Magnitude | each output | +32.7% | +52.1% | +76.6% |
+| Wanda | whole layer | +16.2% | | |
+| Wanda | each output | +12.9% | +21.8% | +31.9% |
+| SparseGPT | blocks of 128 inputs | +7.2% | +11.7% | +18.5% |
+
+- **The activation term does most of the work.** Weighting each magnitude by its input's norm reduces the damage at 50% from +32.7% to +12.9%, with the same comparison group and no change to the kept weights. Letting the kept weights compensate (SparseGPT) roughly halves what remains.
+- **Comparing within each output is better for both scores**, by 7.7 points for magnitude and 3.3 points for Wanda. With a whole-layer threshold at 50%, the fraction removed from a single output ranges from 7% to 98% across T5 base's linear layers, and from 31% to 72% within the median layer.
+- **The $N{:}M$ patterns cost more than unstructured pruning at the same 50%**, because a group of 4 or 8 consecutive inputs must give up half its weights even when all of them matter. For all three methods 2:4 costs 2.3 to 2.6 times the unstructured increase, and 4:8 lies between.
+
+### Calibration domain
+
+All calibration windows come from Go blog posts. Evaluated instead on Shakespeare, where the dense base model's perplexity is 48.37, SparseGPT loses its lead and Wanda is better at every pattern (means over the same three seeds):
+
+| Score | Comparison group | 50% | 4:8 | 2:4 |
+|-------|------------------|-----|-----|-----|
+| Magnitude | whole layer | +33.2% | | |
+| Magnitude | each output | +26.2% | +44.1% | +63.1% |
+| Wanda | whole layer | +21.3% | | |
+| Wanda | each output | +15.8% | +24.4% | +36.7% |
+| SparseGPT | blocks of 128 inputs | +19.2% | +27.3% | +40.9% |
+
+A paired comparison on the same windows (seed 0) confirms the reversal: on Shakespeare Wanda's perplexity is 2.2% below SparseGPT's at 50% (interval 0.9 to 3.4%) and 2.5% below at 2:4 (0.8 to 4.2%), while on the Go blog it is 5.4% and 11.6% above. SparseGPT's increase at 50% rises from +7.2% in domain to +19.2% out of domain, Wanda's from +12.9% to +15.8%, and magnitude pruning's falls. T5 small shows the same shift, less strongly. In domain SparseGPT costs about half as much as Wanda at all three patterns; on Shakespeare Wanda is better at 50% (+10.5 against +13.4%), and SparseGPT keeps a smaller lead at 4:8 (+21.0 against +24.0%) and 2:4 (+30.2 against +38.8%). SparseGPT fits its weight updates to the calibration matrix $A = X^\top X$, and Wanda uses only the diagonal of $A$ to rank weights it never changes, so Wanda has less to lose when the input statistics shift. This is my interpretation of the measurements, not a result from either paper. The published comparisons calibrate on C4 and evaluate on WikiText-2, two different domains, and there the two methods are close at 50% ([Compared with the papers](#compared-with-the-papers)).
+
+### Sparsity from 10 to 80%
+
+Perplexity on the Go blog windows for T5 base with one calibration seed; the dense model scores 24.37. The bottom panel of the figure plots the same numbers.
+
+| Sparsity | Magnitude, each output | Magnitude, whole layer | Wanda | SparseGPT |
+|----------|-------|-------|-------|-------|
+| 10% | 24.44 | 24.46 | 24.34 | 24.36 |
+| 20% | 24.73 | 24.82 | 24.41 | 24.39 |
+| 30% | 25.45 | 25.51 | 24.78 | 24.61 |
+| 40% | 27.44 | 27.86 | 25.65 | 24.97 |
+| 50% | 32.35 | 34.22 | 27.52 | 26.10 |
+| 60% | 48.03 | 61.26 | 31.88 | 28.71 |
+| 70% | 129.7 | 280.1 | 45.62 | 35.05 |
+| 80% | 1,782 | 8,541 | 140.4 | 59.33 |
+
+Up to 20% every method costs under 2%, and Wanda at 10% is 0.15% below the dense model (interval −0.24 to −0.06%). Beyond 50% the methods separate by orders of magnitude: at 70% magnitude pruning multiplies perplexity by 5.3 and Wanda by 1.9, while SparseGPT adds 44%. The gap between the two comparison groups for magnitude pruning also widens with sparsity, from 1.7 points at 40% to a factor of 4.8 in perplexity at 80%.
+
+### Model size
+
+The same comparison across the three T5 sizes, on the Go blog windows, with each-output comparison groups for magnitude pruning and Wanda. Small and base are means over three calibration seeds; large is one seed.
+
+| Score | Pattern | Small (77M) | Base (248M) | Large (783M) |
+|-------|---------|-------------|-------------|--------------|
+| Dense perplexity | | 34.27 | 24.37 | 17.92 |
+| Magnitude | 50% | +45.8% | +32.7% | +23.5% |
+| Magnitude | 2:4 | +108% | +76.6% | +51.0% |
+| Wanda | 50% | +13.5% | +12.9% | +10.7% |
+| Wanda | 2:4 | +35.3% | +31.9% | +26.4% |
+| SparseGPT | 50% | +8.0% | +7.2% | +6.5% |
+| SparseGPT | 2:4 | +18.5% | +18.5% | +17.6% |
+
+Every method costs less on a larger model, as the papers also find, but by different amounts. Magnitude pruning's increase halves from small to large, while Wanda's and SparseGPT's fall by about a fifth at 50% and SparseGPT's hardly changes at 2:4, so the methods move closer together as the model grows: magnitude pruning costs 3.4 times as much as Wanda on small and 2.2 times on large. Comparing within each output instead of the whole layer helps on every size, by 8 to 14 points for magnitude pruning and 3 to 10 points for Wanda.
+
+### Which layers lose the most
+
+Pruning one kind of linear layer to 50% (each output) and leaving the rest dense, on T5 base:
+
+| Layers pruned | Share of prunable weights | Magnitude | Wanda |
+|---------------|---------------------------|-----------|-------|
+| Attention $q$, $k$, $v$ (self and cross) | 32% | +10.0% | +3.4% |
+| Attention output | 11% | +1.9% | +1.2% |
+| Feed-forward input ($w_{i,0}$, $w_{i,1}$) | 38% | +7.4% | +6.7% |
+| Feed-forward output ($w_o$) | 19% | +3.2% | +1.9% |
+| All of the above | 100% | +32.7% | +12.9% |
+
+For Wanda the four parts add up to the whole (13.1 against 12.9%); for magnitude pruning they add up to 22.6% against 32.7%, so its errors compound when every layer is pruned. Most of the difference between the two scores is in the attention projections, where Wanda's loss is a third of magnitude pruning's; on the gated feed-forward input the two scores cost nearly the same.
+
+### Statistics from the dense or the pruned model
+
+Wanda's reference code prunes one transformer block at a time and records each block's input norms from the model whose earlier blocks are already pruned, so later layers see the inputs they will receive at inference. Doing the same on T5 base (the 12 encoder blocks in order, then the 12 decoder blocks, one calibration pass per block) gives +13.0% at 50% (interval +12.0 to +14.0%), against +12.9% with every norm taken from the dense model. On this model the order makes no measurable difference, and it costs 24 calibration passes instead of one.
+
+### Compared with the papers
+
+The relative increase at 50% unstructured sparsity, from the SparseGPT paper for OPT and from the [Wanda README](https://github.com/locuslab/wanda) for LLaMA-2, both on WikiText-2:
+
+| Model | Dense | Magnitude | Wanda | SparseGPT |
+|-------|-------|-----------|-------|-----------|
+| T5 v1.1 base, Go blog (this note) | 24.37 | +32.7% | +12.9% | +7.2% |
+| OPT-125M | 27.66 | +598% | | +33.2% |
+| LLaMA-2-7B | 5.12 | +191% | +25.4% | +27.1% |
+| LLaMA-2-13B | 4.57 | +39.4% | +21.7% | +23.2% |
+| LLaMA-2-70B | 3.12 | +59.6% | +27.6% | +27.6% |
+
+The ordering of magnitude pruning against the two calibrated methods holds everywhere, and so does the cost of 2:4: the README's LLaMA-2-7B rises by 115% with Wanda and 99% with SparseGPT at 2:4. Two things differ. Magnitude pruning hurts T5 base far less than OPT-125M or LLaMA-2-7B, and slightly less than LLaMA-2-13B. And SparseGPT leads Wanda clearly here while the papers find them within two points of each other, which the calibration-domain result above suggests comes from calibrating and evaluating on the same kind of text.
+
+## Why sparse subnetworks exist
+
+Pruning a trained network and then fine-tuning it retains accuracy to far higher sparsity than pruning alone. [Han et al. (2015)](https://papers.nips.cc/paper_files/paper/2015/file/ae0eb3eed39d2bcef4622b2499a05fe6-Paper.pdf) pruned AlexNet iteratively with retraining and lost no ImageNet accuracy with 9× fewer weights (89% sparsity), with a sharp drop beginning at 10×. VGG-16 reached 13× (92%) without loss, and some of the pruned models were slightly more accurate than the originals. The sparsity at which accuracy falls depends on the model and on the retraining budget.
+
+The [Lottery Ticket Hypothesis](https://arxiv.org/abs/1803.03635) (Frankle and Carbin, 2019) offers an explanation: a randomly initialized dense network contains subnetworks ("winning tickets") that, trained in isolation from the same initial values, match the accuracy of the full network. Iterative magnitude pruning found such tickets at 10 to 20% of the original size for fully connected and convolutional networks on MNIST and CIFAR-10. [Frankle et al. (2020)](http://proceedings.mlr.press/v119/frankle20a/frankle20a.pdf) found that for standard ResNet-20, VGG-16, ResNet-50 and Inception-v3 the subnetworks do not match when reset to their initial values, and do match when reset to the weights from early in training (0.8 to 5.5% of the way through). One-shot pruning of LLMs without retraining, as in the methods above, does not depend on this hypothesis; it depends on the reconstruction objective being a good proxy for the loss at moderate sparsity.
+
+## Contextual sparsity: Deja Vu
+
+A static mask must serve every input. [Deja Vu](https://proceedings.mlr.press/v202/liu23am/liu23am.pdf) (Liu et al., ICML 2023) observes that for a given input only a small, input-dependent subset of attention heads and MLP neurons matters; in OPT-175B it reports up to 80% of heads and 95% of MLP neurons removable per input. Small predictors choose the subset at inference time. Because the residual stream changes little from one block to the next (the paper measures a cosine similarity of about 0.99 between consecutive layers' inputs), a block's attention input can predict that block's MLP sparsity and its MLP input can predict the next block's attention sparsity, so prediction runs ahead of the main computation and in parallel with it. Average zero-shot accuracy does not drop until 75% sparsity, and with hardware-aware kernels the paper reports OPT-175B latency reduced by over 2× against FasterTransformer and over 6× against the Hugging Face implementation, at batch size 1 on eight A100s.
+
+## Activation sparsity: TEAL
+
+During decoding, a matrix-vector product $xW$ reads every row of $W$, and row $j$ contributes nothing when $x_j = 0$. [TEAL](https://proceedings.iclr.cc/paper_files/paper/2025/file/f3f2ff9579ba6deeb89caa2fe1f0b99c-Paper-Conference.pdf) (Liu et al., ICLR 2025) sets low-magnitude entries of the hidden states to zero with a per-layer threshold, without training, and skips loading the corresponding weight rows. Single-batch decoding is bound by weight reads, so skipping rows reduces latency directly. The paper reports 40 to 50% model-wide sparsity with minimal degradation across the Llama-2, Llama-3 and Mistral families from 7B to 70B, and single-batch decoding speedups of up to 1.53× at 40% and 1.8× at 50% sparsity. With a larger batch a row can be skipped only if every token in the batch zeroes it, so the fraction of skipped reads falls as the batch grows.
+
+## KV cache sparsity
+
+Attention at inference concentrates on few keys. [H2O](https://proceedings.neurips.cc/paper_files/paper/2023/file/6ceefa7b15572587b78ecfcebb2827f8-Paper-Conference.pdf) (Zhang et al., NeurIPS 2023) reports that over 95% of the attention scores of OPT models fall below 1% of the largest score in their row, and that keeping 5% of the KV cache suffices on its benchmarks. The KV cache dominates the memory traffic of long-context decoding (see [[ml/serving-systems/memory-management|Memory Management]]), which makes it a target for sparsity.
+
+### Quest
+
+Eviction methods such as H2O discard KV entries judged unimportant from past attention, and lose accuracy when an evicted token becomes important for a later query. [Quest](https://hanlab.mit.edu/projects/quest) (Tang et al., ICML 2024) keeps the whole cache and reduces what each query reads. For every page of the paged KV cache it stores the elementwise minimum $m$ and maximum $M$ of the keys. For a query $q$, no key in the page can score more than $\sum_i \max(q_i m_i, q_i M_i)$, and Quest loads only the top $K$ pages by this bound. Importance is decided per query rather than from history. The paper reports up to 7.03× self-attention speedup and 2.23× lower end-to-end latency, the latter at a 30K-token context with a 2,048-token budget and 4-bit weights.
+
+### Multi-head latent attention
+
+[DeepSeek-V2's MLA](https://github.com/deepseek-ai/DeepSeek-V2) shrinks the KV cache by low-rank compression built into the architecture rather than by sparsity. Each token caches one learned latent vector of dimension $d_c$, expanded to per-head keys and values during attention, plus a small decoupled key of dimension $d_h^R$ that carries the rotary position embedding, because RoPE's position-dependent rotation does not commute with the low-rank projection. The report gives a 93.3% smaller KV cache and 5.76× the maximum generation throughput of DeepSeek 67B.
+
+| Attention mechanism | KV cache per token | Capability (per the report) |
+|---------------------|--------------------|------------|
+| Multi-head attention (MHA) | $2n_h d_h l$ | Strong |
+| Grouped-query attention (GQA) | $2n_g d_h l$ | Moderate |
+| Multi-query attention (MQA) | $2d_h l$ | Weak |
+| MLA | $(d_c + d_h^R)\,l \approx \frac{9}{2}d_h l$ | Stronger |
+
+Here $n_h$ is the number of heads, $n_g$ the number of KV groups, $d_h$ the head dimension and $l$ the number of layers. DeepSeek-V2 sets $d_c = 4d_h$ and $d_h^R = d_h/2$, equivalent in cache size to GQA with 2.25 groups.
+
+## Conditions for a speedup
+
+A mask reduces latency only when a kernel skips the zeros, and the saving depends on which resource bounds the step.
+
+- **2:4 on NVIDIA GPUs.** Sparse tensor cores on the A100 execute 2:4 matrices at twice the dense rate (624 against 312 FP16 TFLOPS), and NVIDIA lists sparse peak rates at twice the dense ones for H100 and Blackwell. A 2:4 matrix is stored as its nonzero half plus the positions of the kept values, at least 2 bits per kept value, so with 16-bit weights it occupies at least $(8 + 1)/16 \approx 56\%$ of the dense bytes, which limits the speedup of a memory-bound matrix-vector product to about 1.8×. Measured speedups are below both limits. SparseGPT reports 1.54 to 1.79× for individual 2:4 layers at OPT-175B shapes. [RIA](https://proceedings.iclr.cc/paper_files/paper/2024/hash/db6ccc979860d7a233ecaf588bb23512-Abstract-Conference.html) reports about 1.6× for the linear layers of LLaMA-2-13B with cuSPARSELt, and end-to-end latency on LLaMA-2-7B about 1.25× lower at batch 1 and 1.5× lower at batch 8 to 64. NVIDIA reports end-to-end gains near 20% for ResNeXt-101 in TensorRT.
+- **Unstructured sparsity on GPUs** ran at 0.98× of dense speed at 50% in RIA's measurement, because the index overhead and irregular access outweigh the skipped work at that density.
+- **Unstructured sparsity on CPUs** is supported by sparse inference engines. SparseGPT reports end-to-end speedups of 1.57×, 1.82× and 2.16× on OPT-2.7B at 40, 50 and 60% sparsity in DeepSparse. A general sparse format does not get there by itself. With scipy's CSR format on one core of the machine that ran the experiments, multiplying by a 4,096 × 11,008 float32 matrix (the shape of LLaMA-7B's feed-forward up-projection) was slower than numpy's dense product at every sparsity up to 80%, at batch 1 and at batch 64. At 50% it was 3.2 times slower, since CSR's 4-byte column index per kept value makes the matrix as large as the dense one; it was faster from 90% (1.9× at batch 1) and 3.9× faster at 95%.
+- **Activation and KV sparsity** reduce the bytes read in memory-bound decoding, which is why TEAL and Quest report speedups at batch 1 or at long context without any change to the weights.
+- **Structured pruning** produces a smaller dense model, which is faster in every regime, at a larger accuracy cost per removed parameter that is usually recovered by training ([Recent work](#recent-work)).
+
+## Recent work
+
+- **Layer-wise sparsity ratios.** [OWL](https://proceedings.mlr.press/v235/yin24e.html) (Yin et al., ICML 2024) assigns lower sparsity to layers with more outlier features; at 70% sparsity it reports perplexity 61.22 lower than Wanda's and 6.80 lower than SparseGPT's.
+- **Scores relative to rows and columns.** [RIA](https://proceedings.iclr.cc/paper_files/paper/2024/hash/db6ccc979860d7a233ecaf588bb23512-Abstract-Conference.html) (Zhang et al., ICLR 2024) scores each weight relative to the total magnitude of its row and of its column, combined with the input activation norm, and permutes channels before choosing $N{:}M$ groups. It reports 7.12 on LLaMA-7B at 50% against Wanda's 7.26 in the same evaluation.
+- **Learned 2:4 masks.** [MaskLLM](https://proceedings.neurips.cc/paper_files/paper/2024/hash/0e9a05f5ce62284c91e4a33498899124-Abstract.html) (Fang et al., NeurIPS 2024) trains the mask with the weights frozen and reports WikiText perplexity 6.72 at 2:4 on LLaMA-2-7B, against 5.12 dense.
+- **Structured pruning.** [SliceGPT](https://iclr.cc/virtual/2024/poster/17531) (Ashkboos et al., ICLR 2024) deletes rows and columns after an orthogonal change of basis and removes up to 25% of LLaMA-2-70B's parameters while keeping about 99% of its zero-shot accuracy. [Minitron](https://proceedings.neurips.cc/paper_files/paper/2024/hash/4822991365c962105b1b95b1107d30e5-Abstract.html) (Muralidharan et al., NeurIPS 2024) prunes Nemotron-4 by 2 to 4× and recovers accuracy by distillation with up to 40× fewer training tokens than training the smaller models from scratch.
+
+## How this was measured
+
+> [!note]- How this was measured
+> - **Code:** the pruning code is in the [`sparsity-and-pruning/`](sparsity-and-pruning/) directory. [`prune.py`](sparsity-and-pruning/prune.py) holds the masks (whole layer, each output, $N{:}M$ along the inputs), the two scores and SparseGPT, ported from the [IST-DASLab reference](https://github.com/IST-DASLab/sparsegpt) with blocks of 128 columns and 1% damping. [`run.py`](sparsity-and-pruning/run.py) runs the stages (`main small|base|large`, `sweep`, `sublayer`, `sequential`, `paired`, `figure`), [`merge.py`](sparsity-and-pruning/merge.py) collects them into [`results.json`](sparsity-and-pruning/results.json) and writes the sweep the figure plots, and [`sparse_speed.py`](sparsity-and-pruning/sparse_speed.py) is the CPU benchmark. The model, the text preparation and the windows are those of the quantization note: [`t5.py`](quantization/t5.py), [`data.py`](quantization/data.py), [`convert.py`](quantization/convert.py) and [`prep_text.py`](quantization/prep_text.py). [`figure_check.py`](sparsity-and-pruning/figure_check.py) recomputes 24 of the figure's settings in numpy, and the figure's unit test checks the browser code against them to within $10^{-9}$.
+> - **Models:** `t5.1.1.lm100k.{small,base,large}` from `gs://t5-data/pretrained_models/`, with 77M, 248M and 783M parameters, stored in bfloat16 and run in float32. Every linear layer of the encoder and decoder is pruned; the embedding, the output head, the relative position biases and the norms are not.
+> - **Text:** the 210 Go blog posts in [golang/website](https://github.com/golang/website) at commit `239da7f`, cleaned as in the quantization note (274,290 words), and [tinyshakespeare](https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt). Posts are split by a hash of their file name into 41 calibration and 169 evaluation posts.
+> - **Task:** a window is 128 tokens of a post fed to the encoder and the next 64 tokens scored by the decoder. The evaluation set is 256 windows (16,384 scored tokens) and the Shakespeare set 128 windows. Calibration uses 128 windows from the calibration posts, about 16,500 encoder and 8,200 decoder tokens per layer; each seed draws a different 128.
+> - **Statistics:** intervals are 95% paired bootstrap intervals over windows (2,000 resamples) for the change in perplexity against the dense model on the same windows. The per-output masks remove $\lfloor s\, d_\text{in} \rfloor$ weights per output, so the density at 10% to 80% is up to 0.1 points above the nominal value; at 50% and for $N{:}M$ it is exact.
+> - **Simplifications:** pruning is simulated by zeroing weights, so the perplexity experiments do not measure speed. Wanda and SparseGPT take every layer's calibration inputs from the dense model and prune all layers at once; Wanda's reference code instead prunes block by block, taking each block's inputs from the already-pruned model, which the `sequential` stage tests. SparseGPT uses 128 calibration windows rather than the paper's 128 sequences of 2,048 tokens, and chooses $N{:}M$ groups inside each block as the reference code does.
+> - **CPU benchmark:** [`sparse_speed.py`](sparsity-and-pruning/sparse_speed.py) times $y = xW$ for a 4,096 × 11,008 float32 matrix with a uniform random mask, stored dense (numpy with OpenBLAS) and as CSR (`scipy.sparse`), on one core with one BLAS thread. Each timing cycles through six independent copies of the matrix, 1.1 GB when dense, so that the weights do not stay in the 480 MiB last-level cache between uses, as a whole model's would not during decoding. Times are medians of 15 repetitions; the 10th to 90th percentile range is within 10% of the median except in one dense case.
+> - **Environment:** Python 3.13.18, numpy 2.5.3, scipy 1.18.1, TensorFlow 2.21 (checkpoint reading only) and sentencepiece 0.2.3, on Linux 6.18 with 4 cores of an Intel Xeon at 2.1 GHz. The stages together take about four hours on that machine.
+
+## Related notes
+
+- [[ml/serving-systems/quantization|Quantization]], for the outlier features that also decide which weights matter
+- [[ml/serving-systems/performance-modeling|Performance Modeling]], for when a step is bound by memory or by arithmetic
+- [[ml/serving-systems/memory-management|Memory Management]], for the KV cache that attention sparsity reduces
+- [[ml/serving-systems/mixture-of-experts|Mixture of Experts]], for sparsity trained into the architecture
+- [[systems/research/sparsity-notes|Faster Causal Self Attention]]
+- [[systems/research/padded-encoder-decoder|Accelerating Padded Encoder-Decoder Transformer Models]]
