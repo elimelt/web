@@ -1,0 +1,1722 @@
+{
+ "machine": {
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.30GHz",
+  "vcpus": 4,
+  "kernel": "6.18.44-fc-v553",
+  "go": "go version go1.25.0 linux/amd64"
+ },
+ "results": [
+  {
+   "mode": "alo",
+   "q": 0,
+   "r": 0,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 0.03,
+   "sends": 4800,
+   "req_drop_rate": 0.0,
+   "rep_drop_rate": 0.0,
+   "ok": 1.0,
+   "hist": {
+    "1": 4800
+   },
+   "fail_hist": {},
+   "dup": 0.0,
+   "zero": 0.0,
+   "mean_exec": 1.0,
+   "ledger_records": 4800,
+   "run": 0
+  },
+  {
+   "mode": "amo",
+   "q": 0,
+   "r": 0,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 0.04,
+   "sends": 4800,
+   "req_drop_rate": 0.0,
+   "rep_drop_rate": 0.0,
+   "ok": 1.0,
+   "hist": {
+    "1": 4800
+   },
+   "fail_hist": {},
+   "dup": 0.0,
+   "zero": 0.0,
+   "mean_exec": 1.0,
+   "ledger_records": 4800,
+   "run": 0
+  },
+  {
+   "mode": "alo",
+   "q": 0.01,
+   "r": 0.01,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 0.21,
+   "sends": 4905,
+   "req_drop_rate": 0.011416921508664628,
+   "rep_drop_rate": 0.010105176325015466,
+   "ok": 1.0,
+   "hist": {
+    "1": 4752,
+    "2": 47,
+    "3": 1
+   },
+   "fail_hist": {},
+   "dup": 0.01,
+   "zero": 0.0,
+   "mean_exec": 1.0102083333333334,
+   "ledger_records": 4849,
+   "run": 0
+  },
+  {
+   "mode": "amo",
+   "q": 0.01,
+   "r": 0.01,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 0.25,
+   "sends": 4897,
+   "req_drop_rate": 0.009801919542577088,
+   "rep_drop_rate": 0.010105176325015466,
+   "ok": 1.0,
+   "hist": {
+    "1": 4800
+   },
+   "fail_hist": {},
+   "dup": 0.0,
+   "zero": 0.0,
+   "mean_exec": 1.0,
+   "ledger_records": 4800,
+   "run": 0
+  },
+  {
+   "mode": "alo",
+   "q": 0.05,
+   "r": 0.05,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 0.9,
+   "sends": 5326,
+   "req_drop_rate": 0.05482538490424334,
+   "rep_drop_rate": 0.04668255860150974,
+   "ok": 0.9997916666666666,
+   "hist": {
+    "0": 1,
+    "1": 4575,
+    "2": 213,
+    "3": 11
+   },
+   "fail_hist": {
+    "0": 1
+   },
+   "dup": 0.04666666666666667,
+   "zero": 0.00020833333333333335,
+   "mean_exec": 1.04875,
+   "ledger_records": 5034,
+   "run": 0
+  },
+  {
+   "mode": "amo",
+   "q": 0.05,
+   "r": 0.05,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 0.93,
+   "sends": 5353,
+   "req_drop_rate": 0.05155987296842892,
+   "rep_drop_rate": 0.054756746109907425,
+   "ok": 0.9997916666666666,
+   "hist": {
+    "1": 4800
+   },
+   "fail_hist": {
+    "1": 1
+   },
+   "dup": 0.0,
+   "zero": 0.0,
+   "mean_exec": 1.0,
+   "ledger_records": 4800,
+   "run": 0
+  },
+  {
+   "mode": "alo",
+   "q": 0.1,
+   "r": 0.1,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 1.74,
+   "sends": 5937,
+   "req_drop_rate": 0.10055583628094998,
+   "rep_drop_rate": 0.10280898876404494,
+   "ok": 0.998125,
+   "hist": {
+    "1": 4315,
+    "2": 435,
+    "3": 45,
+    "4": 5
+   },
+   "fail_hist": {
+    "1": 3,
+    "2": 4,
+    "3": 2
+   },
+   "dup": 0.10104166666666667,
+   "zero": 0.0,
+   "mean_exec": 1.1125,
+   "ledger_records": 5340,
+   "run": 0
+  },
+  {
+   "mode": "amo",
+   "q": 0.1,
+   "r": 0.1,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 1.64,
+   "sends": 5841,
+   "req_drop_rate": 0.09090909090909091,
+   "rep_drop_rate": 0.0967984934086629,
+   "ok": 0.9991666666666666,
+   "hist": {
+    "1": 4800
+   },
+   "fail_hist": {
+    "1": 4
+   },
+   "dup": 0.0,
+   "zero": 0.0,
+   "mean_exec": 1.0,
+   "ledger_records": 4800,
+   "run": 0
+  },
+  {
+   "mode": "alo",
+   "q": 0.2,
+   "r": 0.2,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 3.81,
+   "sends": 7352,
+   "req_drop_rate": 0.20402611534276388,
+   "rep_drop_rate": 0.19480519480519481,
+   "ok": 0.9816666666666667,
+   "hist": {
+    "0": 10,
+    "1": 3865,
+    "2": 799,
+    "3": 115,
+    "4": 11
+   },
+   "fail_hist": {
+    "0": 10,
+    "1": 27,
+    "2": 31,
+    "3": 19,
+    "4": 1
+   },
+   "dup": 0.19270833333333334,
+   "zero": 0.0020833333333333333,
+   "mean_exec": 1.2191666666666667,
+   "ledger_records": 5852,
+   "run": 0
+  },
+  {
+   "mode": "amo",
+   "q": 0.2,
+   "r": 0.2,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 4.14,
+   "sends": 7418,
+   "req_drop_rate": 0.203289296306282,
+   "rep_drop_rate": 0.20219966159052452,
+   "ok": 0.9822916666666667,
+   "hist": {
+    "0": 12,
+    "1": 4788
+   },
+   "fail_hist": {
+    "0": 12,
+    "1": 73
+   },
+   "dup": 0.0,
+   "zero": 0.0025,
+   "mean_exec": 0.9975,
+   "ledger_records": 4788,
+   "run": 0
+  },
+  {
+   "mode": "alo",
+   "q": 0.3,
+   "r": 0.3,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 6.92,
+   "sends": 9209,
+   "req_drop_rate": 0.30600499511347595,
+   "rep_drop_rate": 0.29948364888123924,
+   "ok": 0.9327083333333334,
+   "hist": {
+    "0": 35,
+    "1": 3445,
+    "2": 1051,
+    "3": 232,
+    "4": 37
+   },
+   "fail_hist": {
+    "0": 35,
+    "1": 107,
+    "2": 111,
+    "3": 57,
+    "4": 13
+   },
+   "dup": 0.275,
+   "zero": 0.007291666666666667,
+   "mean_exec": 1.3314583333333334,
+   "ledger_records": 6391,
+   "run": 0
+  },
+  {
+   "mode": "amo",
+   "q": 0.3,
+   "r": 0.3,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 6.93,
+   "sends": 9283,
+   "req_drop_rate": 0.30550468598513414,
+   "rep_drop_rate": 0.30820536683728866,
+   "ok": 0.9291666666666667,
+   "hist": {
+    "0": 42,
+    "1": 4758
+   },
+   "fail_hist": {
+    "0": 42,
+    "1": 298
+   },
+   "dup": 0.0,
+   "zero": 0.00875,
+   "mean_exec": 0.99125,
+   "ledger_records": 4758,
+   "run": 0
+  },
+  {
+   "mode": "alo",
+   "q": 0.5,
+   "r": 0.5,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 13.76,
+   "sends": 13093,
+   "req_drop_rate": 0.5060719468418239,
+   "rep_drop_rate": 0.4918818617597031,
+   "ok": 0.6845833333333333,
+   "hist": {
+    "0": 305,
+    "1": 2907,
+    "2": 1242,
+    "3": 308,
+    "4": 38
+   },
+   "fail_hist": {
+    "0": 305,
+    "1": 610,
+    "2": 445,
+    "3": 134,
+    "4": 20
+   },
+   "dup": 0.3308333333333333,
+   "zero": 0.06354166666666666,
+   "mean_exec": 1.3472916666666668,
+   "ledger_records": 6467,
+   "run": 0
+  },
+  {
+   "mode": "amo",
+   "q": 0.5,
+   "r": 0.5,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 13.68,
+   "sends": 13250,
+   "req_drop_rate": 0.5025660377358491,
+   "rep_drop_rate": 0.5085722955545441,
+   "ok": 0.6747916666666667,
+   "hist": {
+    "0": 309,
+    "1": 4491
+   },
+   "fail_hist": {
+    "0": 309,
+    "1": 1252
+   },
+   "dup": 0.0,
+   "zero": 0.064375,
+   "mean_exec": 0.935625,
+   "ledger_records": 4491,
+   "run": 0
+  },
+  {
+   "mode": "alo",
+   "q": 0.2,
+   "r": 0,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 1.99,
+   "sends": 5999,
+   "req_drop_rate": 0.2020336722787131,
+   "rep_drop_rate": 0.0,
+   "ok": 0.9972916666666667,
+   "hist": {
+    "0": 13,
+    "1": 4787
+   },
+   "fail_hist": {
+    "0": 13
+   },
+   "dup": 0.0,
+   "zero": 0.0027083333333333334,
+   "mean_exec": 0.9972916666666667,
+   "ledger_records": 4787,
+   "run": 0
+  },
+  {
+   "mode": "amo",
+   "q": 0.2,
+   "r": 0,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 1.88,
+   "sends": 5944,
+   "req_drop_rate": 0.1936406460296097,
+   "rep_drop_rate": 0.0,
+   "ok": 0.9985416666666667,
+   "hist": {
+    "0": 7,
+    "1": 4793
+   },
+   "fail_hist": {
+    "0": 7
+   },
+   "dup": 0.0,
+   "zero": 0.0014583333333333334,
+   "mean_exec": 0.9985416666666667,
+   "ledger_records": 4793,
+   "run": 0
+  },
+  {
+   "mode": "alo",
+   "q": 0,
+   "r": 0.2,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 1.95,
+   "sends": 5989,
+   "req_drop_rate": 0.0,
+   "rep_drop_rate": 0.19936550342294207,
+   "ok": 0.9989583333333333,
+   "hist": {
+    "1": 3824,
+    "2": 793,
+    "3": 153,
+    "4": 30
+   },
+   "fail_hist": {
+    "4": 5
+   },
+   "dup": 0.20333333333333334,
+   "zero": 0.0,
+   "mean_exec": 1.2477083333333334,
+   "ledger_records": 5989,
+   "run": 0
+  },
+  {
+   "mode": "amo",
+   "q": 0,
+   "r": 0.2,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 1.82,
+   "sends": 6013,
+   "req_drop_rate": 0.0,
+   "rep_drop_rate": 0.20256111757857975,
+   "ok": 0.9989583333333333,
+   "hist": {
+    "1": 4800
+   },
+   "fail_hist": {
+    "1": 5
+   },
+   "dup": 0.0,
+   "zero": 0.0,
+   "mean_exec": 1.0,
+   "ledger_records": 4800,
+   "run": 0
+  },
+  {
+   "mode": "alo",
+   "q": 0,
+   "r": 0.1,
+   "attempts": 0,
+   "calls": 24000,
+   "crash_ms": [
+    20,
+    60
+   ],
+   "crashes": 100,
+   "wall_s": 4.48,
+   "sends": 26879,
+   "req_drop_rate": 0.0,
+   "rep_drop_rate": 0.09929684884110272,
+   "ok": 1.0,
+   "hist": {
+    "1": 21590,
+    "2": 2177,
+    "3": 207,
+    "4": 24,
+    "5": 2
+   },
+   "fail_hist": {},
+   "dup": 0.10041666666666667,
+   "zero": 0.0,
+   "mean_exec": 1.1112916666666666,
+   "ledger_records": 26671,
+   "run": 0
+  },
+  {
+   "mode": "amo",
+   "q": 0,
+   "r": 0.1,
+   "attempts": 0,
+   "calls": 24000,
+   "crash_ms": [
+    20,
+    60
+   ],
+   "crashes": 98,
+   "wall_s": 4.4,
+   "sends": 26927,
+   "req_drop_rate": 0.0,
+   "rep_drop_rate": 0.09975117911390055,
+   "ok": 1.0,
+   "hist": {
+    "1": 22707,
+    "2": 1265,
+    "3": 25,
+    "4": 3
+   },
+   "fail_hist": {},
+   "dup": 0.053875,
+   "zero": 0.0,
+   "mean_exec": 1.0551666666666666,
+   "ledger_records": 25324,
+   "run": 0
+  },
+  {
+   "mode": "amo-recover",
+   "q": 0,
+   "r": 0.1,
+   "attempts": 0,
+   "calls": 24000,
+   "crash_ms": [
+    20,
+    60
+   ],
+   "crashes": 96,
+   "wall_s": 4.46,
+   "sends": 26998,
+   "req_drop_rate": 0.0,
+   "rep_drop_rate": 0.10100748203570635,
+   "ok": 1.0,
+   "hist": {
+    "1": 24000
+   },
+   "fail_hist": {},
+   "dup": 0.0,
+   "zero": 0.0,
+   "mean_exec": 1.0,
+   "ledger_records": 24000,
+   "run": 0
+  },
+  {
+   "mode": "alo",
+   "q": 0,
+   "r": 0,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 0.02,
+   "sends": 4800,
+   "req_drop_rate": 0.0,
+   "rep_drop_rate": 0.0,
+   "ok": 1.0,
+   "hist": {
+    "1": 4800
+   },
+   "fail_hist": {},
+   "dup": 0.0,
+   "zero": 0.0,
+   "mean_exec": 1.0,
+   "ledger_records": 4800,
+   "run": 1
+  },
+  {
+   "mode": "amo",
+   "q": 0,
+   "r": 0,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 0.02,
+   "sends": 4800,
+   "req_drop_rate": 0.0,
+   "rep_drop_rate": 0.0,
+   "ok": 1.0,
+   "hist": {
+    "1": 4800
+   },
+   "fail_hist": {},
+   "dup": 0.0,
+   "zero": 0.0,
+   "mean_exec": 1.0,
+   "ledger_records": 4800,
+   "run": 1
+  },
+  {
+   "mode": "alo",
+   "q": 0.01,
+   "r": 0.01,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 0.24,
+   "sends": 4909,
+   "req_drop_rate": 0.012018741087797923,
+   "rep_drop_rate": 0.010309278350515464,
+   "ok": 1.0,
+   "hist": {
+    "1": 4752,
+    "2": 46,
+    "3": 2
+   },
+   "fail_hist": {},
+   "dup": 0.01,
+   "zero": 0.0,
+   "mean_exec": 1.0104166666666667,
+   "ledger_records": 4850,
+   "run": 1
+  },
+  {
+   "mode": "amo",
+   "q": 0.01,
+   "r": 0.01,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 0.22,
+   "sends": 4903,
+   "req_drop_rate": 0.008974097491331838,
+   "rep_drop_rate": 0.012142416135007203,
+   "ok": 1.0,
+   "hist": {
+    "1": 4800
+   },
+   "fail_hist": {},
+   "dup": 0.0,
+   "zero": 0.0,
+   "mean_exec": 1.0,
+   "ledger_records": 4800,
+   "run": 1
+  },
+  {
+   "mode": "alo",
+   "q": 0.05,
+   "r": 0.05,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 0.92,
+   "sends": 5320,
+   "req_drop_rate": 0.04962406015037594,
+   "rep_drop_rate": 0.050830696202531646,
+   "ok": 0.9997916666666666,
+   "hist": {
+    "1": 4559,
+    "2": 226,
+    "3": 15
+   },
+   "fail_hist": {
+    "2": 1
+   },
+   "dup": 0.050208333333333334,
+   "zero": 0.0,
+   "mean_exec": 1.0533333333333332,
+   "ledger_records": 5056,
+   "run": 1
+  },
+  {
+   "mode": "amo",
+   "q": 0.05,
+   "r": 0.05,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 0.96,
+   "sends": 5316,
+   "req_drop_rate": 0.046087283671933786,
+   "rep_drop_rate": 0.05363833563399724,
+   "ok": 0.9997916666666666,
+   "hist": {
+    "1": 4800
+   },
+   "fail_hist": {
+    "1": 1
+   },
+   "dup": 0.0,
+   "zero": 0.0,
+   "mean_exec": 1.0,
+   "ledger_records": 4800,
+   "run": 1
+  },
+  {
+   "mode": "alo",
+   "q": 0.1,
+   "r": 0.1,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 1.89,
+   "sends": 5969,
+   "req_drop_rate": 0.10169207572457697,
+   "rep_drop_rate": 0.10686311077955987,
+   "ok": 0.9977083333333333,
+   "hist": {
+    "0": 1,
+    "1": 4286,
+    "2": 464,
+    "3": 48,
+    "4": 1
+   },
+   "fail_hist": {
+    "0": 1,
+    "1": 4,
+    "2": 5,
+    "3": 1
+   },
+   "dup": 0.106875,
+   "zero": 0.00020833333333333335,
+   "mean_exec": 1.1170833333333334,
+   "ledger_records": 5362,
+   "run": 1
+  },
+  {
+   "mode": "amo",
+   "q": 0.1,
+   "r": 0.1,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 1.62,
+   "sends": 5892,
+   "req_drop_rate": 0.09826883910386966,
+   "rep_drop_rate": 0.09730848861283643,
+   "ok": 0.9991666666666666,
+   "hist": {
+    "1": 4800
+   },
+   "fail_hist": {
+    "1": 4
+   },
+   "dup": 0.0,
+   "zero": 0.0,
+   "mean_exec": 1.0,
+   "ledger_records": 4800,
+   "run": 1
+  },
+  {
+   "mode": "alo",
+   "q": 0.2,
+   "r": 0.2,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 4.1,
+   "sends": 7350,
+   "req_drop_rate": 0.1929251700680272,
+   "rep_drop_rate": 0.20397842211732975,
+   "ok": 0.98375,
+   "hist": {
+    "0": 6,
+    "1": 3849,
+    "2": 770,
+    "3": 157,
+    "4": 18
+   },
+   "fail_hist": {
+    "0": 6,
+    "1": 22,
+    "2": 23,
+    "3": 23,
+    "4": 4
+   },
+   "dup": 0.196875,
+   "zero": 0.00125,
+   "mean_exec": 1.2358333333333333,
+   "ledger_records": 5932,
+   "run": 1
+  },
+  {
+   "mode": "amo",
+   "q": 0.2,
+   "r": 0.2,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 3.74,
+   "sends": 7309,
+   "req_drop_rate": 0.19989054590231223,
+   "rep_drop_rate": 0.1927154582763338,
+   "ok": 0.9835416666666666,
+   "hist": {
+    "0": 6,
+    "1": 4794
+   },
+   "fail_hist": {
+    "0": 6,
+    "1": 73
+   },
+   "dup": 0.0,
+   "zero": 0.00125,
+   "mean_exec": 0.99875,
+   "ledger_records": 4794,
+   "run": 1
+  },
+  {
+   "mode": "alo",
+   "q": 0.3,
+   "r": 0.3,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 6.62,
+   "sends": 9057,
+   "req_drop_rate": 0.29281218946671084,
+   "rep_drop_rate": 0.29523809523809524,
+   "ok": 0.9404166666666667,
+   "hist": {
+    "0": 37,
+    "1": 3443,
+    "2": 1036,
+    "3": 246,
+    "4": 38
+   },
+   "fail_hist": {
+    "0": 37,
+    "1": 91,
+    "2": 90,
+    "3": 54,
+    "4": 14
+   },
+   "dup": 0.275,
+   "zero": 0.0077083333333333335,
+   "mean_exec": 1.334375,
+   "ledger_records": 6405,
+   "run": 1
+  },
+  {
+   "mode": "amo",
+   "q": 0.3,
+   "r": 0.3,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 6.78,
+   "sends": 9061,
+   "req_drop_rate": 0.29963580178788213,
+   "rep_drop_rate": 0.2957768673179956,
+   "ok": 0.9310416666666667,
+   "hist": {
+    "0": 41,
+    "1": 4759
+   },
+   "fail_hist": {
+    "0": 41,
+    "1": 290
+   },
+   "dup": 0.0,
+   "zero": 0.008541666666666666,
+   "mean_exec": 0.9914583333333333,
+   "ledger_records": 4759,
+   "run": 1
+  },
+  {
+   "mode": "alo",
+   "q": 0.5,
+   "r": 0.5,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 13.18,
+   "sends": 13155,
+   "req_drop_rate": 0.49859369061193465,
+   "rep_drop_rate": 0.507125530624621,
+   "ok": 0.6772916666666666,
+   "hist": {
+    "0": 303,
+    "1": 2838,
+    "2": 1261,
+    "3": 356,
+    "4": 42
+   },
+   "fail_hist": {
+    "0": 303,
+    "1": 606,
+    "2": 446,
+    "3": 169,
+    "4": 25
+   },
+   "dup": 0.345625,
+   "zero": 0.063125,
+   "mean_exec": 1.3741666666666668,
+   "ledger_records": 6596,
+   "run": 1
+  },
+  {
+   "mode": "amo",
+   "q": 0.5,
+   "r": 0.5,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 13.65,
+   "sends": 13158,
+   "req_drop_rate": 0.5006839945280438,
+   "rep_drop_rate": 0.5003044140030442,
+   "ok": 0.6839583333333333,
+   "hist": {
+    "0": 314,
+    "1": 4486
+   },
+   "fail_hist": {
+    "0": 314,
+    "1": 1203
+   },
+   "dup": 0.0,
+   "zero": 0.06541666666666666,
+   "mean_exec": 0.9345833333333333,
+   "ledger_records": 4486,
+   "run": 1
+  },
+  {
+   "mode": "alo",
+   "q": 0.2,
+   "r": 0,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 1.92,
+   "sends": 5977,
+   "req_drop_rate": 0.19825999665383973,
+   "rep_drop_rate": 0.0,
+   "ok": 0.9983333333333333,
+   "hist": {
+    "0": 8,
+    "1": 4792
+   },
+   "fail_hist": {
+    "0": 8
+   },
+   "dup": 0.0,
+   "zero": 0.0016666666666666668,
+   "mean_exec": 0.9983333333333333,
+   "ledger_records": 4792,
+   "run": 1
+  },
+  {
+   "mode": "amo",
+   "q": 0.2,
+   "r": 0,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 1.94,
+   "sends": 5915,
+   "req_drop_rate": 0.18918005071851227,
+   "rep_drop_rate": 0.0,
+   "ok": 0.9991666666666666,
+   "hist": {
+    "0": 4,
+    "1": 4796
+   },
+   "fail_hist": {
+    "0": 4
+   },
+   "dup": 0.0,
+   "zero": 0.0008333333333333334,
+   "mean_exec": 0.9991666666666666,
+   "ledger_records": 4796,
+   "run": 1
+  },
+  {
+   "mode": "alo",
+   "q": 0,
+   "r": 0.2,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 1.82,
+   "sends": 5998,
+   "req_drop_rate": 0.0,
+   "rep_drop_rate": 0.20123374458152718,
+   "ok": 0.998125,
+   "hist": {
+    "1": 3834,
+    "2": 767,
+    "3": 166,
+    "4": 33
+   },
+   "fail_hist": {
+    "4": 9
+   },
+   "dup": 0.20125,
+   "zero": 0.0,
+   "mean_exec": 1.2495833333333333,
+   "ledger_records": 5998,
+   "run": 1
+  },
+  {
+   "mode": "amo",
+   "q": 0,
+   "r": 0.2,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 1.82,
+   "sends": 5991,
+   "req_drop_rate": 0.0,
+   "rep_drop_rate": 0.200300450676014,
+   "ok": 0.998125,
+   "hist": {
+    "1": 4800
+   },
+   "fail_hist": {
+    "1": 9
+   },
+   "dup": 0.0,
+   "zero": 0.0,
+   "mean_exec": 1.0,
+   "ledger_records": 4800,
+   "run": 1
+  },
+  {
+   "mode": "alo",
+   "q": 0,
+   "r": 0.1,
+   "attempts": 0,
+   "calls": 24000,
+   "crash_ms": [
+    20,
+    60
+   ],
+   "crashes": 106,
+   "wall_s": 4.51,
+   "sends": 27030,
+   "req_drop_rate": 0.0,
+   "rep_drop_rate": 0.10318165001849797,
+   "ok": 1.0,
+   "hist": {
+    "1": 21510,
+    "2": 2228,
+    "3": 230,
+    "4": 27,
+    "5": 5
+   },
+   "fail_hist": {},
+   "dup": 0.10375,
+   "zero": 0.0,
+   "mean_exec": 1.1162083333333332,
+   "ledger_records": 26789,
+   "run": 1
+  },
+  {
+   "mode": "amo",
+   "q": 0,
+   "r": 0.1,
+   "attempts": 0,
+   "calls": 24000,
+   "crash_ms": [
+    20,
+    60
+   ],
+   "crashes": 95,
+   "wall_s": 4.03,
+   "sends": 26757,
+   "req_drop_rate": 0.0,
+   "rep_drop_rate": 0.0942183353888702,
+   "ok": 1.0,
+   "hist": {
+    "1": 22726,
+    "2": 1241,
+    "3": 32,
+    "4": 1
+   },
+   "fail_hist": {},
+   "dup": 0.05308333333333334,
+   "zero": 0.0,
+   "mean_exec": 1.0545,
+   "ledger_records": 25308,
+   "run": 1
+  },
+  {
+   "mode": "amo-recover",
+   "q": 0,
+   "r": 0.1,
+   "attempts": 0,
+   "calls": 24000,
+   "crash_ms": [
+    20,
+    60
+   ],
+   "crashes": 105,
+   "wall_s": 4.76,
+   "sends": 27193,
+   "req_drop_rate": 0.0,
+   "rep_drop_rate": 0.10109219284374656,
+   "ok": 1.0,
+   "hist": {
+    "1": 24000
+   },
+   "fail_hist": {},
+   "dup": 0.0,
+   "zero": 0.0,
+   "mean_exec": 1.0,
+   "ledger_records": 24000,
+   "run": 1
+  },
+  {
+   "mode": "alo",
+   "q": 0,
+   "r": 0,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 0.04,
+   "sends": 4800,
+   "req_drop_rate": 0.0,
+   "rep_drop_rate": 0.0,
+   "ok": 1.0,
+   "hist": {
+    "1": 4800
+   },
+   "fail_hist": {},
+   "dup": 0.0,
+   "zero": 0.0,
+   "mean_exec": 1.0,
+   "ledger_records": 4800,
+   "run": 2
+  },
+  {
+   "mode": "amo",
+   "q": 0,
+   "r": 0,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 0.03,
+   "sends": 4800,
+   "req_drop_rate": 0.0,
+   "rep_drop_rate": 0.0,
+   "ok": 1.0,
+   "hist": {
+    "1": 4800
+   },
+   "fail_hist": {},
+   "dup": 0.0,
+   "zero": 0.0,
+   "mean_exec": 1.0,
+   "ledger_records": 4800,
+   "run": 2
+  },
+  {
+   "mode": "alo",
+   "q": 0.01,
+   "r": 0.01,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 0.26,
+   "sends": 4904,
+   "req_drop_rate": 0.010807504078303425,
+   "rep_drop_rate": 0.010513296227581941,
+   "ok": 1.0,
+   "hist": {
+    "1": 4749,
+    "2": 51
+   },
+   "fail_hist": {},
+   "dup": 0.010625,
+   "zero": 0.0,
+   "mean_exec": 1.010625,
+   "ledger_records": 4851,
+   "run": 2
+  },
+  {
+   "mode": "amo",
+   "q": 0.01,
+   "r": 0.01,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 0.26,
+   "sends": 4910,
+   "req_drop_rate": 0.011608961303462322,
+   "rep_drop_rate": 0.010921079744487945,
+   "ok": 1.0,
+   "hist": {
+    "1": 4800
+   },
+   "fail_hist": {},
+   "dup": 0.0,
+   "zero": 0.0,
+   "mean_exec": 1.0,
+   "ledger_records": 4800,
+   "run": 2
+  },
+  {
+   "mode": "alo",
+   "q": 0.05,
+   "r": 0.05,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 0.86,
+   "sends": 5316,
+   "req_drop_rate": 0.04966139954853273,
+   "rep_drop_rate": 0.0498812351543943,
+   "ok": 1.0,
+   "hist": {
+    "1": 4562,
+    "2": 224,
+    "3": 14
+   },
+   "fail_hist": {},
+   "dup": 0.04958333333333333,
+   "zero": 0.0,
+   "mean_exec": 1.0525,
+   "ledger_records": 5052,
+   "run": 2
+  },
+  {
+   "mode": "amo",
+   "q": 0.05,
+   "r": 0.05,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 0.86,
+   "sends": 5285,
+   "req_drop_rate": 0.046168401135288556,
+   "rep_drop_rate": 0.04780797460821266,
+   "ok": 1.0,
+   "hist": {
+    "1": 4800
+   },
+   "fail_hist": {},
+   "dup": 0.0,
+   "zero": 0.0,
+   "mean_exec": 1.0,
+   "ledger_records": 4800,
+   "run": 2
+  },
+  {
+   "mode": "alo",
+   "q": 0.1,
+   "r": 0.1,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 1.82,
+   "sends": 5941,
+   "req_drop_rate": 0.09998316781686585,
+   "rep_drop_rate": 0.10342247989526837,
+   "ok": 0.99875,
+   "hist": {
+    "1": 4304,
+    "2": 449,
+    "3": 43,
+    "4": 4
+   },
+   "fail_hist": {
+    "1": 2,
+    "2": 2,
+    "3": 1,
+    "4": 1
+   },
+   "dup": 0.10333333333333333,
+   "zero": 0.0,
+   "mean_exec": 1.1139583333333334,
+   "ledger_records": 5347,
+   "run": 2
+  },
+  {
+   "mode": "amo",
+   "q": 0.1,
+   "r": 0.1,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 1.82,
+   "sends": 5978,
+   "req_drop_rate": 0.09969889595182335,
+   "rep_drop_rate": 0.10869565217391304,
+   "ok": 0.999375,
+   "hist": {
+    "1": 4800
+   },
+   "fail_hist": {
+    "1": 3
+   },
+   "dup": 0.0,
+   "zero": 0.0,
+   "mean_exec": 1.0,
+   "ledger_records": 4800,
+   "run": 2
+  },
+  {
+   "mode": "alo",
+   "q": 0.2,
+   "r": 0.2,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 3.76,
+   "sends": 7322,
+   "req_drop_rate": 0.20185741600655557,
+   "rep_drop_rate": 0.19216290212183437,
+   "ok": 0.9835416666666666,
+   "hist": {
+    "0": 10,
+    "1": 3880,
+    "2": 776,
+    "3": 124,
+    "4": 10
+   },
+   "fail_hist": {
+    "0": 10,
+    "1": 16,
+    "2": 37,
+    "3": 14,
+    "4": 2
+   },
+   "dup": 0.18958333333333333,
+   "zero": 0.0020833333333333333,
+   "mean_exec": 1.2175,
+   "ledger_records": 5844,
+   "run": 2
+  },
+  {
+   "mode": "amo",
+   "q": 0.2,
+   "r": 0.2,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 3.94,
+   "sends": 7368,
+   "req_drop_rate": 0.2015472312703583,
+   "rep_drop_rate": 0.1995580486146524,
+   "ok": 0.9810416666666667,
+   "hist": {
+    "0": 6,
+    "1": 4794
+   },
+   "fail_hist": {
+    "0": 6,
+    "1": 85
+   },
+   "dup": 0.0,
+   "zero": 0.00125,
+   "mean_exec": 0.99875,
+   "ledger_records": 4794,
+   "run": 2
+  },
+  {
+   "mode": "alo",
+   "q": 0.3,
+   "r": 0.3,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 7.14,
+   "sends": 9224,
+   "req_drop_rate": 0.2954249783174328,
+   "rep_drop_rate": 0.31774119095245423,
+   "ok": 0.92375,
+   "hist": {
+    "0": 35,
+    "1": 3388,
+    "2": 1065,
+    "3": 267,
+    "4": 45
+   },
+   "fail_hist": {
+    "0": 35,
+    "1": 114,
+    "2": 137,
+    "3": 62,
+    "4": 18
+   },
+   "dup": 0.286875,
+   "zero": 0.007291666666666667,
+   "mean_exec": 1.3539583333333334,
+   "ledger_records": 6499,
+   "run": 2
+  },
+  {
+   "mode": "amo",
+   "q": 0.3,
+   "r": 0.3,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 7.09,
+   "sends": 9062,
+   "req_drop_rate": 0.29607150739351135,
+   "rep_drop_rate": 0.2947170402884465,
+   "ok": 0.9372916666666666,
+   "hist": {
+    "0": 37,
+    "1": 4763
+   },
+   "fail_hist": {
+    "0": 37,
+    "1": 264
+   },
+   "dup": 0.0,
+   "zero": 0.0077083333333333335,
+   "mean_exec": 0.9922916666666667,
+   "ledger_records": 4763,
+   "run": 2
+  },
+  {
+   "mode": "alo",
+   "q": 0.5,
+   "r": 0.5,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 13.65,
+   "sends": 13158,
+   "req_drop_rate": 0.49696002431980546,
+   "rep_drop_rate": 0.5041547061489651,
+   "ok": 0.68375,
+   "hist": {
+    "0": 288,
+    "1": 2814,
+    "2": 1330,
+    "3": 327,
+    "4": 41
+   },
+   "fail_hist": {
+    "0": 288,
+    "1": 585,
+    "2": 470,
+    "3": 157,
+    "4": 18
+   },
+   "dup": 0.35375,
+   "zero": 0.06,
+   "mean_exec": 1.3789583333333333,
+   "ledger_records": 6619,
+   "run": 2
+  },
+  {
+   "mode": "amo",
+   "q": 0.5,
+   "r": 0.5,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 13.86,
+   "sends": 13177,
+   "req_drop_rate": 0.5005691735599909,
+   "rep_drop_rate": 0.5020513599756876,
+   "ok": 0.6827083333333334,
+   "hist": {
+    "0": 302,
+    "1": 4498
+   },
+   "fail_hist": {
+    "0": 302,
+    "1": 1221
+   },
+   "dup": 0.0,
+   "zero": 0.06291666666666666,
+   "mean_exec": 0.9370833333333334,
+   "ledger_records": 4498,
+   "run": 2
+  },
+  {
+   "mode": "alo",
+   "q": 0.2,
+   "r": 0,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 1.89,
+   "sends": 6013,
+   "req_drop_rate": 0.2035589555962082,
+   "rep_drop_rate": 0.0,
+   "ok": 0.9977083333333333,
+   "hist": {
+    "0": 11,
+    "1": 4789
+   },
+   "fail_hist": {
+    "0": 11
+   },
+   "dup": 0.0,
+   "zero": 0.0022916666666666667,
+   "mean_exec": 0.9977083333333333,
+   "ledger_records": 4789,
+   "run": 2
+  },
+  {
+   "mode": "amo",
+   "q": 0.2,
+   "r": 0,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 1.97,
+   "sends": 6008,
+   "req_drop_rate": 0.20206391478029295,
+   "rep_drop_rate": 0.0,
+   "ok": 0.99875,
+   "hist": {
+    "0": 6,
+    "1": 4794
+   },
+   "fail_hist": {
+    "0": 6
+   },
+   "dup": 0.0,
+   "zero": 0.00125,
+   "mean_exec": 0.99875,
+   "ledger_records": 4794,
+   "run": 2
+  },
+  {
+   "mode": "alo",
+   "q": 0,
+   "r": 0.2,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 1.91,
+   "sends": 5979,
+   "req_drop_rate": 0.0,
+   "rep_drop_rate": 0.19819367787255393,
+   "ok": 0.99875,
+   "hist": {
+    "1": 3848,
+    "2": 762,
+    "3": 153,
+    "4": 37
+   },
+   "fail_hist": {
+    "4": 6
+   },
+   "dup": 0.19833333333333333,
+   "zero": 0.0,
+   "mean_exec": 1.245625,
+   "ledger_records": 5979,
+   "run": 2
+  },
+  {
+   "mode": "amo",
+   "q": 0,
+   "r": 0.2,
+   "attempts": 4,
+   "calls": 4800,
+   "crash_ms": null,
+   "crashes": 0,
+   "wall_s": 2.0,
+   "sends": 6040,
+   "req_drop_rate": 0.0,
+   "rep_drop_rate": 0.20612582781456953,
+   "ok": 0.9989583333333333,
+   "hist": {
+    "1": 4800
+   },
+   "fail_hist": {
+    "1": 5
+   },
+   "dup": 0.0,
+   "zero": 0.0,
+   "mean_exec": 1.0,
+   "ledger_records": 4800,
+   "run": 2
+  },
+  {
+   "mode": "alo",
+   "q": 0,
+   "r": 0.1,
+   "attempts": 0,
+   "calls": 24000,
+   "crash_ms": [
+    20,
+    60
+   ],
+   "crashes": 100,
+   "wall_s": 4.42,
+   "sends": 26946,
+   "req_drop_rate": 0.0,
+   "rep_drop_rate": 0.10075706969494545,
+   "ok": 1.0,
+   "hist": {
+    "1": 21562,
+    "2": 2186,
+    "3": 228,
+    "4": 23,
+    "6": 1
+   },
+   "fail_hist": {},
+   "dup": 0.10158333333333333,
+   "zero": 0.0,
+   "mean_exec": 1.1131666666666666,
+   "ledger_records": 26716,
+   "run": 2
+  },
+  {
+   "mode": "amo",
+   "q": 0,
+   "r": 0.1,
+   "attempts": 0,
+   "calls": 24000,
+   "crash_ms": [
+    20,
+    60
+   ],
+   "crashes": 108,
+   "wall_s": 4.77,
+   "sends": 26893,
+   "req_drop_rate": 0.0,
+   "rep_drop_rate": 0.0989104971553936,
+   "ok": 1.0,
+   "hist": {
+    "1": 22697,
+    "2": 1268,
+    "3": 34,
+    "4": 1
+   },
+   "fail_hist": {},
+   "dup": 0.05429166666666667,
+   "zero": 0.0,
+   "mean_exec": 1.0557916666666667,
+   "ledger_records": 25339,
+   "run": 2
+  },
+  {
+   "mode": "amo-recover",
+   "q": 0,
+   "r": 0.1,
+   "attempts": 0,
+   "calls": 24000,
+   "crash_ms": [
+    20,
+    60
+   ],
+   "crashes": 104,
+   "wall_s": 4.81,
+   "sends": 27143,
+   "req_drop_rate": 0.0,
+   "rep_drop_rate": 0.09914158346535018,
+   "ok": 1.0,
+   "hist": {
+    "1": 24000
+   },
+   "fail_hist": {},
+   "dup": 0.0,
+   "zero": 0.0,
+   "mean_exec": 1.0,
+   "ledger_records": 24000,
+   "run": 2
+  }
+ ]
+}
