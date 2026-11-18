@@ -1,0 +1,109 @@
+{
+ "records": 36519,
+ "formats": {
+  "JSON (json)": {
+   "total_bytes": 10809013,
+   "mean": 295.983268983269,
+   "median": 293,
+   "min": 244,
+   "max": 408,
+   "stream_bytes": 10955089,
+   "gzip6": 2032992,
+   "zstd3": 2159980,
+   "gzip6_zero_hash": 686777,
+   "zstd3_zero_hash": 817482
+  },
+  "JSON (orjson)": {
+   "total_bytes": 10809013,
+   "mean": 295.983268983269,
+   "median": 293,
+   "min": 244,
+   "max": 408,
+   "stream_bytes": 10955089,
+   "gzip6": 2032992,
+   "zstd3": 2159980,
+   "gzip6_zero_hash": 686777,
+   "zstd3_zero_hash": 817482
+  },
+  "MessagePack": {
+   "total_bytes": 8603056,
+   "mean": 235.5775349817903,
+   "median": 232,
+   "min": 181,
+   "max": 348,
+   "stream_bytes": 8749132,
+   "gzip6": 1897124,
+   "zstd3": 1855430,
+   "gzip6_zero_hash": 641974,
+   "zstd3_zero_hash": 638016
+  },
+  "MessagePack (array)": {
+   "total_bytes": 5097232,
+   "mean": 139.5775349817903,
+   "median": 136,
+   "min": 85,
+   "max": 252,
+   "stream_bytes": 5243308,
+   "gzip6": 1855330,
+   "zstd3": 1871233,
+   "gzip6_zero_hash": 599443,
+   "zstd3_zero_hash": 592837
+  },
+  "Protobuf": {
+   "total_bytes": 5174274,
+   "mean": 141.68717653824038,
+   "median": 138,
+   "min": 88,
+   "max": 254,
+   "stream_bytes": 5320350,
+   "gzip6": 1878029,
+   "zstd3": 1864508,
+   "gzip6_zero_hash": 604260,
+   "zstd3_zero_hash": 579852
+  },
+  "Avro": {
+   "total_bytes": 4900726,
+   "mean": 134.196609983844,
+   "median": 131,
+   "min": 81,
+   "max": 247,
+   "stream_bytes": 5046802,
+   "gzip6": 1849850,
+   "zstd3": 1837941,
+   "gzip6_zero_hash": 585366,
+   "zstd3_zero_hash": 559367
+  },
+  "Thrift compact": {
+   "total_bytes": 5248908,
+   "mean": 143.73087981598619,
+   "median": 140,
+   "min": 90,
+   "max": 256,
+   "stream_bytes": 5394984,
+   "gzip6": 1883744,
+   "zstd3": 1849884,
+   "gzip6_zero_hash": 611299,
+   "zstd3_zero_hash": 583466
+  },
+  "Thrift binary": {
+   "total_bytes": 6891156,
+   "mean": 188.7005668282264,
+   "median": 186,
+   "min": 132,
+   "max": 302,
+   "stream_bytes": 7037232,
+   "gzip6": 1899467,
+   "zstd3": 1846744,
+   "gzip6_zero_hash": 616264,
+   "zstd3_zero_hash": 632893
+  },
+  "Avro container (null)": {
+   "total_bytes": 4907756
+  },
+  "Avro container (deflate)": {
+   "total_bytes": 1906171
+  }
+ },
+ "string_payload_bytes": 3017846,
+ "sha256_bytes": 1168608
+}

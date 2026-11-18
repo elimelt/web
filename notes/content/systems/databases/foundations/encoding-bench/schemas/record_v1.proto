@@ -1,0 +1,15 @@
+syntax = "proto3";
+package enc.v1;
+
+message FileRecord {
+  string name = 1;
+  string version = 2;
+  string filename = 3;
+  string packagetype = 4;
+  string python_version = 5;
+  optional string requires_python = 6;
+  int64 size = 7;
+  int64 upload_time = 8;      // microseconds since the Unix epoch
+  bool yanked = 9;
+  bytes sha256 = 10;
+}

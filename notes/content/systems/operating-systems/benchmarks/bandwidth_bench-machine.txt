@@ -1,0 +1,20 @@
+date: 2026-11-17T23:22:13Z
+kernel: 6.18.44-fc-v553
+compiler: gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+cflags: -O3 -march=native -mprefer-vector-width=512 -fopenmp -fno-tree-loop-distribute-patterns -Wall -Wextra
+model name	: Intel(R) Xeon(R) Processor @ 2.10GHz
+cpu family	: 6
+model		: 207
+nproc: 4
+cache L1 Data: 48K
+cache L1 Instruction: 32K
+cache L2 Unified: 2048K
+cache L3 Unified: 266240K
+thp: always [madvise] never
+MemTotal:       16473764 kB
+load before seed 1: 1.96 0.97 0.40
+load before seed 2: 1.97 1.29 0.60
+load before seed 3: 2.21 1.69 0.86
+load before seed 4: 1.97 1.81 1.03
+load before seed 5: 1.98 1.85 1.15
+finished: 2026-11-17T23:34:02Z
