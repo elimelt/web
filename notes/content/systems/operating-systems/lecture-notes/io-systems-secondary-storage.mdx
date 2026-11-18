@@ -105,7 +105,7 @@ sequenceDiagram
 
     P->>OS: read(fd, buf, 4096)
     OS->>D: place command in submission queue, write doorbell register
-    Note over P,OS: process blocks; the CPU runs other threads
+    Note over P,OS: process blocks, and the CPU runs other threads
     D->>D: transfer block into the DMA buffer
     D-->>OS: completion entry, then interrupt
     OS-->>P: wake process, return data
