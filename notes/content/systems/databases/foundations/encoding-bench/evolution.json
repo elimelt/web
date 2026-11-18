@@ -1,0 +1,1089 @@
+{
+ "add field (with default)": {
+  "note": "v2 appends downloads: int64, default 0",
+  "backward": {
+   "JSON": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "MessagePack (map)": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "MessagePack (array)": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Protobuf": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Thrift compact": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Avro (writer schema known)": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Avro (writer schema assumed)": {
+    "status": "error",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 0,
+    "errors": {
+     "EOFError": {
+      "count": 36519,
+      "first": "EOFError: "
+     }
+    },
+    "example": null
+   }
+  },
+  "forward": {
+   "JSON": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "MessagePack (map)": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "MessagePack (array)": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Protobuf": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Thrift compact": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Avro (writer schema known)": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Avro (writer schema assumed)": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   }
+  }
+ },
+ "remove optional field": {
+  "note": "v2 drops requires_python (optional, default null)",
+  "backward": {
+   "JSON": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "MessagePack (map)": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "MessagePack (array)": {
+    "status": "silent wrong value",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 36519,
+    "errors": {},
+    "example": {
+     "size": {
+      "expected": 13369774,
+      "got": null
+     },
+     "upload_time": {
+      "expected": 1389223059968124,
+      "got": 13369774
+     },
+     "yanked": {
+      "expected": false,
+      "got": 1389223059968124
+     },
+     "sha256": {
+      "expected": "daabc24469daea5697f623dce531ab81c54476b8213af32431cb03330937bcfb",
+      "got": false
+     }
+    }
+   },
+   "Protobuf": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Thrift compact": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Avro (writer schema known)": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Avro (writer schema assumed)": {
+    "status": "silent wrong value",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 36519,
+    "errors": {},
+    "example": {
+     "size": {
+      "expected": 13369774,
+      "got": 0
+     },
+     "upload_time": {
+      "expected": 1389223059968124,
+      "got": 13369774
+     },
+     "yanked": {
+      "expected": false,
+      "got": true
+     },
+     "sha256": {
+      "expected": "daabc24469daea5697f623dce531ab81c54476b8213af32431cb03330937bcfb",
+      "got": "c186b0b6dff70400daabc24469daea5697f623dce531ab81c54476b8213af324"
+     }
+    }
+   }
+  },
+  "forward": {
+   "JSON": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "MessagePack (map)": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "MessagePack (array)": {
+    "status": "silent wrong value",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 36519,
+    "errors": {},
+    "example": {
+     "requires_python": {
+      "expected": null,
+      "got": 13369774
+     },
+     "size": {
+      "expected": 13369774,
+      "got": 1389223059968124
+     },
+     "upload_time": {
+      "expected": 1389223059968124,
+      "got": false
+     },
+     "yanked": {
+      "expected": false,
+      "got": "daabc24469daea5697f623dce531ab81c54476b8213af32431cb03330937bcfb"
+     },
+     "sha256": {
+      "expected": "daabc24469daea5697f623dce531ab81c54476b8213af32431cb03330937bcfb",
+      "got": "REQUIRED"
+     }
+    }
+   },
+   "Protobuf": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Thrift compact": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Avro (writer schema known)": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Avro (writer schema assumed)": {
+    "status": "error",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 0,
+    "errors": {
+     "IndexError": {
+      "count": 36519,
+      "first": "IndexError: list index out of range"
+     }
+    },
+    "example": null
+   }
+  }
+ },
+ "remove required field": {
+  "note": "v2 drops python_version (no default in v1)",
+  "backward": {
+   "JSON": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "MessagePack (map)": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "MessagePack (array)": {
+    "status": "silent wrong value",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 36519,
+    "errors": {},
+    "example": {
+     "requires_python": {
+      "expected": null,
+      "got": "source"
+     },
+     "size": {
+      "expected": 13369774,
+      "got": null
+     },
+     "upload_time": {
+      "expected": 1389223059968124,
+      "got": 13369774
+     },
+     "yanked": {
+      "expected": false,
+      "got": 1389223059968124
+     },
+     "sha256": {
+      "expected": "daabc24469daea5697f623dce531ab81c54476b8213af32431cb03330937bcfb",
+      "got": false
+     }
+    }
+   },
+   "Protobuf": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Thrift compact": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Avro (writer schema known)": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Avro (writer schema assumed)": {
+    "status": "error",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 0,
+    "errors": {
+     "IndexError": {
+      "count": 36519,
+      "first": "IndexError: list index out of range"
+     }
+    },
+    "example": null
+   }
+  },
+  "forward": {
+   "JSON": {
+    "status": "error",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 0,
+    "errors": {
+     "KeyError": {
+      "count": 36519,
+      "first": "KeyError: 'python_version'"
+     }
+    },
+    "example": null
+   },
+   "MessagePack (map)": {
+    "status": "error",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 0,
+    "errors": {
+     "KeyError": {
+      "count": 36519,
+      "first": "KeyError: 'python_version'"
+     }
+    },
+    "example": null
+   },
+   "MessagePack (array)": {
+    "status": "silent wrong value",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 36519,
+    "errors": {},
+    "example": {
+     "python_version": {
+      "expected": "<missing>",
+      "got": null
+     },
+     "requires_python": {
+      "expected": null,
+      "got": 13369774
+     },
+     "size": {
+      "expected": 13369774,
+      "got": 1389223059968124
+     },
+     "upload_time": {
+      "expected": 1389223059968124,
+      "got": false
+     },
+     "yanked": {
+      "expected": false,
+      "got": "daabc24469daea5697f623dce531ab81c54476b8213af32431cb03330937bcfb"
+     },
+     "sha256": {
+      "expected": "daabc24469daea5697f623dce531ab81c54476b8213af32431cb03330937bcfb",
+      "got": "REQUIRED"
+     }
+    }
+   },
+   "Protobuf": {
+    "status": "silent wrong value",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 36519,
+    "errors": {},
+    "example": {
+     "python_version": {
+      "expected": "<missing>",
+      "got": ""
+     }
+    }
+   },
+   "Thrift compact": {
+    "status": "silent wrong value",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 36519,
+    "errors": {},
+    "example": {
+     "python_version": {
+      "expected": "<missing>",
+      "got": null
+     }
+    }
+   },
+   "Avro (writer schema known)": {
+    "status": "error",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 0,
+    "errors": {
+     "SchemaResolutionError": {
+      "count": 36519,
+      "first": "SchemaResolutionError: No default value for field python_version in enc.FileRecord"
+     }
+    },
+    "example": null
+   },
+   "Avro (writer schema assumed)": {
+    "status": "error",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 0,
+    "errors": {
+     "IndexError": {
+      "count": 36519,
+      "first": "IndexError: list index out of range"
+     }
+    },
+    "example": null
+   }
+  }
+ },
+ "rename field (Avro alias)": {
+  "note": "v2 renames size to size_bytes; same tag/id; Avro reader schema lists aliases: [size]",
+  "backward": {
+   "JSON": {
+    "status": "error",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 0,
+    "errors": {
+     "KeyError": {
+      "count": 36519,
+      "first": "KeyError: 'size_bytes'"
+     }
+    },
+    "example": null
+   },
+   "MessagePack (map)": {
+    "status": "error",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 0,
+    "errors": {
+     "KeyError": {
+      "count": 36519,
+      "first": "KeyError: 'size_bytes'"
+     }
+    },
+    "example": null
+   },
+   "Protobuf": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Thrift compact": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Avro (writer schema known)": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Avro (writer schema assumed)": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   }
+  },
+  "forward": {
+   "JSON": {
+    "status": "error",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 0,
+    "errors": {
+     "KeyError": {
+      "count": 36519,
+      "first": "KeyError: 'size'"
+     }
+    },
+    "example": null
+   },
+   "MessagePack (map)": {
+    "status": "error",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 0,
+    "errors": {
+     "KeyError": {
+      "count": 36519,
+      "first": "KeyError: 'size'"
+     }
+    },
+    "example": null
+   },
+   "Protobuf": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Thrift compact": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Avro (writer schema known)": {
+    "status": "error",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 0,
+    "errors": {
+     "SchemaResolutionError": {
+      "count": 36519,
+      "first": "SchemaResolutionError: No default value for field size in enc.FileRecord"
+     }
+    },
+    "example": null
+   },
+   "Avro (writer schema assumed)": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   }
+  }
+ },
+ "rename field (no alias)": {
+  "note": "as above, without the Avro alias",
+  "backward": {
+   "JSON": {
+    "status": "error",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 0,
+    "errors": {
+     "KeyError": {
+      "count": 36519,
+      "first": "KeyError: 'size_bytes'"
+     }
+    },
+    "example": null
+   },
+   "MessagePack (map)": {
+    "status": "error",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 0,
+    "errors": {
+     "KeyError": {
+      "count": 36519,
+      "first": "KeyError: 'size_bytes'"
+     }
+    },
+    "example": null
+   },
+   "Avro (writer schema known)": {
+    "status": "error",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 0,
+    "errors": {
+     "SchemaResolutionError": {
+      "count": 36519,
+      "first": "SchemaResolutionError: No default value for field size_bytes in enc.FileRecord"
+     }
+    },
+    "example": null
+   },
+   "Avro (writer schema assumed)": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   }
+  },
+  "forward": {
+   "JSON": {
+    "status": "error",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 0,
+    "errors": {
+     "KeyError": {
+      "count": 36519,
+      "first": "KeyError: 'size'"
+     }
+    },
+    "example": null
+   },
+   "MessagePack (map)": {
+    "status": "error",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 0,
+    "errors": {
+     "KeyError": {
+      "count": 36519,
+      "first": "KeyError: 'size'"
+     }
+    },
+    "example": null
+   },
+   "Avro (writer schema known)": {
+    "status": "error",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 0,
+    "errors": {
+     "SchemaResolutionError": {
+      "count": 36519,
+      "first": "SchemaResolutionError: No default value for field size in enc.FileRecord"
+     }
+    },
+    "example": null
+   },
+   "Avro (writer schema assumed)": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   }
+  }
+ },
+ "narrow int64 to int32": {
+  "note": "v2 declares upload_time (microseconds, ~1.6e15) as int32",
+  "backward": {
+   "JSON": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "MessagePack (map)": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Protobuf": {
+    "status": "silent wrong value",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 36519,
+    "errors": {},
+    "example": {
+     "upload_time": {
+      "expected": 1389223059968124,
+      "got": -1291792260
+     }
+    }
+   },
+   "Thrift compact": {
+    "status": "silent wrong value",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 36519,
+    "errors": {},
+    "example": {
+     "upload_time": {
+      "expected": 1389223059968124,
+      "got": null
+     }
+    }
+   },
+   "Avro (writer schema known)": {
+    "status": "error",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 0,
+    "errors": {
+     "SchemaResolutionError": {
+      "count": 36519,
+      "first": "SchemaResolutionError: Schema mismatch: long is not int"
+     }
+    },
+    "example": null
+   },
+   "Avro (writer schema assumed)": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   }
+  }
+ },
+ "reuse a removed tag": {
+  "note": "v2 deletes size (tag 7) and adds downloads: int64 with tag 7",
+  "backward": {
+   "JSON": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "MessagePack (map)": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Protobuf": {
+    "status": "silent wrong value",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 36519,
+    "errors": {},
+    "example": {
+     "downloads": {
+      "expected": 0,
+      "got": 13369774
+     }
+    }
+   },
+   "Thrift compact": {
+    "status": "silent wrong value",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 36519,
+    "errors": {},
+    "example": {
+     "downloads": {
+      "expected": 0,
+      "got": 13369774
+     }
+    }
+   }
+  },
+  "forward": {
+   "JSON": {
+    "status": "error",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 0,
+    "errors": {
+     "KeyError": {
+      "count": 36519,
+      "first": "KeyError: 'size'"
+     }
+    },
+    "example": null
+   },
+   "MessagePack (map)": {
+    "status": "error",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 0,
+    "errors": {
+     "KeyError": {
+      "count": 36519,
+      "first": "KeyError: 'size'"
+     }
+    },
+    "example": null
+   },
+   "Protobuf": {
+    "status": "silent wrong value",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 36519,
+    "errors": {},
+    "example": {
+     "size": {
+      "expected": "<missing>",
+      "got": 12345
+     }
+    }
+   },
+   "Thrift compact": {
+    "status": "silent wrong value",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 36519,
+    "errors": {},
+    "example": {
+     "size": {
+      "expected": "<missing>",
+      "got": 12345
+     }
+    }
+   }
+  }
+ },
+ "insert field mid-record": {
+  "note": "v2 inserts downloads after name (Avro field order and MessagePack array position)",
+  "backward": {
+   "MessagePack (array)": {
+    "status": "silent wrong value",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 36519,
+    "errors": {},
+    "example": {
+     "downloads": {
+      "expected": 0,
+      "got": "0.1"
+     },
+     "version": {
+      "expected": "0.1",
+      "got": "cryptography-0.1.tar.gz"
+     },
+     "filename": {
+      "expected": "cryptography-0.1.tar.gz",
+      "got": "sdist"
+     },
+     "packagetype": {
+      "expected": "sdist",
+      "got": "source"
+     },
+     "python_version": {
+      "expected": "source",
+      "got": null
+     },
+     "requires_python": {
+      "expected": null,
+      "got": 13369774
+     },
+     "size": {
+      "expected": 13369774,
+      "got": 1389223059968124
+     },
+     "upload_time": {
+      "expected": 1389223059968124,
+      "got": false
+     },
+     "yanked": {
+      "expected": false,
+      "got": "daabc24469daea5697f623dce531ab81c54476b8213af32431cb03330937bcfb"
+     },
+     "sha256": {
+      "expected": "daabc24469daea5697f623dce531ab81c54476b8213af32431cb03330937bcfb",
+      "got": "REQUIRED"
+     }
+    }
+   },
+   "Avro (writer schema known)": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Avro (writer schema assumed)": {
+    "status": "error",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 7,
+    "errors": {
+     "EOFError": {
+      "count": 33517,
+      "first": "EOFError: Expected -52 bytes, read 60"
+     },
+     "UnicodeDecodeError": {
+      "count": 2933,
+      "first": "UnicodeDecodeError: 'utf-8' codec can't decode byte 0xa0 in position 19: invalid start byte"
+     },
+     "IndexError": {
+      "count": 62,
+      "first": "IndexError: list index out of range"
+     }
+    },
+    "example": {
+     "downloads": {
+      "expected": 0,
+      "got": 9
+     },
+     "version": {
+      "expected": "4.22.0rc2",
+      "got": ".22.0rc2Vprotobuf-4.22.0rc"
+     },
+     "filename": {
+      "expected": "protobuf-4.22.0rc2-cp310-abi3-win_amd64.whl",
+      "got": "-cp310-abi3-win_amd64.whl"
+     }
+    }
+   }
+  },
+  "forward": {
+   "MessagePack (array)": {
+    "status": "silent wrong value",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 36519,
+    "errors": {},
+    "example": {
+     "version": {
+      "expected": "0.1",
+      "got": 12345
+     },
+     "filename": {
+      "expected": "cryptography-0.1.tar.gz",
+      "got": "0.1"
+     },
+     "packagetype": {
+      "expected": "sdist",
+      "got": "cryptography-0.1.tar.gz"
+     },
+     "python_version": {
+      "expected": "source",
+      "got": "sdist"
+     },
+     "requires_python": {
+      "expected": null,
+      "got": "source"
+     },
+     "size": {
+      "expected": 13369774,
+      "got": null
+     },
+     "upload_time": {
+      "expected": 1389223059968124,
+      "got": 13369774
+     },
+     "yanked": {
+      "expected": false,
+      "got": 1389223059968124
+     },
+     "sha256": {
+      "expected": "daabc24469daea5697f623dce531ab81c54476b8213af32431cb03330937bcfb",
+      "got": false
+     }
+    }
+   },
+   "Avro (writer schema known)": {
+    "status": "ok",
+    "records": 36519,
+    "ok": 36519,
+    "wrong": 0,
+    "errors": {},
+    "example": null
+   },
+   "Avro (writer schema assumed)": {
+    "status": "error",
+    "records": 36519,
+    "ok": 0,
+    "wrong": 0,
+    "errors": {
+     "EOFError": {
+      "count": 36519,
+      "first": "EOFError: Expected 12345 bytes, read 87"
+     }
+    },
+    "example": null
+   }
+  }
+ },
+ "read-modify-write": {
+  "JSON, dict passed through": {
+   "records": 36519,
+   "downloads_preserved": 36519
+  },
+  "JSON, mapped to v1 fields": {
+   "records": 36519,
+   "downloads_preserved": 0
+  },
+  "Protobuf": {
+   "records": 36519,
+   "downloads_preserved": 36519
+  },
+  "Avro": {
+   "records": 36519,
+   "downloads_preserved": 0
+  },
+  "Thrift compact (thriftpy2)": {
+   "records": 36519,
+   "downloads_preserved": 0
+  }
+ }
+}

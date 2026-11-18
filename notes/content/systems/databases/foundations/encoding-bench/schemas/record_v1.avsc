@@ -1,0 +1,13 @@
+{"type": "record", "name": "FileRecord", "namespace": "enc",
+ "fields": [
+  {"name": "name", "type": "string"},
+  {"name": "version", "type": "string"},
+  {"name": "filename", "type": "string"},
+  {"name": "packagetype", "type": "string"},
+  {"name": "python_version", "type": "string"},
+  {"name": "requires_python", "type": ["null", "string"], "default": null},
+  {"name": "size", "type": "long"},
+  {"name": "upload_time", "type": "long", "doc": "microseconds since the Unix epoch"},
+  {"name": "yanked", "type": "boolean"},
+  {"name": "sha256", "type": {"type": "fixed", "name": "SHA256", "size": 32}}
+ ]}
