@@ -1,0 +1,288 @@
+---
+title: Parallel Reductions Benchmarks
+aliases:
+  - operating-systems/benchmarks/reductions
+category: Performance Engineering
+tags:
+  - simd
+  - avx2
+  - avx-512
+  - ilp
+  - multi-threading
+  - thread-pool
+  - vectorization
+  - auto-vectorization
+  - memory-bandwidth
+  - littles-law
+  - benchmarks
+date: 2025-12-29
+updated: 2026-11-18
+authors:
+  - elimelt
+  - claude-opus-5-5
+status: needs-review
+description: "64-bit array sums from 16 KiB to 4 GiB on an Emerald Rapids cloud VM: the add-latency bound in L1, the loads-per-line limit on one core in DRAM, compiler accumulator choices, and the dispatch cost that decides when a thread pool or a thread per call is faster than one core."
+sources:
+  - title: Original benchmark measurements by Elijah Melton
+    type: experiment
+  - title: Reductions size sweep on an Emerald Rapids cloud VM (reductions_bench.c, this directory)
+    type: experiment
+  - title: Intel 64 and IA-32 Architectures Optimization Reference Manual, documentation changes 355308-051 (October 2026), section 2.4, The Golden Cove Microarchitecture
+    url: https://cdrdv2-public.intel.com/930023/355308-051-optimization-reference-manual-changes-doc.pdf
+    type: documentation
+  - title: "Chips and Cheese (2021), Popping the Hood on Golden Cove"
+    url: https://chipsandcheese.com/p/popping-the-hood-on-golden-cove
+    type: article
+  - title: "Chips and Cheese (2023), Golden Cove's Vector Register File: Checking with Official (SPR) Data"
+    url: https://old.chipsandcheese.com/2023/01/15/golden-coves-vector-register-file-checking-with-official-spr-data/
+    type: article
+  - title: "Chips and Cheese (2024), Lion Cove: Intel's P-core Roars"
+    url: https://old.chipsandcheese.com/2024/09/27/lion-cove-intels-p-core-roars/
+    type: article
+  - title: "uops.info, VPADDQ (YMM, YMM, YMM) measurements"
+    url: https://uops.info/html-instr/VPADDQ_YMM_YMM_YMM.html
+    type: dataset
+  - title: "Little (1961), A Proof for the Queuing Formula: L = λW, Operations Research 9(3)"
+    url: https://doi.org/10.1287/opre.9.3.383
+    type: paper
+  - title: Auto-Vectorization in LLVM
+    url: https://llvm.org/docs/Vectorizers.html
+    type: documentation
+  - title: Auto-vectorization in GCC
+    url: https://gcc.gnu.org/projects/tree-ssa/vectorization.html
+    type: documentation
+  - title: GNU libgomp, GOMP_SPINCOUNT
+    url: https://gcc.gnu.org/onlinedocs/libgomp/GOMP_005fSPINCOUNT.html
+    type: documentation
+  - title: pthread_create(3), Linux manual page
+    url: https://man7.org/linux/man-pages/man3/pthread_create.3.html
+    type: documentation
+  - title: Linux kernel documentation, The KVM halt polling system
+    url: https://docs.kernel.org/virt/kvm/halt-polling.html
+    type: documentation
+  - title: Compiler Explorer
+    url: https://godbolt.org/
+    type: tool
+---
+
+A reduction combines the elements of an array into one value with an associative operator; here the operator is 64-bit integer addition with wraparound. The loop `for (i = 0; i < n; i++) s += a[i];` evaluates the sum as one chain, $s_i = s_{i-1} + a_i$, in which every addition reads the result of the previous one. Associativity allows the chain to be cut into $k$ independent partial sums that are combined at the end, and that freedom is what multiple accumulators, SIMD lanes and threads exploit.
+
+Which of the three matters depends on where the array resides. With the data in L1, the time per element is set by the add latency and the number of independent chains; in DRAM, by how many cache-line fetches one core keeps in flight; across threads, by the fixed cost of starting the parallel work. Measurements on a 4-vCPU Emerald Rapids cloud VM sweep a 64-bit array from 16 KiB to 4 GiB, so that all three regimes appear in one run.
+
+## Bounds for one core
+
+Let $w$ be the number of 64-bit lanes per add instruction (1 for a scalar `add`, 4 for an AVX2 `vpaddq ymm`, 8 for AVX-512 `vpaddq zmm`), $k$ the number of independent accumulators, $L$ the add latency in cycles, and $P$ the number of loads the core can issue per cycle. Each accumulator can accept one new add every $L$ cycles, and every element must be loaded, so in elements per cycle
+
+$$\text{throughput} \le \min\left(\frac{k\,w}{L},\; P\,w\right).$$
+
+On Golden Cove (the core of Sapphire Rapids; Emerald Rapids uses the closely related Raptor Cove), `vpaddq` on ymm or zmm registers has a latency of 1 cycle ([uops.info](https://uops.info/html-instr/VPADDQ_YMM_YMM_YMM.html)), as does a scalar `add`. Intel's optimization manual raises the load bandwidth to "three loads/cycle" and keeps 512-bit loads at "a maximum of two loads per cycle" ([section 2.4](https://cdrdv2-public.intel.com/930023/355308-051-optimization-reference-manual-changes-doc.pdf)), which [Chips and Cheese](https://chipsandcheese.com/p/popping-the-hood-on-golden-cove) measured as three 256-bit or two 512-bit loads per cycle from L1D. The bound is therefore 1 element per cycle for one scalar chain, 3 for scalar code with enough chains, 4 for one ymm accumulator, 12 for several ymm accumulators and 16 for several zmm accumulators. Once the array exceeds the caches, a second bound applies: the bytes per second that one core's outstanding misses can sustain, which [[#One core in DRAM is limited by loads per line|a later section]] measures.
+
+## Variants
+
+All kernels sum `uint64_t` elements, so the compiler may reassociate the sum. For `float` or `double` it may not, and GCC vectorizes a floating-point reduction only under `-ffast-math` or `-fassociative-math` ([GCC](https://gcc.gnu.org/projects/tree-ssa/vectorization.html); [LLVM](https://llvm.org/docs/Vectorizers.html#reductions) states the same requirement), so a floating-point `naive` loop stays a scalar chain at `-O3`.
+
+| Variant | Source | Main loop as compiled | Lanes in flight |
+|---|---|---|---|
+| `naive_scalar` | one accumulator, `-fno-tree-vectorize` | 1 scalar `add` | 1 |
+| `ilp_scalar` | eight accumulators, `-fno-tree-vectorize` | 8 scalar `add` | 8 |
+| `naive` | one accumulator | 1 × `vpaddq ymm` | 4 |
+| `ilp` | eight scalar accumulators | 2 × `vpaddq ymm` | 8 |
+| `simd` | AVX2 intrinsics, one accumulator | 1 × `vpaddq ymm` | 4 |
+| `ilp_simd` | AVX2 intrinsics, four accumulators | 4 × `vpaddq ymm` | 16 |
+| `opt` | the `naive` source, compiled by clang 18 | 4 × `vpaddq ymm` | 16 |
+| `ilp_avx512` | AVX-512 intrinsics, four accumulators | 4 × `vpaddq zmm` | 32 |
+| `thread_*` | `naive` on each of 4 threads | as `naive` | 4 per thread |
+| `all_*` | `ilp_simd` on each of 4 threads | as `ilp_simd` | 16 per thread |
+
+GCC 13 at `-O3 -march=native` vectorizes the single-accumulator loop with one ymm accumulator, so `naive` and `simd` compile to the same four-instruction loop, and it maps the eight scalar accumulators of `ilp` onto two ymm registers, one lane per accumulator. Clang 18 compiles the same `naive` source with four ymm accumulators, because the LLVM loop vectorizer also interleaves (partially unrolls) vectorized loops to increase instruction-level parallelism, choosing the factor from a cost model ([LLVM, "Partial unrolling during vectorization"](https://llvm.org/docs/Vectorizers.html#partial-unrolling-during-vectorization)). Neither compiler uses zmm registers for these loops on this target unless asked (`-mprefer-vector-width=512`), so `ilp_avx512` is written with intrinsics.
+
+> [!note]- Main loops from the test build (`objdump -d`, gcc 13.3 and clang 18.1.3)
+> `naive` and `simd` (gcc), one ymm accumulator, 4 elements per iteration:
+>
+> ```asm
+> vpaddq (%rax),%ymm0,%ymm0
+> add    $0x20,%rax
+> cmp    %rdx,%rax
+> jne    <loop>
+> ```
+>
+> `ilp` (gcc), eight source accumulators as two ymm registers, 8 elements per iteration:
+>
+> ```asm
+> vpaddq (%rax),%ymm1,%ymm1
+> vpaddq 0x20(%rax),%ymm0,%ymm0
+> add    $0x40,%rax
+> cmp    %rsi,%rdx
+> jb     <loop>
+> ```
+>
+> `opt` (clang), the `naive` source interleaved four times, 16 elements per iteration:
+>
+> ```asm
+> vpaddq (%rdi,%rax,8),%ymm0,%ymm0
+> vpaddq 0x20(%rdi,%rax,8),%ymm1,%ymm1
+> vpaddq 0x40(%rdi,%rax,8),%ymm2,%ymm2
+> vpaddq 0x60(%rdi,%rax,8),%ymm3,%ymm3
+> add    $0x10,%rax
+> cmp    %rax,%rcx
+> jne    <loop>
+> ```
+>
+> `ilp_avx512`, four zmm accumulators, 32 elements per iteration:
+>
+> ```asm
+> vpaddq (%rax),%zmm3,%zmm3
+> vpaddq 0x40(%rax),%zmm0,%zmm0
+> add    $0x100,%rax
+> vpaddq -0x80(%rax),%zmm2,%zmm2
+> vpaddq -0x40(%rax),%zmm1,%zmm1
+> cmp    %rax,%rcx
+> jne    <loop>
+> ```
+>
+> `naive_scalar`, the dependency chain on `%rax`:
+>
+> ```asm
+> add    (%rdi),%rax
+> add    $0x8,%rdi
+> cmp    %rdi,%rdx
+> jne    <loop>
+> ```
+>
+> After the loop, each vector variant folds its lanes into one scalar with a log-depth sequence of shuffles and adds (`vextracti64x2`, `vpaddq`, `vpsrldq`), the pattern discussed in [[hardware/computer-architecture/simd-vectors-gpus-accelerators|From SIMD to SIMT]].
+
+## Results across the hierarchy
+
+<ReductionSweep />
+
+Median GB/s over the sizes in each region (L1: 16 and 32 KiB; L2: 64 KiB to 1 MiB; L3: 8 to 64 MiB; DRAM: 512 MiB to 4 GiB), elements counted at 8 bytes:
+
+| Variant | L1 | L2 | L3 | DRAM |
+|---|---|---|---|---|
+| `naive_scalar` | 23.6 | 23.8 | 22.8 | 6.7 |
+| `ilp_scalar` | 67.7 | 36.9 | 28.9 | 7.2 |
+| `naive` | 93.8 | 92.2 | 36.2 | 12.5 |
+| `ilp` | 147 | 113 | 38.3 | 13.0 |
+| `simd` | 91.5 | 94.3 | 36.0 | 12.5 |
+| `ilp_simd` | 162 | 121 | 38.0 | 14.1 |
+| `opt` | 175 | 130 | 37.6 | 14.8 |
+| `ilp_avx512` | 261 | 144 | 41.4 | 17.1 |
+| `thread_spawn` | 0.3 | 3.3 | 84.9 | 45.0 |
+| `thread_pool` | 32.8 | 177 | 114 | 45.9 |
+| `all_spawn` | 0.4 | 3.4 | 86.5 | 51.5 |
+| `all_pool` | 36.6 | 177 | 117 | 51.2 |
+
+**L1.** The single scalar chain sustains 0.91 elements per cycle against a bound of 1, so the add latency alone sets its speed. Eight scalar chains reach 2.61, close to the three loads per cycle that bound scalar code. One ymm accumulator reaches 3.62 of a possible 4. Four accumulators reach 6.24 (ymm, intrinsics), 6.75 (ymm, clang) and 10.06 (zmm) elements per cycle, between half and two thirds of the load-port bounds of 12 and 16. Cycles are counted at 3.24 GHz, the clock measured from a chain of dependent register-register adds; the remaining gap to the load-port bound was not attributed, since the guest has no performance counters and the host may run another guest on the same physical core.
+
+**L2 and L3.** In L2 the vector variants fall to 92.2 to 144 GB/s, and in L3 every vector variant lands between 36.0 and 41.4 GB/s. With the data in L3, the accumulator count no longer matters; one core's L3 bandwidth does.
+
+**DRAM.** Here the single-thread variants separate again. One core reaches 6.7 GB/s with scalar loads, 12.5 GB/s with one ymm accumulator and 17.1 GB/s with zmm loads, while four threads reach 52.2 GB/s on the same machine. A single core therefore does not reach the DRAM bandwidth limit; [[#One core in DRAM is limited by loads per line|the next section]] identifies what limits it.
+
+## One core in DRAM is limited by loads per line
+
+[Little's law](https://doi.org/10.1287/opre.9.3.383) ties the bandwidth of one core to the number of cache lines $N$ it has in flight and the time $W$ each fetch takes: bandwidth $= N \cdot 64\,\text{B} / W$. Dependent loads to random lines of a 2 GiB array (2 MiB pages) take a median 118 ns on this VM, so every 10 GB/s requires about 18 lines in flight. Intel lists 16 L1D fill buffers for Golden Cove and deeper L2 miss queues (32 to 48 entries) ([section 2.4](https://cdrdv2-public.intel.com/930023/355308-051-optimization-reference-manual-changes-doc.pdf)); the L2 hardware prefetcher can hold lines in flight beyond the 16 demand misses (see [[systems/operating-systems/benchmarks/mlp|memory-level parallelism]], which measures about 15 demand misses in flight on the same VM model).
+
+To separate the width of the loads from their number, a second set of kernels reads every 64-byte line of a 2 GiB array once, with 8, 4, 2 or 1 scalar loads per line (strides of 1, 2, 4 and 8 elements), and with one ymm or zmm load per 32 or 64 bytes. Five runs each, single thread:
+
+| Kernel | Loads per line | GB/s, median (min to max) | Lines in flight |
+|---|---|---|---|
+| scalar, every element | 8 | 6.7 (6.5 to 6.9) | 12 |
+| scalar, every 2nd element | 4 | 8.1 (7.8 to 8.3) | 15 |
+| scalar, every 4th element | 2 | 11.4 (10.6 to 11.5) | 21 |
+| scalar, every 8th element | 1 | 15.3 (14.4 to 15.9) | 28 |
+| `simd` (1 ymm accumulator) | 2 | 12.5 (11.7 to 12.7) | 23 |
+| 1 zmm accumulator | 1 | 16.3 (15.7 to 16.9) | 30 |
+| `ilp_avx512` (4 zmm accumulators) | 1 | 17.3 (17.1 to 17.5) | 32 |
+
+Bandwidth follows loads per line and hardly depends on whether the loads are scalar or vector: one scalar load per line gives 15.3 GB/s and one zmm load per line 16.3 GB/s; two scalar loads per line give 11.4 GB/s and two ymm loads 12.5 GB/s. Each in-flight load that misses holds an entry in the load queue until its line arrives, and Chips and Cheese measured 192 load-queue entries on Golden Cove ([2023](https://old.chipsandcheese.com/2023/01/15/golden-coves-vector-register-file-checking-with-official-spr-data/)), so a loop that issues eight loads per line can cover fewer lines with the same queue. This is an inference consistent with the table rather than a measurement of the queue: the lines in flight are lower bounds computed with the unloaded latency, and the products of loads per line and lines in flight (98, 60, 42, 28 loads) are not constant, so other structures, among them the 512-entry reorder buffer, also contribute. Within each group of equal loads per line, `ilp_scalar` (eight chains, 7.2 GB/s) is barely faster than `naive_scalar` (6.7 GB/s), so the dependency chain is not what limits scalar code in DRAM.
+
+For a single thread in DRAM, vector width therefore matters through the number of loads per line, not through the number of adds. On this VM, the `naive` loop compiled by GCC runs at 12.5 GB/s and the same loop with zmm loads at 17.1 GB/s, a factor of 1.37.
+
+## Threads: the fixed cost of a parallel call
+
+A parallel reduction over $T$ threads takes $t_T(n) = d + n\,\tau_T$ per call, where $\tau_T$ is the time per element with all threads working and $d$ is the fixed cost of distributing the work and collecting the partial sums. Threads are faster than one core with time per element $\tau_1$ when
+
+$$n > n^* = \frac{d}{\tau_1 - \tau_T}.$$
+
+The value of $d$ depends on how the threads are started. Three mechanisms were measured with an empty call (no elements) on 4 threads, 1,000 calls each:
+
+| Mechanism | Median | 10th to 90th percentile |
+|---|---|---|
+| `pthread_create` and `pthread_join` for each call (`*_spawn`) | 65.7 µs | 60.7 to 88.3 µs |
+| Persistent pool, workers spinning on a counter (`*_pool`) | 0.69 µs | 0.56 to 0.83 µs |
+| Persistent pool, workers asleep on a futex | 88.3 µs | 57.3 to 136.5 µs |
+
+The pool's workers spin on a shared generation counter with `pause` for about 1 ms after each call, then sleep in `FUTEX_WAIT`; the caller increments the counter and issues `FUTEX_WAKE` only if a worker is asleep. Back-to-back calls find the workers spinning and cost under a microsecond, consistent with passing a few cache lines between cores. A call that must wake sleeping workers costs 88.3 µs, more than creating four new threads (65.7 µs), so on this VM the dominant cost of both is probably waking idle vCPUs rather than creating threads. An idle vCPU halts and leaves the guest, and KVM's halt polling (by default up to 200 µs on x86) only partly hides the wake-up from the host scheduler ([kernel documentation](https://docs.kernel.org/virt/kvm/halt-polling.html)). OpenMP runtimes keep workers spinning for the same reason: libgomp spins 300,000 times before sleeping when `OMP_WAIT_POLICY` is unset ([GOMP_SPINCOUNT](https://gcc.gnu.org/onlinedocs/libgomp/GOMP_005fSPINCOUNT.html)).
+
+With a spinning pool, four threads (`all_pool`) outrun the fastest single-thread variant from 128 KiB upward; with a thread per call (`all_spawn`), from 4 MiB. At 1 MiB, the spawned version takes 70 µs per call, of which 93% is the dispatch cost, and the pooled version takes 3.0 µs. The figure's dispatch model reproduces the spawn curve from the pool curve and the empty-call measurement alone, to within 17% from 16 KiB to 2 MiB.
+
+In DRAM, four pooled threads with four ymm accumulators each reach 52.2 GB/s, 3.62 times one thread (14.4 GB/s), with 2 and 3 threads at 26.0 and 39.5 GB/s. Scaling is nearly linear because each core adds its own set of outstanding misses; the [[systems/operating-systems/benchmarks/bandwidth|memory bandwidth]] measurements on the same VM model show the same scaling for a read kernel up to four threads. Its one-thread read rate there, 13.7 GB/s, is below the 17.1 GB/s of `ilp_avx512` here, and its idle DRAM latency, 163 ns, is above the 118 ns measured here; both runs use 2 MiB pages but ran on different instances of the VM type, and the two harnesses measure latency over different array sizes, so the gap is not attributed to a single cause. With four ymm accumulators per thread, the threaded reduction is about as fast as the read kernel there; with the `naive` kernel per thread (`thread_pool`) it reaches 41.6 GB/s.
+
+The largest gain from threads is superlinear and comes from cache capacity. Each core reads a quarter of the array, so an array of 4 MiB, twice one core's L2, splits into four quarters that each fit in a private L2. At 4 MiB `all_pool` moves 356 GB/s against 48.2 GB/s for `ilp_avx512` on one core, 7.4 times as much with 4 threads. In the L3 range four cores read from L3 in parallel, 117 GB/s against 41.4 GB/s for the fastest single thread.
+
+> [!note]- Thread placement: a pitfall found while measuring
+> The benchmark pins its main thread to CPU 0. A thread created by `pthread_create` "inherits a copy of the creating thread's CPU affinity mask" ([pthread_create(3)](https://man7.org/linux/man-pages/man3/pthread_create.3.html)), so in a first version of the harness, which pinned each new thread from inside the thread, all four threads started on CPU 0 and ran their chunks one after another until each moved itself. A 64 MiB call then took 1.33 ms instead of about 0.6 ms, and `thread_spawn` appeared 2x slower than the pool at sizes where creation costs nothing. The harness now sets each thread's CPU in its creation attributes (`pthread_attr_setaffinity_np`). Any program that pins a thread and then creates others from it has the same behavior.
+
+## Setup and method
+
+| | |
+|---|---|
+| Machine | KVM guest, 4 vCPUs, "Intel Xeon Processor @ 2.10GHz", family 6 model 207 (0xCF, [Emerald Rapids](https://codebrowser.dev/linux/linux/arch/x86/include/asm/intel-family.h.html)) |
+| Caches (guest view) | L1d 48 KiB and L2 2 MiB per core, L3 260 MiB shared |
+| Memory | 16 GB, one NUMA node; arrays backed by 2 MiB transparent huge pages (`madvise`) |
+| Clock | 3.24 GHz (median of 6), from 8 dependent register-register `add` per loop iteration |
+| Software | Linux 6.18.44, gcc 13.3.0 and clang 18.1.3, `-O3 -march=native` |
+| Threads | 4, one per vCPU, each pinned at creation; the caller runs one quarter in the pooled variants |
+
+> [!note]- How this was measured
+> - Each run fills one array of 4 GiB with splitmix64 values and sweeps sizes 16 KiB, 32 KiB, ..., 4 GiB as prefixes of that array; at each size the twelve variants run in a new random order. Every variant's sum is compared with the scalar reference at every size, and all 1,140 cells matched.
+> - A cell runs one untimed call, then 9 samples (5 above 64 MiB). Each sample repeats the call until it lasts at least 2 ms and records the mean time per call. The cell's value is the median of its samples; the table and figure report the median over 5 runs, and the figure's shading spans the per-run minimum and maximum.
+> - The thread-scaling cells use a 2 GiB array, 1 to 4 pooled threads, 5 runs. The loads-per-line kernels use a 2 GiB array, 5 runs. The latency chase uses one 64-byte node per line linked in a single random cycle (Sattolo's algorithm), 20 million dependent loads, 3 runs.
+> - The dispatch cells time 200 empty parallel calls per mechanism and run; for the sleeping pool, the caller sleeps 5 ms before each call so that the workers have left their spin loop.
+> - A chain of `add $1, %reg` ran at about 13 instructions per ns, four per cycle, so it cannot calibrate the clock. Golden Cove's renamer executes up to six dependent adds of small immediates per cycle ([Chips and Cheese, 2024](https://old.chipsandcheese.com/2024/09/27/lion-cove-intels-p-core-roars/)); the calibration uses a register operand instead.
+> - Load average before the five runs ranged from 0.22 to 1.09 (1-minute average); no other work ran on the VM. Machine details and per-run load are in `reductions_bench-machine.txt`.
+
+## Original measurements
+
+> [!note]- Earlier results on an unrecorded machine
+> An earlier version of this note reported the following, measured with 8 pthreads created per call on an x86-64 CPU with AVX2 whose model was not recorded. The harness that produced them is not in the repository.
+>
+> | Size | naive | ilp | simd | thread | ilp+simd | all |
+> |------|-------|-----|------|--------|----------|-----|
+> | 1 MB | 0.41 | 0.21 | 0.17 | 1.70 | 0.15 | 1.40 |
+> | 4 MB | 0.21 | 0.19 | 0.18 | 0.37 | 0.21 | 0.35 |
+> | 16 MB | 0.35 | 0.27 | 0.24 | 0.18 | 0.25 | 0.15 |
+> | 64 MB | 0.41 | 0.31 | 0.30 | 0.19 | 0.30 | 0.17 |
+> | 256 MB | 0.40 | 0.31 | 0.33 | 0.17 | 0.32 | 0.14 |
+> | 1024 MB | 0.39 | 0.31 | 0.32 | 0.15 | 0.32 | 0.13 |
+>
+> (ns per element.) Three readings of that table do not survive the new measurements. The 1 MB threaded result (1.70 ns per element, about 220 µs per call) is consistent with thread creation dominating the call, since the new harness measures 65.7 µs per spawned call on 4 threads; it says nothing about threading at 1 MB with a pool, which on the VM is 2.2 times as fast as the fastest single thread. The explanation that threads help because they "draw from multiple channels at once" is incomplete: on the VM one thread already moves 17.1 GB/s with zmm loads, and bandwidth grows almost linearly from one to four pooled threads, which is what each core adding its own outstanding misses predicts. The statement that ILP and SIMD stop mattering in DRAM holds only where the per-core bound is reached by every variant; on the VM, zmm loads make one core 1.37 times faster than the `naive` loop in DRAM.
+
+## Reproduction
+
+On Linux x86-64 with gcc and clang, from this directory:
+
+```bash
+./run_reductions_bench.sh              # 5 runs, sizes up to 4 GiB; about 7 minutes on the VM
+RUNS=1 MAXBYTES=268435456 ./run_reductions_bench.sh   # a quick pass up to 256 MiB
+python3 analyze_reductions_bench.py    # writes reductions_bench-summary.json and the figure's data
+```
+
+The runner needs about 4.5 GB of free memory, pins threads to CPUs 0 to 3, and overwrites the `reductions_bench-*.jsonl` files. The sources are `reductions_bench.c` (harness, thread pool, spawn path), `reductions_kernels.c` (vector kernels), `reductions_scalar.c` (compiled with `-fno-tree-vectorize`), `reductions_clang.c` (`opt`) and `reductions_bench.mk`.
+
+> [!note]- Potentially interesting ideas
+> - On bare metal with performance counters, `L1D_PEND_MISS.PENDING` and the load-queue occupancy would test the loads-per-line explanation directly instead of through Little's law.
+> - A floating-point version of the sweep would show the chain bound of a 4-cycle `vaddpd` in L1 and how far `-fassociative-math` changes the result.
+> - The pool's spin window (about 1 ms here, 300,000 iterations in libgomp) trades CPU time for dispatch latency; sweeping it against the gap between calls would locate the point where sleeping costs more than it saves.
+
+## Related notes
+
+- [[systems/operating-systems/benchmarks/bandwidth|Memory bandwidth]]: read, copy and triad bandwidth on the same VM model, with the same per-core concurrency limit.
+- [[systems/operating-systems/benchmarks/mlp|Memory-level parallelism]]: misses in flight per core and the fill-buffer limit.
+- [[systems/operating-systems/benchmarks/false_sharing|False sharing]]: the cost of the cache-line traffic that a spinning pool's counter also generates.
+- [[hardware/computer-architecture/out-of-order-execution|Out-of-order execution]]: how independent chains are found and overlapped.
+- [[hardware/computer-architecture/simd-vectors-gpus-accelerators|From SIMD to SIMT: Vectors, GPUs, and Accelerators]]
+- [[systems/performance/amdahl-gustafson-scalability|Amdahl's and Gustafson's laws]]: the dispatch cost $d$ acts as serial work.
+- [[ml/serving-systems/roofline-reference|Roofline model]]
+- [[systems/operating-systems/benchmarks/branch|Branch prediction]]
+- [[hardware/computer-architecture/experiments-and-benchmarking|Experiments and Benchmarking in Computer Architecture]]
