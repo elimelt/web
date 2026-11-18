@@ -1,0 +1,201 @@
+// The real-time schedule figure: a block per policy, a row per task on a
+// shared tick axis, release ticks above each row, deadline ticks below, and
+// the schedulability tests as a short list.
+
+figure.rts {
+  @include fig-frame(0.8rem 0.9rem 0.7rem);
+
+  .rts-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.2rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.88rem;
+  }
+
+  .rts-slider {
+    @include fig-slider;
+    flex: 1 1 9rem;
+    max-width: 13rem;
+  }
+
+  .rts-legend {
+    margin-bottom: 0.55rem;
+    color: var(--darkgray);
+    font-size: 0.8rem;
+    line-height: 1.6;
+  }
+
+  .rts-key {
+    display: inline-block;
+    width: 0.8rem;
+    height: 0.8rem;
+    margin: 0 0.25rem 0 0.15rem;
+    vertical-align: -0.1rem;
+    border-radius: 2px;
+
+    &.rts-key-rel,
+    &.rts-key-dl,
+    &.rts-key-miss,
+    &.rts-key-meas {
+      width: 2px;
+      border-radius: 0;
+      margin: 0 0.35rem 0 0.3rem;
+    }
+
+    &.rts-key-rel { background: var(--darkgray); }
+    &.rts-key-dl { background: var(--gray); }
+    &.rts-key-miss { width: 4px; background: var(--fig-red); }
+    &.rts-key-meas { width: 0; height: 0; border: 0.3rem solid transparent; border-bottom: 0.5rem solid var(--dark); border-top: 0; vertical-align: 0; }
+  }
+
+  .rts-chart {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .rts-block {
+    display: grid;
+    gap: 9px;
+  }
+
+  .rts-head {
+    margin: 0 0 0.05rem;
+    color: var(--darkgray);
+    font-size: 0.82rem;
+    line-height: 1.4;
+
+    strong {
+      color: var(--dark);
+    }
+  }
+
+  .rts-bad {
+    color: var(--fig-red);
+    font-weight: 600;
+  }
+
+  .rts-row {
+    display: grid;
+    grid-template-columns: 1.6rem minmax(0, 1fr);
+    gap: 0.45rem;
+    align-items: center;
+  }
+
+  .rts-name {
+    color: var(--darkgray);
+    font-size: 0.8rem;
+  }
+
+  .rts-track {
+    position: relative;
+    height: 1.15rem;
+    background: var(--highlight);
+    border-radius: 2px;
+  }
+
+  .rts-seg {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-right: 1px solid var(--light);
+    box-sizing: border-box;
+  }
+
+  .rts-c0 { background: var(--fig-blue); }
+  .rts-c1 { background: var(--fig-orange); }
+  .rts-c2 { background: var(--fig-green); }
+
+  // A release: a tick rising above the track. A deadline: a tick hanging below.
+  .rts-rel,
+  .rts-dl {
+    position: absolute;
+    width: 2px;
+    margin-left: -1px;
+  }
+
+  .rts-rel {
+    top: -4px;
+    height: 4px;
+    background: var(--darkgray);
+  }
+
+  .rts-dl {
+    bottom: -4px;
+    height: 4px;
+    background: var(--gray);
+
+    &.rts-miss {
+      top: -3px;
+      bottom: -5px;
+      height: auto;
+      width: 4px;
+      margin-left: -2px;
+      background: var(--fig-red);
+    }
+  }
+
+  .rts-meas {
+    position: absolute;
+    bottom: 0;
+    width: 0;
+    height: 0;
+    margin-left: -0.28rem;
+    border: 0.28rem solid transparent;
+    border-bottom: 0.45rem solid var(--dark);
+    border-top: 0;
+  }
+
+  .rts-axis .rts-track {
+    height: 1rem;
+    background: none;
+
+    span {
+      position: absolute;
+      top: 0;
+      transform: translateX(-50%);
+      color: var(--gray);
+      font-size: 0.72rem;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  ul.rts-tests {
+    margin: 0.6rem 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.83rem;
+    line-height: 1.45;
+    color: var(--darkgray);
+
+    li {
+      margin: 0.15rem 0;
+      padding: 0;
+    }
+  }
+
+  .rts-test {
+    color: var(--dark);
+    font-weight: 600;
+  }
+
+  .rts-good { color: var(--fig-green); }
+  .rts-muted { color: var(--gray); }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    padding: 0.7rem 0.6rem 0.6rem;
+
+    .rts-row {
+      grid-template-columns: 1.3rem minmax(0, 1fr);
+      gap: 0.3rem;
+    }
+
+    ul.rts-tests {
+      font-size: 0.78rem;
+    }
+  }
+}

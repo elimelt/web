@@ -1,0 +1,12 @@
+# ./gapmon fifo 60 /sys/fs/cgroup/cpuset/rt/tasks   (SCHED_FIFO 90 busy loop on isolated CPU 3, 2026-11-18)
+gaps>200us 764 total_ms 516.7 steal_jiffies 66
+  at 6.931 s gap 13.24 ms
+  at 36.837 s gap 9.13 ms
+  at 6.908 s gap 7.64 ms
+  at 29.218 s gap 5.50 ms
+  at 58.772 s gap 5.14 ms
+  at 55.712 s gap 5.06 ms
+  at 53.056 s gap 4.85 ms
+  at 1.861 s gap 4.35 ms
+  at 45.799 s gap 4.21 ms
+  at 55.524 s gap 4.19 ms
