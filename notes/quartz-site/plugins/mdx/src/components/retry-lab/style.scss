@@ -1,0 +1,274 @@
+// Retry lab (retry-lab): one sampled call under retransmission and the exact
+// distribution of executions per call, with measured points.
+figure.rl {
+  @include fig-frame;
+  font-size: 0.9rem;
+
+  form.rl-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    margin: 0 0 0.6rem;
+  }
+
+  .rl-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.6rem;
+  }
+
+  .rl-row-label {
+    font-size: 0.82rem;
+    color: var(--darkgray);
+    min-width: 7.5rem;
+  }
+
+  .rl-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  button {
+    @include fig-button(0.2rem 0.55rem, 0.82rem);
+    @include fig-button-hover;
+
+    &[aria-pressed="true"] {
+      @include fig-pressed;
+    }
+  }
+
+  .rl-sliders {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem 1rem;
+  }
+
+  .rl-slider {
+    @include fig-slider;
+    font-size: 0.82rem;
+    color: var(--darkgray);
+  }
+
+  .rl-trace-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem 0.8rem;
+    margin-top: 0.3rem;
+    font-size: 0.85rem;
+    color: var(--darkgray);
+
+    button {
+      flex: none;
+    }
+  }
+
+  .rl-plot {
+    margin-top: 0.4rem;
+  }
+
+  .rl-ladder,
+  .rl-bars {
+    @include fig-chart;
+  }
+
+  .rl-lane {
+    stroke: var(--gray);
+    stroke-width: 1.2;
+  }
+
+  .rl-label,
+  .rl-axis {
+    fill: var(--darkgray);
+    font-size: 12.5px;
+  }
+
+  .rl-note,
+  .rl-tick {
+    fill: var(--gray);
+    font-size: 11.5px;
+  }
+
+  .rl-val {
+    fill: var(--darkgray);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .rl-dup-text,
+  .rl-fail {
+    fill: var(--fig-red);
+    font-size: 12px;
+  }
+
+  .rl-msg {
+    --rl-c: var(--fig-blue);
+    stroke: var(--rl-c);
+    fill: var(--rl-c);
+    stroke-width: 1.6;
+
+    &.rl-rep {
+      --rl-c: var(--fig-orange);
+    }
+
+    &.rl-dropped line {
+      stroke-dasharray: 3 3;
+    }
+
+    .rl-x {
+      stroke: var(--fig-red);
+      stroke-width: 2;
+      fill: none;
+    }
+  }
+
+  .rl-exec {
+    fill: var(--fig-green);
+
+    &.rl-dup {
+      fill: var(--fig-red);
+    }
+  }
+
+  .rl-replay {
+    fill: var(--light);
+    stroke: var(--fig-purple);
+    stroke-width: 1.8;
+  }
+
+  .rl-slot {
+    fill: var(--lightgray);
+  }
+
+  .rl-timeout {
+    fill: none;
+    stroke: var(--gray);
+    stroke-width: 1;
+  }
+
+  .rl-done {
+    fill: var(--secondary);
+    stroke: var(--light);
+    stroke-width: 1.5;
+  }
+
+  .rl-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .rl-bar-ok {
+    fill: var(--fig-blue);
+  }
+
+  .rl-bar-fail {
+    fill: var(--fig-orange);
+  }
+
+  .rl-meas {
+    stroke: var(--dark);
+    fill: var(--dark);
+    stroke-width: 1.4;
+  }
+
+  ul.rl-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 1rem;
+    list-style: none;
+    margin: 0.3rem 0 0;
+    padding: 0;
+    font-size: 0.8rem;
+    color: var(--darkgray);
+
+    li {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+  }
+
+  .rl-key {
+    display: inline-block;
+    width: 0.75rem;
+    height: 0.75rem;
+    background: var(--fig-blue);
+
+    &.rl-key-fail {
+      background: var(--fig-orange);
+    }
+
+    &.rl-key-meas {
+      width: 0.55rem;
+      height: 0.55rem;
+      background: var(--dark);
+      transform: rotate(45deg);
+    }
+  }
+
+  .rl-readout {
+    margin-top: 0.6rem;
+
+    .table-container {
+      margin: 0;
+      padding: 0;
+    }
+  }
+
+  table.rl-table {
+    @include fig-table;
+    font-size: 0.84rem;
+    font-variant-numeric: tabular-nums;
+
+    th,
+    td {
+      padding: 0.15rem 0.5rem 0.15rem 0;
+      border: none;
+      text-align: left;
+      font-weight: normal;
+    }
+
+    tr:first-child th {
+      color: var(--gray);
+      font-size: 0.78rem;
+      border-bottom: 1px solid var(--lightgray);
+    }
+
+    th[scope="row"] {
+      color: var(--darkgray);
+    }
+  }
+
+  .rl-range {
+    color: var(--gray);
+    font-size: 0.78rem;
+  }
+
+  .rl-measured {
+    margin: 0.4rem 0 0;
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .rl-sliders {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .rl-row-label {
+      min-width: 100%;
+    }
+
+    .rl-trace-head {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+}
