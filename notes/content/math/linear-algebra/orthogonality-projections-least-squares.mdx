@@ -1,0 +1,276 @@
+---
+title: Orthogonality, Projections, and Least Squares
+category: Mathematics
+tags:
+  - linear algebra
+  - orthogonality
+  - projections
+  - least squares
+  - qr decomposition
+  - numerical linear algebra
+  - condition number
+date: 2026-08-01
+updated: 2026-11-17
+authors:
+  - elimelt
+  - claude-opus-5-5
+status: evergreen
+description: Orthogonal projection and least squares as one orthogonality condition, the normal equations, the conditioning of the least-squares problem, and the measured accuracy and cost of the normal equations, Householder QR and the SVD on matrices with condition numbers from 1 to 10^16.
+sources:
+  - title: MIT 18.06 Linear Algebra, Spring 2010 (Strang), lectures 15 to 17
+    url: https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/
+    type: course
+  - title: Interactive Linear Algebra (Margalit and Rabinoff), chapter 6
+    url: https://textbooks.math.gatech.edu/ila/chap-orthogonality.html
+    type: book
+  - title: Trefethen and Bau (1997), Numerical Linear Algebra, lectures 11, 16, 18 and 19
+    url: https://doi.org/10.1137/1.9780898719574
+    type: book
+  - title: Higham (2002), Accuracy and Stability of Numerical Algorithms, 2nd ed., chapter 20
+    url: https://doi.org/10.1137/1.9780898718027
+    type: book
+  - title: Golub (1965), Numerical methods for solving linear least squares problems
+    url: https://doi.org/10.1007/BF01436075
+    type: paper
+  - title: Läuchli (1961), Jordan-Elimination und Ausgleichung nach kleinsten Quadraten
+    url: https://doi.org/10.1007/BF01386022
+    type: paper
+  - title: Wedin (1973), Perturbation theory for pseudo-inverses
+    url: https://doi.org/10.1007/BF01933494
+    type: paper
+  - title: numpy.linalg.lstsq
+    url: https://numpy.org/doc/stable/reference/generated/numpy.linalg.lstsq.html
+    type: docs
+  - title: Meier, Nakatsukasa, Townsend and Webb (2024), Are sketch-and-precondition least squares solvers numerically stable?
+    url: https://doi.org/10.1137/23M1551973
+    type: paper
+  - title: Epperly, Meier and Nakatsukasa (2025), Fast randomized least-squares solvers can be just as accurate and stable as classical direct solvers
+    url: https://doi.org/10.1002/cpa.70013
+    type: paper
+---
+
+The orthogonal projection of a vector $b \in \mathbb{R}^m$ onto a subspace $W$ is the unique point $\hat{b} \in W$ for which the error $b - \hat{b}$ is orthogonal to $W$, and it is the point of $W$ closest to $b$. A least-squares solution of an overdetermined system $Ax = b$ is a vector $\hat{x}$ for which $A\hat{x}$ is the projection of $b$ onto the column space of $A$.
+
+Orthogonality, projection and least squares are therefore three formulations of one condition, the orthogonality of the error to the subspace. That condition yields the normal equations $A^T A \hat{x} = A^T b$. Numerical libraries nevertheless compute least-squares solutions from QR or SVD factorizations of $A$, because forming $A^T A$ squares the condition number. On $60 \times 8$ test matrices with $\kappa(A) = 10^6$ and $b$ in the column space, solving the normal equations gave a median relative error of $2.3 \times 10^{-5}$ and Householder QR gave $2.6 \times 10^{-12}$. When $b$ lies far from the column space the advantage of QR shrinks to a constant factor, for reasons that the [[#Conditioning of the least-squares problem|conditioning of the problem]] explains. Matrix background is in [[math/linear-algebra/cheatsheet|Matrix Theory]].
+
+## Orthogonality and orthonormal bases
+
+Vectors $u, v \in \mathbb{R}^m$ are orthogonal when $u^T v = 0$. A set of vectors is orthonormal when the vectors are pairwise orthogonal and of unit length. If $Q = [u_1 \cdots u_k]$ has orthonormal columns then $Q^T Q = I_k$, and the coordinates of a vector $w \in \mathrm{col}(Q)$ in that basis are the inner products $u_i^T w$, so no linear system has to be solved. Multiplication by such a $Q$ preserves inner products and lengths, $\lVert Qx \rVert_2 = \lVert x \rVert_2$. That property is the reason orthogonal factorizations are numerically stable.
+
+The orthogonal complement of a subspace $W \subseteq \mathbb{R}^m$ is $W^\perp = \{v : v^T w = 0 \text{ for all } w \in W\}$. The instance used in least squares is
+
+$$
+\mathrm{col}(A)^\perp = \ker(A^T),
+$$
+
+since $v$ is perpendicular to every column of $A$ exactly when every entry of $A^T v$ is zero ([ILA §6.2](https://textbooks.math.gatech.edu/ila/orthogonal-complements.html)). Every $b \in \mathbb{R}^m$ decomposes uniquely as $b = \hat{b} + e$ with $\hat{b} \in W$ and $e \in W^\perp$.
+
+## Projections
+
+The projection of $b$ onto $W$ is the component $\hat{b}$ of that decomposition. Onto the line spanned by a nonzero vector $a$ it is
+
+$$
+\mathrm{proj}_a(b) = \frac{a^T b}{a^T a}\, a ,
+$$
+
+the multiple of $a$ whose error satisfies $a^T(b - \mathrm{proj}_a(b)) = 0$ ([ILA §6.3](https://textbooks.math.gatech.edu/ila/projections.html)). With an orthonormal basis $u_1, \dots, u_k$ for $W$, the projections onto the individual basis vectors add:
+
+$$
+\mathrm{proj}_W(b) = \sum_{i=1}^{k} (u_i^T b)\, u_i = Q Q^T b
+$$
+
+([ILA §6.4](https://textbooks.math.gatech.edu/ila/orthogonal-sets.html)). When the columns of a full-column-rank matrix $A$ span $W$ but are not orthogonal, the one-dimensional projections do not add. The projection is then $A\hat{x}$ for the coefficient vector $\hat{x}$ that makes the error perpendicular to every column, and the projection matrix is
+
+$$
+P = A (A^T A)^{-1} A^T .
+$$
+
+Projection matrices satisfy $P^2 = P$ (projecting twice changes nothing) and $P^T = P$, and $I - P$ is the projection onto $W^\perp$. Strang's [18.06 lectures 15 and 16](https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/) develop least squares from this matrix.
+
+## Least squares and the normal equations
+
+An overdetermined system $Ax = b$ with $A \in \mathbb{R}^{m \times n}$, $m > n$, in general has no solution, since $b$ need not lie in $\mathrm{col}(A)$. The least-squares problem seeks the $\hat{x}$ minimizing $\lVert Ax - b \rVert_2$. Geometrically, $A\hat{x}$ must be the projection of $b$ onto $\mathrm{col}(A)$, so the residual $r = b - A\hat{x}$ lies in $\mathrm{col}(A)^\perp = \ker(A^T)$:
+
+$$
+A^T (b - A\hat{x}) = 0
+\quad\Longleftrightarrow\quad
+A^T A\, \hat{x} = A^T b.
+$$
+
+These are the normal equations ([ILA §6.5](https://textbooks.math.gatech.edu/ila/least-squares.html)). The same equations follow from setting the gradient to zero, since $\nabla_x \lVert Ax - b\rVert_2^2 = 2 A^T(Ax - b)$. $A^T A$ is invertible exactly when $A$ has full column rank, and then $\hat{x} = (A^T A)^{-1} A^T b$ is unique.
+
+> [!tip] The normal equations are an orthogonality statement
+> $A^T A \hat{x} = A^T b$ is the condition $A^T r = 0$ rearranged: the residual $r = b - A\hat{x}$ is perpendicular to every column of $A$. The condition also provides a check on a fitted model. In floating point $A^T r$ is not exactly zero, but $\lVert A^T r \rVert$ should be small relative to $\lVert A \rVert \lVert r \rVert$, as it is in the [[#Worked example|worked example]].
+
+The residual is orthogonal to every vector in the column space, that is, to every prediction the model can express. In a regression with an intercept column of ones, orthogonality against that column forces the residuals to sum to zero. With the intercept present, orthogonality against a feature column means that the residual has zero sample correlation with that feature, and any structure remaining in the residual lies outside the column space.
+
+## Worked example
+
+The example in Strang's [*Introduction to Linear Algebra*, §4.3](https://math.mit.edu/~gs/linearalgebra/) and [ILA §6.5](https://textbooks.math.gatech.edu/ila/least-squares.html) fits a line $y = c_0 + c_1 t$ through the points $(0, 6)$, $(1, 0)$, $(2, 0)$:
+
+$$
+A = \begin{pmatrix} 1 & 0 \\ 1 & 1 \\ 1 & 2 \end{pmatrix}, \quad
+b = \begin{pmatrix} 6 \\ 0 \\ 0 \end{pmatrix}, \quad
+A^T A = \begin{pmatrix} 3 & 3 \\ 3 & 5 \end{pmatrix}, \quad
+A^T b = \begin{pmatrix} 6 \\ 0 \end{pmatrix}.
+$$
+
+Solving $A^T A \hat{x} = A^T b$ gives $\hat{x} = (5, -3)^T$, the line $y = 5 - 3t$. The fitted values are $(5, 2, -1)$ and the residual is $r = (1, -2, 1)$. Both orthogonality conditions hold: $r$ sums to zero (intercept column) and $0\cdot1 + 1\cdot(-2) + 2\cdot1 = 0$ (slope column), so $r \perp \mathrm{col}(A)$.
+
+```python
+import numpy as np
+
+A = np.array([[1.0, 0.0], [1.0, 1.0], [1.0, 2.0]])
+b = np.array([6.0, 0.0, 0.0])
+
+xhat, res, rank, sv = np.linalg.lstsq(A, b, rcond=None)
+print(xhat)                    # [ 5. -3.]
+r = b - A @ xhat
+print(A.T @ r)                 # [-2.66e-15 -2.66e-15], zero up to rounding
+
+P = A @ np.linalg.inv(A.T @ A) @ A.T   # projection onto col(A)
+print(np.allclose(P @ b, A @ xhat))    # True
+print(np.allclose(P @ P, P))           # True, projecting twice is a no-op
+```
+
+## Conditioning of the least-squares problem
+
+The accuracy that any algorithm can attain in floating point is limited by the conditioning of the problem, the factor by which relative perturbations of $A$ and $b$ are amplified in $\hat{x}$. For full-column-rank $A$ the 2-norm condition number is $\kappa(A) = \sigma_1 / \sigma_n$, the ratio of the largest to the smallest singular value ([[math/linear-algebra/svd-and-pseudoinverse|SVD and the Pseudoinverse]]). Two further quantities describe the right-hand side:
+
+$$
+\cos\theta = \frac{\lVert A\hat{x} \rVert}{\lVert b \rVert}, \qquad
+\eta = \frac{\lVert A \rVert \, \lVert \hat{x} \rVert}{\lVert A\hat{x} \rVert} \in [1, \kappa(A)] .
+$$
+
+$\theta$ is the angle between $b$ and $\mathrm{col}(A)$, and $\tan\theta = \lVert r \rVert / \lVert A\hat{x} \rVert$ is zero for a consistent system and large for a poor fit. Trefethen and Bau ([lecture 18, Theorem 18.1](https://doi.org/10.1137/1.9780898719574)) give the relative condition numbers of $\hat{x}$ with respect to $b$ and to $A$ as
+
+$$
+\kappa_{b \to \hat{x}} = \frac{\kappa(A)}{\eta \cos\theta}, \qquad
+\kappa_{A \to \hat{x}} \le \kappa(A) + \frac{\kappa(A)^2 \tan\theta}{\eta} .
+$$
+
+When $b$ is close to $\mathrm{col}(A)$, $\tan\theta$ is small and the problem is about as sensitive as a square system with condition number $\kappa(A)$. When the residual is comparable in size to $A\hat{x}$, a perturbation of $A$ tilts the column space, the projection of the large residual onto the tilted space changes, and the sensitivity grows like $\kappa(A)^2$. This $\kappa^2$ term is a property of the problem and affects every algorithm. The perturbation theory is due to [Wedin (1973)](https://doi.org/10.1007/BF01933494).
+
+A backward-stable algorithm computes the exact solution of a problem whose data differ from $A$ and $b$ by relative amounts of the order of the unit roundoff $\epsilon = 2^{-53} \approx 1.1 \times 10^{-16}$. Its forward error is therefore bounded by a modest multiple of $\epsilon$ times the condition number above. An algorithm that is not backward stable can exceed that bound.
+
+## Three algorithms
+
+**Normal equations.** Form $C = A^T A$ and $d = A^T b$, factor $C = R^T R$ by Cholesky, and solve two triangular systems. The cost is about $mn^2 + \frac{1}{3}n^3$ flops ([T&B lecture 11](https://doi.org/10.1137/1.9780898719574)). Forming $C$ in floating point commits rounding errors of relative size $\epsilon$ in $C$, and $\kappa(C) = \kappa(A)^2$. The computed solution is the exact solution of a nearby system $(C + \delta C)\hat{x} = d + \delta d$ rather than of a nearby least-squares problem, so its error is of order $\kappa(A)^2 \epsilon$ for every right-hand side, including those with zero residual ([Higham, chapter 20](https://doi.org/10.1137/1.9780898718027)). Once $\kappa(A)^2 \epsilon$ approaches 1, the computed $C$ need not be positive definite, and the Cholesky factorization fails.
+
+**Householder QR.** [Golub (1965)](https://doi.org/10.1007/BF01436075) proposed reducing $A$ to upper triangular form by Householder reflections, $Q^T A = \begin{pmatrix} R \\ 0 \end{pmatrix}$. Since $Q$ preserves lengths,
+
+$$
+\lVert Ax - b \rVert_2^2 = \lVert Rx - (Q^T b)_{1:n} \rVert_2^2 + \lVert (Q^T b)_{n+1:m} \rVert_2^2 ,
+$$
+
+which is minimized by back substitution on $R\hat{x} = (Q^T b)_{1:n}$. The reflections are applied to $b$ as they are generated, so $Q$ is never formed. The cost is about $2mn^2 - \frac{2}{3}n^3$ flops. The method is backward stable for the least-squares problem (T&B lectures 16 and 19), so its error follows $\kappa_{A \to \hat{x}}$: of order $\kappa(A)\epsilon$ for a small residual and $\kappa(A)^2 \epsilon \tan\theta / \eta$ for a large one. LAPACK's driver is `dgels`. A QR factorization computed by classical Gram-Schmidt is a different algorithm: its $Q$ loses orthogonality as $\kappa(A)$ grows (T&B lecture 9), and the bound above does not apply to it.
+
+**SVD.** Factor $A = U \Sigma V^T$ and set $\hat{x} = V \Sigma^{-1} U^T b$, treating singular values below a threshold as zero. The cost is about $2mn^2 + 11n^3$ flops for $m \gg n$ (T&B lecture 11), and the error bound is the same as for QR. Of the three methods it alone returns a meaningful answer when $A$ is rank deficient, namely the minimum-norm solution $A^{+} b$. [`numpy.linalg.lstsq`](https://numpy.org/doc/stable/reference/generated/numpy.linalg.lstsq.html) and, by default, [`scipy.linalg.lstsq`](https://docs.scipy.org/doc/scipy/reference/generated/scipy.linalg.lstsq.html) call LAPACK's divide-and-conquer driver `dgelsd`. R's [`lm`](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/lmfit.html) uses Householder QR with limited column pivoting (LINPACK `dqrdc2`).
+
+> [!note]- Deep dive: Läuchli's matrix
+> [Läuchli (1961)](https://doi.org/10.1007/BF01386022) gave the standard example of information destroyed by forming $A^T A$:
+>
+> $$
+> A = \begin{pmatrix} 1 & 1 \\ \delta & 0 \\ 0 & \delta \end{pmatrix}, \qquad
+> A^T A = \begin{pmatrix} 1 + \delta^2 & 1 \\ 1 & 1 + \delta^2 \end{pmatrix}.
+> $$
+>
+> $A$ has full rank for every $\delta \neq 0$, with $\kappa(A) = \sqrt{2 + \delta^2}/\delta$. In double precision, $1 + \delta^2$ rounds to exactly 1 once $\delta^2 < \epsilon$, and the computed $A^T A$ is the singular matrix of all ones. With $\delta = 10^{-8}$ and $b = (2, \delta, \delta)^T$, whose exact least-squares solution is $(1, 1)^T$, SciPy's Cholesky reports that $A^T A$ is not positive definite and `numpy.linalg.solve` reports a singular matrix, while `dgels` and `lstsq` both return $(1, 1)$ to all printed digits. The value of $\delta$ is recorded in the second and third rows of $A$, and orthogonal transformations of $A$ preserve it, whereas the sum $1 + \delta^2$ discards it.
+
+## Measured accuracy
+
+The experiment builds $A = U \,\mathrm{diag}(\sigma)\, V^T$ with random orthonormal $U \in \mathbb{R}^{m \times n}$ and orthogonal $V$, singular values spaced evenly in log scale from 1 down to $1/\kappa$, and $b = Ax + r$ with $r \perp \mathrm{col}(A)$ scaled to a chosen $\tan\theta$. It solves each problem in double precision with Cholesky on the normal equations (SciPy), Householder QR (LAPACK `dgels`) and the SVD (`numpy.linalg.lstsq`, LAPACK `dgelsd`), and compares each answer with the exact least-squares solution of the stored $A$ and $b$, computed by Householder QR in 80-digit arithmetic with [mpmath](https://mpmath.org/). Condition numbers run from $10^0$ to $10^{16}$ in half-decade steps, with 20 random problems of size $60 \times 8$ and 10 of size $200 \times 20$ at each step and each residual size.
+
+The figure runs the same comparison in the browser, with the three solvers in double precision and a reference solution computed in double-double arithmetic (about 32 significant digits). This copy opens on $b \in \mathrm{col}(A)$.
+
+<LsqAccuracy preset="small-residual" />
+
+For $b$ in the column space, the median relative errors on the $60 \times 8$ problems were:
+
+| $\kappa(A)$ | normal equations | Householder QR | SVD (`lstsq`) |
+| ---: | ---: | ---: | ---: |
+| $1$ | $2.7 \times 10^{-16}$ | $2.8 \times 10^{-16}$ | $5.1 \times 10^{-16}$ |
+| $10^4$ | $1.1 \times 10^{-9}$ | $3.1 \times 10^{-14}$ | $4.0 \times 10^{-14}$ |
+| $10^6$ | $2.3 \times 10^{-5}$ | $2.6 \times 10^{-12}$ | $3.2 \times 10^{-12}$ |
+| $10^8$ | $0.14$ (1 of 20 failed) | $1.9 \times 10^{-10}$ | $2.0 \times 10^{-10}$ |
+| $10^{10}$ | 15 of 20 failed | $1.7 \times 10^{-8}$ | $1.9 \times 10^{-8}$ |
+| $10^{12}$ | 20 of 20 failed | $2.1 \times 10^{-6}$ | $1.8 \times 10^{-6}$ |
+| $10^{14}$ | 20 of 20 failed | $1.3 \times 10^{-4}$ | $0.21$ |
+
+Between $\kappa = 10^2$ and $10^7$, a least-squares fit of $\log_{10}$ error against $\log_{10}\kappa$ has slope 2.01 for the normal equations and 0.88 for QR and the SVD, in agreement with the $\kappa^2\epsilon$ and $\kappa\epsilon$ predictions. The normal equations lose two decimal digits for each digit of $\kappa$: at $\kappa = 10^6$ about five significant digits remain, and at $\kappa = 10^8$ none. Cholesky failed on 1 of 20 matrices at $\kappa = 10^8$, 9 of 20 at $10^9$, 15 of 20 at $10^{10}$ and all 20 at $10^{12}$. QR and the SVD lose one digit for each digit of $\kappa$. The $200 \times 20$ problems gave the same picture: slopes of 1.94 for the normal equations and 0.88 for QR, median errors at $\kappa = 10^6$ of $1.5 \times 10^{-5}$ and $3.4 \times 10^{-12}$, and Cholesky failures on 6 of 10 matrices at $\kappa = 10^{8.5}$ and on all 10 from $10^{10}$ upward.
+
+The SVD's jump at $\kappa = 10^{14}$ comes from the cutoff. `lstsq` treats singular values below $\epsilon_{\text{mach}} \max(m, n)\, \sigma_1 = 2.2 \times 10^{-16} \cdot 60 \approx 1.3 \times 10^{-14}\,\sigma_1$ as zero, so for $\kappa \gtrsim 7.5 \times 10^{13}$ it returns the minimum-norm solution of a rank-deficient approximation of $A$. With `rcond=0`, which keeps every singular value, the median error at $\kappa = 10^{14}$ was $2.6 \times 10^{-4}$, the same order as QR's. Which answer is preferable depends on whether the smallest singular values carry information or noise, as discussed under [[math/linear-algebra/svd-and-pseudoinverse#The Pseudoinverse and Least Squares|the pseudoinverse]].
+
+### When the residual is large
+
+With $\tan\theta = 1$, so that $\lVert r \rVert = \lVert A\hat{x} \rVert$, the $\kappa^2\tan\theta/\eta$ term dominates the conditioning, and every method loses about two digits for each digit of $\kappa$. This copy of the figure opens on that case. Moving the slider down from $\tan\theta = 1$ toward 0 moves the point where QR's error curve steepens from slope 1 to slope 2, which lies near $\kappa \approx \eta / \tan\theta$.
+
+<LsqAccuracy preset="large-residual" />
+
+| $\kappa(A)$ | normal equations | Householder QR | SVD (`lstsq`) |
+| ---: | ---: | ---: | ---: |
+| $10^4$ | $1.4 \times 10^{-9}$ | $4.9 \times 10^{-11}$ | $5.7 \times 10^{-11}$ |
+| $10^6$ | $2.2 \times 10^{-5}$ | $4.0 \times 10^{-7}$ | $3.2 \times 10^{-7}$ |
+| $10^8$ | $0.12$ (1 of 20 failed) | $3.2 \times 10^{-3}$ | $3.2 \times 10^{-3}$ |
+
+The fitted slopes were 2.02 for the normal equations, 1.86 for QR and 1.88 for the SVD. QR remained more accurate, by a factor of 29 to 55 at these three condition numbers, because its error carries the factor $1/\eta$ (the median $\eta$ was 9.1) and a smaller constant, but the factor no longer grows with $\kappa$. For the intermediate residual $\tan\theta = 10^{-4}$ the QR slope was 1.29, between the two regimes. The normal equations are thus at a large disadvantage exactly when the problem is ill-conditioned and the fit is close, and at a constant-factor disadvantage when the residual is large.
+
+> [!warning] Derive with the normal equations, solve with QR or the SVD
+> The normal equations characterize the least-squares solution, but solving them numerically squares the condition number for every right-hand side. In these measurements the median error of the normal equations was between $1 \times 10^{-17}$ and $2.5 \times 10^{-17}$ times $\kappa(A)^2$ for $10^2 \le \kappa(A) \le 10^7$, so $\kappa(A) = 10^6$ left about five correct digits, $\kappa(A) = 10^8$ left none, and Cholesky began to fail at $\kappa(A) = 10^8$. The least-squares routines of NumPy, SciPy, R and LAPACK use QR or the SVD for this reason.
+
+## Cost
+
+The flop counts favor the normal equations by a factor of two for $m \gg n$, and the measured difference on one core is larger. Median wall time over seven runs with $m = 20\,000$ and one OpenBLAS thread:
+
+| $n$ | normal equations | Householder QR (`dgels`) | SVD (`dgelsd`) |
+| ---: | ---: | ---: | ---: |
+| 25 | 1.6 ms | 7.7 ms | 7.4 ms |
+| 100 | 6.5 ms | 78.7 ms | 88.7 ms |
+| 400 | 63.2 ms | 356.7 ms | 417.0 ms |
+| 800 | 222.4 ms | 945.2 ms | 1193.8 ms |
+
+QR took 4.3 to 12 times as long as the normal equations at the six sizes measured, against the factor of 2 predicted by flop counts. Forming $A^T A$ is a single symmetric rank-$k$ update (`dsyrk`), a Level 3 BLAS operation that runs close to the processor's peak rate. Blocked Householder QR applies its trailing updates with Level 3 operations but factors each panel of columns with Level 2 operations, whose speed is limited by memory bandwidth, and the panel work is a larger share of the total when $n$ is small. The SVD took at most 26% longer than QR, because for $m$ much larger than $n$ `dgelsd` first computes a QR factorization and then operates on the $n \times n$ factor $R$ (path 1a in the [LAPACK source](https://github.com/Reference-LAPACK/lapack/blob/master/SRC/dgelsd.f)). The normal equations remain a reasonable choice when $\kappa(A)$ is known to be small, for example when $\kappa(A)^2 \epsilon$ is well below the accuracy the application needs.
+
+## Randomized solvers
+
+For $m \gg n$, randomized methods reduce the cost below that of Householder QR. A random sketch $SA$ with $S \in \mathbb{R}^{s \times m}$ and $s$ a small multiple of $n$ is factored as $SA = QR$. With high probability $AR^{-1}$ then has a condition number close to 1, so an iterative method such as LSQR applied to the preconditioned problem converges in a few dozen iterations. [Rokhlin and Tygert (2008)](https://doi.org/10.1073/pnas.0804869105) and [Avron, Maymounkov and Toledo (2010)](https://doi.org/10.1137/090767911) introduced this sketch-and-precondition approach, and Avron et al.'s Blendenpik solved large, tall problems faster than LAPACK's dense driver. [Meier, Nakatsukasa, Townsend and Webb (2024)](https://doi.org/10.1137/23M1551973) showed that the usual implementation is not backward stable for ill-conditioned $A$ and gave a modification that is. [Epperly (2024)](https://doi.org/10.1137/23M1616790) proved forward stability of a properly implemented iterative sketching method, and [Epperly, Meier and Nakatsukasa (2025)](https://doi.org/10.1002/cpa.70013) gave randomized solvers (SPIR and FOSSILS) that are backward stable, as Householder QR is, at sketch-and-precondition cost.
+
+## Experiment record
+
+> [!note]- How this was measured
+> - **Code**: [`lsq_accuracy.py`](least-squares-accuracy/lsq_accuracy.py) and [`lsq_timing.py`](least-squares-accuracy/lsq_timing.py), summarized by [`summarize.py`](least-squares-accuracy/summarize.py). From `notes/content/math/linear-algebra/least-squares-accuracy/`, run `python3 lsq_accuracy.py --m 60 --n 8 --seeds 20 --out accuracy-60x8.json` (about one minute on three cores), `python3 lsq_accuracy.py --m 200 --n 20 --seeds 10 --out accuracy-200x20.json` (about eight minutes), and `OPENBLAS_NUM_THREADS=1 taskset -c 3 python3 lsq_timing.py --out timing.json`, then `python3 summarize.py accuracy-60x8.json accuracy-200x20.json timing.json`. The raw results are in [`accuracy-60x8.json`](least-squares-accuracy/accuracy-60x8.json), [`accuracy-200x20.json`](least-squares-accuracy/accuracy-200x20.json) and [`timing.json`](least-squares-accuracy/timing.json).
+> - **Problems**: $U$ and $V$ are the Q factors from `numpy.linalg.qr` of Gaussian matrices, $x = Vc/\lVert c \rVert$ with Gaussian $c$, and $r$ is a Gaussian vector projected onto $\mathrm{col}(U)^\perp$ and scaled so that $\lVert r \rVert = \tan\theta\, \lVert Ax \rVert$, with $\tan\theta \in \{0, 10^{-8}, 10^{-4}, 1\}$. For $\tan\theta = 0$ the stored $b = Ax$ is rounded, so the stored problem has $\tan\theta$ of order $10^{-16}$.
+> - **Reference**: `mpmath.qr_solve` at 80 decimal digits on the stored double-precision $A$ and $b$. The tables report $\lVert \hat{x} - x_\star \rVert_2 / \lVert x_\star \rVert_2$, where $x_\star$ is that reference. The condition number and $\eta$ of each stored problem were computed with `mpmath.svd_r`.
+> - **Solvers**: `scipy.linalg.cho_factor` and `cho_solve` on `A.T @ A`; `scipy.linalg.lapack.dgels` with the optimal workspace from `dgels_lwork`; `numpy.linalg.lstsq` with `rcond=None` and with `rcond=0`. A Cholesky failure is SciPy's `LinAlgError`.
+> - **Workspace**: SciPy's `dgels` wrapper defaults to the minimum workspace, with which LAPACK uses unblocked Householder QR. At $m = 20\,000$ that version took 1.9, 3.3 and 5.5 times as long as the blocked one at $n = 200$, 400 and 800. `scipy.linalg.lstsq` queries the optimal workspace itself.
+> - **Environment**: Intel Xeon at 2.10 GHz (4 vCPU, KVM), Linux 6.18.44, Python 3.13.18, NumPy 2.5.3 and SciPy 1.18.1 with OpenBLAS 0.3.34, mpmath 1.4.1. The accuracy runs are deterministic given the seeds. The timings used one OpenBLAS thread on a core reserved for them, with one warm-up run and seven timed runs per cell; the slowest timed run was at most 1.31 times the median, except one QR run at $n = 25$ at 1.52 times.
+> - **The figure** uses $60 \times 8$ problems, three per condition number, generated with a seeded generator in TypeScript, so its numbers differ from the tables in the second digit. Its normal-equations solver is a plain Cholesky factorization, its QR is unblocked Householder, and its SVD is a one-sided Jacobi SVD with the `lstsq` cutoff. The reference is Householder QR in double-double arithmetic. The figure's tests check the double-double solution against mpmath's 80-digit solution on problems built by NumPy, compare each double-precision solver with SciPy and NumPy on a well-conditioned problem, and check every error against its analytical bound.
+
+> [!note]- Potentially interesting ideas
+> - The seminormal equations $R^T R x = A^T b$, with $R$ from a QR factorization of $A$, followed by one step of iterative refinement, recover accuracy comparable to QR without storing $Q$ according to the analysis summarized in [Björck's *Numerical Methods for Least Squares Problems*](https://doi.org/10.1137/1.9781611977950). The same harness could measure them alongside the three methods here; whether one refinement step suffices at $\kappa$ near $10^{12}$ for these matrices was not tested.
+> - QR's advantage in the large-residual tables was a factor of 29 to 55 at the same $\kappa$, partly through $\eta$. Choosing $x$ along the smallest singular direction makes $\eta = \kappa$ and removes the $\kappa^2$ term from QR's bound but not from the normal equations' bound, so the gap should reopen; the experiment did not vary $\eta$ deliberately.
+
+## Sources
+
+- [MIT 18.06 Linear Algebra, Spring 2010 (Strang), lectures 15 to 17](https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/)
+- [Strang, *Introduction to Linear Algebra*, section 4.3](https://math.mit.edu/~gs/linearalgebra/)
+- [Interactive Linear Algebra (Margalit and Rabinoff), chapter 6](https://textbooks.math.gatech.edu/ila/chap-orthogonality.html)
+- [Trefethen and Bau, *Numerical Linear Algebra* (SIAM, 1997)](https://doi.org/10.1137/1.9780898719574), lectures 9, 11, 16, 18 and 19
+- [Higham, *Accuracy and Stability of Numerical Algorithms*, 2nd ed. (SIAM, 2002)](https://doi.org/10.1137/1.9780898718027), chapter 20
+- Golub and Van Loan, *Matrix Computations*, 4th ed. (Johns Hopkins, 2013), section 5.3
+- [Golub (1965), Numerical methods for solving linear least squares problems, *Numer. Math.* 7](https://doi.org/10.1007/BF01436075)
+- [Läuchli (1961), Jordan-Elimination und Ausgleichung nach kleinsten Quadraten, *Numer. Math.* 3](https://doi.org/10.1007/BF01386022)
+- [Wedin (1973), Perturbation theory for pseudo-inverses, *BIT* 13](https://doi.org/10.1007/BF01933494)
+- [numpy.linalg.lstsq](https://numpy.org/doc/stable/reference/generated/numpy.linalg.lstsq.html) and [scipy.linalg.lstsq](https://docs.scipy.org/doc/scipy/reference/generated/scipy.linalg.lstsq.html) documentation
+- [R `lm.fit` documentation](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/lmfit.html)
+- [Rokhlin and Tygert (2008), A fast randomized algorithm for overdetermined linear least-squares regression, *PNAS* 105](https://doi.org/10.1073/pnas.0804869105)
+- [Avron, Maymounkov and Toledo (2010), Blendenpik: supercharging LAPACK's least-squares solver, *SIAM J. Sci. Comput.* 32](https://doi.org/10.1137/090767911)
+- [Meier, Nakatsukasa, Townsend and Webb (2024), Are sketch-and-precondition least squares solvers numerically stable?, *SIAM J. Matrix Anal. Appl.* 45](https://doi.org/10.1137/23M1551973)
+- [Epperly (2024), Fast and forward stable randomized algorithms for linear least-squares problems, *SIAM J. Matrix Anal. Appl.* 45](https://doi.org/10.1137/23M1616790)
+- [Epperly, Meier and Nakatsukasa (2025), Fast randomized least-squares solvers can be just as accurate and stable as classical direct solvers, *Comm. Pure Appl. Math.*](https://doi.org/10.1002/cpa.70013)
+
+## Related notes
+
+- [[math/linear-algebra/cheatsheet|Matrix Theory]]
+- [[math/linear-algebra/svd-and-pseudoinverse|Singular Value Decomposition and the Pseudoinverse]]
+- [[math/linear-algebra/eigenvalues-eigenvectors-diagonalization|Eigenvalues, Eigenvectors, and Diagonalization]]

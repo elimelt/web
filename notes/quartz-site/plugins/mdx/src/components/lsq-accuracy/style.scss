@@ -1,0 +1,138 @@
+// lsq-accuracy (math/linear-algebra/orthogonality-projections-least-squares).
+
+figure.lq {
+  @include fig-frame;
+
+  .lq-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.5rem 1.2rem;
+  }
+
+  .lq-slider {
+    flex: 1 1 16rem;
+    max-width: 22rem;
+    font-size: 0.92rem;
+    @include fig-slider;
+
+    input:disabled {
+      cursor: progress;
+    }
+  }
+
+  button {
+    @include fig-button;
+    @include fig-button-hover;
+  }
+
+  .lq-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 1rem;
+    margin: 0.7rem 0 0.15rem;
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  .lq-key-normal {
+    color: var(--fig-orange);
+  }
+
+  .lq-key-qr {
+    color: var(--fig-blue);
+  }
+
+  .lq-key-svd {
+    color: var(--fig-green);
+  }
+
+  .lq-chart {
+    @include fig-chart;
+    aspect-ratio: 640 / 320;
+  }
+
+  .lq-grid {
+    stroke: var(--lightgray);
+  }
+
+  .lq-fail-rule {
+    stroke-dasharray: 2 3;
+  }
+
+  .lq-tick {
+    fill: var(--gray);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .lq-guide {
+    fill: none;
+    stroke: var(--gray);
+    stroke-width: 1;
+    stroke-dasharray: 1 3;
+  }
+
+  .lq-line {
+    fill: none;
+    stroke-width: 2;
+    stroke-linejoin: round;
+  }
+
+  .lq-dot {
+    stroke: none;
+    opacity: 0.45;
+  }
+
+  .lq-x {
+    font-size: 11px;
+  }
+
+  .lq-normal {
+    stroke: var(--fig-orange);
+    &.lq-dot,
+    &.lq-x {
+      fill: var(--fig-orange);
+    }
+  }
+
+  .lq-qr {
+    stroke: var(--fig-blue);
+    &.lq-dot,
+    &.lq-x {
+      fill: var(--fig-blue);
+    }
+  }
+
+  .lq-svd {
+    stroke: var(--fig-green);
+    &.lq-dot,
+    &.lq-x {
+      fill: var(--fig-green);
+    }
+  }
+
+  .lq-readout {
+    margin: 0.5rem 0 0;
+    font-size: 0.92rem;
+    min-height: 2.8em;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .lq-tick {
+      font-size: 19px;
+    }
+
+    .lq-x {
+      font-size: 16px;
+    }
+
+    .lq-dot {
+      r: 3.2;
+    }
+  }
+}
