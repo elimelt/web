@@ -8,7 +8,7 @@ tags:
   - hashing
   - randomized algorithms
 date: 2026-11-15
-updated: 2026-11-15
+updated: 2026-11-19
 authors:
   - elimelt
 status: draft
@@ -50,7 +50,7 @@ The stream has two properties that matter for sketches. It is long enough ($F_0 
 
 The notes are ordered so that each depends only on earlier ones. Notes without links are planned.
 
-1. **Hashing for sketches.** Universal and $k$-wise independent families, multiply-shift and tabulation hashing, and the gap between the independence an analysis assumes and the hash functions implementations use, measured by running the same sketches on real keys through weak and strong hashes. Sources: Carter and Wegman (1979), Dietzfelbinger et al. (1997), Pătraşcu and Thorup (2012).
+1. **[[algorithms/probabilistic/hashing-for-sketches|Hashing for sketches]].** Universal and $k$-independent families, multiply-shift, polynomial and tabulation hashing, the independence each sketch's analysis assumes, and HyperLogLog, Count-Min and AMS run with each family on dense and hashed keys from the benchmark.
 2. **Bloom filters and their variants.** The false-positive analysis, partitioned, blocked and counting filters, and double hashing (Kirsch and Mitzenmacher 2008), with measured false-positive rates on the pageview keys and the cost in cache misses per query.
 3. **Cuckoo, quotient, xor and ribbon filters.** Filters that approach the $\lg(1/\varepsilon)$ bits-per-key lower bound, compared in space, false-positive rate and throughput. Sources: Fan et al. (2014), Bender et al. (2012), Graf and Lemire (2020), Dillinger and Walzer (2021).
 4. **[[algorithms/probabilistic/hyperloglog-count-min|HyperLogLog and Count-Min]].** Distinct counting and frequency estimation: the estimators and their proofs, the corrections added after the original analyses, and the measured error on the pageview stream against the published bounds.
