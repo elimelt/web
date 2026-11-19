@@ -1,0 +1,6 @@
+probe 0: 4294967296 distinct values of 2^32
+probe 1: 2386129351 distinct values of 2^32
+probe 2: 196606 distinct values of 2^32
+probe 3: 2920606597 distinct values of 2^32
+probe 4: 3340515556 distinct values of 2^32
+probe 5: 3476890771 distinct values of 2^32
