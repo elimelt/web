@@ -1,0 +1,267 @@
+---
+title: Hashing for sketches
+category: Algorithms
+tags:
+  - probabilistic data structures
+  - sketching
+  - hashing
+  - universal hashing
+  - tabulation hashing
+  - hyperloglog
+  - count-min sketch
+date: 2026-11-19
+updated: 2026-11-19
+authors:
+  - elimelt
+status: draft
+description: Universal and k-independent hash families, the multiply-shift, multiply-add-shift, polynomial and tabulation constructions, the independence each sketch's analysis requires, and HyperLogLog, Count-Min and AMS run with each family on 61 million dense and hashed integer keys and on the raw pageview key strings.
+sources:
+  - title: Carter and Wegman (1979), Universal classes of hash functions
+    url: https://doi.org/10.1016/0022-0000(79)90044-8
+    type: paper
+  - title: Wegman and Carter (1981), New hash functions and their use in authentication and set equality
+    url: https://doi.org/10.1016/0022-0000(81)90033-7
+    type: paper
+  - title: Dietzfelbinger, Hagerup, Katajainen and Penttonen (1997), A reliable randomized algorithm for the closest-pair problem
+    url: https://doi.org/10.1006/jagm.1997.0873
+    type: paper
+  - title: Dietzfelbinger (1996), Universal hashing and k-wise independent random variables via integer arithmetic without primes
+    url: https://doi.org/10.1007/3-540-60922-9_46
+    type: paper
+  - title: Pătraşcu and Thorup (2012), The power of simple tabulation hashing
+    url: https://doi.org/10.1145/2220357.2220361
+    type: paper
+  - title: Thorup (2015), High speed hashing for integers and strings
+    url: https://arxiv.org/abs/1504.06804
+    type: paper
+  - title: Chung, Mitzenmacher and Vadhan (2013), Why simple hash functions work, exploiting the entropy in a data stream
+    url: https://doi.org/10.4086/toc.2013.v009a030
+    type: paper
+  - title: Pagh, Pagh and Ružić (2009), Linear probing with constant independence
+    url: https://doi.org/10.1137/070702278
+    type: paper
+  - title: Pătraşcu and Thorup (2010), On the k-independence required by linear probing and minwise independence
+    url: https://doi.org/10.1007/978-3-642-14165-2_60
+    type: paper
+  - title: Cormode and Muthukrishnan (2005), An improved data stream summary, the count-min sketch and its applications
+    url: https://doi.org/10.1016/j.jalgor.2003.12.001
+    type: paper
+  - title: Charikar, Chen and Farach-Colton (2004), Finding frequent items in data streams
+    url: https://doi.org/10.1016/S0304-3975(03)00400-6
+    type: paper
+  - title: Alon, Matias and Szegedy (1999), The space complexity of approximating the frequency moments
+    url: https://doi.org/10.1006/jcss.1997.1545
+    type: paper
+  - title: Flajolet, Fusy, Gandouet and Meunier (2007), HyperLogLog, the analysis of a near-optimal cardinality estimation algorithm
+    url: https://algo.inria.fr/flajolet/Publications/FlFuGaMe07.pdf
+    type: paper
+  - title: Ertl (2017), New cardinality estimation algorithms for HyperLogLog sketches
+    url: https://arxiv.org/abs/1702.01284
+    type: paper
+  - title: Świerczkowski (1958), On successive settings of an arc on the circumference of a circle
+    url: https://doi.org/10.4064/fm-46-2-187-189
+    type: paper
+  - title: Dietzfelbinger, Gil, Matias and Pippenger (1992), Polynomial hash functions are reliable (extended abstract)
+    url: https://doi.org/10.1007/3-540-55719-9_77
+    type: paper
+  - title: Appleby, SMHasher and MurmurHash3
+    url: https://github.com/aappleby/smhasher
+    type: code
+  - title: Wikimedia, Analytics datasets, pageviews
+    url: https://dumps.wikimedia.org/other/pageviews/readme.html
+    type: dataset
+---
+
+A family $\mathcal{H}$ of functions from a universe $U$ to $[m] = \{0, \dots, m - 1\}$ is *universal* if $\Pr_{h \in \mathcal{H}}[h(x) = h(y)] \le 1/m$ for every pair of distinct keys $x, y \in U$, where $h$ is drawn uniformly from $\mathcal{H}$ ([Carter and Wegman 1979](https://doi.org/10.1016/0022-0000(79)90044-8)). It is *$k$-independent* if for every $k$ distinct keys $x_1, \dots, x_k$ and every $v_1, \dots, v_k \in [m]$, $\Pr_h[h(x_1) = v_1 \wedge \dots \wedge h(x_k) = v_k] = m^{-k}$, so that the hash values of any $k$ keys are independent and uniform ([Wegman and Carter 1981](https://doi.org/10.1016/0022-0000(81)90033-7)).
+
+A sketch's guarantee is a statement about the random choice of its hash function. The Count-Min bound $\hat{a}_i \le a_i + \varepsilon N$ holds with probability $1 - \delta$ over the draw of $h$, for every input, and its proof uses only the collision probability of pairs of keys, so it holds for any universal family. Other analyses use more: the variance bound of the AMS estimator of $F_2$ uses 4-independence, and the analysis of HyperLogLog assumes a fully random function, whose values on all keys are independent. Implementations such as [Redis's HyperLogLog](https://github.com/redis/redis/blob/unstable/src/hyperloglog.c) hash with a fixed function, MurmurHash64A, which belongs to no family. The cheapest universal family, multiply-shift, costs one multiplication per key, and its values on structured keys are far from independent.
+
+The integer families below differ by a factor of about 4 in evaluation cost, from 1.8 to 6.9 ns per key. On 61 million keys taken from the [[algorithms/probabilistic/index|series benchmark]], every family gives HyperLogLog, Count-Min and AMS their random-hash accuracy when the keys are already hash values. When the keys are dense integer identifiers $0, 1, \dots, n - 1$, the 2-independent and universal families bias HyperLogLog by $+45\%$ to $+55\%$ in the median, with a spread of more than 50% across seeds, while the 3- and 4-independent families and MurmurHash3's finalizer stay within the random-hash error of 0.81%.
+
+## Definitions
+
+The definitions are ordered by strength. Let $x_1, \dots, x_k$ be distinct keys.
+
+- **$c$-approximately universal.** $\Pr[h(x) = h(y)] \le c/m$ for $x \ne y$. Multiply-shift is 2-approximately universal.
+- **Strongly universal, or 2-independent.** $(h(x), h(y))$ is uniform on $[m]^2$ for $x \ne y$. A 2-independent family is universal, and in addition each $h(x)$ is uniform. A universal family need not have uniform values: multiply-shift maps 0 to 0 for every $h$.
+- **$k$-independent.** Any $k$ hash values are independent and uniform. A $k$-independent family is $j$-independent for every $j \le k$.
+- **Fully random.** $h$ is uniform over all functions $U \to [m]$, equivalently $|U|$-independent. Storing such a function takes $|U| \lg m$ bits, so analyses that assume it describe an idealization.
+
+A sketch computes a statistic of its input from the hash values. If the statistic depends on the hash values of at most $k$ keys at a time, as an expectation or a variance does, then under a $k$-independent family that statistic takes the same value as under a fully random function. The expected Count-Min overestimate $\mathbb{E}[\hat{a}_i - a_i] = \sum_{j \ne i} a_j \Pr[h(i) = h(j)]$ involves pairs, so a universal family gives $\mathbb{E}[\hat{a}_i - a_i] \le (N - a_i)/w$. The variance of the AMS estimator $Z = \sum_i s(i)\, a_i$ with $s(i) \in \{\pm 1\}$ is a sum over quadruples of keys, so 4-independent signs give the fully random variance. HyperLogLog's register values are maxima over all keys that share a register, so their distribution depends on the joint distribution of many hash values at once, and its analysis gives no bound for a family of bounded independence.
+
+## Constructions
+
+Keys are $w$-bit integers unless stated, and the output has $l$ bits, so $m = 2^l$. Each construction below is a family; drawing $h$ means drawing its parameters once, when the sketch is created. Two sketches that are merged must use the same parameters.
+
+### Multiply-shift
+
+$$h_a(x) = \left\lfloor \frac{a x \bmod 2^w}{2^{w - l}} \right\rfloor, \qquad a \text{ uniform odd in } [1, 2^w).$$
+
+In C this is `(a * x) >> (w - l)` on unsigned `w`-bit integers. [Dietzfelbinger et al. (1997)](https://doi.org/10.1006/jagm.1997.0873) prove $\Pr[h_a(x) = h_a(y)] \le 2/2^l$ for $x \ne y$. The family is not 2-independent, and its values on related keys are related: $h_a(2x)$ is determined by $a x \bmod 2^w$ shifted by one bit, and the low $l$ bits of $a x$ depend only on the low $l$ bits of $x$. An implementation that takes the register index from the low bits of the product (`a * x & (m - 1)`) therefore assigns registers by $x \bmod m$ alone, whatever $a$ is. Its parity bit equals the parity of $x$.
+
+### Multiply-add-shift
+
+$$h_{a,b}(x) = \left\lfloor \frac{(a x + b) \bmod 2^{2w}}{2^{2w - l}} \right\rfloor, \qquad a, b \text{ uniform in } [0, 2^{2w}).$$
+
+The scheme is due to [Dietzfelbinger (1996)](https://doi.org/10.1007/3-540-60922-9_46), who proves an approximate form of 2-independence for a version with a general modulus. For the power-of-two form above, [Thorup (2015, Thm. 3.4)](https://arxiv.org/abs/1504.06804) shows that it is exactly 2-independent for $w$-bit keys whenever $l \le w + 1$. For 64-bit keys it needs a 128-bit multiply, which `unsigned __int128` provides in GCC and Clang.
+
+### Polynomials modulo a prime
+
+For a prime $p$ and keys in $[p]$,
+
+$$h(x) = \left( \sum_{j=0}^{k-1} c_j x^j \right) \bmod p, \qquad c_0, \dots, c_{k-1} \text{ uniform in } [p],$$
+
+is $k$-independent with values in $[p]$ ([Wegman and Carter 1981](https://doi.org/10.1016/0022-0000(81)90033-7)). The case $k = 2$, $h(x) = (ax + b) \bmod p$, is the construction of Carter and Wegman. With a Mersenne prime such as $p = 2^{61} - 1$ or $2^{89} - 1$, reduction needs no division; for $2^{61} - 1$ and a 122-bit product $z$: $z \bmod p$ equals $(z \mathbin{\&} p) + (z \gg 61)$ after at most one subtraction of $p$ ([Thorup 2015](https://arxiv.org/abs/1504.06804)). Evaluating a degree $k - 1$ polynomial by Horner's rule costs $k - 1$ such multiplications. Mapping $[p]$ to $[m]$ by taking the high bits leaves each value within a factor $1 \pm m/p$ of uniform.
+
+### Simple tabulation
+
+Split a key into $c$ characters of $w/c$ bits, $x = (x_0, \dots, x_{c-1})$, and fill $c$ tables $T_0, \dots, T_{c-1}$ of $2^{w/c}$ random $l$-bit entries:
+
+$$h(x) = T_0[x_0] \oplus T_1[x_1] \oplus \dots \oplus T_{c-1}[x_{c-1}].$$
+
+Simple tabulation is 3-independent and not 4-independent. [Pătraşcu and Thorup (2012)](https://doi.org/10.1145/2220357.2220361) prove that it nonetheless gives Chernoff-type concentration for the number of keys hashing to a bin, constant expected time for linear probing and cuckoo hashing, and min-wise hashing with bounded bias. For 64-bit keys with $c = 8$ the tables hold $8 \times 256$ 64-bit words, 16 KiB, half of a 32 KiB L1 data cache.
+
+### Functions without a family
+
+MurmurHash3's 64-bit finalizer `fmix64` ([Appleby](https://github.com/aappleby/smhasher)), which alternates three xor-shifts by 33 bits with two multiplications by odd constants, is a bijection on 64-bit words with no randomness. Seeding it, as in `fmix64(x ^ seed)`, gives a set of functions indexed by the seed, but no independence property of that set is known. It is designed for avalanche: flipping one input bit flips each output bit with probability close to 1/2 over random inputs, a property that SMHasher tests empirically.
+
+### Strings
+
+A string $s = (s_1, \dots, s_d)$ of characters in $[p]$ is reduced to one value in $[p]$ by evaluating a polynomial at a random point $r$:
+
+$$g_r(s) = \left( \sum_{j=1}^{d} s_j r^{d - j} \right) \bmod p.$$
+
+Two distinct strings of length at most $d$ collide with probability at most $d/p$ over $r$, since their difference is a nonzero polynomial of degree at most $d$, which has at most $d$ roots ([Dietzfelbinger et al. 1992](https://doi.org/10.1007/3-540-55719-9_77); [Thorup 2015, Sec. 5](https://arxiv.org/abs/1504.06804)). With $p = 2^{61} - 1$ and strings of at most 128 characters the collision probability is below $2^{-54}$, so composing $g_r$ with a universal function from $[p]$ to $[m]$ gives a function of strings whose collision probability is at most $1/m + 2^{-54}$. Java's `String.hashCode` evaluates the same polynomial with the fixed point $r = 31$ modulo $2^{32}$, so it is a single function with no collision guarantee.
+
+### Cost
+
+Each function was timed on one core of the benchmark machine, hashing all 60,974,808 keys of the benchmark (64-bit integers) or the 5,843,219 key strings of the first hour (mean length 25.9 bytes), and summing the results so the work cannot be eliminated. The table gives the median of 5 passes.
+
+| Function | Keys | ns per key |
+| --- | --- | ---: |
+| Multiply-shift | 64-bit integers | 1.8 |
+| Multiply-add-shift, 128-bit parameters | 64-bit integers | 2.8 |
+| `fmix64(x ^ seed)` | 64-bit integers | 4.1 |
+| $(ax + b) \bmod (2^{61} - 1)$ | 64-bit integers | 5.7 |
+| Simple tabulation, $8 \times 256$ entries | 64-bit integers | 6.3 |
+| Cubic polynomial mod $2^{61} - 1$ | 64-bit integers | 6.9 |
+| MurmurHash64A | strings | 17.5 |
+| FNV-1a, 64-bit | strings | 20.0 |
+| `String.hashCode` (base 31 mod $2^{32}$) | strings | 21.6 |
+| Seeded polynomial mod $2^{61} - 1$, 7-byte characters | strings | 28.4 |
+| CRC-32 (zlib) | strings | 36.3 |
+| Seeded polynomial mod $2^{61} - 1$, 1-byte characters | strings | 85.0 |
+
+The integer times include reading the keys sequentially from memory, and the polynomial families include reducing each 64-bit key modulo $2^{61} - 1$. Repeated runs differed by up to 20%. The seeded string polynomial costs one dependent 61-bit multiplication per character, so packing 7 bytes into each character, which keeps every character below $2^{56} < p$, cuts its time by a factor of 3; the length of the string is appended as a final character so that strings of different lengths remain distinct polynomials.
+
+## What each analysis assumes
+
+| Structure | Independence used by the analysis | Source |
+| --- | --- | --- |
+| Count-Min sketch | Pairwise independent rows; the proof uses only the collision probability, so universality suffices | [Cormode and Muthukrishnan 2005](https://doi.org/10.1016/j.jalgor.2003.12.001) |
+| Count Sketch | Pairwise independent bucket and sign functions | [Charikar et al. 2004](https://doi.org/10.1016/S0304-3975(03)00400-6) |
+| AMS estimator of $F_2$ | 4-independent signs for $\operatorname{Var}(Z^2) \le 2F_2^2$; 2-independent signs give $\mathbb{E}[Z^2] = F_2$ | [Alon et al. 1999](https://doi.org/10.1006/jcss.1997.1545) |
+| HyperLogLog | Fully random hash values | [Flajolet et al. 2007](https://algo.inria.fr/flajolet/Publications/FlFuGaMe07.pdf) |
+| Linear probing | 5-independence suffices for constant expected time; some 4-independent families give $\Omega(\log n)$ | [Pagh et al. 2009](https://doi.org/10.1137/070702278), [Pătraşcu and Thorup 2010](https://doi.org/10.1007/978-3-642-14165-2_60) |
+| Linear probing, cuckoo hashing, min-wise hashing | Simple tabulation, despite being only 3-independent | [Pătraşcu and Thorup 2012](https://doi.org/10.1145/2220357.2220361) |
+
+A separate line of results explains why weak families often behave like fully random ones in practice. [Chung, Mitzenmacher and Vadhan (2013)](https://doi.org/10.4086/toc.2013.v009a030) show that if each key of a stream has enough Rényi entropy conditioned on the keys before it, the hash values produced by a 2-universal family are close in statistical distance to independent uniform values, so any analysis that assumes fully random hashing applies up to that distance. Keys that are themselves outputs of a good hash have nearly full entropy. Dense identifiers $0, 1, \dots, n - 1$ in order have none: each key is determined by the previous one.
+
+## Measured on integer keys
+
+Each family was used to build HyperLogLog, one row of a Count-Min sketch and an AMS estimator over the 60,974,808 distinct keys of the benchmark, with 200 independently drawn functions per family. The keys were presented in two forms. *Dense* keys are the integers $0, \dots, n - 1$, the index of each page in order of first appearance, which is how a database assigns surrogate keys. *Hashed* keys are the 64-bit MurmurHash64A values of the key strings, as in the [[algorithms/probabilistic/hyperloglog-count-min|HyperLogLog and Count-Min]] note. Each key's count is its number of views in the day, so the Count-Min and AMS inputs are the real frequency vector with $N = 445{,}961{,}446$ and $F_2 = 3.049 \times 10^{13}$.
+
+Seven hash functions were compared: multiply-shift with the index taken from the high bits and from the low bits, multiply-add-shift with 128-bit parameters, $(ax + b) \bmod (2^{61} - 1)$, a cubic polynomial modulo $2^{61} - 1$ (4-independent), simple tabulation with eight 8-bit characters, and `fmix64(x ^ seed)`.
+
+### HyperLogLog
+
+HyperLogLog used $m = 2^{14}$ registers and Ertl's estimator, whose standard error under a random hash is $1.04/\sqrt{m} = 0.81\%$.
+
+| Family | Dense keys, median error | Dense keys, 5th to 95th percentile | Hashed keys, median error | Hashed keys, 5th to 95th percentile |
+| --- | ---: | ---: | ---: | ---: |
+| Multiply-shift | $+55.0\%$ | $-67.9\%$ to $+97.0\%$ | $0.0\%$ | $-1.2\%$ to $+1.4\%$ |
+| Multiply-shift, low-bit index | $+45.3\%$ | $-79.7\%$ to $+94.5\%$ | $-0.1\%$ | $-1.4\%$ to $+1.2\%$ |
+| Multiply-add-shift | $+47.3\%$ | $-80.6\%$ to $+93.7\%$ | $0.0\%$ | $-1.4\%$ to $+1.3\%$ |
+| $(ax + b) \bmod p$ | $+50.1\%$ | $-80.0\%$ to $+96.3\%$ | $0.0\%$ | $-1.3\%$ to $+1.2\%$ |
+| Cubic polynomial mod $p$ | $0.0\%$ | $-1.1\%$ to $+1.7\%$ | $0.0\%$ | $-1.2\%$ to $+1.3\%$ |
+| Simple tabulation | $0.0\%$ | $-1.5\%$ to $+1.3\%$ | $+0.1\%$ | $-1.1\%$ to $+1.4\%$ |
+| `fmix64(x ^ seed)` | $-0.1\%$ | $-1.4\%$ to $+1.2\%$ | $0.0\%$ | $-1.4\%$ to $+1.1\%$ |
+
+Under a random hash the 5th and 95th percentiles of the error are $\pm 1.33\%$ ($\pm 1.645$ standard errors).
+
+On hashed keys every family is within the random-hash error. On dense keys the four families with at most 2-independence give median errors of $+45\%$ to $+55\%$, and the spread across functions is larger than the bias. Among the 200 multiply-shift functions the estimates range from 0.6% of the true count to 2.01 times it, and the largest estimate of each of the four families is between 1.99 and 2.02 times the true count. The bias is already present after the first $10^4$ keys ($+34\%$ for multiply-shift). The cubic polynomial, tabulation and the MurmurHash3 finalizer are indistinguishable from each other and from the random-hash prediction.
+
+The register loads show why. The $\chi^2$ statistic of the number of keys per register, divided by its expectation $m - 1$ under a random hash, is 0.046 for multiply-shift, 0.13 for multiply-add-shift and 0.023 for $(ax + b) \bmod p$ on dense keys, against 1.00 for the other three families. The products $a \cdot i \bmod 2^{64}$ for $i = 0, \dots, n - 1$ are distributed more evenly than independent uniform values.
+
+By the three-distance theorem ([Świerczkowski 1958](https://doi.org/10.4064/fm-46-2-187-189)), applied to $\alpha = a/2^{64}$, the gaps between consecutive values in sorted order take at most three distinct lengths, and unless $a/2^{64}$ lies close to a fraction with a small denominator, all three are within a small factor of $2^{64}/n$. The same holds for $(ai + b) \bmod p$ with $\alpha = a/p$, and for the high bits of multiply-add-shift. A register's value is determined by the smallest hash offset among the keys it receives, and when those offsets are evenly spaced, the smallest is never much larger than the spacing. Registers with small values, which a random hash produces with a fixed probability, then do not occur. In the [figure](#comparing-families-on-structured-keys) at $n = 65{,}536$ and $m = 1024$, a random hash leaves every register at 5 or above with probability about $6 \times 10^{-9}$, and multiply-shift does so for 25 of 32 multipliers. HyperLogLog's harmonic mean is dominated by the smallest register values, so removing them inflates the estimate. A multiplier close to a fraction $r/q$ with small $q$ places the keys near $q$ points of the circle instead, leaving most registers empty or nearly so, and produces the underestimates.
+
+Taking the index from the low bits of multiply-shift makes the register assignment $i \bmod m$, which is independent of the multiplier. On dense keys every register receives exactly $n/m$ keys ($\chi^2 = 0$), and the error comes from the remaining bits. On keys that are all multiples of $m$, such as identifiers allocated in blocks of 1024, every key falls in register 0 and the estimate is below 0.1% of the true count, as the figure shows with the key set of multiples of 1024.
+
+### Count-Min
+
+One Count-Min row of width $w$ was evaluated by its mean overestimate over all keys, $\frac{1}{n} \sum_i (\hat{a}_i - a_i)$, divided by $N/w$, the bound on its expectation for a universal family.
+
+| Family | Dense, $w = 2^{14}$ | Dense, $w = 2^{18}$ | Dense, $w = 2^{18}$, largest of 200 | Hashed, $w = 2^{18}$ |
+| --- | ---: | ---: | ---: | ---: |
+| Multiply-shift | $0.9997 \pm 0.0002$ | $0.9997 \pm 0.0492$ | 1.692 | $1.0000 \pm 0.0008$ |
+| Multiply-shift, low-bit index | $0.9997 \pm 0$ | $0.9957 \pm 0$ | 0.996 | $0.9983 \pm 0$ |
+| Multiply-add-shift | $0.9998 \pm 0.0008$ | $0.9975 \pm 0.0237$ | 1.323 | $1.0001 \pm 0.0008$ |
+| $(ax + b) \bmod p$ | $0.9997 \pm 0.0001$ | $0.9972 \pm 0.0121$ | 1.155 | $1.0000 \pm 0.0008$ |
+| Cubic polynomial mod $p$ | $1.0000 \pm 0.0002$ | $1.0000 \pm 0.0008$ | 1.002 | $1.0000 \pm 0.0007$ |
+| Simple tabulation | $1.0000 \pm 0.0002$ | $1.0000 \pm 0.0008$ | 1.002 | $1.0000 \pm 0.0008$ |
+| `fmix64(x ^ seed)` | $1.0000 \pm 0.0002$ | $1.0000 \pm 0.0007$ | 1.002 | $1.0000 \pm 0.0007$ |
+
+Entries are the mean over 200 functions and the standard deviation across them.
+
+Every family meets the bound in expectation, which is all the analysis requires. The weak families on dense keys differ in the spread across functions at $w = 2^{18}$, where each cell receives about 233 keys: one multiply-shift function of the 200 has a mean error 69% above $N/w$, while no function of the three stronger families exceeds it by more than 0.2%. With the index taken from the low bits, the row's assignment of keys to cells does not depend on the multiplier at all, so the 200 functions give the same error, and the failure probability $\delta$ of the $(\varepsilon, \delta)$ guarantee, which is a probability over the choice of function, no longer describes it.
+
+### AMS
+
+The AMS estimator $Z = \sum_i s(i)\, a_i$ with signs taken from the top bit of each hash value estimates $F_2$ by $Z^2$. Under fully random signs, $Z^2/F_2$ has mean 1 and standard deviation $\sqrt{2(1 - F_4/F_2^2)} = 1.076$ on this frequency vector.
+
+| Family | Dense, mean | Dense, standard deviation | Hashed, mean | Hashed, standard deviation |
+| --- | ---: | ---: | ---: | ---: |
+| Multiply-shift | 1.10 | 1.02 | 0.94 | 0.98 |
+| Multiply-shift, low bit | 1.81 | 0 | 0.92 | 0 |
+| Multiply-add-shift | 0.96 | 1.04 | 1.09 | 1.31 |
+| $(ax + b) \bmod p$ | 1.03 | 1.21 | 0.93 | 1.15 |
+| Cubic polynomial mod $p$ | 1.00 | 1.03 | 0.94 | 1.01 |
+| Simple tabulation | 0.87 | 0.92 | 0.99 | 0.93 |
+| `fmix64(x ^ seed)` | 1.01 | 1.12 | 0.97 | 1.04 |
+
+With 200 functions the bootstrap standard error of each standard deviation is 0.05 to 0.11, and the measured values lie within 2.6 such errors of 1.076 in both directions. The 2-independent families, for which the variance bound does not apply, are not more spread than the 4-independent polynomial on this frequency vector. The exception is the low bit of multiply-shift, which equals the parity of the key, so every multiplier gives the same $Z$: on dense keys $Z^2/F_2 = 1.81$ for all 200 functions, and on hashed keys 0.92.
+
+## Measured on string keys
+
+The [[algorithms/probabilistic/hyperloglog-count-min#Hash functions on real keys|HyperLogLog and Count-Min]] note found that Java's `String.hashCode` underestimates the number of distinct page titles by 4.1% for the day, at a standard error of 0.81%, and in each of the 24 hours by $2.2\%$ to $5.8\%$. Two further measurements locate the cause. Following `hashCode` with MurmurHash3's 32-bit finalizer, a bijection that preserves its collisions, gives a mean error of $+0.49\%$ over the 24 hours (standard deviation 0.70%), so the collisions of `hashCode` are not the source of the bias; the distribution of its bits is. The seeded polynomial $g_r$ modulo $2^{61} - 1$ followed by $(b h + c) \bmod p$, with 8 random seeds, gives a mean error of $-0.11\%$ and a standard deviation of $0.74\%$ over the 192 hour and seed combinations, consistent with an unbiased estimator; the 7-byte-character version gave a mean of $-0.33\%$ and a standard deviation of 0.86% over 8 seeds on the first hour. MurmurHash64A, unseeded, gives $+0.24\%$ and $0.82\%$ over the 24 hours.
+
+## Comparing families on structured keys
+
+<HashFamilies />
+
+The figure runs the seven families in their 32-bit forms on three key sets, with $m = 1024$ registers and 32 random functions per family. On dense identifiers the upper four rows reproduce the bias measured on the benchmark at a smaller scale. Multiples of 1024 send every key to one register under multiply-shift with the low-bit index. Scrambled identifiers, the dense keys passed through a fixed invertible mixing function before hashing, put every family back within twice the random-hash error, which is the high-entropy case of Chung, Mitzenmacher and Vadhan. The histogram shows the register values of the median function against their distribution under a random hash.
+
+## Consequences for implementations
+
+If the keys entering a sketch are themselves outputs of a strong hash, as when a system stores a 64-bit fingerprint per row, then a 2-independent family supplies the randomness the guarantee is stated over at a cost of one or two multiplications per key, and every sketch measured above behaves as its analysis predicts. If the keys can be structured, as identifiers, timestamps, addresses or offsets often are, HyperLogLog needs a function whose output on those keys is close to independent: on the benchmark the 4-independent polynomial, simple tabulation and the MurmurHash3 finalizer all met that condition. Taking the register index or the Count-Min cell from the low bits of a multiplicative hash removes the dependence on the random parameter, and with it the probabilistic guarantee. For strings, a seeded polynomial modulo $2^{61} - 1$ over 7-byte characters hashed the benchmark's key strings in 28.4 ns each, against 17.5 ns for MurmurHash64A and 21.6 ns for `String.hashCode`, and it has a proven collision bound that the unseeded functions lack.
+
+> [!note]- How this was measured
+> The harness sources and outputs are in the `hashing-experiments` directory, and [`run.sh`](hashing-experiments/run.sh) reproduces every number. It reuses the per-key files that the [[algorithms/probabilistic/hyperloglog-count-min|HyperLogLog and Count-Min]] harness builds from the 24 hourly pageview files of 4 March 2026.
+>
+> - **Integer keys.** `fam.c` reads the 60,974,808 distinct 64-bit key hashes in order of first appearance and the per-key daily view counts. For each of 200 trials and each family it draws parameters from a SplitMix64 stream seeded by the trial and family, hashes either the dense index $i$ or the 64-bit key hash, and builds a HyperLogLog sketch with $p = 14$ (estimates at $10^4$, $10^5$, $10^6$, $10^7$ and $n$ keys), Count-Min rows of width $2^{14}$ and $2^{18}$, the register loads and the AMS sum. The polynomial families reduce 64-bit keys modulo $2^{61} - 1$ first and shift their 61-bit values left by 3. Simple tabulation uses eight tables of 256 64-bit words. [`analyze_fam.py`](hashing-experiments/analyze_fam.py) produces [`fam_summary.json`](hashing-experiments/fam_summary.json).
+> - **String keys.** `strq.c` hashes each raw key string `domain_code page_title` with `String.hashCode` (base 31 modulo $2^{32}$), the same followed by `fmix32`, MurmurHash64A, and the seeded polynomial with 8 seeds, and estimates each hour and the day with Ertl's estimator at $p = 14$ ([`strq.txt`](hashing-experiments/strq.txt)).
+> - **Cost.** `speed.c` times each function single-threaded, 5 passes over the keys held in memory, and reports the median ([`speed.txt`](hashing-experiments/speed.txt)). `check7.c` checks the 7-byte-character polynomial with HyperLogLog on the first hour ([`check7.txt`](hashing-experiments/check7.txt)).
+> - **Environment.** gcc 13.3 with `-O2 -march=native -fopenmp`, Python 3.13.18, on a 4-core Intel Xeon at 2.10 GHz with 15 GB of memory. The 200 trials take about 15 minutes on 4 cores.
+> - **The figure.** The figure computes everything in the browser with 32-bit versions of the families: multiply-shift with a 32-bit odd multiplier, multiply-add-shift with 64-bit parameters, polynomials modulo $2^{31} - 1$, tabulation with four 8-bit characters and `fmix32`. Its sketches are tested against an independent NumPy implementation ([`figure_ref.py`](hashing-experiments/figure_ref.py), [`figure_check.py`](hashing-experiments/figure_check.py)): the register histograms of 63 cases match exactly and the estimates to $10^{-9}$.
+
+> [!note]- Potentially interesting ideas
+> - **The register floor on the benchmark.** The figure measures the smallest register value per function at $m = 1024$. The same statistic for the 64-bit families at $m = 2^{14}$ on the 61 million dense keys was not recorded; it would test whether the floor explains the full $+50\%$ bias there, or whether the upper tail of the register distribution also changes.
+> - **Which multipliers underestimate.** The gaps between consecutive multiples of $a$ modulo $2^{64}$ are governed by the continued fraction expansion of $a/2^{64}$. A large partial quotient early in that expansion means that $a/2^{64}$ is close to a fraction with a small denominator, which should predict the underestimating functions. Correlating each function's error with its continued fraction was not done.
+> - **AMS with 2-independent signs.** The variance of $Z^2$ under 2-independent signs can exceed the 4-independent value when the frequency vector is chosen against the family. The pageview frequencies showed no such excess; a constructed input, for example frequencies placed on keys in arithmetic progression, might.
+> - **Twisted and mixed tabulation.** These variants add a second round of table lookups to simple tabulation. Their cost per key and their behaviour with HyperLogLog on dense keys were not measured.
+
+## Related notes
+
+- [[algorithms/probabilistic/index|Probabilistic data structures]], the series index, with the notation and the benchmark stream
+- [[algorithms/probabilistic/hyperloglog-count-min|HyperLogLog and Count-Min]], the estimators whose inputs are hashed here
+- [[math/probability/probability-expectation-concentration|Expectation and concentration]], for the Markov and Chebyshev bounds that pairwise and 4-wise independence support
