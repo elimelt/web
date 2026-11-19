@@ -1,0 +1,217 @@
+---
+title: Bloom filters and their variants
+category: Algorithms
+tags:
+  - probabilistic data structures
+  - bloom filter
+  - approximate membership
+  - hashing
+  - cache efficiency
+date: 2026-11-19
+updated: 2026-11-19
+authors:
+  - elimelt
+status: draft
+description: The Bloom filter's false-positive rate and its exact form, the space lower bound, partitioned, double-hashed, blocked, register-blocked and counting filters, LevelDB's probe sequence, and false-positive rates and lookup costs measured with the 5.8 million keys of one benchmark hour against 55 million absent keys.
+sources:
+  - title: Bloom (1970), Space/time trade-offs in hash coding with allowable errors
+    url: https://doi.org/10.1145/362686.362692
+    type: paper
+  - title: Bose, Guo, Kranakis, Maheshwari, Morin, Morrison, Smid and Tang (2008), On the false-positive rate of Bloom filters
+    url: https://doi.org/10.1016/j.ipl.2008.05.018
+    type: paper
+  - title: Christensen, Roginsky and Jimeno (2010), A new analysis of the false positive rate of a Bloom filter
+    url: https://doi.org/10.1016/j.ipl.2010.07.024
+    type: paper
+  - title: Broder and Mitzenmacher (2004), Network applications of Bloom filters, a survey
+    url: https://doi.org/10.1080/15427951.2004.10129096
+    type: paper
+  - title: Carter, Floyd, Gill, Markowsky and Wegman (1978), Exact and approximate membership testers
+    url: https://doi.org/10.1145/800133.804332
+    type: paper
+  - title: Dietzfelbinger and Pagh (2008), Succinct data structures for retrieval and approximate membership
+    url: https://arxiv.org/abs/0803.3693
+    type: paper
+  - title: Kirsch and Mitzenmacher (2008), Less hashing, same performance, building a better Bloom filter
+    url: https://doi.org/10.1002/rsa.20208
+    type: paper
+  - title: Dillinger and Manolios (2004), Bloom filters in probabilistic verification
+    url: https://doi.org/10.1007/978-3-540-30494-4_26
+    type: paper
+  - title: Putze, Sanders and Singler (2009), Cache-, hash- and space-efficient Bloom filters
+    url: https://doi.org/10.1145/1498698.1594230
+    type: paper
+  - title: Lang, Neumann, Kemper and Boncz (2019), Performance-optimal filtering, Bloom overtakes cuckoo at high throughput
+    url: https://doi.org/10.14778/3303753.3303757
+    type: paper
+  - title: Fan, Cao, Almeida and Broder (2000), Summary cache, a scalable wide-area Web cache sharing protocol
+    url: https://doi.org/10.1109/90.851975
+    type: paper
+  - title: LevelDB, util/bloom.cc
+    url: https://github.com/google/leveldb/blob/main/util/bloom.cc
+    type: code
+  - title: RocksDB, util/bloom_impl.h
+    url: https://github.com/facebook/rocksdb/blob/main/util/bloom_impl.h
+    type: code
+  - title: Wikimedia, Analytics datasets, pageviews
+    url: https://dumps.wikimedia.org/other/pageviews/readme.html
+    type: dataset
+---
+
+A *Bloom filter* for a set $S$ of $n$ keys from a universe $U$ is an array of $m$ bits, initially 0, together with $k$ hash functions $h_1, \dots, h_k : U \to [m]$. Inserting $x$ sets the bits $h_1(x), \dots, h_k(x)$ to 1. A query for $y$ answers "possibly in $S$" if all of the bits $h_1(y), \dots, h_k(y)$ are 1 and "not in $S$" otherwise ([Bloom 1970](https://doi.org/10.1145/362686.362692)). A key in $S$ is always reported as possibly present. A key outside $S$ is reported as possibly present with some probability $\varepsilon$, the *false-positive rate*, taken over the choice of hash functions.
+
+The filter stores no keys, only which bit positions the inserted keys hashed to, so its size depends on $n$ and $\varepsilon$ and not on the size of the keys. It cannot list its members, and a plain bit array cannot delete one, since a bit may be shared by several keys. With $b = m/n$ bits per key and the best $k$, $\varepsilon$ falls by a factor of about 0.6185 per added bit per key, so 10 bits per key give 0.82% and 20 give 0.0067%. LSM storage engines such as LevelDB and RocksDB keep Bloom filters in each table file to skip the disk read for a key that the file does not hold, and perform that read needlessly for a fraction $\varepsilon$ of absent keys.
+
+The variants below change where the $k$ bits of a key are placed, how many hash evaluations produce them, or what each cell holds. On the [[algorithms/probabilistic/index|series benchmark]], with the 5,843,219 keys of the first hour inserted and the other 55,131,589 keys of the day queried as absent keys, the partitioned and double-hashed layouts have the standard filter's false-positive rate within sampling error from 6 to 24 bits per key. Placing all $k$ bits in one 512-bit cache line multiplies the rate by 1.18 at 10 bits per key and by 7.3 at 24, and halves the cost of an insertion into a 320 MiB filter. LevelDB's probe sequence, applied to one filter of the whole hour, has a rate that stops falling at about $1.4 \times 10^{-3}$.
+
+## The false-positive rate
+
+Assume the $kn$ bit positions written during insertion are independent and uniform on $[m]$. A given bit is still 0 after all insertions with probability
+
+$$
+p_0 = \left(1 - \frac{1}{m}\right)^{kn} \approx e^{-kn/m},
+$$
+
+and an absent key is a false positive if its $k$ independent positions all hit 1 bits. Treating the fraction of 1 bits as its expectation $1 - p_0$ gives the formula found in most sources ([Broder and Mitzenmacher 2004](https://doi.org/10.1080/15427951.2004.10129096), §2.1):
+
+$$
+\varepsilon \approx \left(1 - e^{-k/b}\right)^k .
+$$
+
+Bloom's own filter sets $d$ *distinct* bits per key, and the paper gives the fraction of 0 bits as $(1 - d/N)^n$ for an $N$-bit array, so its rate is $(1 - (1 - d/N)^n)^d$ (Eqs. 16 and 17). The formula above describes the variant with $k$ independent positions that may coincide, which is what implementations build because it needs no check for repeated positions.
+
+**Choosing $k$.** As a function of $k$ the approximation is minimized at $k = b \ln 2$. There the expected fraction of 1 bits is exactly $1/2$, and $\varepsilon = 2^{-k} = (2^{-\ln 2})^b \approx 0.6185^b$. Solving for $b$ gives $b = \lg(1/\varepsilon) / \ln 2 \approx 1.44 \lg(1/\varepsilon)$ bits per key. Fewer hash functions leave more bits at 0 but test fewer of them; more test more bits but set more of them. Since $k$ must be an integer, implementations round or truncate $b \ln 2$, and the rate near the optimum is flat: at 10 bits per key, $k = 6$, 7 and 8 give 0.843%, 0.819% and 0.846%.
+
+**The exact rate.** Given the filter, an absent key passes with probability $\rho^k$, where $\rho$ is the realized fraction of 1 bits, so $\varepsilon = \mathbb{E}[\rho^k]$, and by Jensen's inequality $\mathbb{E}[\rho^k] \ge (\mathbb{E}\rho)^k$. [Bose et al. (2008)](https://doi.org/10.1016/j.ipl.2008.05.018) showed that the approximation is a strict underestimate for $k \ge 2$ (under a mild condition on $k$ and $m$) and gave an exact expression with Stirling numbers of the second kind. Their smallest example is $n = 1$, $k = 2$, $m = 2$: the inserted key sets one bit or both with probability $1/2$ each, so $\varepsilon = \frac12 \cdot \frac14 + \frac12 \cdot 1 = 5/8$, while the approximation gives $9/16$. [Christensen, Roginsky and Jimeno (2010)](https://doi.org/10.1016/j.ipl.2010.07.024) gave the equivalent form $\varepsilon = \sum_{i} (i/m)^k \Pr[X = i]$, where $X$ is the number of occupied bins after $kn$ balls are thrown into $m$ bins, proved that the approximation is never larger than the true rate, and showed that the relative error is large only for small filters (their figure reaches several hundred percent at $m = 32$ bits). For the filters of millions of bits measured below, $\rho$ concentrates so tightly around its mean that the approximation and the exact rate agree to the precision of the measurement. The difference returns in [blocked filters](#blocked-filters), which are many small filters.
+
+**The lower bound.** Any structure that answers membership queries with no false negatives and false-positive rate $\varepsilon$, for sets of $n$ keys from a universe much larger than $n$, must use at least $n \lg(1/\varepsilon)$ bits in the worst case ([Carter et al. 1978](https://doi.org/10.1145/800133.804332); [Dietzfelbinger and Pagh 2008](https://arxiv.org/abs/0803.3693), Theorem 13, for $|U| > n^2/\varepsilon$, with an $O(1)$ loss). A Bloom filter at its best $k$ uses $1.44 \lg(1/\varepsilon)$ bits per key, a factor $\lg e$ above the bound, and Dietzfelbinger and Pagh note that this factor is tight for Bloom filters. The [[algorithms/probabilistic/index|cuckoo, quotient, xor and ribbon filters]] of the next note in the series close most of the gap.
+
+| $\varepsilon$ | Lower bound | Standard | Blocked, 512-bit lines | Blocked, 64-bit words |
+| ---: | ---: | ---: | ---: | ---: |
+| 1% | 6.64 | 9.59 ($k = 7$) | 9.92 ($k = 6$) | 12.1 ($k = 5$) |
+| 0.1% | 9.97 | 14.4 ($k = 10$) | 15.6 ($k = 9$) | 24.0 ($k = 7$) |
+| 0.01% | 13.3 | 19.2 ($k = 13$) | 22.0 ($k = 12$) | 45.5 ($k = 9$) |
+
+The table gives the bits per key each layout needs at its best integer $k$, from the closed forms that the measurements below confirm for each layout.
+
+## Measured on the benchmark
+
+Each filter was built from the 5,843,219 distinct keys that appear in the first hour of the benchmark and queried with all 55,131,589 keys that first appear later in the day, none of which was inserted, with 5 independent sets of hash functions per configuration. The keys are the 64-bit MurmurHash64A values of the key strings, and hash $i$ of key $x$ is MurmurHash3's 64-bit finalizer applied to $x$ XOR a random 64-bit seed, reduced to $[m]$ by a multiply-high. The table gives false positives per million absent keys at $b$ bits per key and $k = \operatorname{round}(b \ln 2)$ for the layouts that spread a key's bits over the whole array, with the formula $(1 - e^{-k/b})^k$ in the second column; the blocked layouts follow in [their own section](#blocked-filters).
+
+| $b$, $k$ | Formula | Standard | Partitioned | Double |
+| ---: | ---: | ---: | ---: | ---: |
+| 6, 4 | 56,060 | 56,060 | 56,050 | 56,070 |
+| 8, 6 | 21,580 | 21,560 | 21,570 | 21,570 |
+| 10, 7 | 8,194 | 8,192 | 8,193 | 8,189 |
+| 12, 8 | 3,142 | 3,145 | 3,137 | 3,142 |
+| 16, 11 | 458.7 | 458.4 | 457.3 | 458.8 |
+| 20, 14 | 67.1 | 67.5 | 66.8 | 68.4 |
+| 24, 17 | 9.84 | 9.66 | 9.85 | 9.48 |
+
+The three layouts in the table, and enhanced double hashing (described below), match the formula within 2% up to 20 bits per key and within 4% at 24, where each trial counts about 540 false positives. Over a grid of 8 sizes from 2 to 20 bits per key and $k$ from 1 to 14 (10 million absent keys per point), the standard filter's measured rate differs from the formula by at most 0.33% up to 12 bits per key, 0.85% at 16 and 2.0% at 20, and the measured minimum falls at the integer nearest $b \ln 2$ except at 20 bits per key, where $k = 13$ and $k = 14$ differ by less than the sampling error.
+
+### Partitioned filters
+
+A partitioned filter divides the array into $k$ slices of $m/k$ bits and lets $h_i$ address only slice $i$, so a key's bits are always distinct. Its rate is $(1 - (1 - k/m)^n)^k$, which is at least the standard filter's, with equality only at $k = 1$, and has the same limit ([Broder and Mitzenmacher 2004](https://doi.org/10.1080/15427951.2004.10129096), §2.1). At these sizes the difference is far below the sampling error: the measured rates in the table agree with the standard filter's to within 2%, in both directions.
+
+### Double hashing
+
+Computing $k$ independent hash values costs $k$ hash evaluations per key. [Kirsch and Mitzenmacher (2008)](https://doi.org/10.1002/rsa.20208) proved that two suffice: with $g_i(x) = h_1(x) + i\, h_2(x) \bmod m$ for $i = 0, \dots, k - 1$, the false-positive rate converges to $(1 - e^{-k/b})^k$ as $n \to \infty$ with $b$ fixed, and the convergence is $O(1/n)$. [Dillinger and Manolios (2004)](https://doi.org/10.1007/978-3-540-30494-4_26) argued that plain double hashing behaves like a fingerprint of a little less than two indices and proposed *enhanced double hashing*, $g_i(x) = h_1(x) + i\, h_2(x) + (i^3 - i)/6 \bmod m$, computed by adding $i$ to the step after each probe. On the benchmark both match the standard filter from 6 to 24 bits per key, with $m$ between 35 and 140 million bits. The largest deviation of plain double hashing from the formula, $-3.7\%$ at 24 bits per key, is about 2 standard errors, and enhanced double hashing is within 0.5% of the formula at every size in the table.
+
+### Blocked filters
+
+A lookup in a standard filter of $m$ bits reads up to $k$ bits at independent positions, and once the array is larger than the cache each of them is a separate cache miss. A *blocked* filter ([Putze, Sanders and Singler 2009](https://doi.org/10.1145/1498698.1594230)) uses the first hash value to choose a block of $B$ bits, one 64-byte cache line for $B = 512$, and places all $k$ bits of the key inside that block, so a lookup reads one line. The filter is a sequence of $m/B$ small standard filters, and the number of keys a block receives is approximately Poisson with mean $B/b$. Blocks that receive more keys than average have a higher fill, and since the false-positive rate is convex in the fill, the overloaded blocks raise the rate more than the underloaded ones lower it. Putze et al. give
+
+$$
+\varepsilon_{\text{blocked}} = \sum_{i \ge 0} \Pr[\text{Poisson}(B/b) = i] \; \varepsilon_{\text{inner}}(B, i, k),
+$$
+
+with $\varepsilon_{\text{inner}}(B, i, k) = (1 - (1 - 1/B)^{ik})^k$, the standard approximation for a $B$-bit filter holding $i$ keys. They report that at 20 bits per key the rate almost triples, from $6.7 \times 10^{-5}$ to $1.9 \times 10^{-4}$.
+
+| $b$, $k$ | 512-bit, measured | 512-bit, exact | 64-bit, measured | 64-bit, exact |
+| ---: | ---: | ---: | ---: | ---: |
+| 6, 4 | 57,720 | 57,740 | 69,130 | 69,120 |
+| 8, 6 | 23,600 | 23,610 | 37,690 | 37,670 |
+| 10, 7 | 9,682 | 9,686 | 20,960 | 20,940 |
+| 12, 8 | 4,136 | 4,135 | 12,780 | 12,780 |
+| 16, 11 | 885.2 | 885.5 | 7,000 | 7,005 |
+| 20, 14 | 230.6 | 230.3 | 4,897 | 4,900 |
+| 24, 17 | 72.3 | 72.2 | 3,993 | 3,996 |
+
+The table gives false positives per million absent keys on the benchmark for 512-bit and 64-bit blocks, at the same $k$ as the [table of the other layouts](#measured-on-the-benchmark), with the exact blocked rate described next. The measured rates exceed this formula by 0.3% at 6 bits per key, 1.2% at 10, 3.0% at 16 and 6.9% at 24. The gap is the Bose et al. effect inside each block: a 512-bit filter holding an average of 21 to 85 keys is small enough that its fill varies around its mean. Replacing $\varepsilon_{\text{inner}}$ by the exact rate of Christensen et al. for a $B$-bit filter, $\mathbb{E}[(X_{ik}/B)^k]$ with $X_t$ the number of distinct bits after $t$ uniform throws into $B$ bits, computed by dynamic programming over $X$, reproduces every measured blocked rate within 0.2%. For 64-bit blocks the measured rates exceed Putze's formula by 2.6% at 6 bits per key and by 30% at 24, and the exact form again agrees within 0.2%.
+
+A blocked filter's best $k$ is smaller than $b \ln 2$, because each additional bit raises the fill of an already crowded block. With 3 trials over $k = 1, \dots, 16$, the measured minimum for 512-bit blocks is at $k = 6$ for 10 bits per key (0.965%, against 0.969% at $k = 7$) and at $k = 9$ for 16 bits per key (0.084%, against 0.087% at $k = 11$), the same values the exact formula selects. [RocksDB's cache-local filter](https://github.com/facebook/rocksdb/blob/main/util/bloom_impl.h) uses 512-bit lines and chooses 6 probes at 10 bits per key and 9 at 16.
+
+*Register-blocked* filters ([Lang et al. 2019](https://doi.org/10.14778/3303753.3303757)) reduce the block to one 64-bit word, so a lookup builds a $k$-bit mask and compares one word against it with no data-dependent branch. Their rate is higher again: at their best $k$ the measured rate is 1.79% at 10 bits per key ($k = 5$) and 0.40% at 16 ($k = 6$), against 0.82% and 0.046% for the standard layout, and the bits per key needed for 0.01% rise to 45. Lang et al. also describe *sectorized* layouts that spread a key's bits over several words of one cache line, which sit between the two blocked layouts measured here.
+
+### LevelDB's probe sequence
+
+[LevelDB's filter](https://github.com/google/leveldb/blob/main/util/bloom.cc) computes one 32-bit hash $h$ of the key and probes $h, h + \delta, h + 2\delta, \dots \pmod{2^{32}}$, each reduced modulo the filter's size in bits, with $\delta = h$ rotated right by 17 bits. Its comment cites Kirsch and Mitzenmacher, and it sets $k = \lfloor 0.69\, b \rfloor$, rounding down to save probes. Kirsch and Mitzenmacher's analysis assumes that $h_1$ and $h_2$ are independent and uniform on $[m]$, while here $\delta$ is a fixed function of $h$, and two structural properties follow.
+
+- **The third probe takes few values.** Writing $h = 2^{16} a + c$ with 16-bit halves, $2\delta \bmod 2^{32} = 2^{16} c + 2\lfloor a/2 \rfloor$, so the high and low halves of $h + 2\delta$ differ by 0, 1 or 2 modulo $2^{16}$, and $h + 2\delta$ takes at most $3 \cdot 2^{16} = 196{,}608$ values. Enumerating all $2^{32}$ values of $h$ confirms that $h + 2\delta$ takes 196,606 distinct values, against about $2.7 \times 10^9$ for a random function and between $2.4 \times 10^9$ and $3.5 \times 10^9$ for the second, fourth, fifth and sixth probes. In a filter of 58 million bits, every key's third probe lands in a set of at most 196,606 bits, which are almost all 1 after the insertions, so the probe filters almost nothing and contributes almost no new 1 bits. The measured fill at 10 bits per key ($k = 6$) is 0.394, equal to $1 - e^{-(k-1)/b} = 0.3935$ rather than $1 - e^{-k/b} = 0.451$.
+- **All probes are determined by 32 bits.** An absent key whose 32-bit hash equals that of an inserted key passes, which happens with probability about $n/2^{32} = 1.36 \times 10^{-3}$ for $n = 5.8$ million.
+
+| Bits per key | $k$ | $(1 - e^{-k/b})^k$, per million | LevelDB sequence, per million |
+| ---: | ---: | ---: | ---: |
+| 10 | 6 | 8,436 | 11,620 |
+| 16 | 11 | 458.7 | 1,874 |
+| 20 | 13 | 67.9 | 1,450 |
+| 24 | 16 | 9.87 | 1,373 |
+
+At 20 and 24 bits per key the rate has reached the 32-bit floor of 1,360 per million. These runs place all 5.8 million keys of the hour in one filter. LevelDB stores filters per table file, and both effects shrink with the number of keys per filter: the floor is proportional to $n$, and in a sample of 4 million hash values the third probe's values were as evenly spread modulo $m$ as $h$ itself for every filter size tried up to 65,536 bits. How many keys LevelDB's own filters hold was not measured.
+
+### Counting filters
+
+[Fan et al. (2000)](https://doi.org/10.1109/90.851975) replaced each bit by a small counter so that a key can be deleted, in a protocol in which Web proxies summarize their cache contents for one another. Insertion increments the key's $k$ counters, deletion decrements them, and a query tests whether all $k$ are nonzero. The structure was later named the *counting Bloom filter*. Each counter after $n$ insertions is approximately Poisson with mean $kn/m$, and Fan et al. bound the probability that any counter reaches 16 by $m\,(e \ln 2 / 16)^{16} \approx 1.37 \times 10^{-15}\, m$ when $k \le (m/n) \ln 2$, so 4-bit counters suffice; a counter that would exceed 15 stays at 15. The cost is 4 bits per cell where the plain filter uses 1. Deleting a key that was never inserted, such as an absent key that the filter reported as possibly present, can decrement to 0 a counter that an inserted key depends on and so produce false negatives.
+
+On the benchmark, at 10 cells per key and $k = 7$ ($m = 58.4$ million counters, mean $kn/m = 0.7$), the largest counter over 10 independent builds was 8 once, 9 eight times and 10 once, and the average numbers of counters holding each value from 0 to 6, which account for all but about one in $10^5$ counters, agree with the Poisson probabilities within 0.2%. The bound for this $m$ is $8 \times 10^{-8}$.
+
+## Cost of a lookup
+
+A standard filter with $k = 7$ computes 7 hash values per key and reads 7 bits for an insertion or a present key. An absent key stops at the first 0 bit; with half the bits set it reads 2 bits on average. Double hashing computes 2 hash values and reads the same bits. The blocked layouts compute 2 hash values and read one cache line or one word. The timings below are single-threaded, at 10 bits per key and $k = 7$ for every layout, on 4 sizes of filter, with $2^{24}$ queries per measurement; the median of 3 repetitions is shown, and repetitions differed by up to 30% on this virtual machine.
+
+| Filter size | Standard | Double hashing | Blocked, 512 | Blocked, 64 |
+| ---: | ---: | ---: | ---: | ---: |
+| 160 KiB | 13 / 21 / 14 | 11 / 22 / 13 | 12 / 20 / 12 | 7 / 8 / 8 |
+| 1.25 MiB | 14 / 24 / 16 | 13 / 23 / 14 | 11 / 21 / 14 | 7 / 8 / 10 |
+| 20 MiB | 55 / 44 / 51 | 43 / 43 / 40 | 34 / 33 / 30 | 23 / 23 / 24 |
+| 320 MiB | 147 / 81 / 131 | 120 / 85 / 113 | 78 / 58 / 70 | 59 / 60 / 61 |
+
+Each cell gives nanoseconds per insertion, per query for an absent key and per query for a present key. The two smaller filters fit in the 2 MiB per-core L2 cache, the third in the last-level cache, and the largest exceeds the 260 MiB last-level cache that the processor reports. Queries are independent of one another, so the processor overlaps their cache misses, and the figures are throughput, not the latency of an isolated lookup.
+
+At 320 MiB the 512-bit blocked layout halves the cost of an insertion and of a present query relative to the standard layout (78 against 147 ns, 70 against 131 ns), and lowers the cost of an absent query by 28% (58 against 81 ns), since the standard layout reads only about 2 bits for an absent key. Double hashing saves 5 of the 7 hash evaluations and 14 to 22% of the cost of an insertion or present query at the two larger sizes, but reads as many cache lines as the standard layout. Inside the L2 cache the standard, double-hashed and 512-bit layouts cost the same within the measurement's spread, and an absent query costs more than a present one (21 against 14 ns for the standard layout at 160 KiB). That difference is consistent with a mispredicted branch at the exit of the probe loop, whose position is random for absent keys; the register-blocked layout, which tests all bits with one comparison and has no such branch, costs the same for both. Lang et al. find that at high query rates blocked Bloom filters outperform cuckoo filters.
+
+## Comparing layouts
+
+<BloomLab />
+
+The figure builds filters of $2^{20}$ bits in the browser and measures each layout's false-positive rate for every $k$ from 1 to 16, with the standard formula and, for the blocked layouts, the exact blocked formula drawn through the points. At 10 bits per key the 512-bit blocked points sit on the orange curve, about 18% above the standard curve at $k = 7$, and their minimum is at $k = 6$; the 64-bit blocked rate at $k = 7$ is 2.6 times the standard rate. LevelDB's sequence shows the effect of its third probe: the simulated keys never share a 32-bit hash, so the floor of the [previous section](#leveldbs-probe-sequence) is absent and the excess comes from the third probe alone. The lower panel draws a filter of 2048 bits, one 64-bit word per row, and circles the bits that one absent key probes, so that the standard layout's probes scatter across the array while a blocked layout's probes stay in one line or one word.
+
+## Consequences for implementations
+
+For a filter that fits in a core's L2 cache, the layouts measured here differ in lookup cost by less than the measurement's spread, except the register-blocked layout, which is 2.6 times faster for absent keys and 1.8 times for present keys and needs 27% more space at a 1% rate and 67% more at 0.1%. For a filter larger than the cache, a 512-bit blocked layout halves the cost of insertions and present queries at a space overhead of 3% at 1%, 8% at 0.1% and 15% at 0.01%, provided $k$ is chosen for the blocked layout (6 at 10 bits per key) and not as $b \ln 2$. The space comparisons above use the exact blocked formula, since the measured rates exceed the Poisson approximation of Putze et al. by up to 7% for 512-bit blocks and 30% for 64-bit blocks at the sizes measured. Double hashing from two independent 64-bit hash values had no measurable cost in accuracy at any size measured. A filter whose probes derive from one 32-bit hash has a false-positive rate of at least about $n/2^{32}$, which for one filter of 5.8 million keys is 0.14%, the rate of a standard filter with independent 64-bit hashes at 13.7 bits per key.
+
+> [!note]- How this was measured
+> The harness sources and outputs are in the `bloom-experiments` directory, and [`run.sh`](bloom-experiments/run.sh) reproduces every number. It reads `distinct.bin`, the 60,974,808 distinct 64-bit key hashes of the [[algorithms/probabilistic/hyperloglog-count-min|HyperLogLog and Count-Min]] harness in order of first appearance, whose first 5,843,219 entries are exactly the keys of hour 0.
+>
+> - **False-positive rates.** `bloom.c` builds each filter from the hour-0 keys and queries the remaining keys. Mode B runs the seven layouts at $k = \operatorname{round}(b \ln 2)$ (LevelDB's at $\lfloor 0.69\, b \rfloor$) with all 55,131,589 absent keys and 5 trials ([`B.txt`](bloom-experiments/B.txt)); mode A runs the standard layout for $b \in \{2, 4, 6, 8, 10, 12, 16, 20\}$ and $k = 1, \dots, 14$ with 10 million absent keys and 5 trials ([`A.txt`](bloom-experiments/A.txt)); mode D sweeps $k$ for the blocked layouts at 10 and 16 bits per key, 3 trials ([`D.txt`](bloom-experiments/D.txt)). Hash $i$ is `fmix64(x ^ s_i)` with seeds from a SplitMix64 stream, reduced by a 128-bit multiply-high. The blocked layouts take the block from hash 0 and each in-block position from the top 9 or 6 bits of a further hash. The LevelDB layout truncates `fmix64(x ^ s_0)` to 32 bits and follows `util/bloom.cc`.
+> - **Closed forms.** [`theory.py`](bloom-experiments/theory.py) computes the standard formula, Putze's Poisson sum and the exact blocked rate; [`analyze.py`](bloom-experiments/analyze.py) compares them with the runs and writes [`summary.json`](bloom-experiments/summary.json).
+> - **LevelDB's third probe.** [`ldb_probe3.c`](bloom-experiments/ldb_probe3.c) enumerates all $2^{32}$ hash values for each of the first six probes ([`ldb_probe3.txt`](bloom-experiments/ldb_probe3.txt)).
+> - **Counting filter.** Mode C records the counter histogram of 10 builds at 10 cells per key and $k = 7$ ([`C.txt`](bloom-experiments/C.txt)).
+> - **Timing.** [`speed.c`](bloom-experiments/speed.c) uses SplitMix64 outputs as keys (the benchmark keys are themselves 64-bit hashes), $2^{12}$ to $2^{28}$ keys at 10 bits per key, pinned to one core with `taskset`, nothing else running; the cost of generating the keys, 0.6 ns, is included. Its 512-bit layout takes the 7 in-block positions from 9-bit slices of one 64-bit hash ([`speed.txt`](bloom-experiments/speed.txt)).
+> - **Environment.** gcc 13.3 with `-O2 -march=native -fopenmp`, Python 3.13.18 with NumPy 2.5.3, on a 4-core Intel Xeon at 2.10 GHz (48 KiB L1d and 2 MiB L2 per core, 260 MiB L3 reported) with 15 GB of memory.
+> - **The figure.** The figure uses 32-bit arithmetic: key $x$ is mixed once as `fmix32(x + s)` and hash $i$ is `fmix32` of that value XOR a seed. Its probe positions, set-bit counts and false-positive counts for 30 configurations match an independent NumPy implementation exactly ([`figure_ref.py`](bloom-experiments/figure_ref.py)), and its closed forms match `theory.py` to $10^{-9}$.
+
+> [!note]- Potentially interesting ideas
+> - **LevelDB's filters at their own scale.** The measurements above apply LevelDB's sequence to one filter of 5.8 million keys. Building LevelDB tables from the benchmark keys and measuring the false-positive rate of its filter blocks would show how much of the excess remains at the number of keys per filter that LevelDB actually uses.
+> - **Sectorized and cache-sectorized layouts.** Lang et al.'s layouts that spread a key's bits over 2 to 8 words of one line trade between the 512-bit and 64-bit rates measured here; their rates follow from the same exact per-block computation with a product over sectors.
+> - **One-hashing for blocked filters.** RocksDB derives each in-line probe by multiplying the previous hash value by a constant instead of evaluating a further hash. Whether that sequence matches the exact blocked rate as closely as independent positions do was not measured.
+> - **Latency of isolated lookups.** The timings are throughput with independent queries. A dependent chain of lookups, where each query's key depends on the previous answer, would measure latency, where the standard layout's $k$ misses cannot overlap with those of other queries.
+
+## Related notes
+
+- [[algorithms/probabilistic/index|Probabilistic data structures]], the series index, with the notation and the benchmark stream
+- [[algorithms/probabilistic/hashing-for-sketches|Hashing for sketches]], on the hash families whose independence the analyses above assume
+- [[algorithms/probabilistic/hyperloglog-count-min|HyperLogLog and Count-Min]], whose harness produced the key file used here
+- [[systems/databases/foundations/ch3-storage-and-retrieval#Bloom filters|Bloom filters in LSM storage engines]]
+- [[math/probability/probability-expectation-concentration|Expectation and concentration]]
