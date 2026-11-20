@@ -1,0 +1,205 @@
+figure.fl {
+  @include fig-frame;
+
+  .fl-controls {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.6rem 1rem;
+    flex-wrap: wrap;
+  }
+
+  .fl-sub {
+    margin-top: 1rem;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .fl-subhead {
+    font-size: 0.92rem;
+    color: var(--darkgray);
+  }
+
+  .fl-slider {
+    flex: 1 1 9rem;
+    font-size: 0.92rem;
+    @include fig-slider;
+  }
+
+  .fl-select {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.92rem;
+
+    select {
+      @include fig-button(0.25rem 0.4rem);
+      max-width: 100%;
+    }
+  }
+
+  .fl-wide {
+    flex: 1 1 14rem;
+  }
+
+  button {
+    @include fig-button;
+    @include fig-button-hover;
+  }
+
+  input:disabled,
+  select:disabled,
+  button:disabled {
+    cursor: progress;
+  }
+
+  .fl-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    margin: 0.8rem 0 0.2rem;
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  .fl-key::before {
+    content: "";
+    display: inline-block;
+    margin-right: 0.35rem;
+    vertical-align: middle;
+  }
+
+  .fl-key-dot::before {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--fig-blue);
+  }
+
+  .fl-key-th::before {
+    width: 0;
+    height: 0.8rem;
+    border-left: 2px dashed var(--fig-orange);
+  }
+
+  .fl-key-used::before,
+  .fl-key-bad::before {
+    width: 0.7rem;
+    height: 0.7rem;
+    background: var(--darkgray);
+    opacity: 0.55;
+  }
+
+  .fl-key-bad::before {
+    background: var(--fig-red);
+    opacity: 0.85;
+  }
+
+  .fl-chart {
+    @include fig-chart;
+  }
+
+  .fl-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .fl-sel {
+    fill: var(--highlight);
+  }
+
+  .fl-tick,
+  .fl-axis {
+    fill: var(--gray);
+    font-size: 11px;
+  }
+
+  .fl-axis {
+    font-size: 12px;
+  }
+
+  .fl-cur {
+    fill: var(--darkgray);
+    font-weight: 600;
+  }
+
+  .fl-th {
+    stroke: var(--fig-orange);
+    stroke-width: 2;
+    stroke-dasharray: 5 4;
+  }
+
+  .fl-thlabel {
+    fill: var(--fig-orange);
+    font-size: 11px;
+  }
+
+  .fl-line {
+    fill: none;
+    stroke: var(--fig-blue);
+    stroke-width: 1.5;
+    opacity: 0.6;
+  }
+
+  .fl-ci {
+    stroke: var(--fig-blue);
+    stroke-width: 1.5;
+  }
+
+  .fl-dot {
+    fill: var(--fig-blue);
+  }
+
+  .fl-dot-cur {
+    stroke: var(--light);
+    stroke-width: 1.5;
+  }
+
+  .fl-bg {
+    fill: none;
+    stroke: var(--lightgray);
+  }
+
+  .fl-used {
+    fill: var(--darkgray);
+    opacity: 0.55;
+  }
+
+  .fl-bad {
+    fill: var(--fig-red);
+    opacity: 0.85;
+  }
+
+  .fl-groupline {
+    stroke: var(--gray);
+    stroke-width: 1.5;
+  }
+
+  .fl-bucket {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .fl-band {
+    fill: none;
+    stroke: var(--fig-red);
+    stroke-width: 1.5;
+  }
+
+  .fl-readout {
+    margin: 0.5rem 0 0;
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .fl-tick,
+    .fl-axis,
+    .fl-thlabel {
+      font-size: 15px;
+    }
+  }
+}
