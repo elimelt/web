@@ -1,0 +1,249 @@
+figure.st {
+  @include fig-frame;
+
+  .st-controls {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.6rem 1rem;
+    flex-wrap: wrap;
+  }
+
+  .st-field {
+    display: flex;
+    flex: 1 1 14rem;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.92rem;
+
+    select {
+      @include fig-button(0.25rem 0.4rem);
+      max-width: 100%;
+    }
+  }
+
+  .st-narrow {
+    flex: 0 1 9rem;
+  }
+
+  button {
+    @include fig-button;
+    @include fig-button-hover;
+  }
+
+  select:disabled,
+  button:disabled {
+    cursor: progress;
+  }
+
+  .st-pair {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.4rem 1.2rem;
+    margin-top: 0.6rem;
+
+    @media (min-width: 900px) {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .st-title {
+    margin: 0.8rem 0 0.2rem;
+    color: var(--darkgray);
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .st-chart svg {
+    @include fig-chart;
+  }
+
+  .st-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    margin: 0.3rem 0 0.2rem;
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  .st-key::before {
+    content: "";
+    display: inline-block;
+    width: 0.7rem;
+    height: 0.7rem;
+    margin-right: 0.35rem;
+    vertical-align: middle;
+    border-radius: 2px;
+  }
+
+  .st-key-moved::before {
+    background: var(--fig-orange);
+  }
+
+  .st-key-stop::before {
+    border: 2px solid var(--fig-orange);
+  }
+
+  .st-key-found::before {
+    background: var(--fig-green);
+  }
+
+  .st-key-skip::before {
+    background: var(--fig-blue);
+    border-radius: 50%;
+  }
+
+  .st-key-treap::before {
+    background: var(--fig-orange);
+    border-radius: 50%;
+  }
+
+  .st-key-exp::before {
+    width: 1rem;
+    height: 0;
+    border-top: 2px solid var(--darkgray);
+    border-radius: 0;
+  }
+
+  .st-box {
+    fill: var(--lightgray);
+    stroke: var(--gray);
+    stroke-width: 0.8;
+  }
+
+  .st-head {
+    fill: var(--gray);
+  }
+
+  .st-moved {
+    fill: var(--fig-orange);
+    stroke: var(--fig-orange);
+  }
+
+  .st-stop {
+    fill: var(--light);
+    stroke: var(--fig-orange);
+    stroke-width: 2;
+  }
+
+  .st-found {
+    fill: var(--fig-green);
+    stroke: var(--fig-green);
+  }
+
+  .st-link {
+    stroke: var(--gray);
+    stroke-width: 1;
+  }
+
+  .st-path {
+    fill: none;
+    stroke: var(--fig-orange);
+    stroke-width: 2;
+    opacity: 0.55;
+  }
+
+  .st-label,
+  .st-tick,
+  .st-axis {
+    fill: var(--darkgray);
+    font-size: 11px;
+  }
+
+  .st-tick,
+  .st-axis {
+    fill: var(--gray);
+  }
+
+  .st-axis {
+    font-size: 12px;
+  }
+
+  .st-num {
+    fill: var(--gray);
+  }
+
+  .st-target {
+    font-weight: 700;
+  }
+
+  .st-edge {
+    stroke: var(--gray);
+    stroke-width: 1;
+  }
+
+  .st-edge-path {
+    stroke: var(--fig-orange);
+    stroke-width: 2.5;
+  }
+
+  .st-node {
+    circle {
+      fill: var(--light);
+      stroke: var(--gray);
+      stroke-width: 1;
+    }
+
+    text {
+      fill: var(--darkgray);
+      font-size: 9px;
+      // The skip-list classes set a stroke on the group; keep it off the labels.
+      stroke: none;
+    }
+  }
+
+  .st-node.st-moved circle {
+    fill: var(--fig-orange);
+    stroke: var(--fig-orange);
+  }
+
+  .st-node.st-found circle {
+    fill: var(--fig-green);
+    stroke: var(--fig-green);
+  }
+
+  .st-node.st-moved text,
+  .st-node.st-found text {
+    fill: var(--light);
+    font-weight: 700;
+  }
+
+  .st-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .st-dot-skip {
+    fill: var(--fig-blue);
+    opacity: 0.45;
+  }
+
+  .st-dot-treap {
+    fill: var(--fig-orange);
+    opacity: 0.45;
+  }
+
+  .st-exp-skip,
+  .st-exp-treap {
+    fill: none;
+    stroke: var(--darkgray);
+    stroke-width: 1.8;
+  }
+
+  .st-readout {
+    margin: 0.5rem 0 0;
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .st-tick,
+    .st-axis {
+      font-size: 14px;
+    }
+  }
+}

@@ -1,0 +1,41 @@
+N 1000000 p 0.5000 order hash hits 24000000
+skiplist build 1007.2 find 1005.7
+treap build 947.5 find 875.9
+std::map build 815.2 find 1053.6
+sorted-array build 211.3 find 221.1
+N 1000000 p 0.5000 order sorted hits 24000000
+skiplist build 128.3 find 773.4
+treap build 55.7 find 755.5
+std::map build 216.8 find 1113.9
+sorted-array build 29.4 find 221.4
+N 1000000 p 0.2500 order hash hits 24000000
+skiplist build 1350.4 find 1434.7
+treap build 922.2 find 1028.1
+std::map build 870.7 find 1037.9
+sorted-array build 216.4 find 225.5
+N 1000000 p 0.2500 order sorted hits 24000000
+skiplist build 117.8 find 885.7
+treap build 55.1 find 758.7
+std::map build 224.7 find 1133.2
+sorted-array build 30.4 find 231.6
+N 10000000 p 0.5000 order hash hits 24000000
+skiplist build 2368.0 find 2321.3
+treap build 2434.8 find 2557.5
+std::map build 1865.0 find 2143.6
+sorted-array build 340.2 find 444.0
+N 10000000 p 0.5000 order sorted hits 24000000
+skiplist build 125.7 find 1710.1
+treap build 74.0 find 1866.8
+std::map build 429.0 find 2205.3
+sorted-array build 36.8 find 406.8
+N 10000000 p 0.2500 order hash hits 24000000
+skiplist build 3130.4 find 3657.0
+treap build 2307.8 find 2572.2
+std::map build 1816.3 find 2024.2
+sorted-array build 299.9 find 427.8
+N 10000000 p 0.2500 order sorted hits 24000000
+skiplist build 122.8 find 2423.0
+treap build 72.3 find 1803.0
+std::map build 367.6 find 2034.5
+sorted-array build 36.3 find 419.3
+TIMEDONE

@@ -1,0 +1,142 @@
+---
+title: Skip lists and treaps
+category: Algorithms
+tags:
+  - probabilistic data structures
+  - randomized algorithms
+  - data structures
+  - skip lists
+  - treaps
+date: 2026-11-22
+updated: 2026-11-22
+authors:
+  - elimelt
+status: draft
+description: Skip lists and treaps, the randomized search structures whose shape depends on random levels or priorities instead of the order of insertion, with the exact expected search cost of each, and search costs, heights and running times measured on up to 10 million pageview key hashes against std::map and a sorted array.
+sources:
+  - title: Pugh (1990), Skip lists, a probabilistic alternative to balanced trees
+    url: https://doi.org/10.1145/78973.78977
+    type: paper
+  - title: Seidel and Aragon (1996), Randomized search trees
+    url: https://doi.org/10.1007/BF01940876
+    type: paper
+  - title: LevelDB 1.20 skip list (db/skiplist.h)
+    url: https://cdn.jsdelivr.net/npm/leveldown@6.1.1/deps/leveldb/leveldb-1.20/db/skiplist.h
+    type: code
+  - title: Redis pull request 3889, Change skip list P value to 1/e
+    url: https://github.com/redis/redis/pull/3889
+    type: code
+---
+
+A skip list stores a sorted set of keys in a hierarchy of sorted linked lists. Every key is in the bottom list, level 1, and each key is independently given a height $\ell \ge 1$ with $\Pr[\ell > i] = p^i$, so that it appears in levels $1, \dots, \ell$. A search starts at the top level of a header node, moves right while the next key on the current level is smaller than the target, and drops one level when it is not. A treap is a binary search tree on the keys that is also a max-heap on independent random priorities attached to them: every node's priority exceeds its children's. Its shape is the shape of the binary search tree obtained by inserting the keys in decreasing order of priority, which is a random binary search tree whatever order the keys actually arrive in.
+
+Both structures replace the rebalancing rules of AVL or red-black trees with a random choice made once per key. A skip list's level $i$ holds about $n p^{i-1}$ keys, so each level is a sample of the one below and a search crosses about $1/p$ keys per level over $\log_{1/p} n$ levels. A treap's priorities decide which key is the root of every subtree, and a key becomes an ancestor of another exactly when its priority is the largest in the range between them. The expected search cost of either structure is $O(\log n)$ for every input sequence, with the expectation taken over the structure's own random choices; no input order, sorted or adversarial (as long as the adversary does not see the random choices), produces a deep structure more often than any other.
+
+Pugh (1990) introduced skip lists as a simpler alternative to balanced trees. Seidel and Aragon (1996) introduced treaps (as randomized search trees) and analyzed their expected depth, rotations and the cost of split and join. Skip lists are the in-memory index of LevelDB's memtable and of Redis's sorted sets. LevelDB's readers traverse the list without locks while one writer inserts, which a skip list allows because an insertion only links a new node into each of its levels from the bottom up.
+
+## The data
+
+The keys are the 64-bit hashes of the benchmark's (project, page) keys used by the earlier notes of the series, the 60,974,808 distinct values in order of first appearance; the experiments use the first $10^5$, $10^6$ or $10^7$ of them. Because the keys are hashes, their order of first appearance is a random permutation of their sorted order. A second run inserts the same keys in sorted order, which makes an unbalanced binary search tree degenerate into a list and leaves the expected shape of a skip list or treap unchanged.
+
+## Skip lists
+
+A key's height is $1 + G$ where $G$ counts successes of a coin with probability $p$ before the first failure, so the expected height is $1/(1 - p)$ and a skip list holds $n/(1-p)$ forward pointers in expectation, $2n$ for $p = 1/2$ and $1.33n$ for $p = 1/4$. The number of levels is the largest height, about $\log_{1/p} n$; implementations cap it at a constant such as 12 in LevelDB, with $p = 1/4$, which bounds the levels but not the search cost for sets larger than the cap's design size.
+
+The cost of a search follows from looking at its path backwards (Pugh 1990). Seen from the target, the path climbs one level each time it reaches a key taller than the current level, which happens with probability $p$ at each step, and otherwise moves left. The expected cost of climbing to level $L(n) = \log_{1/p} n$ is at most $L(n)/p$, and of crossing the levels above it at most $1/(1-p)$, so Pugh bounds the expected number of comparisons by
+
+$$
+\frac{L(n)}{p} + \frac{1}{1-p} + 1 ,
+$$
+
+which is $42.86$ for $n = 10^6$ and $p = 1/2$.
+
+The exact expectation can be written down for any counting convention. Counting every key comparison, one for each move to the right, one that ends each level whose next pointer exists, and a final equality test, the search for the $m$-th smallest of $n$ keys makes
+
+$$
+\mathbb{E}[C_m] = 1 + \sum_{i \ge 0} \left[ \frac{1-p}{p} \left(1 - \left(1 - p^{i+1}\right)^{m-1}\right) + 1 - \left(1 - p^{i}\right)^{n-m+1} \right]
+$$
+
+comparisons. A key $j < m$ is moved to on level $i + 1$ exactly when its height is $i + 1$ and no key between it and the target is taller, which gives the first term; level $i + 1$ ends with a comparison exactly when some key at or after the target is taller than $i$, which gives the second.
+
+| $n$ | $p$ | Expected comparisons | Measured mean (range over seeds) | Largest for one key | Levels |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| $10^6$ | 1/2 | 39.64 | 39.60 (38.34 to 41.17) | 70 to 75 | 19 to 25 |
+| $10^6$ | 1/4 | 38.64 | 38.61 (36.55 to 42.55) | 92 to 107 | 10 to 12 |
+| $10^7$ | 1/2 | 46.29 | 45.87 (45.11 to 46.60) | 85 to 89 | 22 to 25 |
+
+Each $n = 10^6$ row is 10 skip lists with different seeds and the $n = 10^7$ row is 3; the mean is over all keys of each list. The measured means agree with the expectation to within the spread between seeds, which comes mostly from the few keys at the top levels. The two values of $p$ give nearly the same mean, since the leading term $L(n)/p = \ln n / (p \ln(1/p))$ is $2.885 \ln n$ for both, but $p = 1/4$ uses a third fewer pointers and has a wider distribution: its worst key took 92 to 107 comparisons against 70 to 75. Pugh recommended $p = 1/4$ unless the variability of running times is a primary concern, in which case $p = 1/2$. Redis's sorted sets use $p = 1/4$ with at most 32 levels, and a 2017 pull request proposed $p = 1/e$, which minimizes $L(n)/p$ at $e \ln n$ comparisons (2.718 against 2.885) for 1.58 pointers per key.
+
+## Treaps
+
+In a random binary search tree on keys $1, \dots, n$, key $j$ is an ancestor of key $m$ exactly when $j$ has the largest priority among the keys between $j$ and $m$ inclusive, which has probability $1/(|j - m| + 1)$. Summing over $j$, the depth of the $m$-th key with the root at depth 1 has expectation
+
+$$
+\mathbb{E}[D_m] = H_m + H_{n - m + 1} - 1,
+$$
+
+where $H_k = 1 + 1/2 + \dots + 1/k$, and the mean depth over all keys is $2(1 + 1/n) H_n - 3 \approx 2 \ln n - 1.85$. A successful search compares the target with every key on its path, so its cost is the depth. The expected number of rotations per insertion or deletion is less than 2 (Seidel and Aragon 1996), independent of $n$.
+
+| $n$ | Expected mean depth | Measured mean (range) | Height |
+| ---: | ---: | ---: | ---: |
+| $10^6$ | 25.79 | 25.77 (25.22 to 26.37) | 48 to 54 |
+| $10^7$ | 30.39 | 30.33 (29.37 to 31.35) | 57 to 65 |
+
+The $10^6$ row is 10 treaps and the $10^7$ row is 3. A treap's search makes about two thirds as many comparisons as a skip list's with $p = 1/2$, since a skip list compares the target with $1/p$ keys per level including the one that ends the level, and the treap's $2 \ln n$ is $1.386 \lg n$ against the skip list's $2 \lg n$.
+
+## Running time
+
+Each figure is nanoseconds per operation, the median of 3 repetitions on one core. A lookup is a successful search for a key drawn at random from the set; building is inserting every key into an empty structure, or for the sorted array, copying and sorting the keys. The treap, std::map and sorted array ran once alongside each value of $p$, so their cells give both runs. The first table is lookup time and the second is build time per key.
+
+| Keys | Insertion order | Skip list, $p = 1/2$ | Skip list, $p = 1/4$ | Treap | std::map | Sorted array |
+| ---: | :--- | ---: | ---: | ---: | ---: | ---: |
+| $10^6$ | random | 1,006 | 1,435 | 876, 1,028 | 1,054, 1,038 | 221, 226 |
+| $10^6$ | sorted | 773 | 886 | 756, 759 | 1,114, 1,133 | 221, 232 |
+| $10^7$ | random | 2,321 | 3,657 | 2,558, 2,572 | 2,144, 2,024 | 444, 428 |
+| $10^7$ | sorted | 1,710 | 2,423 | 1,867, 1,803 | 2,205, 2,035 | 407, 419 |
+
+| Keys | Insertion order | Skip list, $p = 1/2$ | Skip list, $p = 1/4$ | Treap | std::map | Sorted array |
+| ---: | :--- | ---: | ---: | ---: | ---: | ---: |
+| $10^6$ | random | 1,007 | 1,350 | 948, 922 | 815, 871 | 211, 216 |
+| $10^6$ | sorted | 128 | 118 | 56, 55 | 217, 225 | 29, 30 |
+| $10^7$ | random | 2,368 | 3,130 | 2,435, 2,308 | 1,865, 1,816 | 340, 300 |
+| $10^7$ | sorted | 126 | 123 | 74, 72 | 429, 368 | 37, 36 |
+
+The two treap runs at $10^6$ keys in random order executed identical code and differ by 17% in lookup time, which sets the scale of the noise on this machine; differences smaller than that are not meaningful here.
+
+- **Against the sorted array.** With keys inserted in random order, every pointer structure took 4.0 to 8.5 times as long per lookup as binary search on the sorted array, which makes about $\lg n$ comparisons (20 or 23) in one contiguous block of memory.
+- **Comparisons and time.** A treap search made about two thirds of the comparisons of a skip-list search with $p = 1/2$ and read fewer distinct nodes (25.8 against 32.4 to 33.7 at $10^6$ keys, counting a node once when a level ends at it and the next level starts by reading it again), yet its lookups were no faster. The skip list with $p = 1/4$ made slightly fewer comparisons than with $p = 1/2$ and read 14% more distinct nodes at $10^6$ keys (37.6 against 33.0 on average over 3 seeds) and 10% more at $10^7$, but its lookups took 43% longer at $10^6$ keys and 58% longer at $10^7$. I did not measure cache misses, so these runs do not separate the causes, but neither count of the search predicted its time.
+- **Insertion order.** Both the skip list and the treap allocate nodes in insertion order, so after sorted insertion the nodes adjacent in key order are adjacent in memory, and their lookups were 14 to 38% faster than after random insertion; std::map's were not. Sorted insertion also made building fast, since each insertion's search path runs along the most recently inserted nodes, which are likely still in cache.
+- **Building in random order.** Inserting a key cost about as much as looking one up in the skip list and treap, and at $10^7$ keys std::map built in 21 to 23% less time than the treap and the skip list with $p = 1/2$.
+
+Pugh's (1990) table of normalized search times gives $p = 1/4$ the same value as $p = 1/2$, since $L(n)/p$ is the same for both, with 1.33 pointers per node against 2. On this machine and at these sizes $p = 1/4$ searched more slowly, so the choice of $p$ is worth measuring on the hardware that will run it.
+
+## The figure
+
+<SkiplistTreap />
+
+## Consequences
+
+Skip lists and treaps give $O(\log n)$ expected search cost on every input order with no balance information stored in the nodes and no rebalancing rules: a skip-list insertion splices one node into $\ell$ lists, and a treap insertion is a binary-search-tree insertion followed by rotations that restore the heap order. The exact expectations above matched the measured mean costs on $10^6$ and $10^7$ keys to within the spread between seeds.
+
+Neither structure looked up keys faster than std::map's red-black tree after random insertion, beyond the noise, and the treap was slower at $10^7$ keys. Each step of a pointer-based search loads a node whose address depends on the previous load, and a sorted array with binary search was 4.0 to 8.5 times faster for lookups than all three pointer structures here. The case for skip lists rests on concurrency and simplicity of insertion, as in LevelDB's memtable, and the case for treaps on split, join and order-statistic operations that follow directly from the heap order.
+
+> [!note]- How this was measured
+> The harness sources and outputs are in the `search-structure-experiments` directory, and [`run.sh`](search-structure-experiments/run.sh) reproduces every number from `distinct.bin`, the key hashes written by the [[algorithms/probabilistic/hyperloglog-count-min|HyperLogLog and Count-Min]] harness.
+>
+> - **Structures.** [`bench.cc`](search-structure-experiments/bench.cc) implements a skip list as in Pugh (1990), with heights capped at 40 and drawn from xoshiro256\*\*, and a treap with recursive insertion and rotations on 64-bit priorities. The shape runs count comparisons for a search of every key and record each structure's levels or depths, with seeds 1 to 10 (skip list) and 1001 to 1010 (treap). [`theory9.py`](search-structure-experiments/theory9.py) evaluates the expectations.
+> - **Timing.** [`bench.cc`](search-structure-experiments/bench.cc) inserts the first $N$ keys, in order of first appearance or sorted, into each structure and looks up 2,000,000 keys drawn uniformly with replacement from them. Each run repeats both steps 3 times with fresh seeds and reports the median, pinned to one core with `taskset` with no other work running ([`time.txt`](search-structure-experiments/time.txt)). The skip list allocates each node with `malloc`; the treap takes its nodes, in insertion order, from one preallocated array; std::map is `std::map<uint64_t, uint64_t>`; the sorted array uses `std::sort` and `std::binary_search`. The counts of distinct nodes read are in [`nodes.txt`](search-structure-experiments/nodes.txt).
+> - **The figure.** [`make_fig9.py`](search-structure-experiments/make_fig9.py) draws the 2,000 titles. The figure builds both structures with a Mulberry32 generator, and its tests compare its levels, search steps, costs and depths for 5 seeds key by key against an independent Python implementation that builds both structures with explicit nodes, pointers and rotations ([`figure_ref.py`](search-structure-experiments/figure_ref.py)), and check that costs averaged over 400 seeds converge to the exact expectations.
+> - **Environment.** g++ 13.3 with `-O2 -march=native`, on a 4-core Intel Xeon at 2.10 GHz with 15 GB of memory.
+
+> [!note]- Potentially interesting ideas
+> - **Cache-conscious variants.** Storing several keys per skip-list node, or laying a treap out in a cache-oblivious order, would show how much of the gap to the sorted array comes from memory latency.
+> - **Concurrency.** LevelDB's skip list allows reads during one writer's insertions without locks. Measuring read throughput with a concurrent writer against a locked balanced tree would test the reason most often given for using skip lists.
+> - **Tail of the search cost.** The largest search cost at $10^6$ keys was 92 to 107 comparisons for $p = 1/4$ against 70 to 75 for $p = 1/2$. Measuring the whole distribution of a single search's cost, at several sizes, would show how its tail depends on $p$.
+> - **Treap operations.** Split and join by key, and order statistics with subtree sizes, are where treaps differ from skip lists; timing them against a balanced tree's would complete the comparison.
+
+## Related notes
+
+- [[algorithms/probabilistic/index|Probabilistic data structures]], the series index, with the notation and the benchmark
+- [[algorithms/probabilistic/hashing-for-sketches|Hashing for sketches]], for the generators and hash families whose independence the analyses assume
+- [[algorithms/probabilistic/stream-sampling|Sampling from streams]], whose bottom-$k$ samples keep the records with the $K$ smallest random ranks, the records that would sit at the top of a treap built as a min-heap on those ranks
+- [[math/probability/probability-expectation-concentration|Expectation and concentration]], for the linearity-of-expectation arguments used here
