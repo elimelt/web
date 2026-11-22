@@ -1,0 +1,244 @@
+---
+title: Heavy hitters
+category: Algorithms
+tags:
+  - probabilistic data structures
+  - streaming algorithms
+  - heavy hitters
+  - frequent items
+  - Misra-Gries
+  - Space-Saving
+  - Count Sketch
+date: 2026-11-22
+updated: 2026-11-22
+authors:
+  - elimelt
+status: draft
+description: Misra-Gries, Space-Saving, Count Sketch and Count-Min with conservative update for the heavy-hitter and top-k problems, with the deterministic and probabilistic guarantees, the isomorphism between the two counter algorithms, and recall, precision, error and update cost measured on 161 million Wikimedia pageview records in recorded and shuffled order.
+sources:
+  - title: Misra and Gries (1982), Finding repeated elements
+    url: https://doi.org/10.1016/0167-6423(82)90012-0
+    type: paper
+  - title: Boyer and Moore (1991), MJRTY, a fast majority vote algorithm
+    url: https://doi.org/10.1007/978-94-011-3488-0_5
+    type: paper
+  - title: Cormode and Muthukrishnan (2005), What's hot and what's not, tracking most frequent items dynamically
+    url: https://doi.org/10.1145/1061318.1061325
+    type: paper
+  - title: Metwally, Agrawal and El Abbadi (2005), Efficient computation of frequent and top-k elements in data streams
+    url: https://doi.org/10.1007/978-3-540-30570-5_27
+    type: paper
+  - title: Charikar, Chen and Farach-Colton (2004), Finding frequent items in data streams
+    url: https://doi.org/10.1016/S0304-3975(03)00400-6
+    type: paper
+  - title: Berinde, Indyk, Cormode and Strauss (2010), Space-optimal heavy hitters with strong error bounds
+    url: https://doi.org/10.1145/1862919.1862923
+    type: paper
+  - title: Agarwal, Cormode, Huang, Phillips, Wei and Yi (2013), Mergeable summaries
+    url: https://doi.org/10.1145/2500128
+    type: paper
+  - title: Demaine, López-Ortiz and Munro (2002), Frequency estimation of internet packet streams with limited space
+    url: https://doi.org/10.1007/3-540-45749-6_33
+    type: paper
+  - title: Karp, Shenker and Papadimitriou (2003), A simple algorithm for finding frequent elements in streams and bags
+    url: https://doi.org/10.1145/762471.762473
+    type: paper
+  - title: Manku and Motwani (2002), Approximate frequency counts over data streams
+    url: http://www.vldb.org/conf/2002/S10P03.pdf
+    type: paper
+  - title: Cormode and Hadjieleftheriou (2008), Finding frequent items in data streams
+    url: https://doi.org/10.14778/1454159.1454225
+    type: paper
+  - title: Estan and Varghese (2002), New directions in traffic measurement and accounting
+    url: https://doi.org/10.1145/633025.633056
+    type: paper
+  - title: Bhattacharyya, Dey and Woodruff (2016), An optimal algorithm for l1-heavy hitters in insertion streams and related problems
+    url: https://doi.org/10.1145/2902251.2902284
+    type: paper
+  - title: Braverman, Chestnut, Ivkin, Nelson, Wang and Woodruff (2017), BPTree, an l2 heavy hitters algorithm using constant memory
+    url: https://doi.org/10.1145/3034786.3034798
+    type: paper
+  - title: Anderson, Bevan, Lang, Liberty, Rhodes and Thaler (2017), A high-performance algorithm for identifying frequent items in data streams
+    url: https://doi.org/10.1145/3131365.3131407
+    type: paper
+  - title: Gong, Yang, Zhang, Li, Uhlig, Chen, Uden and Li (2018), HeavyKeeper, an accurate algorithm for finding top-k elephant flows
+    url: https://www.usenix.org/conference/atc18/presentation/gong
+    type: paper
+---
+
+Given a stream of updates $(i_t, c_t)$ with $c_t > 0$ and total weight $N = \|a\|_1$, the $\varphi$-*heavy hitters* are the items with $a_i \ge \varphi N$. There are at most $1/\varphi$ of them. A one-pass algorithm that reports exactly this set needs memory linear in the number of distinct items, so the problem is relaxed with a second parameter $\varepsilon < \varphi$. The algorithm must report every item with $a_i \ge \varphi N$, may report items with $(\varphi - \varepsilon) N \le a_i < \varphi N$, and must not report any item with $a_i < (\varphi - \varepsilon) N$. The *top-$k$* problem asks instead for the $k$ items of largest frequency, which is the same problem with a threshold set by the data. Both are usually solved through a *frequency estimate* $\hat a_i$ with $|\hat a_i - a_i| \le \varepsilon N$, from which the report is the set of items whose estimate clears the threshold.
+
+Two kinds of structure solve it. *Counter-based* summaries (Misra–Gries, Space-Saving and their relatives) keep about $1/\varepsilon$ items with a counter each and decide on every update which items to keep. Their guarantees are deterministic, hold for every arrival order, and require insertions only. *Linear sketches* (Count-Min and Count Sketch, from [[algorithms/probabilistic/hyperloglog-count-min#Frequency estimation|HyperLogLog and Count-Min]]) keep an array of counters that is a linear function of the frequency vector. They accept negative updates and merge by addition, but they store no item identities, so reporting heavy hitters needs a separate set of candidates, and their guarantees hold with a stated probability over the hash functions.
+
+The measurements below run every structure over the series' [[algorithms/probabilistic/index#The shared benchmark|benchmark stream]], 160,961,718 hourly records of 60,974,808 Wikimedia pages with $N = 445{,}961{,}446$ views. In that stream 134 pages are $10^{-4}$-heavy hitters (at least 44,596 views) and 3,437 are $10^{-5}$-heavy hitters (at least 4,460). The 100th most viewed page has 54,747 views. The distribution is flatter than the Zipf laws often assumed in analyses of these algorithms. The 1,000 most viewed pages hold 9.1% of the views and the 64,000 most viewed 29%.
+
+## The space bound
+
+[Berinde, Indyk, Cormode and Strauss (2010)](https://doi.org/10.1145/1862919.1862923) show that no counter-based algorithm with $m$ counters can guarantee an error below $F_1^{\mathrm{res}(k)}/(2m)$ on every stream, where $F_1^{\mathrm{res}(k)}$ is the total weight of all items except the $k$ heaviest. With $k = 0$ the bound is $N/(2m)$, so an error of $\varepsilon N$ needs at least $1/(2\varepsilon)$ counters, half of what Misra–Gries uses. Counting bits instead of counters, [Bhattacharyya, Dey and Woodruff (2016)](https://doi.org/10.1145/2902251.2902284) give a randomized algorithm for the $(\varphi, \varepsilon)$ problem in $O(\varepsilon^{-1} \log \varphi^{-1} + \varphi^{-1} \log n + \log \log N)$ bits for a universe of $n$ items and a stream of length $N$, and show that this is optimal. In that bound a $\log n$-bit identity is paid only for $1/\varphi$ items, and the $1/\varepsilon$ term costs $O(\log \varphi^{-1})$ bits per counter.
+
+## Misra–Gries
+
+The algorithm of [Misra and Gries (1982)](https://doi.org/10.1016/0167-6423(82)90012-0) keeps at most $k$ pairs (item, counter). An arriving item that has a counter increments it. An item without a counter takes a free one with value 1. If all $k$ counters are taken, the arriving item and every counter are decremented by one, and counters that reach zero are freed. With $k = 1$ this is the majority vote algorithm of [Boyer and Moore (1991)](https://doi.org/10.1007/978-94-011-3488-0_5).
+
+**Guarantee.** Let $D$ be the number of decrement steps. Each removes one unit from each of $k$ counters and discards the arriving unit, so it removes $k + 1$ units of weight in all. If $\hat N$ is the sum of the counters at the end, then $(k + 1) D = N - \hat N$, and every estimate satisfies
+
+$$
+a_i - \frac{N - \hat N}{k + 1} \;\le\; \hat a_i \;\le\; a_i ,
+$$
+
+with $\hat a_i = 0$ for an item without a counter. The error is at most $N/(k+1)$, so $k = \lceil 1/\varepsilon \rceil$ counters suffice, and since every estimate is an underestimate, reporting the items with $\hat a_i \ge (\varphi - \varepsilon) N$ returns every $\varphi$-heavy hitter and nothing below $(\varphi - \varepsilon) N$.
+
+Weighted updates follow the same rule ([Berinde et al. 2010](https://doi.org/10.1145/1862919.1862923)). An item of weight $c$ arriving at a full summary whose smallest counter is $\mu$ decrements every counter and itself by $d = \min(c, \mu)$, and keeps the remaining $c - d$ in a freed counter if $c > \mu$. The identity $(k + 1) D = N - \hat N$, with $D$ now the total decrement, still holds.
+
+The algorithm was rediscovered twenty years later as Frequent ([Demaine, López-Ortiz and Munro 2002](https://doi.org/10.1007/3-540-45749-6_33); [Karp, Shenker and Papadimitriou 2003](https://doi.org/10.1145/762471.762473)), with a structure that makes each unit update $O(1)$. Counters with equal values share a group in a list ordered by value, and a decrement of every counter becomes a change of one offset. The implementation measured here keeps the counters in a binary min-heap with a hash index and represents the decrement as a global offset, so a weighted update costs $O(\log k)$ and a decrement frees counters by popping the heap.
+
+## Space-Saving
+
+[Space-Saving (Metwally, Agrawal and El Abbadi 2005)](https://doi.org/10.1007/978-3-540-30570-5_27) keeps $m$ triples (item, count, error). An item with a counter adds its weight. An item without one, arriving at a full summary, takes over the counter with the smallest count $\mu$. The counter's item is replaced, its count becomes $\mu + c$ and its error becomes $\mu$.
+
+**Guarantee.** The counts always sum to $N$, so $\mu \le N/m$. A monitored item's count overestimates its true count by at most its recorded error, and an item that is not monitored has a true count of at most $\mu$:
+
+$$
+\hat a_i - \mathrm{err}_i \;\le\; a_i \;\le\; \hat a_i \quad \text{(monitored)}, \qquad a_i \le \mu \quad \text{(not monitored)} .
+$$
+
+Every item with $a_i > \mu$ is therefore monitored, and the items whose lower bound $\hat a_i - \mathrm{err}_i$ clears the threshold form a report with no false positives. Metwally et al. organize the counters in a *stream-summary*, a list of buckets ordered by count, each holding the items with that count, so the smallest counter is the head of the list and a unit increment moves an item to the next bucket in $O(1)$ time.
+
+**Misra–Gries is Space-Saving shifted by $\mu$.** [Agarwal, Cormode, Huang, Phillips, Wei and Yi (2013, Lemma 2.3)](https://doi.org/10.1145/2500128) show that after the same stream, the Misra–Gries summary with $k$ counters is the Space-Saving summary with $k + 1$ counters with $\mu$ subtracted from every count and the counters that reach zero removed, and that $\mu = (N - \hat N_{\mathrm{MG}})/(k + 1)$. The two differ only in the direction of their error. Space-Saving reports upper bounds and Misra–Gries lower bounds, and the width of the interval is the same. On the benchmark stream, the Space-Saving summary with $m$ counters minus $\mu$ equalled the Misra–Gries summary with $m - 1$ counters in all 25 comparisons (5 sizes, recorded order and 4 shuffles, weighted updates), and $\mu$ equalled the Misra–Gries bound to the view.
+
+**Tail guarantee.** The bound $N/m$ is attained only when the weight is spread evenly. Berinde et al. prove that both algorithms satisfy, for every $j < m$,
+
+$$
+|\hat a_i - a_i| \;\le\; \frac{F_1^{\mathrm{res}(j)}}{m - j},
+$$
+
+so on a stream whose $j$ heaviest items hold most of the weight, the error falls far below $N/m$. The bound holds for weighted updates as well. On the pageview stream it gives little, because the heaviest items hold a small share of $N$, and at $m = 64{,}000$ the tail bound is 6,409 views against $N/m = 6{,}968$, with an observed smallest counter of 6,365 to 6,366.
+
+## Linear sketches with candidates
+
+A Count-Min or Count Sketch array answers a point query for any item, but it cannot list the items it has seen. Two methods produce a report. The first keeps a set of $K$ candidates. After each update the item's estimate is computed and the item enters the set if its estimate exceeds the smallest estimate in the set, which is the arrangement [Charikar, Chen and Farach-Colton (2004)](https://doi.org/10.1016/S0304-3975(03)00400-6) describe for Count Sketch. The second, for streams with deletions ([Cormode and Muthukrishnan 2005](https://doi.org/10.1145/1061318.1061325)), keeps one sketch per level of a dyadic decomposition of the key space and descends from the root into ranges whose estimated weight clears the threshold; it needs keys from an ordered universe and $\log n$ times the space.
+
+The two sketches bound the error in different norms. Count-Min, with width $w$ and depth $d$, overestimates by at most $e N / w$ with probability $1 - e^{-d}$ for each query. Count Sketch's estimate has variance at most $\|a\|_2^2 / w$ in each row, so by Chebyshev's inequality a row errs by more than $\sqrt{3/w}\,\|a\|_2$ with probability at most $1/3$ and the median of 5 rows with probability at most $51/243 \approx 0.21$. On the benchmark stream $\|a\|_2 = 0.0124\,N$, so at equal width Count Sketch's bound is smaller than Count-Min's by a factor of $e / (0.0124 \sqrt{3 w})$, which exceeds 1 for every $w$ below about 16,000.
+
+Conservative update ([Estan and Varghese 2002](https://doi.org/10.1145/633025.633056)) raises each of an item's $d$ cells only as far as the new minimum, so Count-Min's estimates fall and still never underestimate. It makes the sketch depend on the arrival order and removes its linearity. A deletion cannot be applied, and the sum of two such sketches still overestimates every item but is not the sketch of the combined stream.
+
+## Measured recall, precision and error
+
+Each structure ran over all 160,961,718 records with weighted updates, in the recorded order (hour by hour, and within an hour grouped by project and largely in title order) and in 4 uniformly random permutations of the records. Memory is counted in units of 16 bytes, an 8-byte key and an 8-byte count, so a budget of $m$ units gives Misra–Gries and Space-Saving $m$ counters each. Space-Saving's error field is not counted, and with it Space-Saving uses 1.5 times the memory shown. The sketches spend three quarters of the same bytes on 4-byte cells (depth 5 for Count Sketch, 4 for Count-Min) and a quarter on $m/4$ candidates of 16 bytes. The rows labelled conservative update are Count-Min with conservative update. In the tables below, the first value in a cell is the recorded order and the second the range over the 4 permutations, and a single value means the two agree. The sketches ran with 4 hash seeds in the recorded order, so their first value is also a range, and each permutation used its own seed for the hashes.
+
+**$10^{-4}$-heavy hitters (134 pages).** An item is reported when its estimate is at least $\varphi N = 44{,}596$. Recall is the percentage of the 134 pages reported, and precision the percentage of reported items that are among them.
+
+Recall, in percent. At 4 kB no structure found more than 16% of the 134 pages in any order.
+
+| | 16 kB | 64 kB | 256 kB | 1,024 kB |
+| --- | ---: | ---: | ---: | ---: |
+| Misra–Gries | 6 / 7–8 | 27 / 24–25 | 51 / 51–54 | 84 / 82–83 |
+| Space-Saving | 25 / 25–34 | 64 / 70–75 | 100 | 100 |
+| Count Sketch | 8–10 / 8–11 | 56–59 / 55–59 | 96–100 | 99–100 |
+| Count-Min | 25–30 / 25–28 | 97–99 / 93–96 | 100 | 100 |
+| Conservative update | 35 / 39–43 | 87–88 / 94–96 | 100 | 100 |
+
+Precision, in percent:
+
+| | 16 kB | 64 kB | 256 kB | 1,024 kB |
+| --- | ---: | ---: | ---: | ---: |
+| Misra–Gries | 100 | 100 | 100 | 100 |
+| Space-Saving | 3 / 3–5 | 2 / 2–3 | 90 / 93–95 | 97 / 98–100 |
+| Count Sketch | 4–5 / 4–6 | 8 / 7–8 | 57–72 / 59–69 | 98–99 / 97–99 |
+| Count-Min | 13–16 / 14–15 | 13 / 12–13 | 13 / 13–14 | 81–83 / 81–84 |
+| Conservative update | 19 / 21–23 | 12 / 13 | 96 / 96–99 | 99 / 99–100 |
+
+**The most viewed pages.** Top-100 recall is the percentage of the 100 most viewed pages among the 100 largest counters or candidates. Misra–Gries and Space-Saving list the same 100. At 4 kB no structure listed more than 19 of them.
+
+| | 16 kB | 64 kB | 256 kB | 1,024 kB |
+| --- | ---: | ---: | ---: | ---: |
+| Counter summaries | 31 / 31–42 | 60 / 72–74 | 93 / 97–99 | 100 |
+| Count Sketch | 8–9 | 31–33 / 32–33 | 82–88 / 81–87 | 97–100 / 97–99 |
+| Count-Min | 30–32 / 29–33 | 78–82 / 75–81 | 97–98 / 97–99 | 98–100 |
+| Conservative update | 38–41 / 41–48 | 74–77 / 83–84 | 96 / 98–100 | 100 |
+
+The errors on these pages, in the recorded order, in thousands of views: the largest $|\hat a_i - a_i|$ over the 100 most viewed pages, then the mean over the 1,000 most viewed. At 4 kB the largest error of Count Sketch, 152 to 221 thousand views, was the smallest of the five, against 1,712 thousand for Space-Saving.
+
+| | 16 kB | 64 kB | 256 kB | 1,024 kB |
+| --- | ---: | ---: | ---: | ---: |
+| *Largest, top 100* | | | | |
+| Misra–Gries | 437 | 108 | 26.4 | 6.37 |
+| Space-Saving | 409 | 99.5 | 23.7 | 5.10 |
+| Count Sketch | 64–143 | 25.6–40.8 | 6.2–12.7 | 3.3–6.1 |
+| Count-Min | 592–604 | 142–150 | 35.4–37.1 | 8.4–9.0 |
+| Conservative update | 228 | 55.4 | 12.9 | 2.45–2.49 |
+| *Mean, top 1,000* | | | | |
+| Misra–Gries | 32.7 | 26.0 | 17.4 | 5.92 |
+| Space-Saving | 44.3 | 28.5 | 9.56 | 0.45 |
+| Count Sketch | 16.2–17.2 | 6.0–6.5 | 2.1–2.3 | 0.75–0.83 |
+| Count-Min | 538–539 | 128 | 29.7 | 6.6 |
+| Conservative update | 216 | 37.5 | 2.10 | 0.21 |
+
+In the shuffled orders the errors of Misra–Gries were within 6% of these, and those of Count Sketch and Count-Min were the same, since their counters do not depend on the order. The errors of Space-Saving and conservative update were smaller in most shuffled runs, most of all at 256 kB and above. Space-Saving's largest error on the top 100 fell to 4.2 to 17.8 thousand views at 256 kB and 0.96 to 3.8 thousand at 1,024 kB, and conservative update's to 2.2 to 9.6 and 0.52 to 1.8 thousand. The full ranges are in [`analyze.txt`](heavy-hitter-experiments/analyze.txt).
+
+- **A counter summary separates heavy hitters only once its smallest counter falls below the threshold.** Space-Saving's $\mu$ was 107,853 at 64 kB, above $\varphi N = 44{,}596$, so every counter cleared the threshold and the report was the whole summary (4,000 items, precision 2%). At 256 kB $\mu$ was 26,403 and precision rose to 90%. The counts sum to $N$ and the 16,000 most viewed pages hold only 19% of the views, so $\mu$ stayed between 0.91 and 0.99 of $N/m$ at every size, and the summary separated the heavy hitters only once $m$ exceeded about $1/\varphi$. For $\varphi = 10^{-5}$ (3,437 pages) the 1,024 kB summary had $\mu = 6{,}366$, above the threshold of 4,460, and reported every counter (precision 5%). Its lower bounds $\hat a_i - \mathrm{err}_i$ certified 2,114 of the 3,437 pages with no false positives.
+- **Misra–Gries never reports a false positive and misses the pages near the threshold.** Its estimates are Space-Saving's minus $\mu$, so its top-100 list is the same, and its thresholded report is the subset whose lower bound clears $\varphi N$, 84% of the 134 pages at 1,024 kB. In the recorded order its largest error on the top 100 was within 1% of its bound $(N - \hat N)/(k+1)$ at every size.
+- **Count Sketch had the smallest error at small sizes and the poorest report.** At 4 and 16 kB its largest error on the top 100 was the smallest of the five structures, 8 to 11 times below Space-Saving's at 4 kB, and at 16 and 64 kB its mean error on the top 1,000 was the smallest. This follows from $\|a\|_2 = 0.0124\,N$. Its report is limited by its candidates. At 4 kB the set has 62 places, so at most 62 of the top 100 can be listed, and an item displaced from the set returns only when a later update raises its estimate above the smallest candidate's. Its two-sided error also admits pages below the threshold, which kept its precision at 57 to 72% at 256 kB.
+- **Count-Min with conservative update gave the best report at 256 kB and above.** At 256 kB it found all 134 pages with 96% precision, against 90% for Space-Saving and 13% for plain Count-Min, whose overestimates of up to $eN/w$ admitted about 820 to 900 pages below the threshold. At 1,024 kB its errors on the top 100 and the top 1,000 were the smallest of the five structures in the recorded order, its mean error on the top 1,000 was also the smallest in the shuffled orders, and at $\varphi = 10^{-5}$ it found all 3,437 pages with 73 to 77% precision.
+- **The recorded order is harder for the order-dependent structures than a random one.** At 64 kB, Space-Saving listed 60 of the top 100 in the recorded order and 72 to 74 in the shuffled orders, and conservative update 74 to 77 against 83 to 84. At 1,024 kB, Space-Saving's largest error on the top 100 was 5,098 views in the recorded order and 962 to 3,784 shuffled. The guarantee is the same in both orders ($\mu$ differed by less than 0.1%). Within each hour the stream is grouped by project, so a page's records from one project arrive between long runs of records from other projects.
+
+## Update cost
+
+Update cost for one thread over the whole stream in the recorded order, median of 3 runs, in nanoseconds per record. For the sketches it includes the query that follows each update and the offer to the candidate set.
+
+| | 16 kB | 1,024 kB |
+| --- | ---: | ---: |
+| Misra–Gries | 109 | 181 |
+| Space-Saving | 148 | 207 |
+| Count Sketch | 76 | 85 |
+| Count-Min | 29 | 37 |
+| Conservative update | 48 | 61 |
+
+At least 60,974,808 of the 160,961,718 records, those that are the first of their page, find no counter, and each of them causes a replacement or a decrement that moves a counter through the heap in $O(\log m)$ steps, and at 1,024 kB the 64,000-entry heap and its index no longer fit in the 2 MiB L2 cache. The sketches touch a fixed number of cells per update. In these measurements Count-Min with conservative update was 3 to 4 times faster per record than Space-Saving at both sizes.
+
+## Merging and deletions
+
+Counter summaries computed on separate parts of a stream can be combined. [Agarwal et al. (2013)](https://doi.org/10.1145/2500128) merge two Misra–Gries summaries of $k$ counters by adding their counters item by item, subtracting the $(k+1)$-th largest resulting value from every counter, and keeping the positive ones. The merged summary has at most $k$ counters and the same bound $(N - \hat N)/(k + 1)$ for the combined stream, so a tree of merges of any shape loses nothing against a single pass. By the isomorphism, the same procedure applies to Space-Saving. Linear sketches with the same hash functions merge by adding their arrays, and their candidate sets by taking the union and re-estimating each item from the merged array.
+
+None of the counter algorithms accepts negative updates, since a deletion of an item whose counter was taken over cannot be undone. Count-Min and Count Sketch accept them directly, though the Count-Min bound then holds for $\|a\|_1$ of the net frequency vector only when no frequency becomes negative, and a candidate set built from estimates during the stream can hold items whose frequency later fell. The dyadic method above avoids the candidate set altogether.
+
+## Later designs
+
+- **Lossy counting** ([Manku and Motwani 2002](http://www.vldb.org/conf/2002/S10P03.pdf)) divides the stream into windows of $\lceil 1/\varepsilon \rceil$ items and at each window boundary deletes the entries whose count plus maximum undercount does not exceed the window number. It uses $O(\varepsilon^{-1} \log(\varepsilon N))$ entries in the worst case and fewer on skewed data. The survey and benchmark of [Cormode and Hadjieleftheriou (2008)](https://doi.org/10.14778/1454159.1454225) found Space-Saving the most accurate of the counter-based algorithms at a given space on their data sets.
+- **Decrement by a sampled quantile.** The frequent-items sketch of [Anderson, Bevan, Lang, Liberty, Rhodes and Thaler (2017)](https://doi.org/10.1145/3131365.3131407), used in the DataSketches library, decrements a full Misra–Gries summary by the median of a sample of its counters (1,024 in the implementation) instead of by the arriving weight, so each decrement frees about half the counters and decrements are rare even for weighted streams.
+- **HeavyKeeper** ([Gong et al. 2018](https://www.usenix.org/conference/atc18/presentation/gong)) targets top-$k$ flows on network hardware. Each bucket of a sketch holds a fingerprint and a count, and an item that collides with a bucket owned by another item decays that count with probability $b^{-\text{count}}$ for a base $b$ near 1.08, so small flows rarely displace large ones.
+- **$\ell_2$ heavy hitters.** Items with $a_i \ge \varepsilon \|a\|_2$ include every $\ell_1$ heavy hitter and, on a flat stream, many more. Count Sketch finds them in $O(\varepsilon^{-2} \log n)$ words; [BPTree (Braverman et al. 2017)](https://doi.org/10.1145/3034786.3034798) does so in insertion streams in $O(\varepsilon^{-2} \log \varepsilon^{-1})$ words.
+
+## The figure
+
+The figure runs the four structures in the browser on a substream of the benchmark, the 39,986 records whose key hash falls in a fixed 1/4,096 of the hash range, which keeps every record of the 14,880 pages it selects and none of any other. The substream is more skewed than the full stream, with its heaviest page holding 24% of its 147,216 views, so small summaries already separate the first few pages from the rest. At 64 counters and the end of the day, Space-Saving lists 14 of the 20 most viewed pages among its 20 largest counters, with a largest error of 976 views against its guarantee of 1,551. Stepping through records shows the event each update causes, which is an increment, a counter taken over with the error it inherits, or a Misra–Gries decrement of every counter.
+
+<HeavyHitters base="/algorithms/probabilistic/heavy-hitter-experiments/" />
+
+## Consequences for implementations
+
+For heavy hitters in an insertion-only stream with a threshold $\varphi$ fixed in advance, Space-Saving with somewhat more than $1/\varphi$ counters gives a report with a certificate. The items whose lower bound clears $\varphi N$ are heavy hitters, the items whose upper bound does not are not, and only those in between are uncertain. On the pageview stream the summary became informative at $m \approx 1/\varphi$, because $\mu$ remained near $N/m$ on a distribution this flat; on more skewed streams the tail guarantee places the point lower. The same counters read as Misra–Gries lower bounds give a report without false positives at the cost of recall near the threshold.
+
+When the stream has deletions, when summaries are merged by addition or when the report must not depend on the arrival order, a linear sketch is required. On this stream Count Sketch gave smaller errors than Count-Min at small sizes because $\|a\|_2$ is about 1% of $\|a\|_1$, and its report was limited by its candidate set. Where order dependence and the loss of linearity are acceptable, Count-Min with conservative update gave the most accurate report at 256 kB and 1,024 kB of the structures measured.
+
+> [!note]- How this was measured
+> The harness sources and outputs are in the `heavy-hitter-experiments` directory. It reads `stream.bin` and `agg.bin`, written by `prep.c` of the [[algorithms/probabilistic/hyperloglog-count-min|HyperLogLog and Count-Min]] harness, which hold the 160,961,718 records as (64-bit key hash, 32-bit views) in file order, and the daily total of each of the 60,974,808 keys.
+>
+> - **Summaries.** [`hh.h`](heavy-hitter-experiments/hh.h) implements Misra–Gries with weighted updates and a global decrement offset, Space-Saving with weighted updates, the candidate set, and the three sketches. Counters sit in a binary min-heap indexed by a linear-probing hash table with backward-shift deletion. Sketch row $j$ hashes key $x$ as `mix64(x ^ s_j)` with seeds from a SplitMix64 stream; the bucket is the multiply-high of the top 32 bits by $w$ and the Count Sketch sign is the low bit. [`selftest.c`](heavy-hitter-experiments/selftest.c) checks the heap and table after updates, Misra–Gries against an implementation that decrements every counter, Space-Saving's invariants, the Misra–Gries and Space-Saving isomorphism for unit and weighted updates, and each sketch against a direct computation, on 300 random streams.
+> - **Runs.** [`hh.c`](heavy-hitter-experiments/hh.c) loads the stream into memory, permutes it for the shuffled orders (Fisher–Yates with SplitMix64, seeds 1 to 4) and runs every configuration in parallel. It writes each summary's counters or candidates and its estimates for the 5,000 most viewed pages. [`analyze.py`](heavy-hitter-experiments/analyze.py) computes the tables and the equivalence check ([`analyze.txt`](heavy-hitter-experiments/analyze.txt), [`summary.json`](heavy-hitter-experiments/summary.json)).
+> - **Timing.** [`speed.c`](heavy-hitter-experiments/speed.c), pinned to one core with `taskset`, 3 repetitions ([`speed.txt`](heavy-hitter-experiments/speed.txt)).
+> - **Environment.** gcc 13.3 with `-O2 -march=native` (and `-fopenmp` for `hh.c`), Python 3.13 with NumPy, on a 4-core Intel Xeon at 2.10 GHz (2 MiB of L2 per core, 260 MiB of L3 reported) with 15 GB of memory.
+> - **The figure.** [`sample.c`](heavy-hitter-experiments/sample.c) selects the records whose 64-bit key hash has its top 12 bits zero. `stream.u16.gz` stores them in file order as 16-bit page numbers, ranked by daily views, followed by 16-bit view counts; `meta.json` holds the titles of the 20 most viewed pages and the first record of each hour. Ties are broken by the lowest slot, so the figure's summaries are deterministic, and for 68 configurations they match an independent Python implementation exactly in every counter, estimate, interval and report ([`figure_ref.py`](heavy-hitter-experiments/figure_ref.py), [`figure-check.json`](heavy-hitter-experiments/figure-check.json)). The tests also check the deterministic intervals for every page at every hour boundary.
+
+> [!note]- Potentially interesting ideas
+> - **Skewed streams.** The tail guarantee predicts that the advantage of Space-Saving over its $N/m$ bound grows with skew. A stream whose heaviest items hold most of the weight, such as the substream in the figure or a network flow trace, would show how far below $N/m$ the smallest counter falls.
+> - **Space-Saving with $\ell_2$-sized budgets.** The comparison above fixes bytes. Fixing a target error instead would show how many bytes each structure needs to reach it, and at what error Count Sketch's $\|a\|_2$ guarantee no longer makes up for the memory its candidate set takes.
+> - **The DataSketches decrement.** Decrementing by a sampled median frees half the counters at once and changes which items survive, so its recall at a given size on this stream may differ from Misra–Gries's.
+> - **Order effects.** Interleaving the projects within each hour, without a full shuffle, would separate the effect of grouping by project from that of hour-by-hour arrival.
+
+## Related notes
+
+- [[algorithms/probabilistic/index|Probabilistic data structures]], the series index, with the notation and the benchmark stream
+- [[algorithms/probabilistic/hyperloglog-count-min|HyperLogLog and Count-Min]], for Count-Min, Count Sketch and conservative update as frequency estimators and their measured point-query error
+- [[algorithms/probabilistic/hashing-for-sketches|Hashing for sketches]], on the independence the sketch analyses assume
+- [[math/probability/probability-expectation-concentration|Expectation and concentration]], for the Chebyshev bound behind the Count Sketch interval

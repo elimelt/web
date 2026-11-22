@@ -8,7 +8,7 @@ tags:
   - hashing
   - randomized algorithms
 date: 2026-11-15
-updated: 2026-11-20
+updated: 2026-11-22
 authors:
   - elimelt
 status: draft
@@ -54,7 +54,7 @@ The notes are ordered so that each depends only on earlier ones. Notes without l
 2. **[[algorithms/probabilistic/bloom-filters|Bloom filters and their variants]].** The false-positive rate and its exact form, partitioned, double-hashed, blocked and counting filters, and LevelDB's probe sequence, with false-positive rates measured on the pageview keys and the cost per lookup inside and beyond the cache.
 3. **[[algorithms/probabilistic/cuckoo-quotient-xor-ribbon-filters|Cuckoo, quotient, xor and ribbon filters]].** Fingerprint filters that approach the $\lg(1/\varepsilon)$ bits-per-key lower bound, with false-positive rates, construction and insertion thresholds, and build and lookup costs measured on the pageview keys against Bloom filters of the same rate.
 4. **[[algorithms/probabilistic/hyperloglog-count-min|HyperLogLog and Count-Min]].** Distinct counting and frequency estimation: the estimators and their proofs, the corrections added after the original analyses, and the measured error on the pageview stream against the published bounds.
-5. **Heavy hitters.** Misra-Gries, Space-Saving and Count Sketch for the top-$k$ problem, with deterministic and probabilistic guarantees compared on the same stream. Sources: Misra and Gries (1982), Metwally et al. (2005), Charikar et al. (2002).
+5. **[[algorithms/probabilistic/heavy-hitters|Heavy hitters]].** Misra–Gries, Space-Saving, Count Sketch and Count-Min with conservative update for the heavy-hitter and top-$k$ problems, the isomorphism between the two counter algorithms, and recall, precision, error and update cost measured on the pageview stream in recorded and shuffled order.
 6. **Quantile sketches.** GK, KLL, t-digest, DDSketch and REQ: rank error against relative error, mergeability, and accuracy at the tails on real latency data.
 7. **MinHash and locality-sensitive hashing.** Jaccard similarity estimation, b-bit MinHash and banding for near-duplicate detection on Wikipedia article text. Sources: Broder (1997), Indyk and Motwani (1998), Li and König (2010).
 8. **Sampling from streams.** Reservoir sampling and Algorithm L, weighted sampling without replacement, and priority sampling for subset-sum estimation. Sources: Vitter (1985), Efraimidis and Spirakis (2006), Duffield, Lund and Thorup (2007).
