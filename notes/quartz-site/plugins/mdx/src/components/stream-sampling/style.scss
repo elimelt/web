@@ -1,0 +1,138 @@
+figure.ss {
+  @include fig-frame;
+
+  .ss-controls {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.6rem 1rem;
+    flex-wrap: wrap;
+  }
+
+  .ss-select {
+    display: flex;
+    flex: 1 1 13rem;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.92rem;
+
+    select {
+      @include fig-button(0.25rem 0.4rem);
+      max-width: 100%;
+    }
+  }
+
+  .ss-slider {
+    flex: 1 1 10rem;
+    font-size: 0.92rem;
+    @include fig-slider;
+  }
+
+  button {
+    @include fig-button;
+    @include fig-button-hover;
+  }
+
+  input:disabled,
+  select:disabled,
+  button:disabled {
+    cursor: progress;
+  }
+
+  .ss-chart {
+    margin-top: 0.8rem;
+
+    svg {
+      @include fig-chart;
+    }
+  }
+
+  .ss-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .ss-truth {
+    stroke: var(--darkgray);
+    stroke-width: 1.5;
+    stroke-dasharray: 4 3;
+  }
+
+  .ss-tau {
+    stroke: var(--fig-blue);
+    stroke-width: 1.5;
+    stroke-dasharray: 5 4;
+  }
+
+  .ss-tau-label {
+    fill: var(--fig-blue);
+  }
+
+  .ss-tick,
+  .ss-axis {
+    fill: var(--gray);
+    font-size: 11px;
+  }
+
+  .ss-axis {
+    font-size: 12px;
+  }
+
+  .ss-label {
+    fill: var(--darkgray);
+    font-size: 12px;
+  }
+
+  .ss-dot {
+    opacity: 0.55;
+  }
+
+  .ss-uniform {
+    fill: var(--fig-purple);
+  }
+
+  .ss-priority {
+    fill: var(--fig-blue);
+  }
+
+  .ss-ppswor {
+    fill: var(--fig-green);
+  }
+
+  .ss-over {
+    opacity: 0.9;
+  }
+
+  .ss-in {
+    fill: var(--fig-orange);
+    opacity: 0.85;
+  }
+
+  .ss-out {
+    fill: var(--gray);
+    opacity: 0.45;
+  }
+
+  .ss-readout {
+    margin: 0.5rem 0 0;
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  .ss-event {
+    color: var(--darkgray);
+    font-size: 0.9rem;
+    min-height: 2.6em;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .ss-tick,
+    .ss-axis,
+    .ss-label {
+      font-size: 14px;
+    }
+  }
+}

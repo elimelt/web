@@ -1,0 +1,165 @@
+---
+title: Sampling from streams
+category: Algorithms
+tags:
+  - probabilistic data structures
+  - streaming algorithms
+  - sampling
+  - reservoir sampling
+  - priority sampling
+date: 2026-11-22
+updated: 2026-11-22
+authors:
+  - elimelt
+status: draft
+description: Reservoir sampling with Algorithm R and Algorithm L, weighted sampling without replacement, and priority sampling for estimating sums over subsets chosen after the fact, with uniformity, speed and subset-sum error measured on 161 million Wikimedia pageview records.
+sources:
+  - title: Vitter (1985), Random sampling with a reservoir
+    url: https://doi.org/10.1145/3147.3165
+    type: paper
+  - title: Li (1994), Reservoir-sampling algorithms of time complexity O(n(1 + log(N/n)))
+    url: https://doi.org/10.1145/198429.198435
+    type: paper
+  - title: Efraimidis and Spirakis (2006), Weighted random sampling with a reservoir
+    url: https://doi.org/10.1016/j.ipl.2005.11.003
+    type: paper
+  - title: Duffield, Lund and Thorup (2007), Priority sampling for estimation of arbitrary subset sums
+    url: https://arxiv.org/abs/cs/0509026
+    type: paper
+  - title: Szegedy (2006), The DLT priority sampling is essentially optimal
+    url: https://eccc.weizmann.ac.il/report/2005/001
+    type: paper
+  - title: Cohen and Kaplan (2007), Summarizing data using bottom-k sketches
+    url: https://doi.org/10.1145/1281100.1281133
+    type: paper
+  - title: Cohen, Duffield, Kaplan, Lund and Thorup (2011), Efficient stream sampling for variance-optimal estimation of subset sums
+    url: https://arxiv.org/abs/0803.0473
+    type: paper
+  - title: Daliri, Freire, Musco, Santos and Zhang (2023), Simple analysis of priority sampling
+    url: https://arxiv.org/abs/2308.05907
+    type: paper
+  - title: Horvitz and Thompson (1952), A generalization of sampling without replacement from a finite universe
+    url: https://doi.org/10.1080/01621459.1952.10483446
+    type: paper
+  - title: Wikimedia pageview files
+    url: https://dumps.wikimedia.org/other/pageviews/readme.html
+    type: dataset
+---
+
+The sketches earlier in this series each answer one kind of question fixed in advance: how many distinct keys, how often a key occurs, which value sits at a quantile. A sample answers questions chosen later. A network operator who keeps a sample of flow records can ask afterwards how much traffic went to one customer, one port or one country, and a sample of pageview records can be asked how many views went to German Wikipedia or to pages read between noon and one. This note covers how to draw such a sample in one pass over a stream of unknown length, and how to draw it so that sums over arbitrary subsets of the records come out accurate when the records carry very unequal weights.
+
+Throughout, the stream is a sequence of records $1, \dots, n$ with weights $w_i > 0$, the sample holds $K$ records, and the target is a *subset sum* $w(S) = \sum_{i \in S} w_i$ for a subset $S$ specified by any predicate on the records, unknown while the sample is drawn. The tool for turning a sample into an estimate of $w(S)$ is the [Horvitz–Thompson estimator](https://doi.org/10.1080/01621459.1952.10483446). If record $i$ is in the sample with probability $p_i > 0$, the estimate $\sum_{i \in S \cap \text{sample}} w_i / p_i$ is unbiased for $w(S)$, since each record contributes $w_i/p_i$ with probability $p_i$ and 0 otherwise. Everything below is a way of choosing the $p_i$, or a substitute for them, in one pass.
+
+## The data
+
+The records are the [shared benchmark](/algorithms/probabilistic/#the-shared-benchmark) of the series: 160,961,718 records, one per (project, page, hour) of the Wikimedia pageview files of 4 March 2026, with 445,961,446 views in total. A record's weight is its view count. Weights are extremely unequal. The mean is 2.77 views and the standard deviation is 34 times that; 68.9% of records have one view and hold 24.9% of all views, and the largest record, one English Wikipedia page in one hour, holds 265,344 views.
+
+The subsets measured below are projects of different sizes (English Wikipedia's mobile and desktop sites, German, Finnish, Galician and Aragonese Wikipedia, and Portuguese Wikinews), single hours, and the pages whose 64-bit key hash is divisible by 100 or by 10,000, which picks pages at random without regard to their weight.
+
+## Uniform samples: reservoir sampling
+
+**Algorithm R.** To keep a uniform sample of $K$ records from a stream whose length is not known in advance, store the first $K$ records; then, when record $t > K$ arrives, draw a uniform integer $j$ in $[1, t]$ and, if $j \le K$, replace the record in slot $j$. By induction on $t$, after $t$ records every record seen so far is in the reservoir with probability $K/t$. Record $t$ enters with probability $K/t$. A record already in the reservoir, present with probability $K/(t-1)$, survives step $t$ unless record $t$ enters and takes its slot, which happens with probability $(K/t)(1/K) = 1/t$, so it remains with probability $\frac{K}{t-1}(1 - \frac1t) = \frac Kt$. The same argument shows that every $K$-subset is equally likely, so the reservoir is a simple random sample without replacement. [Vitter (1985)](https://doi.org/10.1145/3147.3165) attributes the algorithm to Waterman and analyses it with faster variants.
+
+Algorithm R draws one random number per record. Most draws change nothing: the expected number of replacements over $n$ records is $\sum_{t=K+1}^{n} K/t \approx K \ln(n/K)$, which for $K = 100$ and the 161 million records is about 1,400 out of 161 million draws.
+
+**Algorithm L.** Attach to each record an independent uniform key $u_i$ and keep the $K$ records with the smallest keys. This is again a uniform sample, and it can be maintained by skipping. Let $W$ be the largest key in the reservoir. The next record that enters is the first whose key is below $W$, so the number of records skipped is geometric with success probability $W$, which can be drawn directly as $\lfloor \ln u / \ln(1 - W) \rfloor$. The entering record replaces the one with key $W$, and since the $K$ keys now in the reservoir are independent and uniform on $(0, W)$, the new largest key is distributed as $W \cdot u^{1/K}$ and can be drawn without storing any keys. [Li (1994)](https://doi.org/10.1145/198429.198435) calls this Algorithm L. It draws three random numbers per replacement and touches only the records that enter, for $O(K(1 + \ln(n/K)))$ expected work in total. Vitter's Algorithm Z reaches the same bound with rejection sampling.
+
+**Measured.** I checked Algorithm L's uniformity directly. Over $10^6$ runs with $n = 1{,}000$ and $K = 10$, the inclusion counts of the 1,000 positions give $\chi^2 = 956.9$ on 999 degrees of freedom, a deviation of $-0.94$ standard deviations from the expected value. On the 161 million records, held in memory, with one core:
+
+| $K$ | Algorithm R, ns per record | Algorithm R, random numbers | Algorithm L, ns per record | Algorithm L, random numbers |
+| ---: | ---: | ---: | ---: | ---: |
+| 100 | 2.10 to 2.27 | 160,961,618 | below 0.001 | 4,211 to 4,334 |
+| 10,000 | 2.11 to 2.15 | 160,951,718 | 0.022 to 0.023 | 288,902 to 290,438 |
+| 1,000,000 | 2.56 to 2.95 | 159,961,718 | 1.20 to 1.32 | 15,237,017 to 15,256,364 |
+
+The counts of random numbers match $3K\ln(n/K)$: 4,287, 290,000 and 15.2 million. The times measure only the sampler, because Algorithm L never reads a skipped record. In a real stream each record still has to be read and parsed, so Algorithm L's saving is the random number generation and the branch per record, which at 2.1 ns per record was most of Algorithm R's cost here. At $K = 10^6$, Algorithm L makes 15 million replacements and Algorithm R's random writes spread over a 4 MB reservoir, and both slow down.
+
+## Why a uniform sample estimates sums badly
+
+A uniform sample gives each record $p_i = K/n$, so the Horvitz–Thompson estimate of $w(S)$ is $n/K$ times the sampled weight in $S$. It is unbiased, and its relative standard error for the whole stream is approximately $\text{CV}/\sqrt K$, where CV is the coefficient of variation of the weights, 34.3 here. At $K = 10{,}000$ that is 34%.
+
+The error is also badly distributed. Most of the variance comes from rare samples that contain one of the few heaviest records, which then counts $n/K$ times. Over 100 runs at each $K$, 76% to 77% of the uniform estimates of the total fell below the truth, and the root mean squared error measured over those runs (20.6%, 19.4% and 6.1% at $K = 10^3$, $10^4$ and $10^5$) was smaller than the formula, because 100 runs rarely include the runs that hold the heaviest records. For German Wikipedia, whose heaviest record holds 0.44% of its views, one of the 100 runs at $K = 10^4$ drew one of its heaviest records and scaled it by 16,096, overshooting by 6,460%, and the relative error over the 100 runs was 647%.
+
+The remedy is to sample heavy records with higher probability. Sampling with probability proportional to weight, $p_i \propto w_i$, would make every sampled record contribute the same $w_i/p_i$, so the estimate of the total would have no variance at all. With a fixed sample size this cannot be achieved exactly when some weights are large, since $p_i$ cannot exceed 1, and it has to be done in one pass. The next two schemes do both.
+
+## Weighted samples
+
+**Weighted sampling without replacement.** [Efraimidis and Spirakis (2006)](https://doi.org/10.1016/j.ipl.2005.11.003) give each record the key $u_i^{1/w_i}$ and keep the $K$ largest. Equivalently, give record $i$ the rank $r_i = -\ln(u_i)/w_i$, which is exponentially distributed with rate $w_i$, and keep the $K$ smallest ranks. The record with the smallest rank among a set is record $i$ with probability $w_i / \sum w_j$, by the competing-exponentials property, and by memorylessness the same holds for the next smallest among the rest. The $K$ smallest ranks are therefore a sample drawn by $K$ successive weighted draws without replacement (PPSWOR), and the reservoir is a heap of $K$ ranks, as in Algorithm L.
+
+PPSWOR does not give each record a simple inclusion probability. [Cohen and Kaplan (2007)](https://doi.org/10.1145/1281100.1281133) give an unbiased estimator by *rank conditioning*. Let $\tau$ be the $(K+1)$-th smallest rank. Conditioned on the ranks of all other records, record $i$ is in the sample exactly when $r_i < \tau_i$, where $\tau_i$ is the $K$-th smallest rank among the others, and for a sampled record $\tau_i = \tau$. Its conditional inclusion probability is $1 - e^{-w_i \tau}$, so each sampled record contributes $w_i / (1 - e^{-w_i\tau})$, which is unbiased given the others and hence unconditionally.
+
+**Priority sampling.** [Duffield, Lund and Thorup (2007)](https://arxiv.org/abs/cs/0509026) use the priority $q_i = w_i/u_i$ and keep the $K$ records with the largest priorities. Let $\tau$ be the $(K+1)$-th largest priority. A sampled record counts as
+
+$$
+\hat w_i = \max(w_i, \tau),
+$$
+
+and an unsampled one as 0. Conditioned on the other priorities, record $i$ is sampled exactly when $q_i > \tau_i$, the $K$-th largest of the others, which happens with probability $\min(1, w_i/\tau_i)$, and $\tau_i = \tau$ when $i$ is sampled. The estimate $\max(w_i, \tau)$ is $w_i$ divided by that probability, so $\mathbb E[\hat w_i] = w_i$. Records heavier than $\tau$ are always sampled and count at their own weight; lighter ones are sampled with probability about $w_i/\tau$ and each counts as $\tau$. For any subset, $\hat w(S) = \sum_{i \in S} \hat w_i$ is unbiased. Duffield, Lund and Thorup also prove that the $\hat w_i$ of distinct records are uncorrelated, so the variance of $\hat w(S)$ is the sum of the per-record variances, and that
+
+$$
+\hat V(S) = \sum_{i \in S \cap \text{sample},\ w_i < \tau} \tau(\tau - w_i)
+$$
+
+is an unbiased estimate of it, computable from the sample alone.
+
+Priority sampling and PPSWOR are both *bottom-$k$ sketches* in Cohen and Kaplan's terms: each record gets a random rank whose distribution depends on its weight ($u_i/w_i$, uniform on $(0, 1/w_i)$, for priority sampling; exponential with rate $w_i$ for PPSWOR), and the sample is the $K$ smallest ranks. Both are mergeable: the sample of a union is the $K$ smallest ranks among the two samples, provided the ranks were kept. [Szegedy (2006)](https://eccc.weizmann.ac.il/report/2005/001) proved that priority sampling with $K + 1$ samples has a total variance no larger than that of any unbiased scheme with $K$ samples, settling a conjecture of Duffield, Lund and Thorup. The variance-optimal scheme, VarOpt, keeps exactly $K$ records with a more involved update ([Cohen, Duffield, Kaplan, Lund and Thorup 2011](https://arxiv.org/abs/0803.0473)), and [Daliri, Freire, Musco, Santos and Zhang (2023)](https://arxiv.org/abs/2308.05907) give a short analysis of priority sampling's concentration.
+
+## Measured subset-sum error
+
+Each sampler ran 100 times at each of $K = 10^3, 10^4, 10^5$ over all 161 million records, with independent random numbers per run. The table gives the relative root mean squared error of each subset's estimated views at $K = 10{,}000$, and the share of runs in which priority sampling's interval $\hat w(S) \pm 2\sqrt{\hat V(S)}$ held the true value.
+
+| Subset | Records | Share of views | Uniform | Priority | PPSWOR | Priority interval held |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| All records | 160,961,718 | 100% | 19.4% | 1.0% | 1.0% | 94% |
+| English Wikipedia, mobile | 25,526,009 | 29.9% | 44.1% | 1.7% | 1.9% | 99% |
+| English Wikipedia, desktop | 31,724,483 | 21.1% | 14.3% | 2.1% | 2.0% | 95% |
+| Hour ending 12:00 UTC | 6,834,797 | 4.03% | 19.8% | 4.8% | 5.4% | 96% |
+| German Wikipedia, desktop | 3,909,703 | 2.01% | 647% | 7.1% | 7.0% | 95% |
+| Pages with key hash divisible by 100 | 1,609,642 | 0.93% | 49.4% | 9.5% | 10.2% | 94% |
+| Finnish Wikipedia, desktop | 348,809 | 0.115% | 28.9% | 30.8% | 27.0% | 94% |
+| Galician Wikipedia, desktop | 178,455 | 0.043% | 37.5% | 46.3% | 47.1% | 93% |
+| Portuguese Wikinews | 33,175 | 0.010% | 191% | 92.2% | 86.9% | 70% |
+| Pages with key hash divisible by 10,000 | 16,475 | 0.010% | 185% | 88.8% | 89.7% | 65% |
+| Aragonese Wikipedia, desktop | 8,369 | 0.003% | 110% | 158% | 204% | 16% |
+
+For the whole stream, priority sampling's error falls from 3.4% at $K = 10^3$ to 1.0% and 0.3% at $10^4$ and $10^5$, close to $1/\sqrt K$ scaled by a constant of about 1. Its variance estimate matched the measured error too: for the whole stream at $K = 10^4$ the mean of $\sqrt{\hat V}$ was 0.98% of the total against a measured 0.99%.
+
+Three patterns stand out.
+
+- **Heavy subsets.** For a subset that holds a fair share of the weight, weighted sampling is 4 to 90 times more accurate than a uniform sample of the same size, and PPSWOR and priority sampling are indistinguishable.
+- **Light subsets.** Finnish and Galician Wikipedia have light records (Finnish has a mean of 1.47 views per record and a coefficient of variation of 5.2, against 34 for the whole stream). Priority sampling spends its sample on heavy records elsewhere in the stream, and a uniform sample, which spends it evenly over records, was as accurate or more accurate for these subsets at $K = 10^4$ and for Galician at $K = 10^5$.
+- **Tiny subsets.** No sampler of this size estimates a subset of 0.003% of the weight. When a subset has only a handful of sampled records, $\hat V(S)$ is itself estimated from those few records, often from none, and the interval held the truth in only 16% of runs for Aragonese at $K = 10^4$. At $K = 10^5$, with more sampled records in each subset, the intervals held in 93% to 99% of runs for every subset.
+
+## The figure
+
+The figure runs the three samplers in the browser on a substream of 39,986 records (every record of the pages whose key hash has its top 12 bits zero, about 1 in 4,096 pages, in recorded order, with 147,216 views). Pick a subset and a sample size, and each dot shows one run's estimate of the subset's views divided by the truth, for 100 runs of each sampler. The lower chart shows the records of the first priority sample by views, heaviest first, against the threshold $\tau$. The records above the line count at their own views; those below it count as $\tau$ each. Records with one view show uniform sampling at its best.
+
+<StreamSampling base="/algorithms/probabilistic/sampling-experiments/" />
+
+## Consequences
+
+A uniform reservoir is the right sample when records count equally, as when estimating the fraction of requests with some property, and Algorithm L draws it with work proportional to the number of replacements. For sums of a heavy-tailed weight such as bytes, views or revenue, a uniform sample is unbiased in principle and unusable in practice: most estimates fall short and a few overshoot by orders of magnitude.
+
+Priority sampling is the simplest weighted alternative. Its state is a heap of $K + 1$ priorities, its estimates for any subset are unbiased, and it reports its own variance, which was accurate wherever the subset had more than a few sampled records. It is the sample to keep when the subsets of interest are not known in advance. When they are known and include many light records, as with small projects here, a stratified design, a separate sample per stratum or a uniform sample kept alongside, does better than any single weighted sample.
+
+> [!note]- How this was measured
+> The harness sources and outputs are in the `sampling-experiments` directory, and [`run.sh`](sampling-experiments/run.sh) reproduces every number from the 24 hourly pageview files and the key-hash stream built by the [[algorithms/probabilistic/hyperloglog-count-min|HyperLogLog and Count-Min]] harness.
+>
+> - **Records.** [`pvrec.c`](sampling-experiments/pvrec.c) reads the 24 files in hour order and writes the project, hour and views of each record in file order. The key hashes come from the same records in the same order and pick the pages for the subsets by hash.
+> - **Samplers.** [`samp.c`](sampling-experiments/samp.c) implements Algorithm R, Algorithm L, priority sampling and PPSWOR with xoshiro256\*\* and uniform numbers on $(0, 1]$. Priority sampling and PPSWOR keep a heap of the $K + 1$ largest priorities or smallest ranks, whose root is $\tau$. Each run uses its own seed for each sampler. [`analyze8.py`](sampling-experiments/analyze8.py) computes the errors and coverage in [`analysis.json`](sampling-experiments/analysis.json) from the per-run estimates.
+> - **Timing.** One core pinned with `taskset`, records preloaded into memory, three repetitions per configuration; [`speed.txt`](sampling-experiments/speed.txt) holds the raw lines.
+> - **The figure.** [`figsample.c`](sampling-experiments/figsample.c) writes the substream and [`make_fig.py`](sampling-experiments/make_fig.py) packs it into 30 KB. The figure's samplers are the same as above with a Mulberry32 generator per sampler and run; its tests compare 6 configurations sample by sample against an independent Python implementation ([`figure_ref.py`](sampling-experiments/figure_ref.py)) and check uniform inclusion and unbiasedness statistically.
+> - **Environment.** gcc 13.3 with `-O2 -march=native`, Python 3.13 with NumPy 2.5, on a 4-core Intel Xeon at 2.10 GHz with 15 GB of memory.
+
+> [!note]- Potentially interesting ideas
+> - **VarOpt.** Running VarOpt alongside would show how much of the gap to the variance-optimal scheme matters at these sample sizes, which Szegedy's bound says is at most one sample's worth.
+> - **Coverage for small subsets.** The intervals failed for subsets with few sampled records. A confidence interval that accounts for the number of sampled records in the subset, or a bootstrap over the sample, may cover better.
+> - **Mixed designs.** Spending part of the sample uniformly and part by priority would trade the light subsets' error against the heavy ones'. The figure's light subset shows how large that trade is.
+> - **Sliding windows.** The samples here cover the whole day. Keeping a priority sample over the last hour needs expiry, which bottom-$k$ ranks allow by keeping more candidates.
+
+## Related notes
+
+- [[algorithms/probabilistic/index|Probabilistic data structures]], the series index, with the notation and the benchmark
+- [[algorithms/probabilistic/heavy-hitters|Heavy hitters]], for summaries that find the heaviest keys deterministically, the records that priority sampling always keeps
+- [[algorithms/probabilistic/hyperloglog-count-min|HyperLogLog and Count-Min]], whose harness builds the key hashes that pick the hashed subsets here
+- [[math/probability/probability-expectation-concentration|Expectation and concentration]], for the variance arguments used here
