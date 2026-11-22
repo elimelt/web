@@ -1,0 +1,3 @@
+100000 skip p=1/2 33.000 p=1/4 31.999 pugh bound p=1/2 36.219 p=1/4 35.553 treap depth 21.181
+1000000 skip p=1/2 39.643 p=1/4 38.644 pugh bound p=1/2 42.863 p=1/4 42.196 treap depth 25.785
+10000000 skip p=1/2 46.287 p=1/4 45.287 pugh bound p=1/2 49.507 p=1/4 48.840 treap depth 30.391

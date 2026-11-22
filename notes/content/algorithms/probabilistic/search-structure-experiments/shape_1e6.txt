@@ -1,0 +1,40 @@
+skip seed 1 p 0.5000 height 22 mean_cmps 39.427 max_cmps 72 levels 499786 250594 125059 62193 31265 15503 7753 3951 1947 986 473 247 111 66 31 18 7 4 3 2 0 1
+treap seed 1 mean_depth 25.874 height 51 mean_cmps 25.874 nodes 1000000
+skip seed 2 p 0.5000 height 22 mean_cmps 38.340 max_cmps 75 levels 499943 249787 124666 62876 31116 16008 7857 3930 1947 914 485 233 108 65 36 15 8 1 2 1 1 1
+treap seed 2 mean_depth 26.365 height 51 mean_cmps 26.365 nodes 1000000
+skip seed 3 p 0.5000 height 19 mean_cmps 39.193 max_cmps 70 levels 500053 250075 125016 62549 31327 15532 7640 3849 1968 991 507 244 130 61 22 19 10 6 1
+treap seed 3 mean_depth 26.110 height 54 mean_cmps 26.110 nodes 1000000
+skip seed 4 p 0.5000 height 25 mean_cmps 40.832 max_cmps 71 levels 500852 250032 124541 62447 31005 15535 7827 3852 1977 970 495 234 123 46 35 18 4 3 2 0 1 0 0 0 1
+treap seed 4 mean_depth 25.935 height 49 mean_cmps 25.935 nodes 1000000
+skip seed 5 p 0.5000 height 20 mean_cmps 38.931 max_cmps 75 levels 500430 250181 124851 62133 31312 15583 7781 3890 1964 919 458 235 137 64 38 11 5 5 1 2
+treap seed 5 mean_depth 25.237 height 52 mean_cmps 25.237 nodes 1000000
+skip seed 6 p 0.5000 height 23 mean_cmps 39.632 max_cmps 74 levels 499702 250706 124708 62648 31294 15559 7608 3913 1922 982 475 249 118 52 28 21 7 4 0 1 2 0 1
+treap seed 6 mean_depth 25.777 height 51 mean_cmps 25.777 nodes 1000000
+skip seed 7 p 0.5000 height 22 mean_cmps 40.589 max_cmps 75 levels 500321 250250 124683 62322 31250 15642 7770 3868 1942 975 498 229 116 56 39 18 11 8 0 1 0 1
+treap seed 7 mean_depth 25.219 height 52 mean_cmps 25.219 nodes 1000000
+skip seed 8 p 0.5000 height 19 mean_cmps 38.503 max_cmps 71 levels 500418 249223 125423 62331 31197 15711 7836 3907 1979 970 514 244 133 63 28 11 9 2 1
+treap seed 8 mean_depth 25.574 height 48 mean_cmps 25.574 nodes 1000000
+skip seed 9 p 0.5000 height 23 mean_cmps 41.166 max_cmps 75 levels 500435 249662 124960 62611 31324 15431 7739 3903 2017 964 493 222 119 58 30 17 4 5 4 0 1 0 1
+treap seed 9 mean_depth 26.234 height 53 mean_cmps 26.234 nodes 1000000
+skip seed 10 p 0.5000 height 22 mean_cmps 39.373 max_cmps 70 levels 500191 249967 124587 62883 31288 15575 7750 3808 2012 943 492 248 136 61 33 10 7 6 2 0 0 1
+treap seed 10 mean_depth 25.356 height 53 mean_cmps 25.356 nodes 1000000
+skip seed 1 p 0.2500 height 10 mean_cmps 36.554 max_cmps 92 levels 750182 187244 46908 11758 2875 765 197 55 12 4
+treap seed 1 mean_depth 25.874 height 51 mean_cmps 25.874 nodes 1000000
+skip seed 2 p 0.2500 height 10 mean_cmps 38.571 max_cmps 97 levels 750161 187354 46978 11678 2843 734 174 63 8 7
+treap seed 2 mean_depth 26.365 height 51 mean_cmps 26.365 nodes 1000000
+skip seed 3 p 0.2500 height 10 mean_cmps 42.553 max_cmps 100 levels 749673 187993 46403 11913 3025 756 173 48 15 1
+treap seed 3 mean_depth 26.110 height 54 mean_cmps 26.110 nodes 1000000
+skip seed 4 p 0.2500 height 11 mean_cmps 37.404 max_cmps 104 levels 750625 187377 46448 11631 2986 714 173 35 7 3 1
+treap seed 4 mean_depth 25.935 height 49 mean_cmps 25.935 nodes 1000000
+skip seed 5 p 0.2500 height 11 mean_cmps 38.509 max_cmps 97 levels 750481 187151 46707 11819 2868 724 171 62 11 5 1
+treap seed 5 mean_depth 25.237 height 52 mean_cmps 25.237 nodes 1000000
+skip seed 6 p 0.2500 height 11 mean_cmps 37.540 max_cmps 95 levels 749896 188088 46631 11534 2886 715 197 32 15 3 3
+treap seed 6 mean_depth 25.777 height 51 mean_cmps 25.777 nodes 1000000
+skip seed 7 p 0.2500 height 11 mean_cmps 39.157 max_cmps 107 levels 750034 187121 47208 11774 2921 713 172 42 11 3 1
+treap seed 7 mean_depth 25.219 height 52 mean_cmps 25.219 nodes 1000000
+skip seed 8 p 0.2500 height 10 mean_cmps 38.628 max_cmps 97 levels 749287 187749 47131 11900 2950 732 185 49 14 3
+treap seed 8 mean_depth 25.574 height 48 mean_cmps 25.574 nodes 1000000
+skip seed 9 p 0.2500 height 12 mean_cmps 38.285 max_cmps 105 levels 750019 187597 46919 11606 2893 721 182 46 13 3 0 1
+treap seed 9 mean_depth 26.234 height 53 mean_cmps 26.234 nodes 1000000
+skip seed 10 p 0.2500 height 10 mean_cmps 38.846 max_cmps 107 levels 750358 187229 46874 11642 2929 743 165 42 14 4
+treap seed 10 mean_depth 25.356 height 53 mean_cmps 25.356 nodes 1000000

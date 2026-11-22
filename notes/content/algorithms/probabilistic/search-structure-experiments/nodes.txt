@@ -1,0 +1,8 @@
+skip seed 1 p 0.5000 mean_cmps 39.427 mean_nodes 32.383
+skip seed 2 p 0.5000 mean_cmps 38.340 mean_nodes 32.788
+skip seed 3 p 0.5000 mean_cmps 39.193 mean_nodes 33.742
+skip seed 1 p 0.2500 mean_cmps 36.554 mean_nodes 35.061
+skip seed 2 p 0.2500 mean_cmps 38.571 mean_nodes 36.838
+skip seed 3 p 0.2500 mean_cmps 42.553 mean_nodes 40.992
+skip seed 1 p 0.5000 mean_cmps 45.110 mean_nodes 38.976
+skip seed 1 p 0.2500 mean_cmps 44.463 mean_nodes 42.690

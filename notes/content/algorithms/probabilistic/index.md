@@ -48,7 +48,7 @@ The stream has two properties that matter for sketches. It is long enough ($F_0 
 
 ## Series
 
-The notes are ordered so that each depends only on earlier ones. Notes without links are planned.
+The notes are ordered so that each depends only on earlier ones.
 
 1. **[[algorithms/probabilistic/hashing-for-sketches|Hashing for sketches]].** Universal and $k$-independent families, multiply-shift, polynomial and tabulation hashing, the independence each sketch's analysis assumes, and HyperLogLog, Count-Min and AMS run with each family on dense and hashed keys from the benchmark.
 2. **[[algorithms/probabilistic/bloom-filters|Bloom filters and their variants]].** The false-positive rate and its exact form, partitioned, double-hashed, blocked and counting filters, and LevelDB's probe sequence, with false-positive rates measured on the pageview keys and the cost per lookup inside and beyond the cache.
@@ -58,7 +58,7 @@ The notes are ordered so that each depends only on earlier ones. Notes without l
 6. **[[algorithms/probabilistic/quantile-sketches|Quantile sketches]].** Greenwald–Khanna, KLL, REQ, t-digest and DDSketch, rank error against relative error in value, mergeability, and the error at the median and the tail measured on 26.5 million response-start timings from a public web analytics sample, in recorded order, shuffled, and merged from per-site summaries.
 7. **[[algorithms/probabilistic/minhash-lsh|MinHash and locality-sensitive hashing]].** Jaccard similarity estimation, b-bit MinHash and banding for near-duplicate detection, with estimator error, candidate counts and recall measured against an exact similarity join over 91,116 crawled web pages.
 8. **[[algorithms/probabilistic/stream-sampling|Sampling from streams]].** Reservoir sampling with Algorithm R and Algorithm L, weighted sampling without replacement, and priority sampling for sums over subsets chosen after the fact, with uniformity, speed and subset-sum error measured on the pageview records.
-9. **Randomized search structures.** Skip lists and treaps: expected and high-probability bounds on depth, and measured lookup cost against balanced trees. Sources: Pugh (1990), Seidel and Aragon (1996).
+9. **[[algorithms/probabilistic/skip-lists-treaps|Skip lists and treaps]].** Search structures whose shape comes from random levels or priorities, with exact expected search costs checked against skip lists and treaps of up to 10 million key hashes, and build and lookup times against std::map and a sorted array.
 
 ## Related notes
 
