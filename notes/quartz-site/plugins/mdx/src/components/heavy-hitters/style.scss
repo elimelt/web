@@ -1,0 +1,181 @@
+figure.hh {
+  @include fig-frame;
+
+  .hh-controls {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.6rem 1rem;
+    flex-wrap: wrap;
+
+    & + .hh-controls {
+      margin-top: 0.6rem;
+    }
+  }
+
+  .hh-slider {
+    flex: 1 1 9rem;
+    font-size: 0.92rem;
+    @include fig-slider;
+  }
+
+  .hh-select {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.92rem;
+
+    select {
+      @include fig-button(0.25rem 0.4rem);
+      max-width: 100%;
+    }
+  }
+
+  .hh-wide {
+    flex: 1 1 14rem;
+  }
+
+  button {
+    @include fig-button;
+    @include fig-button-hover;
+  }
+
+  input:disabled,
+  select:disabled,
+  button:disabled {
+    cursor: progress;
+  }
+
+  button[name="reshuffle"]:disabled {
+    cursor: default;
+    opacity: 0.5;
+  }
+
+  .hh-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    margin: 0.8rem 0 0.2rem;
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  .hh-key::before {
+    content: "";
+    display: inline-block;
+    margin-right: 0.35rem;
+    vertical-align: middle;
+  }
+
+  .hh-key-true::before {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background: var(--fig-blue);
+  }
+
+  .hh-key-est::before {
+    width: 0.45rem;
+    height: 0.45rem;
+    border: 1.5px solid var(--fig-orange);
+    transform: rotate(45deg);
+  }
+
+  .hh-key-int::before {
+    width: 1rem;
+    height: 0;
+    border-top: 3px solid var(--fig-orange);
+    opacity: 0.35;
+  }
+
+  .hh-key-rep::before {
+    width: 0.5rem;
+    height: 0.5rem;
+    background: var(--darkgray);
+  }
+
+  .hh-chart {
+    @include fig-chart;
+  }
+
+  .hh-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .hh-grid-minor {
+    stroke-dasharray: 2 3;
+  }
+
+  .hh-tick,
+  .hh-axis,
+  .hh-head {
+    fill: var(--gray);
+    font-size: 11px;
+  }
+
+  .hh-axis {
+    font-size: 12px;
+  }
+
+  .hh-label {
+    fill: var(--gray);
+    font-size: 11.5px;
+  }
+
+  .hh-rep {
+    fill: var(--dark);
+  }
+
+  .hh-mark-on {
+    fill: var(--darkgray);
+  }
+
+  .hh-mark-off {
+    fill: none;
+    stroke: var(--lightgray);
+  }
+
+  .hh-int {
+    stroke: var(--fig-orange);
+    stroke-width: 5;
+    stroke-linecap: round;
+    opacity: 0.3;
+  }
+
+  .hh-true {
+    fill: var(--fig-blue);
+  }
+
+  .hh-est {
+    fill: none;
+    stroke: var(--fig-orange);
+    stroke-width: 1.6;
+  }
+
+  .hh-readout {
+    margin: 0.5rem 0 0;
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  .hh-event {
+    color: var(--darkgray);
+    min-height: 2.6em;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .hh-tick,
+    .hh-axis,
+    .hh-head {
+      font-size: 14px;
+    }
+
+    .hh-label {
+      font-size: 13px;
+    }
+  }
+}
