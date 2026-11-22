@@ -1,0 +1,157 @@
+figure.qs {
+  @include fig-frame;
+
+  .qs-controls {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.6rem 1rem;
+    flex-wrap: wrap;
+
+    & + .qs-controls {
+      margin-top: 0.6rem;
+    }
+  }
+
+  .qs-slider {
+    flex: 1 1 9rem;
+    font-size: 0.92rem;
+    @include fig-slider;
+  }
+
+  .qs-wide {
+    flex: 1 1 14rem;
+  }
+
+  button {
+    @include fig-button;
+    @include fig-button-hover;
+  }
+
+  input:disabled,
+  button:disabled {
+    cursor: progress;
+  }
+
+  .qs-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    margin: 0.8rem 0 0.2rem;
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  .qs-key::before {
+    content: "";
+    display: inline-block;
+    width: 1rem;
+    height: 0;
+    margin-right: 0.35rem;
+    vertical-align: middle;
+  }
+
+  .qs-key-kll::before {
+    border-top: 2.5px solid var(--fig-blue);
+  }
+
+  .qs-key-dd::before {
+    border-top: 2.5px solid var(--fig-orange);
+  }
+
+  .qs-key-guide::before {
+    border-top: 1.5px dashed var(--fig-orange);
+  }
+
+  .qs-chart,
+  .qs-levels {
+    @include fig-chart;
+  }
+
+  .qs-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .qs-guide {
+    stroke: var(--fig-orange);
+    stroke-width: 1.2;
+    stroke-dasharray: 5 4;
+  }
+
+  .qs-tick,
+  .qs-axis {
+    fill: var(--gray);
+    font-size: 11px;
+  }
+
+  .qs-axis,
+  .qs-title {
+    font-size: 12px;
+  }
+
+  .qs-title {
+    fill: var(--darkgray);
+  }
+
+  .qs-guide-label {
+    fill: var(--fig-orange);
+  }
+
+  .qs-kll,
+  .qs-dd {
+    fill: none;
+    stroke-width: 2;
+    stroke-linejoin: round;
+  }
+
+  .qs-kll {
+    stroke: var(--fig-blue);
+  }
+
+  .qs-dd {
+    stroke: var(--fig-orange);
+  }
+
+  .qs-kll-clip {
+    fill: var(--fig-blue);
+  }
+
+  .qs-dd-clip {
+    fill: var(--fig-orange);
+  }
+
+  .qs-cap {
+    fill: none;
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .qs-fill {
+    fill: var(--fig-blue);
+    opacity: 0.55;
+  }
+
+  .qs-readout {
+    margin: 0.5rem 0 0;
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  .qs-event {
+    color: var(--darkgray);
+    font-size: 0.9rem;
+    min-height: 2.6em;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .qs-tick,
+    .qs-axis,
+    .qs-title {
+      font-size: 14px;
+    }
+  }
+}

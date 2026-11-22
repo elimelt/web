@@ -1,0 +1,202 @@
+---
+title: Quantile sketches
+category: Algorithms
+tags:
+  - probabilistic data structures
+  - streaming algorithms
+  - quantiles
+  - KLL
+  - t-digest
+  - DDSketch
+  - Greenwald-Khanna
+date: 2026-11-22
+updated: 2026-11-22
+authors:
+  - elimelt
+status: draft
+description: Summaries that answer rank and quantile queries over a stream in small space (Greenwald–Khanna, KLL, REQ, t-digest and DDSketch), the difference between rank error and relative error, mergeability, and their accuracy at the tails measured on 26.5 million response-start timings from a public web analytics sample, in recorded order, shuffled, and merged from per-site summaries.
+sources:
+  - title: Munro and Paterson (1980), Selection and sorting with limited storage
+    url: https://doi.org/10.1016/0304-3975(80)90061-4
+    type: paper
+  - title: Manku, Rajagopalan and Lindsay (1998), Approximate medians and other quantiles in one pass and with limited memory
+    url: https://doi.org/10.1145/276304.276342
+    type: paper
+  - title: Greenwald and Khanna (2001), Space-efficient online computation of quantile summaries
+    url: https://doi.org/10.1145/375663.375670
+    type: paper
+  - title: Shrivastava, Buragohain, Agrawal and Suri (2004), Medians and beyond, new aggregation techniques for sensor networks
+    url: https://doi.org/10.1145/1031495.1031524
+    type: paper
+  - title: Karnin, Lang and Liberty (2016), Optimal quantile approximation in streams
+    url: https://arxiv.org/abs/1603.05346
+    type: paper
+  - title: Masson, Rim and Lee (2019), DDSketch, a fast and fully-mergeable quantile sketch with relative-error guarantees
+    url: https://www.vldb.org/pvldb/vol12/p2195-masson.pdf
+    type: paper
+  - title: Dunning and Ertl (2019), Computing extremely accurate quantiles using t-digests
+    url: https://arxiv.org/abs/1902.04023
+    type: paper
+  - title: Dunning (2021), The t-digest, efficient estimates of distributions
+    url: https://doi.org/10.1016/j.simpa.2020.100049
+    type: paper
+  - title: Cormode and Veselý (2020), A tight lower bound for comparison-based quantile summaries
+    url: https://arxiv.org/abs/1905.03838
+    type: paper
+  - title: Cormode, Karnin, Liberty, Thaler and Veselý (2021), Relative error streaming quantiles
+    url: https://arxiv.org/abs/2004.01668
+    type: paper
+  - title: Ivkin, Liberty, Lang, Karnin and Braverman (2022), Streaming quantiles algorithms with small space and update time
+    url: https://doi.org/10.3390/s22249612
+    type: paper
+  - title: Agarwal, Cormode, Huang, Phillips, Wei and Yi (2013), Mergeable summaries
+    url: https://doi.org/10.1145/2500128
+    type: paper
+  - title: ClickBench, a benchmark for analytical databases (the hits data set)
+    url: https://github.com/ClickHouse/ClickBench
+    type: dataset
+  - title: Apache DataSketches
+    url: https://datasketches.apache.org/
+    type: software
+  - title: HdrHistogram
+    url: https://github.com/HdrHistogram/HdrHistogram
+    type: repo
+---
+
+The $q$-quantile of $n$ values is the value at position $\lceil qn \rceil$ when they are sorted, so the median is the 0.5-quantile and the 99th percentile the 0.99-quantile. Computing one exactly in a single pass needs memory linear in $n$ ([Munro and Paterson 1980](https://doi.org/10.1016/0304-3975(80)90061-4)), so a stream summary answers approximately, and the summaries in this note differ first in what "approximately" means.
+
+**Rank error.** For a value $x$ let $R(x)$ be the number of stream values at most $x$. A summary has rank error $\varepsilon$ if, asked for the $q$-quantile, it returns a value $\hat x$ with $|R(\hat x)/n - q| \le \varepsilon$. When values repeat, $R$ jumps, and the error of $\hat x$ is its distance from $q$ to the interval $[R(\hat x^-)/n, R(\hat x)/n]$ of ranks the value occupies. An additive $\varepsilon$ of 0.001 is a tight bound at the median and a loose one at the 0.999-quantile, where it allows any value between the 0.998- and 1.0-quantiles.
+
+**Relative error.** A summary has relative error $\alpha$ in value if $|\hat x - x_q| \le \alpha\, x_q$, where $x_q$ is the true quantile. This is the natural guarantee for latency, where the statement wanted is of the form "the 99th percentile is 250 ms, give or take 1%". It says nothing about ranks, and where the values are spread thinly, as in a heavy tail, a 1% error in value can be a small error in rank, while where many values are packed into a narrow range it can be a large one.
+
+**Relative rank error.** Between the two sits a guarantee on rank that tightens toward one end: $|R(\hat x)/n - q| \le \varepsilon (1 - q)$ for the upper tail. At $q = 0.999$ and $\varepsilon = 0.01$ the allowed rank error is $10^{-5}$.
+
+Summaries also differ in two properties that matter for systems. A summary is *comparison-based* if it only compares values with each other, so it works for any ordered type and is unaffected by the scale of the values. A summary is *mergeable* ([Agarwal et al. 2013](https://doi.org/10.1145/2500128)) if two summaries of disjoint inputs combine into one summary of their union with the same guarantee and size, which is what lets a monitoring system keep one summary per server and minute and add them up later.
+
+## The data
+
+The measurements use the `ResponseStartTiming` column of the ClickBench [hits](https://github.com/ClickHouse/ClickBench) data set, which its README describes as 1/50 of one week of production pageviews of a large web analytics platform, anonymized with `clickhouse-obfuscator`. It has 99,997,497 rows in 100 Parquet partitions. The column is an integer whose units the data set does not document. Its range (a median of 331 and a cap at 30,000) is consistent with milliseconds from navigation start to the first byte of the response, but the note treats it as a number. The 73.5% of rows with value 0 are left out, which leaves $n = 26{,}545{,}291$ values from 5,200 sites (the obfuscated `CounterID`).
+
+| Quantile | 0.5 | 0.9 | 0.99 | 0.995 | 0.999 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Value | 331 | 1,727 | 7,970 | 13,522 | 30,000 |
+
+Three properties of the data shape the results. The values are integers with 28,172 distinct values, so ties are everywhere, and 29,132 values (0.11%) sit at the cap of 30,000, which makes the 0.999-quantile the cap itself. The distribution is heavy-tailed, so ranks and values respond differently to error. Near the median, moving 0.1% in rank changes the value from 330 to 332, while near the 0.99-quantile the same move spans 7,727 to 8,461. The recorded order is grouped by site, with 5,401 runs for 5,200 sites, and the heaviest site holds 9.8% of the values, so the stream is far from a random permutation. The median of successive blocks of 2 million values ranges from 234 to 459.
+
+
+## Deterministic summaries
+
+[Munro and Paterson (1980)](https://doi.org/10.1016/0304-3975(80)90061-4) gave the structure most later summaries build on. Values are collected into sorted buffers, and two buffers of the same size are merged and *halved*, keeping every second value, so that each kept value stands for two. A value at level $h$ represents $2^h$ input values. [Manku, Rajagopalan and Lindsay (1998)](https://doi.org/10.1145/276304.276342) turned this into a one-pass summary with rank error $\varepsilon$ in $O(\varepsilon^{-1} \log^2(\varepsilon n))$ space, which needs $n$ in advance to size its buffers.
+
+**Greenwald–Khanna.** The summary of [Greenwald and Khanna (2001)](https://doi.org/10.1145/375663.375670) keeps a sorted list of tuples $(v_i, g_i, \Delta_i)$, where $v_i$ is a stream value, $g_i = r_{\min}(v_i) - r_{\min}(v_{i-1})$ is the gap in minimum possible rank from the previous tuple, and $\Delta_i = r_{\max}(v_i) - r_{\min}(v_i)$ is the uncertainty in its rank. The minimum rank of $v_i$ is therefore $\sum_{j \le i} g_j$. The invariant is $g_i + \Delta_i \le 2\varepsilon n$ for every tuple. A new value enters with $g = 1$ and $\Delta = \lfloor 2 \varepsilon n \rfloor$, the most uncertainty the invariant allows (0 if it is a new minimum or maximum), and a periodic compression merges a tuple into its successor whenever the combined tuple still satisfies the invariant. To answer a query for rank $r$, the summary returns a value whose rank interval lies within $\varepsilon n$ of $r$, which the invariant guarantees exists. Greenwald and Khanna prove that the list never exceeds $O(\varepsilon^{-1} \log(\varepsilon n))$ tuples, and [Cormode and Veselý (2020)](https://arxiv.org/abs/1905.03838) prove that every deterministic comparison-based summary needs $\Omega(\varepsilon^{-1} \log(\varepsilon n))$ items on some streams, so GK is optimal in that class. GK is built for a single stream, and none of the merge experiments below use it.
+
+## KLL
+
+Randomization removes the $\log(\varepsilon n)$ factor. If a compaction keeps the values at even or odd positions with a fair coin, the rank of any fixed value $x$ in the compacted level changes by $+1$, $0$ or $-1$ times the level's weight, with mean 0, so errors from different compactions cancel on average instead of adding up. The sketch of [Karnin, Lang and Liberty (2016)](https://arxiv.org/abs/1603.05346) (KLL) keeps a stack of *compactors*, buffers of values that each carry weight $2^h$ at level $h$. A full compactor sorts its contents, keeps every second value starting from a random offset, and passes them up a level. The second idea is to give lower levels smaller capacities. With $H$ levels, level $h$ holds up to $\lceil k\, c^{H-1-h} \rceil$ values for a constant $c \in (1/2, 1)$, usually $2/3$, so the top level holds $k$ and the lower ones geometrically fewer. The highest levels, whose compactions carry the largest weights, are the largest buffers and compact least often.
+
+The result is a rank error of $\varepsilon$ with probability $1 - \delta$ in $O(\varepsilon^{-1} \log \log (1/\delta))$ space, with a matching lower bound for randomized comparison-based summaries. A sketch is also mergeable. Two sketches combine by concatenating their compactors level by level and compacting where a level overflows, and the guarantee holds for the union. Practical implementations, including the Apache DataSketches one measured here, use the compactor stack without the paper's final construction for the top levels, and [Ivkin, Liberty, Lang, Karnin and Braverman (2022)](https://doi.org/10.3390/s22249612) give variants that halve the error bound at a given size and reduce the worst-case update time from $O(1/\varepsilon)$ to $O(\log(1/\varepsilon))$.
+
+## Relative-error sketches
+
+**REQ.** [Cormode, Karnin, Liberty, Thaler and Veselý (2021)](https://arxiv.org/abs/2004.01668) obtain the relative rank guarantee $|R(\hat x)/n - q| \le \varepsilon (1 - q)$ (or $\varepsilon q$ for the lower tail) with a KLL-like stack in which each compactor protects the values near the accurate end. A compaction only ever discards from the part of the buffer farthest from that end, and the part it compacts grows with the number of compactions the buffer has done. The sketch stores $O(\varepsilon^{-1} \log^{1.5}(\varepsilon n))$ items, is fully mergeable, needs no advance knowledge of $n$, and is within an $O(\sqrt{\log(\varepsilon n)})$ factor of optimal.
+
+**DDSketch.** [Masson, Rim and Lee (2019)](https://www.vldb.org/pvldb/vol12/p2195-masson.pdf) give up the comparison-based model. With $\gamma = (1 + \alpha)/(1 - \alpha)$, a positive value $x$ goes to bucket $i = \lceil \log_\gamma x \rceil$, which covers $(\gamma^{i-1}, \gamma^i]$, and the sketch counts the values in each bucket. A query finds the bucket that holds rank $\lceil qn \rceil$ and returns $2\gamma^i / (\gamma + 1)$, which is within a factor $1 \pm \alpha$ of every value in the bucket and so of the true quantile. The guarantee $|\hat x - x_q| \le \alpha x_q$ holds deterministically for every quantile. Two sketches with the same $\alpha$ merge by adding their counts bucket by bucket, exactly. The number of buckets depends on the range of the data, and values spanning a ratio of $R$ need about $\ln R / \ln \gamma \approx \ln R/(2\alpha)$ buckets. To bound memory, the full version caps the number of buckets and collapses the lowest ones together when the cap is reached, after which the lowest quantiles lose the guarantee.
+
+**HdrHistogram** ([HdrHistogram](https://github.com/HdrHistogram/HdrHistogram)), common in latency measurement, uses a related layout. Values are bucketed by their power of two and, within each, linearly into $2^d$ sub-buckets for a chosen number of significant digits, so the relative bucket width stays below a fixed bound over a configured range.
+
+## t-digest
+
+The t-digest ([Dunning and Ertl 2019](https://arxiv.org/abs/1902.04023); [Dunning 2021](https://doi.org/10.1016/j.simpa.2020.100049)) keeps *centroids*, pairs of a mean and a weight, sorted by mean. The weight a centroid may hold depends on where it sits in the distribution through a *scale function* $k(q)$. The rule is that a centroid spanning quantiles $q_\text{left}$ to $q_\text{right}$ must have $k(q_\text{right}) - k(q_\text{left}) \le 1$. With $k_1(q) = \frac{\delta}{2\pi} \arcsin(2q - 1)$, whose slope grows without bound at $q = 0$ and $q = 1$, centroids near the median may hold a fraction of about $\pi/\delta$ of the data and centroids at the extremes hold single values, so a greedy merge leaves between about $\delta/2$ and $\delta$ centroids. The merging variant buffers incoming values, sorts them together with the centroids, and sweeps left to right, letting each centroid absorb its neighbour while the span rule holds. A quantile query interpolates linearly between the centres of adjacent centroids.
+
+The design aims at accuracy near the tails in small space, and it has no worst-case guarantee. The error depends on how well linear interpolation between centroid means matches the data inside each centroid, and repeated values, gaps and multiple modes all break that assumption. Two digests merge by sorting their centroids together and sweeping with the same rule, which keeps the span constraint. Whether the merged digest is as accurate as one built in a single pass depends on the data, and the merge experiment below measures it on this stream.
+
+**q-digest** ([Shrivastava, Buragohain, Agrawal and Suri 2004](https://doi.org/10.1145/1031495.1031524)), designed for sensor networks, keeps counts on the nodes of a binary tree over an integer universe of size $U$, merging a node into its parent when their combined count is small. It is mergeable with rank error $\varepsilon$ in $O(\varepsilon^{-1} \log U)$ space.
+
+## Measured error
+
+Every summary ran over the whole stream in the recorded order and in one uniformly random permutation. KLL, REQ and the DataSketches quantiles sketch ran 10 times in each order with different random seeds; GK, t-digest and DDSketch are deterministic given the order, and DDSketch does not depend on it. KLL, REQ and the quantiles sketch are those of Apache DataSketches 5.2.0, DDSketch is the `ddsketch` 3.0.1 Python package, and GK and the t-digest are C implementations written for this note ("How this was measured" below gives the details and the reason for not using the library t-digest). Sizes are the serialized size for the DataSketches sketches, 12 bytes per tuple for GK, 16 bytes per centroid for the t-digest, and 8 bytes per bucket from the lowest to the highest occupied for DDSketch.
+
+**Rank error.** The largest rank error observed over all runs of each configuration, as a percentage of $n$.
+
+| Summary | Bytes | $q = 0.5$ | $q = 0.99$ | $q = 0.995$ |
+| --- | ---: | ---: | ---: | ---: |
+| GK, $\varepsilon = 0.003$ | 3,840 to 3,876 | 0.05 | 0.27 | 0.20 |
+| GK, $\varepsilon = 0.001$ | 15,252 to 16,716 | 0.05 | 0.05 | 0.07 |
+| KLL, $k = 200$ | 2,680 | 0.46 | 0.39 | 0.35 |
+| KLL, $k = 800$ | 9,696 | 0.05 | 0.17 | 0.14 |
+| REQ, $k = 12$ | 11,972 | 0.86 | 0.03 | 0.02 |
+| t-digest, $\delta = 100$ | 912 to 1,168 | 0.13 | 0.13 | 0.002 |
+| t-digest, $\delta = 400$ | 3,760 to 4,576 | 0.05 | 0.04 | 0.003 |
+| DDSketch, $\alpha = 0.01$ | 4,136 | 0.24 | 0.02 | 0.002 |
+
+**Relative error of the value.** The largest $|\hat x - x_q| / x_q$ observed, in percent, for the same runs.
+
+| Summary | $q = 0.5$ | $q = 0.95$ | $q = 0.99$ | $q = 0.995$ |
+| --- | ---: | ---: | ---: | ---: |
+| GK, $\varepsilon = 0.003$ | 0.3 | 1.4 | 33.1 | 19.2 |
+| GK, $\varepsilon = 0.001$ | 0.3 | 1.4 | 1.6 | 6.4 |
+| KLL, $k = 200$ | 1.8 | 9.5 | 51.9 | 85.6 |
+| KLL, $k = 800$ | 0.3 | 2.1 | 11.2 | 12.6 |
+| REQ, $k = 12$ | 3.0 | 2.3 | 1.0 | 2.1 |
+| t-digest, $\delta = 100$ | 0.5 | 0.3 | 11.0 | 0.2 |
+| t-digest, $\delta = 400$ | 0.1 | 0.1 | 1.2 | 0.3 |
+| DDSketch, $\alpha = 0.01$ | 0.8 | 0.2 | 0.7 | 0.2 |
+
+The guarantees held in every run. GK's rank error stayed below $\varepsilon$ at every quantile in both orders, and DDSketch's relative error stayed below $\alpha$ at all five values of $\alpha$ from 0.05 to 0.002. With $\alpha = 0.01$ it used 517 buckets, as predicted by $\ln(30{,}000)/\ln\gamma \approx 515$ for values from 1 to 30,000.
+
+The additive-rank summaries show the gap between the two notions of error. A KLL sketch of 2,680 bytes kept its rank error below 0.7% at every quantile. At the median that meant a value within 1.8% of the truth, and at the 0.995-quantile, whose true value is 13,522, its 20 runs returned values from 9,150 to 25,093, since a few tenths of a percent of the ranks there span thousands of units. Its error fell with $k$ at about the expected rate, with a mean rank error over the seven quantiles and 20 runs of 0.18% at $k = 200$ and 0.04% at $k = 800$, but even at 9.7 kB the 0.99-quantile was off by up to 11%. REQ, configured for accuracy at the upper tail, put its error where KLL's is most expensive. At 12 kB its rank error at the 0.99-quantile was 0.03% and the value within 1%, while at the median its rank error, 0.86%, was the largest of any summary in the table. DDSketch at 4.1 kB matched REQ's tail accuracy in value with under a third of its rank error at the median.
+
+The t-digest gave the smallest rank errors per byte in the table, below 0.13% at every quantile at about 1 kB. It is also the one summary whose relative error at a given quantile did not follow its rank error. At $\delta = 100$ the 0.99-quantile was 11% off with a rank error of 0.13%, while the 0.995-quantile was within 0.2%, which is what linear interpolation between centroids does where the density changes quickly. Nothing in the t-digest's design bounds either error, and on this stream it happened to be good.
+
+The DataSketches quantiles sketch, the older mergeable sketch based on [Agarwal et al. (2013)](https://doi.org/10.1145/2500128), needed more space than KLL for the same error. At 4,164 bytes ($k = 128$) its largest rank error was 0.72%, against 0.27% for KLL at 5,024 bytes ($k = 400$). The recorded order made little difference to any of the summaries. KLL at $k = 200$ had a largest rank error of 0.62% in the recorded order and 0.58% shuffled, and GK used 15,252 bytes in the recorded order against 16,716 shuffled.
+
+**At the cap.** The 0.999-quantile, 30,000, is the cap, GK and REQ returned it exactly in every run, and KLL at $k = 200$ in 7 of its 20 runs. DDSketch returned a value 0.1% above 30,000, which is above every value in the stream, so its rank error there is $1 - q = 0.1\%$. A capped or clipped measurement makes the top quantiles uninformative whatever the summary.
+
+## Merging
+
+To test mergeability, one summary was built for each of the 5,200 sites over that site's values, and the 5,200 were merged one at a time in order of site id. The table gives the largest rank error over the seven quantiles, in percent, for the merged summary and for a single summary over the whole stream (10 seeds each for KLL and REQ).
+
+| Summary | One pass | Merged | Merged size (bytes) |
+| --- | ---: | ---: | ---: |
+| KLL, $k = 200$ | 0.62 | 0.53 | 2,692 |
+| REQ, $k = 12$ | 0.86 | 0.58 | 11,360 |
+| t-digest, $\delta = 100$ | 0.13 | 0.13 | 1,088 |
+| DDSketch, $\alpha = 0.01$ | 0.24 | 0.24 | 4,136 |
+
+DDSketch's merged sketch is identical to the one-pass sketch, since its buckets are counts. KLL's and REQ's merged sketches had the error and size of one-pass sketches, as their analyses predict. The t-digest's merged digest had about the same error as the one-pass digest on this data, which is an observation about this data and not a property the digest guarantees.
+
+## The figure
+
+The figure runs KLL and DDSketch in the browser on 100,000 values drawn uniformly without replacement from the 26.5 million and kept in recorded order. It plots both errors at 60 quantiles from 0.5 to 0.999, with $1 - q$ on a logarithmic axis, and shows KLL's compactors filling and emptying as the position moves. "Next compaction" advances to the next value that triggers one, and "New coin flips" reruns KLL with another seed. With $k = 64$, KLL holds 194 values after the whole sample, after 42,192 compactions, and its relative error reaches 51% at $q = 0.997$, where it answers 24,452 for a true 16,242, while its rank error stays under 2%. DDSketch with $\alpha = 0.01$ holds 517 buckets and keeps its relative error under 1% at every quantile.
+
+<QuantileSketches base="/algorithms/probabilistic/quantile-experiments/" />
+
+## Consequences for implementations
+
+The choice between summaries is a choice of error measure first. For a service-level objective on latency, which is a statement about a value at a high quantile, a relative-error guarantee in value is what the objective needs, and DDSketch gives it deterministically with exact merges at a size set by the range of the values. REQ gives the corresponding guarantee in rank and stays comparison-based, so it works for values with no natural scale. KLL and GK suit questions about the middle of a distribution, or about ranks themselves, such as deciding split points for partitioning a table, where an error of 0.5% of $n$ means the same thing at every quantile.
+
+Merged summaries are only as good as the merge. DDSketch, KLL and REQ have merges with proven guarantees, and adding per-server summaries at query time is safe with them. The t-digest was accurate on this data both in one pass and merged, but its accuracy depends on the data, and a library implementation measured here returned answers that decreased as $q$ increased.
+
+> [!note]- How this was measured
+> The harness sources and outputs are in the `quantile-experiments` directory.
+>
+> - **Data.** [`fetch_all.sh`](quantile-experiments/fetch_all.sh) downloads the 100 partitions `hits_0.parquet` to `hits_99.parquet` of the ClickBench data set from its public mirror, and [`extract_all.py`](quantile-experiments/extract_all.py) keeps each partition's nonzero `ResponseStartTiming` values with their `CounterID`, in file order. The partitions are concatenated in order to form the stream.
+> - **Runs.** [`quant.py`](quantile-experiments/quant.py) computes the exact quantiles, runs every summary in both orders, records the estimates at the seven quantiles with their rank and relative errors, and runs the merge experiment; [`tables.py`](quantile-experiments/tables.py) produces [`tables.txt`](quantile-experiments/tables.txt) from [`quant.json`](quantile-experiments/quant.json). The rank error of an estimate $\hat x$ is the distance from $q$ to $[R(\hat x^-)/n, R(\hat x)/n]$, so a value tied with the true quantile has error 0. The shuffled order is one permutation (NumPy, seed 20261122).
+> - **GK.** [`gk.c`](quantile-experiments/gk.c) inserts each value with $\Delta = \lfloor 2\varepsilon n \rfloor$ and compresses every $\lfloor 1/(2\varepsilon) \rfloor$ insertions, merging a tuple into its successor when $g_i + g_{i+1} + \Delta_{i+1} \le \lfloor 2 \varepsilon n \rfloor$. It omits the band structure of the paper's COMPRESS, which the paper uses for the worst-case space bound.
+> - **t-digest.** [`tdigest.c`](quantile-experiments/tdigest.c) is the merging digest with the $k_1$ scale function, a buffer of $10\delta$ values and linear interpolation between centroid centres, and gives the same estimates as the independent Python implementation [`tdref.py`](quantile-experiments/tdref.py) on a 300,000-value slice. The DataSketches 5.2.0 t-digest (`tdigest_float`) was run too and is recorded in `quant.json` as `tdigest-ds`, but on this data its `get_quantile` was not monotone in $q$ (at $\delta = 100$ in recorded order, $q = 0.72$ returned 746 and $q = 0.75$ returned 657), and the rank its own `get_rank` assigned to its answer for $q = 0.75$ was 0.713. Its largest rank error at $q = 0.75$ was 4.1%, against 0.02% for the C implementation, so the tables use the C implementation.
+> - **DDSketch.** Built from the distinct values with their counts, which gives the same sketch as adding the values one by one, with the package's default logarithmic mapping.
+> - **The figure.** [`make_sample.py`](quantile-experiments/make_sample.py) draws the 100,000 values (NumPy, seed 20261122). The figure's KLL is the variant described above with $c = 2/3$, a smallest capacity of 2, the lowest full level compacted when the sketch exceeds its total capacity, the largest item held back when a level has an odd number, and a Mulberry32 coin; its DDSketch uses the bucket index and estimate above. Both match an independent Python implementation exactly for 48 KLL and 9 DDSketch configurations ([`figure_ref.py`](quantile-experiments/figure_ref.py), [`figure-check.json`](quantile-experiments/figure-check.json)), and the tests check that KLL's weights sum to $n$ and that DDSketch meets its guarantee at every plotted quantile.
+> - **Environment.** gcc 13.3 with `-O2`, Python 3.13 with NumPy 2.5, PyArrow 26, datasketches 5.2.0 and ddsketch 3.0.1, on a 4-core Intel Xeon at 2.10 GHz with 15 GB of memory.
+
+> [!note]- Potentially interesting ideas
+> - **Update cost.** The summaries here ran in different languages, so their speeds are not comparable. A single-language benchmark would show the cost of KLL's compactions against DDSketch's one logarithm per value.
+> - **Other columns.** The data set has five more timing columns with different shapes. A column without a cap would make the 0.999-quantile informative.
+> - **Adversarial orders.** The recorded order grouped by site barely mattered here. A stream sorted by value is the classic hard case for GK's size and for t-digest's centroid placement.
+> - **Bounded DDSketch.** Capping DDSketch's buckets below 517 would show where collapsing the lowest buckets starts to break the guarantee for the lower quantiles.
+
+## Related notes
+
+- [[algorithms/probabilistic/index|Probabilistic data structures]], the series index, with the notation
+- [[algorithms/probabilistic/heavy-hitters|Heavy hitters]], for the other mergeable counter summaries and the merge procedure of Agarwal et al.
+- [[algorithms/probabilistic/hyperloglog-count-min|HyperLogLog and Count-Min]], for frequency sketches whose additive error behaves like KLL's rank error
+- [[math/probability/probability-expectation-concentration|Expectation and concentration]], for the bounds behind KLL's analysis
