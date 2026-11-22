@@ -1,0 +1,152 @@
+figure.ml {
+  @include fig-frame;
+
+  .ml-controls {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.6rem 1rem;
+    flex-wrap: wrap;
+  }
+
+  .ml-slider {
+    flex: 1 1 10rem;
+    font-size: 0.92rem;
+    @include fig-slider;
+  }
+
+  input:disabled {
+    cursor: progress;
+  }
+
+  .ml-title {
+    margin: 1rem 0 0.2rem;
+    color: var(--darkgray);
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .ml-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    margin: 0 0 0.2rem;
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  .ml-key::before {
+    content: "";
+    display: inline-block;
+    width: 1rem;
+    height: 0;
+    margin-right: 0.35rem;
+    vertical-align: middle;
+  }
+
+  .ml-key-curve::before {
+    border-top: 2px solid var(--fig-blue);
+  }
+
+  .ml-key-band::before {
+    border-top: 1.5px dashed var(--gray);
+  }
+
+  .ml-key-point::before,
+  .ml-key-cand::before,
+  .ml-key-not::before {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+  }
+
+  .ml-key-point::before {
+    background: var(--fig-orange);
+  }
+
+  .ml-key-cand::before {
+    background: var(--fig-blue);
+  }
+
+  .ml-key-not::before {
+    background: var(--gray);
+    opacity: 0.6;
+  }
+
+  .ml-chart svg {
+    @include fig-chart;
+  }
+
+  .ml-grid {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .ml-th {
+    stroke: var(--darkgray);
+    stroke-width: 1.2;
+    stroke-dasharray: 4 3;
+  }
+
+  .ml-curve {
+    fill: none;
+    stroke: var(--fig-blue);
+    stroke-width: 2;
+  }
+
+  .ml-point {
+    fill: var(--fig-orange);
+  }
+
+  .ml-band {
+    fill: none;
+    stroke: var(--gray);
+    stroke-width: 1.2;
+    stroke-dasharray: 5 4;
+  }
+
+  .ml-diag {
+    stroke: var(--lightgray);
+    stroke-width: 1;
+  }
+
+  .ml-cand {
+    fill: var(--fig-blue);
+    opacity: 0.7;
+  }
+
+  .ml-not {
+    fill: var(--gray);
+    opacity: 0.45;
+  }
+
+  .ml-tick,
+  .ml-axis {
+    fill: var(--gray);
+    font-size: 11px;
+  }
+
+  .ml-axis {
+    font-size: 12px;
+  }
+
+  .ml-th-label {
+    fill: var(--darkgray);
+  }
+
+  .ml-readout {
+    margin: 0.5rem 0 0;
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  figcaption {
+    @include fig-caption;
+  }
+
+  @include fig-phone {
+    .ml-tick,
+    .ml-axis {
+      font-size: 14px;
+    }
+  }
+}

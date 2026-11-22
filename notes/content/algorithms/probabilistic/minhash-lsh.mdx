@@ -1,0 +1,189 @@
+---
+title: MinHash and locality-sensitive hashing
+category: Algorithms
+tags:
+  - probabilistic data structures
+  - hashing
+  - similarity search
+  - minhash
+  - locality-sensitive hashing
+date: 2026-11-22
+updated: 2026-11-22
+authors:
+  - elimelt
+status: draft
+description: MinHash estimation of Jaccard similarity, b-bit MinHash, and banding for near-duplicate detection, with estimator error, candidate counts and recall measured against an exact similarity join over 91,116 crawled web pages.
+sources:
+  - title: Broder (1997), On the resemblance and containment of documents
+    url: https://www.cs.princeton.edu/courses/archive/spring13/cos598C/broder97resemblance.pdf
+    type: paper
+  - title: Broder, Charikar, Frieze and Mitzenmacher (2000), Min-wise independent permutations
+    url: https://www.eecs.harvard.edu/~michaelm/postscripts/jcss2000.pdf
+    type: paper
+  - title: Indyk and Motwani (1998), Approximate nearest neighbors, towards removing the curse of dimensionality
+    url: https://doi.org/10.1145/276698.276876
+    type: paper
+  - title: Li and König (2010), b-Bit minwise hashing
+    url: https://arxiv.org/abs/0910.3349
+    type: paper
+  - title: Bayardo, Ma and Srikant (2007), Scaling up all pairs similarity search
+    url: https://doi.org/10.1145/1242572.1242591
+    type: paper
+  - title: Leskovec, Rajaraman and Ullman, Mining of Massive Datasets, chapter 3, Finding similar items
+    url: https://www.cambridge.org/core/books/mining-of-massive-datasets/finding-similar-items/FDDA225F039792324F28D73D26950E89
+    type: book
+  - title: Li, Owen and Zhang (2012), One permutation hashing
+    url: https://arxiv.org/abs/1208.1259
+    type: paper
+  - title: Ertl (2017), SuperMinHash, a new minwise hashing algorithm for Jaccard similarity estimation
+    url: https://arxiv.org/abs/1706.05698
+    type: paper
+  - title: Lee et al. (2022), Deduplicating training data makes language models better
+    url: https://arxiv.org/abs/2107.06499
+    type: paper
+  - title: Penedo et al. (2024), The FineWeb datasets
+    url: https://arxiv.org/abs/2406.17557
+    type: paper
+  - title: ClickHouse minicrawl dataset (front pages of the Tranco top sites)
+    url: https://github.com/ClickHouse/ClickHouse/issues/18842
+    type: dataset
+---
+
+The Jaccard similarity of two finite sets $A$ and $B$ is $J(A, B) = |A \cap B| / |A \cup B|$. A MinHash signature of a set is the vector of minima $\min_{x \in A} h_i(x)$ over $k$ independent random hash functions $h_1, \dots, h_k$. For each $i$, the two sets' minima are equal with probability exactly $J(A, B)$, so the fraction of equal coordinates in two signatures is an unbiased estimate of $J$ with variance $J(1 - J)/k$. Locality-sensitive hashing (LSH) with banding groups the $k$ coordinates into $b$ bands of $r$ and reports a pair as a candidate when all $r$ coordinates of some band agree, which happens with probability $1 - (1 - J^r)^b$.
+
+MinHash replaces each set, of any size, with $k$ numbers from which the similarity of any two sets can be estimated. Banding then finds the similar pairs without comparing all pairs. Each band's $r$ values are hashed into a table, and only sets that share a bucket in some band are compared. The probability of sharing a bucket is a steep S-shaped function of $J$, so pairs well above a threshold near $(1/b)^{1/r}$ are almost always found and pairs well below it are almost never compared.
+
+Broder (1997) introduced MinHash to estimate the resemblance of web documents represented as sets of shingles, the overlapping runs of $w$ consecutive words. Indyk and Motwani (1998) defined locality-sensitive hash families for approximate nearest-neighbor search, and MinHash is such a family for Jaccard similarity. The same pipeline removes near-duplicate documents from the training corpora of language models.
+
+## The data
+
+The series' other notes use Wikimedia pageview records. Near-duplicate detection needs document text, and the Wikipedia article dumps were not reachable from the machine that ran the experiments, so the experiments use the [minicrawl](https://github.com/ClickHouse/ClickHouse/issues/18842) dataset that ClickHouse publishes. It holds the front page of each domain in a Tranco ranking of popular sites, fetched with curl, in one [Parquet file](https://clickhouse-public-datasets.s3.amazonaws.com/minicrawl/data20230923.parquet) dated 23 September 2023 with 7,613,078 rows. Front pages of popular sites contain many real near-duplicates, such as localized versions of one site, default server pages and the error pages of content delivery networks.
+
+The experiments read the first 40 of the file's 1,081 row groups, 156,432 pages from ranks 1 to 156,448. Each page's HTML was reduced to its visible text (script, style, head and SVG elements removed), and pages with fewer than 50 words were dropped, leaving 91,548. A page's set is its distinct word 5-shingles, each hashed to 64 bits. Pages with fewer than 50 distinct shingles were dropped and only the first page of each domain kept, leaving 91,116 pages with 100,765,252 shingles in total, a median of 732 per page, and 4,151,017,170 pairs.
+
+An exact similarity join finds every pair with $J \ge 0.3$. It uses prefix filtering (Bayardo, Ma and Srikant 2007). With the tokens of every set ordered by one global order, rarest first, the prefixes of length $|x| - \lceil T|x| \rceil + 1$ of two sets with $J \ge T$ share at least one token, so an inverted index over the prefixes generates every qualifying pair, and each candidate is verified by merging the two full sets.
+
+| $J \ge$ | Pairs |
+| --- | ---: |
+| 0.3 | 1,153,538 |
+| 0.5 | 1,140,543 |
+| 0.7 | 1,106,443 |
+| 0.8 | 1,071,859 |
+| 0.9 | 149,497 |
+| 1.0 | 50,694 |
+
+The distribution is bimodal. In 20,000 random pairs the mean similarity was 0.00041 and 99.13% had no shingle in common, while 93% of the pairs with $J \ge 0.3$ have $J \ge 0.8$. Grouping pages connected by pairs with $J \ge 0.8$ gives 16,222 clusters that hold 38,277 pages. The largest has 1,333 pages, nearly all the block page a security service returns to a blocked client ("Sorry, you have been blocked"), followed by 420 localized Google home pages, 260 CloudFront 403 pages and 152 Apache test pages. Because the number of pairs grows with the square of a cluster's size, the largest cluster alone accounts for 887,397 (82.8%) of the pairs with $J \ge 0.8$ and the four largest for 94.9%. Recall counted over pairs, as in the tables below, therefore mostly measures these clusters.
+
+## MinHash
+
+Let $h$ be a random hash function that is injective on $A \cup B$, and let $x^*$ be the element of $A \cup B$ with the smallest hash value. Each element of $A \cup B$ is equally likely to be $x^*$. The minima of $h$ over $A$ and over $B$ are equal exactly when $x^* \in A \cap B$, so
+
+$$
+\Pr\left[\min_{x \in A} h(x) = \min_{x \in B} h(x)\right] = \frac{|A \cap B|}{|A \cup B|} = J(A, B).
+$$
+
+With $k$ independent hash functions the number of equal coordinates $M$ is binomial with parameters $k$ and $J$, and $\hat{J} = M/k$ has mean $J$ and standard deviation $\sqrt{J(1 - J)/k}$. The error does not depend on the sizes of the sets. At $k = 256$ it is at most $0.031$, at $J = 0.5$.
+
+The argument needs the minimum to be uniform over the elements of $A \cup B$, which a fully random function provides. Broder, Charikar, Frieze and Mitzenmacher (2000) called families with this property min-wise independent; exact min-wise independence requires exponentially many permutations, and $\varepsilon$-approximate versions and $k$-wise independent hashing give the property up to a small bias (see [[algorithms/probabilistic/hashing-for-sketches|Hashing for sketches]] for the families). The experiments rehash each 64-bit shingle hash $x$ with $h_i(x) = \operatorname{mix}(x \oplus s_i)$, where $\operatorname{mix}$ is the splitmix64 finalizer and $s_i$ a random 64-bit seed.
+
+The pairs found by the join overlap heavily (most lie in a few clusters), so their errors are correlated. To measure the estimator on independent pairs, the error was computed on a random maximal matching of the join's pairs, 21,138 pairs with no page in two of them, together with 19,993 random pairs.
+
+| $J$ | Pairs | RMSE, $k = 16$ | Theory | RMSE, $k = 64$ | Theory | RMSE, $k = 256$ | Theory |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 to 0.1 | 19,993 | 0.0012 | 0.0011 | 0.0009 | 0.0006 | 0.0004 | 0.0003 |
+| 0.3 to 0.5 | 1,133 | 0.1227 | 0.1209 | 0.0621 | 0.0605 | 0.0299 | 0.0302 |
+| 0.5 to 0.7 | 1,209 | 0.1234 | 0.1216 | 0.0610 | 0.0608 | 0.0296 | 0.0304 |
+| 0.7 to 0.9 | 2,927 | 0.0938 | 0.0957 | 0.0504 | 0.0479 | 0.0234 | 0.0239 |
+| 0.9 to 1 | 15,869 | 0.0228 | 0.0222 | 0.0111 | 0.0111 | 0.0056 | 0.0056 |
+
+The theory column is $\sqrt{J(1 - J)/k}$ averaged over each bin's pairs. The mean error was below 0.005 in every bin. Computing all 256 signatures took 19.8 seconds for the 100.8 million shingles on one core, 0.77 nanoseconds per shingle and hash function.
+
+## b-bit MinHash
+
+A signature of $k$ 64-bit minima occupies $8k$ bytes. Li and König (2010) showed that keeping only the lowest $b$ bits of each minimum loses less information per bit than keeping all of them when similarities of interest are high. Two $b$-bit values agree when the full minima agree, or by chance with probability close to $2^{-b}$ when they differ. For sets that are small relative to the hash range,
+
+$$
+P_b = \Pr[\text{low } b \text{ bits agree}] \approx 2^{-b} + (1 - 2^{-b}) J,
+\qquad
+\hat{J}_b = \frac{\hat{P}_b - 2^{-b}}{1 - 2^{-b}},
+\qquad
+\operatorname{Var}[\hat{J}_b] = \frac{P_b (1 - P_b)}{k (1 - 2^{-b})^2}.
+$$
+
+For $b = 1$ and $J$ near 0 the variance is $1/k$, so $256$ one-bit values estimate the similarity of unrelated pages with standard deviation $0.0625$. For $J$ near 1 the full minima rarely differ, so chance agreements contribute little, and the variance approaches $(1 - J)/(k(1 - 2^{-b}))$, at most twice the variance with full minima. At a fixed budget of bits, a few wide values estimate low similarities better and many narrow values estimate high similarities better. The table gives the root mean squared errors at 256 bits per page, on the join's pairs with $J \ge 0.3$ and on the random pairs.
+
+| $b$ | $k$ | Join pairs, $J \ge 0.3$ | Random pairs |
+| ---: | ---: | ---: | ---: |
+| 1 | 256 | 0.033 | 0.062 |
+| 2 | 128 | 0.037 | 0.051 |
+| 4 | 64 | 0.053 | 0.032 |
+| 8 | 32 | 0.059 | 0.011 |
+
+The full 64-bit signatures with $k = 256$, at 16,384 bits per page, give 0.021 and 0.0004. For near-duplicate detection, where the decision concerns pairs with $J$ above 0.5, one-bit values give errors 1.6 times those of 64-bit values at 1/64 of the space.
+
+## Banding
+
+Comparing all signatures still takes time proportional to the number of pairs, 4.15 billion here. Banding, in the form described by Leskovec, Rajaraman and Ullman (chapter 3), splits the $k = br$ coordinates into $b$ bands of $r$ consecutive coordinates and, for each band, hashes the $r$ values of every page into a table. Two pages become a candidate pair if they share a bucket in at least one band. Their $r$ values in one band all agree with probability $J^r$, and the bands use disjoint coordinates, so
+
+$$
+\Pr[\text{candidate}] = 1 - (1 - J^r)^b.
+$$
+
+As a function of $J$ this is an S-curve. Its steepest point lies near $J^* = (1/b)^{1/r}$, the similarity at which the expected number of agreeing bands is 1. Larger $r$ makes the curve steeper and moves it right; larger $b$ moves it left. With 32 bands of 8 rows ($J^* = 0.648$), a pair with $J = 0.8$ is missed with probability $(1 - 0.8^8)^{32} = 0.0028$ and a pair with $J = 0.3$ becomes a candidate with probability $0.0021$.
+
+The table gives each setting's results on all 4,151,017,170 pairs, against the exact join. Candidates are distinct pairs; recall is the fraction of the 1,071,859 pairs with $J \ge 0.8$ that became candidates.
+
+| $b \times r$ | $J^*$ | Candidates | Recall, $J \ge 0.8$ | Candidates with $J < 0.3$ |
+| --- | ---: | ---: | ---: | ---: |
+| 64 × 4 | 0.354 | 1,156,924 | 1.0000 | 5,852 |
+| 50 × 5 | 0.457 | 1,144,575 | 1.0000 | 510 |
+| 32 × 8 | 0.648 | 1,120,965 | 0.9999 | 10 |
+| 25 × 10 | 0.725 | 1,092,490 | 0.9914 | 0 |
+| 20 × 10 | 0.741 | 1,054,173 | 0.9665 | 0 |
+| 16 × 16 | 0.841 | 701,975 | 0.6506 | 0 |
+| 8 × 32 | 0.937 | 154,413 | 0.1441 | 0 |
+
+With 32 bands of 8, the candidates are 0.027% of all pairs and contain all but 68 of the pairs with $J \ge 0.8$. Within each similarity bin the measured fraction of pairs that became candidates matched $1 - (1 - J^r)^b$ averaged over the bin. The low counts of dissimilar candidates follow from the bimodal distribution. Of the random pairs, 99.13% have $J = 0$, which can never become candidates, and a pair with $J = 0.01$ becomes a candidate with 50 bands of 5 with probability $5 \times 10^{-9}$. The last two rows place the threshold above 0.8, and recall falls accordingly.
+
+A candidate is a pair to verify, by comparing signatures or the full sets. Banding sets the recall; the verification step sets the precision.
+
+## The figure
+
+<MinhashLsh base="/algorithms/probabilistic/minhash-experiments/" />
+
+The figure's 2,000 pairs were chosen so that every similarity bin of width 0.05 is represented, which the crawl's pairs do not provide. There are 100 pairs per bin, drawn from the join's pairs, random pairs and pairs that share one of their first 64 MinHash values, with no page in two pairs. Their 256 MinHash agreements were recorded once from the same signatures as above, so moving a slider regroups recorded agreements and recomputes the candidates exactly as banding would. The upper chart compares each bin's measured candidate fraction with the S-curve; the lower chart shows the MinHash estimate from the $br$ hash functions in use.
+
+## In practice
+
+Lee et al. (2022) removed near-duplicate documents from language-model training corpora with MinHash over word 5-grams, a signature of 9,000 values and 450 bands of 20, whose S-curve has $J^* = 0.737$; candidate pairs were kept as duplicates when their edit similarity exceeded 0.8. FineWeb (Penedo et al. 2024) uses 112 hash functions in 14 bands of 8 on word 5-grams, targeting documents at least 75% similar. By the formula above, that setting makes a pair with $J = 0.75$ a candidate with probability 0.77 and a pair with $J = 0.85$ with probability 0.988. Documents that share a bucket are merged into clusters transitively.
+
+Computing $k$ hash values per shingle dominates the cost of signatures. One permutation hashing (Li, Owen and Zhang 2012) hashes each element once, divides the hash range into $k$ bins and keeps the minimum in each bin, with densification schemes filling empty bins for small sets. SuperMinHash (Ertl 2017) correlates the $k$ minima to reduce the estimator's variance below $J(1 - J)/k$ for small sets.
+
+## Consequences
+
+For near-duplicate detection on sets of shingles, MinHash with a few hundred hash functions estimates similarity within a few hundredths, at a cost independent of the size of the documents, and the measured error matched $\sqrt{J(1 - J)/k}$ on independent pairs. Banding then reduces the 4.15 billion pairs to about a million candidates with recall above 0.99 for $J \ge 0.8$, when $(1/b)^{1/r}$ is placed about 0.1 below the similarity that matters. A steep S-curve requires both $b$ and $r$ to be large, so the number of hash functions is set by banding and can exceed what estimation alone requires, as with the 9,000 values of Lee et al.
+
+On this crawl an exact join with prefix filtering finished in 108 seconds on one core at $T = 0.8$ and 114 seconds at $T = 0.3$, because almost all pairs share no shingle and the prefixes are selective. Prefix filtering's candidate set grows as the threshold falls and when sets share frequent tokens, while banding's work is proportional to $k$ times the number of documents plus the number of candidates. The training-corpus pipelines above, over billions of documents, use banding.
+
+> [!note]- How this was measured
+> The harness sources and outputs are in the `minhash-experiments` directory, and [`run.sh`](minhash-experiments/run.sh) reproduces every number from the minicrawl Parquet file.
+>
+> - **Pages.** [`fetch_crawl.py`](minhash-experiments/fetch_crawl.py) reads row groups 0 to 39 of the Parquet file over HTTP range requests. [`to_text.py`](minhash-experiments/to_text.py) parses each page with lxml, removes script, style, noscript, template, svg and head elements, collapses whitespace, and keeps pages with at least 50 words.
+> - **Shingles.** [`shingle.py`](minhash-experiments/shingle.py) splits the lowercased text into runs of word characters, hashes each window of 5 words with the first 8 bytes of BLAKE2b, drops pages with fewer than 50 distinct shingles, and keeps the first page of each domain.
+> - **Exact join.** [`join.c`](minhash-experiments/join.c) implements prefix filtering with tokens ordered rarest first and verifies every candidate by merging the two sorted sets; at $T = 0.3$ it verified 1,206,146 candidates for 1,153,538 pairs. Times are wall-clock times of single runs on one core.
+> - **Signatures and banding.** [`minhash.c`](minhash-experiments/minhash.c) computes 256 minima per page. [`analyze7.py`](minhash-experiments/analyze7.py) computes the b-bit errors, the banding candidates for each setting (distinct candidate pairs are listed exactly where the band collisions number at most $4 \times 10^7$, which excludes 128 × 2), the clusters and the per-bin candidate fractions, written to [`analysis.json`](minhash-experiments/analysis.json). [`indep7.py`](minhash-experiments/indep7.py) measures the MinHash error on the random matching, written to [`indep.json`](minhash-experiments/indep.json).
+> - **The figure.** [`make_fig7.py`](minhash-experiments/make_fig7.py) selects the 2,000 pairs and stores each as its similarity and 256 agreement bits, 52.5 KB compressed. The figure's tests compare its candidates, agreement counts and bins for 8 settings pair by pair against an independent NumPy implementation ([`figure_ref.py`](minhash-experiments/figure_ref.py)), and check the binned candidate fractions against the S-curve and the estimates' error against $\sqrt{J(1 - J)/k}$.
+> - **Environment.** gcc 13.3 with `-O2 -march=native`, Python 3.13 with NumPy 2.5, PyArrow 26 and lxml 6.1, on a 4-core Intel Xeon at 2.10 GHz with 15 GB of memory.
+
+> [!note]- Potentially interesting ideas
+> - **Recall over clusters.** Recall counted over pairs is dominated by the largest clusters. Counting the fraction of pages assigned to the correct cluster after transitive merging would weight each page once.
+> - **Lower thresholds.** Near-duplicates of edited articles sit between 0.3 and 0.7, where this crawl has few pairs. A corpus with more partial overlap, such as revisions of Wikipedia articles, would test banding where the S-curve's slope matters most.
+> - **One permutation hashing.** Measuring densified one permutation hashing against $k$ independent minima on the same pages would show the variance and speed difference at $k = 256$.
+> - **Weighted sets.** Shingle counts and term weights call for weighted MinHash schemes, such as consistent weighted sampling, which estimate the weighted Jaccard similarity.
+
+## Related notes
+
+- [[algorithms/probabilistic/index|Probabilistic data structures]], the series index, with the notation
+- [[algorithms/probabilistic/hashing-for-sketches|Hashing for sketches]], for the independence that the MinHash argument assumes and the families that provide it
+- [[algorithms/probabilistic/stream-sampling|Sampling from streams]], whose bottom-$k$ sketches keep the $k$ smallest ranks under one hash function, the single-hash form of a MinHash signature
+- [[math/probability/probability-expectation-concentration|Expectation and concentration]], for the binomial and Chernoff bounds behind the estimator's error
