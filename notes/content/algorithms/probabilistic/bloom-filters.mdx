@@ -8,7 +8,7 @@ tags:
   - hashing
   - cache efficiency
 date: 2026-11-19
-updated: 2026-11-19
+updated: 2026-11-20
 authors:
   - elimelt
 status: draft
@@ -84,7 +84,7 @@ Bloom's own filter sets $d$ *distinct* bits per key, and the paper gives the fra
 
 **The exact rate.** Given the filter, an absent key passes with probability $\rho^k$, where $\rho$ is the realized fraction of 1 bits, so $\varepsilon = \mathbb{E}[\rho^k]$, and by Jensen's inequality $\mathbb{E}[\rho^k] \ge (\mathbb{E}\rho)^k$. [Bose et al. (2008)](https://doi.org/10.1016/j.ipl.2008.05.018) showed that the approximation is a strict underestimate for $k \ge 2$ (under a mild condition on $k$ and $m$) and gave an exact expression with Stirling numbers of the second kind. Their smallest example is $n = 1$, $k = 2$, $m = 2$: the inserted key sets one bit or both with probability $1/2$ each, so $\varepsilon = \frac12 \cdot \frac14 + \frac12 \cdot 1 = 5/8$, while the approximation gives $9/16$. [Christensen, Roginsky and Jimeno (2010)](https://doi.org/10.1016/j.ipl.2010.07.024) gave the equivalent form $\varepsilon = \sum_{i} (i/m)^k \Pr[X = i]$, where $X$ is the number of occupied bins after $kn$ balls are thrown into $m$ bins, proved that the approximation is never larger than the true rate, and showed that the relative error is large only for small filters (their figure reaches several hundred percent at $m = 32$ bits). For the filters of millions of bits measured below, $\rho$ concentrates so tightly around its mean that the approximation and the exact rate agree to the precision of the measurement. The difference returns in [blocked filters](#blocked-filters), which are many small filters.
 
-**The lower bound.** Any structure that answers membership queries with no false negatives and false-positive rate $\varepsilon$, for sets of $n$ keys from a universe much larger than $n$, must use at least $n \lg(1/\varepsilon)$ bits in the worst case ([Carter et al. 1978](https://doi.org/10.1145/800133.804332); [Dietzfelbinger and Pagh 2008](https://arxiv.org/abs/0803.3693), Theorem 13, for $|U| > n^2/\varepsilon$, with an $O(1)$ loss). A Bloom filter at its best $k$ uses $1.44 \lg(1/\varepsilon)$ bits per key, a factor $\lg e$ above the bound, and Dietzfelbinger and Pagh note that this factor is tight for Bloom filters. The [[algorithms/probabilistic/index|cuckoo, quotient, xor and ribbon filters]] of the next note in the series close most of the gap.
+**The lower bound.** Any structure that answers membership queries with no false negatives and false-positive rate $\varepsilon$, for sets of $n$ keys from a universe much larger than $n$, must use at least $n \lg(1/\varepsilon)$ bits in the worst case ([Carter et al. 1978](https://doi.org/10.1145/800133.804332); [Dietzfelbinger and Pagh 2008](https://arxiv.org/abs/0803.3693), Theorem 13, for $|U| > n^2/\varepsilon$, with an $O(1)$ loss). A Bloom filter at its best $k$ uses $1.44 \lg(1/\varepsilon)$ bits per key, a factor $\lg e$ above the bound, and Dietzfelbinger and Pagh note that this factor is tight for Bloom filters. The [[algorithms/probabilistic/cuckoo-quotient-xor-ribbon-filters|cuckoo, quotient, xor and ribbon filters]] of the next note in the series close most of the gap.
 
 | $\varepsilon$ | Lower bound | Standard | Blocked, 512-bit lines | Blocked, 64-bit words |
 | ---: | ---: | ---: | ---: | ---: |

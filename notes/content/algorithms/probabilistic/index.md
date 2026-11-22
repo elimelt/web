@@ -8,7 +8,7 @@ tags:
   - hashing
   - randomized algorithms
 date: 2026-11-15
-updated: 2026-11-19
+updated: 2026-11-20
 authors:
   - elimelt
 status: draft
@@ -52,7 +52,7 @@ The notes are ordered so that each depends only on earlier ones. Notes without l
 
 1. **[[algorithms/probabilistic/hashing-for-sketches|Hashing for sketches]].** Universal and $k$-independent families, multiply-shift, polynomial and tabulation hashing, the independence each sketch's analysis assumes, and HyperLogLog, Count-Min and AMS run with each family on dense and hashed keys from the benchmark.
 2. **[[algorithms/probabilistic/bloom-filters|Bloom filters and their variants]].** The false-positive rate and its exact form, partitioned, double-hashed, blocked and counting filters, and LevelDB's probe sequence, with false-positive rates measured on the pageview keys and the cost per lookup inside and beyond the cache.
-3. **Cuckoo, quotient, xor and ribbon filters.** Filters that approach the $\lg(1/\varepsilon)$ bits-per-key lower bound, compared in space, false-positive rate and throughput. Sources: Fan et al. (2014), Bender et al. (2012), Graf and Lemire (2020), Dillinger and Walzer (2021).
+3. **[[algorithms/probabilistic/cuckoo-quotient-xor-ribbon-filters|Cuckoo, quotient, xor and ribbon filters]].** Fingerprint filters that approach the $\lg(1/\varepsilon)$ bits-per-key lower bound, with false-positive rates, construction and insertion thresholds, and build and lookup costs measured on the pageview keys against Bloom filters of the same rate.
 4. **[[algorithms/probabilistic/hyperloglog-count-min|HyperLogLog and Count-Min]].** Distinct counting and frequency estimation: the estimators and their proofs, the corrections added after the original analyses, and the measured error on the pageview stream against the published bounds.
 5. **Heavy hitters.** Misra-Gries, Space-Saving and Count Sketch for the top-$k$ problem, with deterministic and probabilistic guarantees compared on the same stream. Sources: Misra and Gries (1982), Metwally et al. (2005), Charikar et al. (2002).
 6. **Quantile sketches.** GK, KLL, t-digest, DDSketch and REQ: rank error against relative error, mergeability, and accuracy at the tails on real latency data.

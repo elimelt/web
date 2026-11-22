@@ -1,0 +1,358 @@
+---
+title: Cuckoo, quotient, xor and ribbon filters
+category: Algorithms
+tags:
+  - probabilistic data structures
+  - approximate membership
+  - cuckoo filter
+  - quotient filter
+  - xor filter
+  - ribbon filter
+  - hashing
+date: 2026-11-20
+updated: 2026-11-20
+authors:
+  - elimelt
+status: draft
+description: Fingerprint filters that approach the n lg(1/ε) space bound for approximate membership (cuckoo, quotient, xor, binary fuse and ribbon filters), with their false-positive rates, the loads at which their construction or insertion fails, and build and lookup costs measured with the 5.8 million keys of one benchmark hour against 53 million absent keys.
+sources:
+  - title: Fan, Andersen, Kaminsky and Mitzenmacher (2014), Cuckoo filter, practically better than Bloom
+    url: https://doi.org/10.1145/2674005.2674994
+    type: paper
+  - title: Pagh and Rodler (2004), Cuckoo hashing
+    url: https://doi.org/10.1016/j.jalgor.2003.12.002
+    type: paper
+  - title: Walzer (2021), Peeling close to the orientability threshold, spatial coupling in hashing-based data structures
+    url: https://doi.org/10.1137/1.9781611976465.131
+    type: paper
+  - title: Bender, Farach-Colton, Johnson, Kraner, Kuszmaul, Medjedovic, Montes, Shetty, Spillane and Zadok (2012), Don't thrash, how to cache your hash on flash
+    url: https://doi.org/10.14778/2350229.2350275
+    type: paper
+  - title: Cleary (1984), Compact hash tables using bidirectional linear probing
+    url: https://doi.org/10.1109/TC.1984.1676499
+    type: paper
+  - title: Pandey, Bender, Johnson and Patro (2017), A general-purpose counting filter, making every bit count
+    url: https://doi.org/10.1145/3035918.3035963
+    type: paper
+  - title: Graf and Lemire (2020), Xor filters, faster and smaller than Bloom and cuckoo filters
+    url: https://doi.org/10.1145/3376122
+    type: paper
+  - title: Botelho, Pagh and Ziviani (2007), Simple and space-efficient minimal perfect hash functions
+    url: https://doi.org/10.1007/978-3-540-73951-7_13
+    type: paper
+  - title: Molloy (2005), Cores in random hypergraphs and Boolean formulas
+    url: https://doi.org/10.1002/rsa.20061
+    type: paper
+  - title: Graf and Lemire (2022), Binary fuse filters, fast and smaller than xor filters
+    url: https://doi.org/10.1145/3510449
+    type: paper
+  - title: Dietzfelbinger and Walzer (2019), Dense peelable random uniform hypergraphs
+    url: https://doi.org/10.4230/LIPIcs.ESA.2019.38
+    type: paper
+  - title: Dillinger and Walzer (2021), Ribbon filter, practically smaller than Bloom and xor
+    url: https://arxiv.org/abs/2103.02515
+    type: paper
+  - title: Dillinger, Hübschle-Schneider, Sanders and Walzer (2022), Fast succinct retrieval and approximate membership using ribbon
+    url: https://doi.org/10.4230/LIPIcs.SEA.2022.4
+    type: paper
+  - title: Carter, Floyd, Gill, Markowsky and Wegman (1978), Exact and approximate membership testers
+    url: https://doi.org/10.1145/800133.804332
+    type: paper
+  - title: Dietzfelbinger and Pagh (2008), Succinct data structures for retrieval and approximate membership
+    url: https://arxiv.org/abs/0803.3693
+    type: paper
+  - title: Lovett and Porat (2010), A lower bound for dynamic approximate membership data structures
+    url: https://doi.org/10.1109/FOCS.2010.81
+    type: paper
+  - title: Pagh, Segev and Wieder (2013), How to approximate a set without knowing its size in advance
+    url: https://arxiv.org/abs/1304.1188
+    type: paper
+  - title: Even, Even and Morrison (2022), Prefix filter, practically and theoretically better than Bloom
+    url: https://doi.org/10.14778/3523210.3523211
+    type: paper
+  - title: Pandey, Conway, Durie, Bender, Farach-Colton and Johnson (2021), Vector quotient filters, overcoming the time/space trade-off in filter design
+    url: https://doi.org/10.1145/3448016.3452841
+    type: paper
+  - title: Dayan, Bercea, Reviriego and Pagh (2023), InfiniFilter, expanding filters to infinity and beyond
+    url: https://doi.org/10.1145/3589285
+    type: paper
+  - title: Dayan, Bercea and Pagh (2024), Aleph filter, to infinity in constant time
+    url: https://doi.org/10.14778/3681954.3682027
+    type: paper
+  - title: RocksDB, HISTORY.md
+    url: https://github.com/facebook/rocksdb/blob/main/HISTORY.md
+    type: code
+  - title: Wikimedia, Analytics datasets, pageviews
+    url: https://dumps.wikimedia.org/other/pageviews/readme.html
+    type: dataset
+---
+
+A *fingerprint filter* for a set $S$ of $n$ keys stores an $f$-bit *fingerprint* $\varphi(x)$ of each key $x \in S$ in an array of cells and answers a query for $y$ by comparing $\varphi(y)$ with values read from a few cells chosen by hashing $y$. A key in $S$ always matches. An absent key matches with a probability close to $t \cdot 2^{-f}$, where $t$ is the number of independent comparisons made, so the fingerprint length sets the false-positive rate $\varepsilon$, and the space is $f$ bits, plus any metadata per cell, times the ratio of cells to keys. *Dynamic* filters store each fingerprint in one cell of a hash table and support insertion and deletion: cuckoo filters ([Fan et al. 2014](https://doi.org/10.1145/2674005.2674994)) and quotient filters ([Bender et al. 2012](https://doi.org/10.14778/2350229.2350275)). *Static* filters are built once from the whole of $S$ by solving a linear system over GF(2) in which the equation for $x$ has right-hand side $\varphi(x)$: xor filters ([Graf and Lemire 2020](https://doi.org/10.1145/3376122)), binary fuse filters ([Graf and Lemire 2022](https://doi.org/10.1145/3510449)) and ribbon filters ([Dillinger and Walzer 2021](https://arxiv.org/abs/2103.02515)). A static filter accepts no insertion after it is built.
+
+Any filter for sets of $n$ keys from a large universe needs at least $n \lg(1/\varepsilon)$ bits, and a [[algorithms/probabilistic/bloom-filters|Bloom filter]] at its best number of hash functions uses $\lg e \approx 1.44$ times that. A fingerprint filter with load $\alpha$, the number of keys per cell, uses about $(\lg(1/\varepsilon) + c)/\alpha$ bits per key for a small constant $c$, so its overhead over the bound is a factor $1/\alpha$ and an additive term. The static filters reach $\alpha$ between 0.81 and 0.94 with $c = 0$. The dynamic filters operate at $\alpha$ between 0.75 and 0.95 with $c$ close to 3.
+
+On the [[algorithms/probabilistic/index|series benchmark]], each filter was built from the 5,843,219 keys of the first hour (the cuckoo and quotient tables also from more keys, enough to fill them to their design loads) and queried with 52,974,808 keys that first appear later in the day. Every filter's false-positive rate is within 1% of its formula, or within two standard errors where a run counts fewer than 1,000 false positives. At $2^{-8} = 0.39\%$ a ribbon filter of width 128 uses 8.56 bits per key, 1.07 times the bound, against 9.02 for a binary fuse filter, 9.84 for an xor filter and 11.5 for a Bloom filter. A cuckoo filter with 4-slot buckets at 95% load uses fewer bits per key than a Bloom filter at rates below about 0.4% (12.63 against 13.09 bits at 0.185%) and more above it. A quotient filter at 90% load reads 28 slots per absent query on average and its queries cost 248 to 337 ns, against 15 to 18 ns for the cuckoo, xor and binary fuse filters.
+
+## The space bound
+
+Let $U$ be a universe much larger than $n$. A structure that answers membership queries for every $n$-key subset of $U$ with no false negatives and false-positive rate $\varepsilon$ must use at least $n \lg(1/\varepsilon)$ bits in the worst case ([Carter et al. 1978](https://doi.org/10.1145/800133.804332)), and static structures exist that use $n \lg(1/\varepsilon)(1 + o(1))$ bits ([Dietzfelbinger and Pagh 2008](https://arxiv.org/abs/0803.3693)). Insertion raises the bound. [Lovett and Porat (2010)](https://doi.org/10.1109/FOCS.2010.81) showed that a dynamic structure, which receives the keys one at a time and must answer queries in between, needs at least $C(\varepsilon) \, n \lg(1/\varepsilon)$ bits for a constant $C(\varepsilon) > 1$ that depends only on $\varepsilon$. If $n$ is not known when the structure is created, [Pagh, Segev and Wieder (2013)](https://arxiv.org/abs/1304.1188) showed that a further $\Omega(n \log \log n)$ bits are needed.
+
+The rate of a fingerprint filter follows from one assumption: the fingerprint of an absent key is uniform on its $2^f$ values and independent of the values it is compared with. If a query compares $\varphi(y)$ with $t$ stored fingerprints, $\varepsilon = 1 - (1 - 2^{-f})^t \approx t \, 2^{-f}$, so $f \approx \lg(1/\varepsilon) + \lg t$. With $\mu$ metadata bits per cell and load $\alpha$,
+
+$$
+\text{bits per key} = \frac{f + \mu}{\alpha} \approx \frac{\lg(1/\varepsilon) + \lg t + \mu}{\alpha} .
+$$
+
+| Filter | Comparisons $t$ | Metadata $\mu$ | Load $\alpha$ | Bits per key |
+| --- | ---: | ---: | ---: | --- |
+| Cuckoo, buckets of $b$ slots | $2b\alpha$ | 0 | 0.95 at $b = 4$ | $(\lg(1/\varepsilon) + \lg(2b\alpha))/\alpha$ |
+| Quotient | $\alpha$ | 3 | 0.75 to 0.9 | $(\lg(1/\varepsilon) + \lg \alpha + 3)/\alpha$ |
+| Xor | 1 | 0 | $1/1.23$ | $1.23 \lg(1/\varepsilon)$ |
+| Binary fuse, 3 positions | 1 | 0 | $1/1.125$ | $1.125 \lg(1/\varepsilon)$ |
+| Ribbon, overhead $\delta$ | 1 | 0 | $1/(1+\delta)$ | $(1 + \delta)\lg(1/\varepsilon)$ |
+
+For the static filters a query computes one value from several cells and compares it with $\varphi(y)$ once, so $t = 1$ and $\varepsilon = 2^{-f}$ exactly when the value is uniform. A quotient filter stores the low bits of a $(q + r)$-bit hash, and its rate is that of a comparison with all $n$ stored hashes, which gives the $t = \alpha$ in the table [below](#quotient-filters). The static filters have a multiplicative overhead and no additive one, and the dynamic filters have both.
+
+## Cuckoo filters
+
+A cuckoo filter is a table of $m$ buckets, each holding $b$ slots of $f$ bits, with 0 reserved for an empty slot. Key $x$ has a nonzero fingerprint $\varphi(x)$ and two candidate buckets,
+
+$$
+i_1(x) = h(x) \bmod m, \qquad i_2(x) = i_1(x) \oplus \big(h'(\varphi(x)) \bmod m\big),
+$$
+
+for $m$ a power of two and hash functions $h$, $h'$. Since $i_1 = i_2 \oplus (h'(\varphi(x)) \bmod m)$, either bucket together with the fingerprint determines the other, so a fingerprint can be moved between its two buckets without the key, which the filter does not store. Fan et al. call this *partial-key cuckoo hashing*. Insertion stores $\varphi(x)$ in a free slot of $i_1$ or $i_2$ if there is one. Otherwise it removes a fingerprint from a randomly chosen slot of one of the two buckets, stores $\varphi(x)$ there, and inserts the removed fingerprint into its alternate bucket in the same way, for at most 500 relocations (`MaxNumKicks` in the paper); if the walk ends without a free slot, the insertion fails and the table is full. A query reports $x$ as possibly present if either bucket holds $\varphi(x)$, and deletion removes one copy of $\varphi(x)$ from either bucket. The relocation walk is that of cuckoo hashing ([Pagh and Rodler 2004](https://doi.org/10.1016/j.jalgor.2003.12.002)), with $b$ slots per bucket.
+
+A query compares $\varphi(y)$ with the $2b$ slots of two buckets, of which about $2b\alpha$ are occupied at load $\alpha = n/(bm)$. With fingerprints uniform on the $2^f - 1$ nonzero values the rate is $1 - (1 - 1/(2^f - 1))^{2b\alpha}$, and the space is $f/\alpha$ bits per key. For $b = 4$ and $\alpha = 0.955$ Fan et al. give $(\lg(1/\varepsilon) + 3)/\alpha$ bits per key. Their *semi-sorting* variant sorts the four fingerprints of a bucket and stores the multiset of their four high-order 4-bit groups as a 12-bit index into a table of the 3,876 possible multisets, saving 1 bit per slot; the space becomes $(\lg(1/\varepsilon) + 2)/\alpha$. At $\alpha = 0.955$ the plain table uses fewer bits per key than a Bloom filter at its best $k$ at rates of 0.37% and below (11.52 against 11.64 bits at $f = 11$, where $\varepsilon = 0.37\%$), and the semi-sorted table below about 3% (7.33 bits for both at $f = 8$), the threshold that Fan et al. report.
+
+Deleting is safe only for a key that was inserted, since an absent key that matches a stored fingerprint would delete another key's fingerprint and create a false negative. All copies of one key go to the same two buckets, so a key inserted more than $2b$ times exhausts them and the insertion fails.
+
+**Measured rates.** The table has $2^{21}$ buckets of 4 slots ($2^{23}$ slots). Each line is the mean of 3 builds with independent hash functions, and the rate is false positives per million of the 52,974,808 absent keys.
+
+| Keys, load | $f$ | Bits per key | Expected | Measured | Bloom, same rate |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 5,843,219, 0.697 | 8 | 11.48 | 21,658 | 21,686 | 7.99 |
+| 5,843,219, 0.697 | 16 | 22.97 | 85.0 | 85.2 | 19.5 |
+| 7,969,177, 0.950 | 8 | 8.42 | 29,421 | 29,454 | 7.34 |
+| 7,969,177, 0.950 | 12 | 12.63 | 1,854 | 1,854 | 13.09 |
+| 7,969,177, 0.950 | 16 | 16.84 | 116.0 | 116.4 | 18.85 |
+
+The last column is the space a Bloom filter needs for the measured rate at its best integer $k$, from the formula that the [[algorithms/probabilistic/bloom-filters#Measured on the benchmark|Bloom filter measurements]] confirm. At 95% load and 8-bit fingerprints the cuckoo filter uses 15% more space than a Bloom filter with the same rate, at 12 bits 3.5% less and at 16 bits 11% less. At 70% load it uses more than a Bloom filter at every fingerprint length measured.
+
+### How full the table gets
+
+A cuckoo table is full when the walk fails, and the load at which that happens depends on $b$, on the table size and on $f$. Two limits bound it. For two choices and buckets of $b$ slots, a placement of all keys exists with probability tending to 1 as $m \to \infty$ if the load is below a threshold $c^*_{2,b}$ and with probability tending to 0 above it; $c^*_{2,1} = 0.5$, $c^*_{2,2} = 0.8970$ and $c^*_{2,4} = 0.9804$ ([Walzer 2021](https://doi.org/10.1137/1.9781611976465.131), Table 1). A walk of at most 500 relocations finds a placement only when one is reachable within that many steps, so the load at the first failure lies below the threshold. Each line below is the mean load at the first failed insertion over 10 builds with 16-bit fingerprints, inserting the benchmark keys in order of first appearance.
+
+| Slots | $b = 1$ | $b = 2$ | $b = 4$ | $b = 8$ |
+| ---: | ---: | ---: | ---: | ---: |
+| 4,096 | 0.532 | 0.879 | 0.970 | 0.994 |
+| 65,536 | 0.502 | 0.876 | 0.965 | 0.992 |
+| 1,048,576 | 0.502 | 0.867 | 0.962 | 0.988 |
+| 8,388,608 | 0.499 | 0.864 | 0.959 | 0.987 |
+| Threshold $c^*_{2,b}$ | 0.5 | 0.8970 | 0.9804 | |
+
+The load at the first failure falls as the table grows, by 1.5 points from 4,096 to 8.4 million slots for $b = 2$ and by 1.1 points for $b = 4$. Fan et al. report 50%, 84%, 95% and 98% for $b = 1, 2, 4, 8$. With $b = 4$ on $2^{23}$ slots the 10 fills averaged 1.09 to 1.30 relocations per insertion up to the first failure.
+
+Partial-key cuckoo hashing adds a dependence on $f$: the alternate bucket of a fingerprint in bucket $i$ is one of at most $2^f - 1$ buckets, so the keys of a bucket can move only within a neighborhood whose size does not grow with $m$. Fan et al. show that a high load requires $f = \Omega(\log n / b)$. With $b = 4$ and $2^{23}$ slots, 4-bit fingerprints fail at a mean load of 0.847 (lowest 0.693, highest 0.945 of 10 builds), 5-bit fingerprints at 0.953 and 6- to 16-bit fingerprints at 0.955 to 0.959; on $2^{20}$ slots 4-bit fingerprints reach 0.949. Replacing the xor by $i_2 = (h'(\varphi(x)) - i_1) \bmod m$, an involution that allows any $m$, gave 0.957 at 16 bits and 0.885 at 4 bits on $2^{23}$ slots.
+
+## Quotient filters
+
+A quotient filter stores a $p$-bit hash $\hat h(x)$ of each key, with $p = q + r$, by *quotienting* ([Cleary 1984](https://doi.org/10.1109/TC.1984.1676499)): the high $q$ bits, the *quotient* $h_q(x)$, select a home slot in a table of $2^q$ slots, and only the low $r$ bits, the *remainder* $h_r(x)$, are stored. The remainders of all keys with the same quotient are stored in consecutive slots, a *run*, sorted by remainder. Runs appear in the order of their quotients, and a run whose home slot is taken is shifted to the right, as in linear probing. A maximal sequence of occupied slots is a *cluster*. Bender et al. keep three bits per slot:
+
+- **`is_occupied`:** some stored key has this slot as its home slot.
+- **`is_continuation`:** the slot holds a remainder of the same run as the slot before it.
+- **`is_shifted`:** the remainder in the slot is not in its home slot.
+
+A query for $y$ checks `is_occupied` at $h_q(y)$ and, if it is set, scans left to the start of the cluster, counts the occupied home slots it passed to determine which run belongs to $h_q(y)$, scans right to the start of that run, and compares $h_r(y)$ with each remainder in the run. Insertion and deletion locate the run the same way and shift the rest of the cluster by one slot.
+
+The filter represents the multiset of $p$-bit hashes exactly, so it errs only when an absent key's hash equals a stored one: $\varepsilon = 1 - (1 - 2^{-p})^n \approx 1 - e^{-\alpha / 2^r} \le \alpha \, 2^{-r}$ at load $\alpha = n/2^q$. A slot holds $r + 3$ bits, so the space is $(r + 3)/\alpha$ bits per key. Because the stored remainders, read in slot order, are the stored hashes in sorted order, two filters with the same $q + r$ can be merged by a single sequential pass that writes a new table, and the table can be doubled by moving one bit from each remainder to the quotient. Bender et al. use merging to maintain filters on flash storage with sequential writes.
+
+The cost of a query is the length of the scan, which grows with the length of clusters, as in linear probing. Bender et al. bound the expected cluster length by $1/(1 - \alpha e^{1 - \alpha})$, which is 27 at $\alpha = 3/4$, and recommend filling the table to at most 75%. The measurements below use $2^{22}$ slots and 8-bit remainders; each line is the mean of 5 builds.
+
+| Load | Slots read per absent query | Shifts per insertion | Cluster of a stored key, mean | 99th percentile cluster | Bound |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0.50 | 1.40 | 0.18 | 5.0 | 13 | 5.7 |
+| 0.60 | 1.86 | 1.11 | 7.8 | 19 | 9.5 |
+| 0.70 | 2.99 | 2.41 | 13.5 | 32 | 18.1 |
+| 0.75 | 4.20 | 4.49 | 19.0 | 43 | 27.0 |
+| 0.80 | 6.56 | 7.40 | 29.1 | 63 | 43.7 |
+| 0.85 | 11.9 | 13.4 | 50.2 | 99 | 80.4 |
+| 0.90 | 27.7 | 28.8 | 108.7 | 183 | 187.0 |
+| 0.95 | 119.2 | 92.7 | 424.9 | 495 | 773.7 |
+
+Shifts per insertion are averaged over the insertions that raised the load from the line above to this line (from 0 for the first line), so they give the cost of an insertion at that load. The fourth column is the mean length of the cluster that contains a randomly chosen stored remainder, which is what a query for a present key scans; the fifth is the 99th percentile of the length of clusters themselves, whose mean is shorter (5.7 slots at 0.75 and 15.2 at 0.9). The longest cluster in the 5 builds at 0.95 had 6,655 slots. The bound of Bender et al. exceeds the measured cluster of a stored key at every load, by a factor of 1.4 at 0.75 and 1.8 at 0.95. From 0.75 to 0.9 the slots read per absent query rise by a factor of 6.6 and the shifts per insertion by 6.4.
+
+| Keys, load | $r$ | Bits per key | Expected | Measured | Bloom, same rate |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 6,291,456, 0.75 | 8 | 14.67 | 2,925 | 2,932 | 12.15 |
+| 6,291,456, 0.75 | 13 | 21.33 | 91.5 | 91.6 | 19.36 |
+| 7,549,747, 0.90 | 8 | 12.22 | 3,509 | 3,516 | 11.76 |
+| 7,549,747, 0.90 | 13 | 17.78 | 109.9 | 109.8 | 18.98 |
+
+These use $2^{23}$ slots, and the rates are per million absent keys, means of 3 builds. At 75% load the 3 metadata bits and the empty quarter of the table make the filter larger than a Bloom filter with the same rate for every $r$ from 5 to 16; at 90% load it is smaller for $r \ge 10$ ($\varepsilon \le 0.088\%$).
+
+**Counting quotient filters.** [Pandey et al. (2017)](https://doi.org/10.1145/3035918.3035963) replace the three bits by two bit vectors, `occupieds` and `runends`, and an 8-bit offset for each block of 64 slots, 2.125 bits per slot in all, and locate a run with rank and select operations on 64-bit words instead of a scan. They report that the structure operates up to 95% load. Variable-length counters stored among the remainders let one remainder represent many copies of a key, which makes the structure a counting filter.
+
+## Xor filters
+
+An xor filter for $S$ is an array $B$ of $c$ cells of $f$ bits, divided into three blocks of $c/3$ cells, with hash functions $h_0, h_1, h_2$ that map each key to one cell in each block, such that
+
+$$
+B[h_0(x)] \oplus B[h_1(x)] \oplus B[h_2(x)] = \varphi(x) \qquad \text{for every } x \in S .
+$$
+
+A query computes the left side for $y$ and compares it with $\varphi(y)$. For $y \notin S$, the left side is a fixed value and $\varphi(y)$ is uniform and independent of it, so $\varepsilon = 2^{-f}$. Graf and Lemire use $c = \lfloor 1.23 n \rfloor + 32$, so the space is $1.23 f$ bits per key plus $32f/n$.
+
+The equations are a linear system over GF(2) with one row per key and three nonzero entries per row. Graf and Lemire solve it by *peeling*, the method [Botelho, Pagh and Ziviani (2007)](https://doi.org/10.1007/978-3-540-73951-7_13) used for minimal perfect hashing. View the keys as hyperedges on the $c$ cells. Repeatedly find a cell that lies in exactly one remaining key, push that key and that cell onto a stack, and remove the key. If every key is removed, pop the stack and set each key's cell to the value that satisfies its equation: no key popped later touches the cell, because each of them was removed earlier, when the cell already had degree 1. If peeling stops with keys remaining, those keys form the 2-core of the hypergraph, the largest subhypergraph in which every cell has degree at least 2, and the build is repeated with new hash functions.
+
+For random 3-uniform hypergraphs the 2-core is empty with probability tending to 1 if $n/c < c_3 \approx 0.81847$ and nonempty with probability tending to 1 if $n/c > c_3$ ([Molloy 2005](https://doi.org/10.1002/rsa.20061)), so $c/n$ must exceed $1/c_3 \approx 1.2218$, and the factor 1.23 leaves 0.7% of margin. The table counts successful builds, out of the number of trials shown in the first column, with $c$ equal to the factor times $n$ rounded down to a multiple of 3 and no added constant.
+
+| Keys | 1.20 | 1.21 | 1.22 | 1.23 | 1.24 | 1.25 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1,000 (400 trials) | 13 | 45 | 101 | 178 | 254 | 302 |
+| 10,000 (200) | 0 | 2 | 58 | 165 | 198 | 200 |
+| 100,000 (100) | 0 | 0 | 8 | 100 | 100 | 100 |
+| 1,000,000 (40) | 0 | 0 | 0 | 40 | 40 | 40 |
+| 5,843,219 (12) | 0 | 0 | 0 | 12 | 12 | 12 |
+
+From $10^5$ keys on, at most 8% of builds succeeded at factor 1.22 and every build succeeded at 1.23. At 1,000 keys the transition spreads from 1.18 to 1.31, and 1.23 succeeds in 45% of builds; the constant 32 raises Graf and Lemire's factor at that size to 1.262, where about 89% of builds succeed.
+
+At full scale, with $c = 7{,}187{,}190$ cells, the measured rates are 3,901.7 per million at $f = 8$ (expected $2^{-8} \times 10^6 = 3{,}906.25$) and 15.1 at $f = 16$ (expected 15.26), at 9.84 and 19.68 bits per key.
+
+## Binary fuse filters
+
+A binary fuse filter replaces the three blocks by a sequence of $s$ *segments* of $L$ cells. Key $x$ chooses a starting segment $j(x)$ uniformly from the first $s - 2$, and its three cells lie one in each of segments $j$, $j + 1$ and $j + 2$. The array is filled by peeling and assignment exactly as for an xor filter, and $\varepsilon = 2^{-f}$. Hypergraphs with this banded structure are a case of *spatial coupling*: the cells near the two ends of the array have fewer keys, peeling starts there, and it proceeds inward segment by segment. For 3 cells per key, [Dietzfelbinger and Walzer (2019)](https://doi.org/10.4230/LIPIcs.ESA.2019.38) and Walzer (2021) show that as $s$ and $L$ grow such hypergraphs peel up to a load of $c^*_3 \approx 0.917935$, the threshold for the existence of a solution of the system, against 0.818 for the unstructured hypergraph of an xor filter.
+
+Graf and Lemire set $L = 2^{\lfloor \log_{3.33} n + 2.25 \rfloor}$, capped at $2^{18}$, and the array length to $\max(1.125, \; 0.875 + 0.25 \ln(10^6)/\ln n)$ times $n$ rounded up to a whole number of segments, which is 1.125 for $n \ge 10^6$. They report 9.0 bits per key with 8-bit fingerprints, and 8.6 for a 4-cell variant with factor 1.075. For the 5,843,219 keys of the hour, $L = 32{,}768$ and the array has 201 segments, 6,586,368 cells or a factor of 1.127. The rates are 3,908.1 per million at $f = 8$ and 15.3 at $f = 16$, at 9.02 and 18.03 bits per key.
+
+| Keys | 1.10 | 1.11 | 1.12 | 1.13 | 1.15 | 1.20 | Factor used |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 10,000 (200 trials) | 0 | 0 | 0 | 0 | 0 | 147 | 1.250 |
+| 100,000 (100) | 0 | 0 | 0 | 0 | 96 | 100 | 1.175 |
+| 1,000,000 (40) | 0 | 0 | 22 | 40 | 40 | 40 | 1.125 |
+| 5,843,219 (12) | 0 | 10 | 12 | 12 | 12 | 12 | 1.125 |
+
+The table counts successful builds at each size factor with the segment length above. At 5.8 million keys every build succeeded from factor 1.12, 3 points above the asymptotic $1/c^*_3 = 1.0894$, and at a million keys from 1.13. Below about $10^5$ keys the array length changes only in steps of one segment, so several factors give the same array, and at $10^4$ keys about 75% of builds succeed from 1.18 to 1.22 and 98% from 1.23. Fewer and shorter segments move the peeling threshold away from $c^*_3$, which the size formula accounts for with its larger factor at small $n$.
+
+## Ribbon filters
+
+A ribbon filter solves a linear system whose rows are *bands*. Each key $x$ has a start $s(x)$ uniform on $\{0, \dots, m - w\}$ and a $w$-bit coefficient vector $c(x)$ whose first bit is 1, and its row of the $m$-column system is $c(x)$ placed at columns $s(x)$ to $s(x) + w - 1$. The filter stores an $m \times r$ bit matrix $Z$ such that
+
+$$
+\textstyle\bigoplus_{j=0}^{w-1} c_j(x) \, Z[s(x) + j] = \varphi(x) \qquad \text{for every } x \in S,
+$$
+
+where $Z[i]$ is row $i$ of $Z$ and $\varphi(x)$ has $r$ bits ([Dillinger and Walzer 2021](https://arxiv.org/abs/2103.02515)). A query computes the left side for $y$. With $Z$ stored column by column in $w$-bit words, each of the $r$ bits of the left side is the parity of one AND of $c(y)$ with $w$ contiguous bits of one column, which reads two or three 64-bit words per column for $w \le 128$, all within a range of $w$ consecutive rows. The rate is $2^{-r}$. With $m = (1 + \delta) n$ the space is $(1 + \delta) r$ bits per key; Dillinger and Walzer write $\varepsilon$ for the overhead, called $\delta$ here to keep $\varepsilon$ for the false-positive rate.
+
+Construction is Gaussian elimination in the order of the keys, which the paper calls on-the-fly banding. The solver keeps at most one stored row per column $i$, with its leading 1 in column $i$. A new row is placed at the column of its leading 1 if that column has no stored row. Otherwise the stored row is xored into it, together with the right-hand sides, and the result, whose leading 1 has moved right, is placed in the same way. A row that becomes 0 is linearly dependent on earlier rows, and since its right-hand side is a random fingerprint, the system then has no solution with probability $1 - 2^{-r}$; the build is repeated with new hash functions. After all rows are placed, back substitution from the last column determines $Z$. Each step touches one band of $w$ columns, and sorting the keys by start first keeps the stored rows that a key meets in a small range of memory.
+
+Dillinger and Walzer prove that construction succeeds with high probability if $w$ is at least about $(\log n)/\delta$, so for a fixed width the overhead needed grows with $n$. The measured overhead at which half of the builds succeed rises with $n$ for every width:
+
+| Keys | $w = 32$ | $w = 64$ | $w = 128$ |
+| --- | ---: | ---: | ---: |
+| 10,000 | 0.15 (83%) | 0.04 (70%) | 0.015 (80%) |
+| 100,000 | 0.20 (75%) | 0.07 (74%) | 0.02 (50%) |
+| 1,000,000 | 0.30 (85%) | 0.10 (70%) | 0.04 (70%) |
+| 5,843,219 | 0.35 (80%) | 0.12 (80%) | 0.05 (60%) |
+
+Each cell gives the smallest overhead $\delta$ tried at which at least half of the builds succeeded, with the fraction that did; trials were 200, 100, 40 and 10 builds for the four sizes. At $w = 32$ a residual failure rate remains at large overhead: 1 of 40 builds of a million keys and 1 of 10 of 5.8 million keys failed at $\delta = 0.5$. The paper's own measurements put the overhead of this *standard* ribbon at 14 to 20% for $w = 64$ and 6 to 8% for $w = 128$ at a 1% rate.
+
+At full scale I used $\delta = 0.07$ with $w = 128$ and $\delta = 0.15$ with $w = 64$, and all 15 builds of each succeeded on the first set of hash functions.
+
+| Width, overhead | $r$ | Bits per key | Measured per million | Expected |
+| --- | ---: | ---: | ---: | ---: |
+| 128, 0.07 | 7 | 7.49 | 7,816.3 | 7,812.5 |
+| 128, 0.07 | 8 | 8.56 | 3,914.8 | 3,906.3 |
+| 128, 0.07 | 10 | 10.70 | 976.1 | 976.6 |
+| 128, 0.07 | 13 | 13.91 | 123.2 | 122.1 |
+| 128, 0.07 | 16 | 17.12 | 15.2 | 15.3 |
+| 64, 0.15 | 8 | 9.20 | 3,911.2 | 3,906.3 |
+| 64, 0.15 | 16 | 18.40 | 14.7 | 15.3 |
+
+The ratio of bits per key to $\lg(1/\varepsilon)$ is 1.070 for every $r$ at $w = 128$ and 1.15 at $w = 64$. A Bloom filter with the rate of the 7-bit ribbon, 0.78%, needs 10.1 bits per key.
+
+Dillinger and Walzer also describe *homogeneous* ribbon, whose system is solvable for every key set, so construction never fails, at the cost of a rate slightly above $2^{-r}$ that depends on the overhead. In *bumped ribbon retrieval* ([Dillinger et al. 2022](https://doi.org/10.4230/LIPIcs.SEA.2022.4)) keys whose band would overflow are removed to a second, smaller structure, and the overhead falls below 1%. RocksDB added a ribbon filter as an experimental option in version 6.15.0, released in November 2020, with a space saving of about 30% against its Bloom filter at the same rate and 3 to 4 times the construction cost ([`HISTORY.md`](https://github.com/facebook/rocksdb/blob/main/HISTORY.md)).
+
+## Space against false-positive rate
+
+All rates below were measured with the 52,974,808 absent keys, means of 3 builds. The static filters and the Bloom comparisons hold the 5,843,219 keys of the hour; the dynamic filters hold enough keys to reach the stated load in $2^{23}$ slots.
+
+| Filter | Bits per key | Rate per million | $\lg(1/\varepsilon)$ | Ratio to bound | Bloom, same rate |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Ribbon, $w = 128$, $\delta = 0.07$, $r = 8$ | 8.56 | 3,914.8 | 8.00 | 1.070 | 11.54 |
+| Binary fuse, $f = 8$ | 9.02 | 3,908.1 | 8.00 | 1.127 | 11.54 |
+| Ribbon, $w = 64$, $\delta = 0.15$, $r = 8$ | 9.20 | 3,911.2 | 8.00 | 1.150 | 11.54 |
+| Xor, $f = 8$ | 9.84 | 3,901.7 | 8.00 | 1.230 | 11.54 |
+| Quotient, $\alpha = 0.9$, $r = 8$ | 12.22 | 3,516.2 | 8.15 | 1.499 | 11.76 |
+| Cuckoo, $b = 4$, $\alpha = 0.95$, $f = 12$ | 12.63 | 1,854.2 | 9.08 | 1.392 | 13.09 |
+| Cuckoo, $b = 4$, $\alpha = 0.95$, $f = 16$ | 16.84 | 116.4 | 13.07 | 1.289 | 18.85 |
+| Ribbon, $w = 128$, $\delta = 0.07$, $r = 16$ | 17.12 | 15.2 | 16.00 | 1.070 | 23.09 |
+| Quotient, $\alpha = 0.9$, $r = 13$ | 17.78 | 109.8 | 13.15 | 1.352 | 18.98 |
+| Binary fuse, $f = 16$ | 18.03 | 15.3 | 16.00 | 1.127 | 23.08 |
+| Xor, $f = 16$ | 19.68 | 15.1 | 16.01 | 1.229 | 23.10 |
+
+The static filters' ratios to the bound are their size factors, $1 + \delta$, 1.127 and 1.230, independent of $f$. The dynamic filters' ratios fall as the fingerprint lengthens, since their additive terms ($\lg(2b\alpha) = 2.93$ bits for the cuckoo filter and $3 + \lg \alpha = 2.85$ for the quotient filter) are a smaller share of a longer fingerprint, and their limit as $f \to \infty$ is $1/\alpha$: 1.053 at 95% load and 1.111 at 90%.
+
+## Load thresholds
+
+<FilterLoad />
+
+The figure builds each layout in the browser and plots the fraction of 24 builds that succeed at each load from 0.60 to 1.00, in steps of 0.01, for tables of 256, 4,096 or 65,536 slots. A cuckoo build succeeds if every key is inserted, and the other layouts if the system is solved. The vertical line marks the asymptotic threshold where one exists: $c^*_{2,2}$ and $c^*_{2,4}$ for the cuckoo layouts, $c_3$ for the xor layout and $c^*_3$ for the binary fuse layout. The lower panel draws one build in 256 slots, 32 per row, and marks the cells involved in its failure: the two full buckets of the cuckoo key that did not fit, the 2-core that stopped peeling, or the band of the ribbon row that reduced to 0.
+
+At 4,096 slots the C harness, given the same layouts and the benchmark keys, measured over 400 builds per load that the xor layout succeeds in 97% of builds at 0.80, 22% at 0.82 and none at 0.84, around $c_3 = 0.818$. The cuckoo layouts succeed in 70% of builds at 0.88 and 1% at 0.90 with $b = 2$, and in 99.5% at 0.96 and 0.5% at 0.98 with $b = 4$. The binary fuse layout succeeds less often than the xor layout at this size (79% at 0.78 and 17% at 0.80), since 4,096 slots hold only 16 segments of 256 cells, and Graf and Lemire's formula sizes the array for 3,277 keys at a factor of 1.30, a load of 0.77. Ribbon layouts have no sharp threshold at a fixed width: with $w = 32$ the success rate falls from 94% at 0.86 to 22% at 0.94, and with $w = 64$ from 98% at 0.94 to 39% at 0.98. At 65,536 slots the xor layout's transition narrows to between 0.80 and 0.82, the binary fuse layout's moves to about 0.85, still short of $c^*_3$ with 32 segments, and the cuckoo layout with $b = 2$ fails by 0.88, below its threshold, as the limit of 500 relocations takes effect.
+
+## Cost of building and querying
+
+The timings are single-threaded on one pinned core, in nanoseconds per key, medians of 3 repetitions; the range over the repetitions follows in parentheses where it exceeds 10% of the median. Each filter is built from the hour's keys (the dynamic tables from as many keys as fill them to the stated load) and queried with 5,843,219 present keys in shuffled order and 5,843,219 absent keys. The two Bloom filters have 12 bits per key and $k = 8$, with the [[algorithms/probabilistic/bloom-filters#Blocked filters|blocked]] layout's bits in one 512-bit line.
+
+| Filter | Size | Build | Present query | Absent query |
+| --- | ---: | ---: | ---: | ---: |
+| Bloom, standard | 8.4 MiB | 56 (50 to 64) | 59 | 45 (39 to 45) |
+| Bloom, blocked 512 | 8.4 MiB | 50 | 50 (49 to 57) | 39 |
+| Cuckoo, $b = 4$, $f = 12$, $\alpha = 0.95$ | 16 MiB | 103 (91 to 104) | 15 (13 to 16) | 16 (14 to 18) |
+| Quotient, $r = 8$, $\alpha = 0.75$ | 16 MiB | 39 | 82 (67 to 85) | 49 |
+| Quotient, $r = 8$, $\alpha = 0.9$ | 16 MiB | 59 | 337 (324 to 388) | 248 (221 to 251) |
+| Xor, $f = 8$ | 6.9 MiB | 218 (199 to 219) | 18 | 16 |
+| Binary fuse, $f = 8$ | 6.3 MiB | 172 (154 to 175) | 18 | 17 |
+| Ribbon, $w = 128$, $r = 8$ | 6.0 MiB | 341 (327 to 364) | 32 (29 to 35) | 33 (28 to 35) |
+| Ribbon, $w = 64$, $r = 8$ | 6.4 MiB | 130 (120 to 135) | 42 | 41 (36 to 46) |
+
+Every filter exceeds the 2 MiB per-core L2 cache and fits in the 260 MiB last-level cache. Queries are independent of one another, so the processor overlaps their cache misses and the figures are throughput. The cuckoo and quotient filters of the harness store each slot in 16 bits instead of packing 12 or 11, and their sizes are those of the arrays as stored.
+
+A cuckoo query reads two buckets of 8 bytes and an xor or binary fuse query reads three bytes at independent positions, and these cost 15 to 18 ns. A quotient filter query scans its cluster, and its cost tracks the cluster lengths [measured above](#quotient-filters): at 90% load an absent query reads 27.7 slots on average and costs 248 ns, and a present query, which lands in a cluster of 109 slots on average, costs 337 ns; at 75% load the two cost 49 and 82 ns. The Bloom filters of this harness evaluate a 64-bit mix per probe and branch at the first 0 bit, and their queries cost 39 to 59 ns. [Lang et al. (2019)](https://doi.org/10.14778/3303753.3303757) find with vectorized implementations that blocked Bloom filters outperform cuckoo filters at high lookup throughput; the timings here use scalar code for every filter and do not test that comparison.
+
+Construction is where the static filters cost more. Peeling an xor filter costs 218 ns per key, and a binary fuse filter 172 ns; in both the peeling passes visit the cells of each key at independent positions, and in the binary fuse filter those positions lie within three adjacent segments. The ribbon filter of width 128 costs 341 ns per key, 3.3 times an insertion into the cuckoo table at 95% load (103 ns) and 6.1 times one into the standard Bloom filter (56 ns), and that of width 64 costs 130 ns. The quotient filter's build costs 39 and 59 ns per key at the two loads because the cost is averaged over the whole fill, and most insertions are made at loads where they shift few slots; the shift counts in the [cluster table](#quotient-filters) give the cost of an insertion at each load.
+
+## Later designs
+
+Several designs since 2020 address the dynamic case. The *prefix filter* ([Even, Even and Morrison 2022](https://doi.org/10.14778/3523210.3523211)) stores most keys in a table of small per-bin dictionaries, one cache line per bin, and the keys that overflow a bin in a second, smaller filter, so that most queries read one cache line. The *vector quotient filter* ([Pandey et al. 2021](https://doi.org/10.1145/3448016.3452841)) places each key in one of two blocks of small quotient filters, chosen by load, and searches a block with vector instructions. *InfiniFilter* ([Dayan et al. 2023](https://doi.org/10.1145/3589285)) and the *Aleph filter* ([Dayan, Bercea and Pagh 2024](https://doi.org/10.14778/3681954.3682027)) expand a quotient-style filter as keys arrive, without knowing $n$ in advance, which is the case that the Pagh, Segev and Wieder bound concerns; InfiniFilter assigns longer fingerprints to newer keys so that the rate stays bounded, and the Aleph filter makes its operations take constant time.
+
+## Consequences for implementations
+
+For a set known in full at build time, such as the keys of an immutable table file, a static filter has a smaller size at every rate measured. A ribbon filter of width 128 at 7% overhead has the smallest size, 1.07 times the bound against 1.127 for a binary fuse filter and 1.23 for an xor filter, and costs 2.0 times as much to build per key as a binary fuse filter and 1.8 to 1.9 times as much per query. At 5.8 million keys a width-64 ribbon filter needed 12 to 15% overhead to build reliably, which places it at or above the binary fuse filter in space. Against a Bloom filter at the same rate, a binary fuse filter saves 22% of the space at both $2^{-8}$ and $2^{-16}$, with queries 2.3 to 3.3 times faster in this harness and construction about 3 times slower.
+
+When keys must be inserted after the filter is created, a cuckoo filter with 4-slot buckets at 95% load uses less space than a Bloom filter only at rates below about 0.4%, or about 3% with semi-sorting, and the table must be sized for the largest $n$, since an insertion fails once the walk does not find a free slot; at 8.4 million slots that happened at a load of 0.953 to 0.961 for fingerprints of 6 to 16 bits. Its fingerprints must have at least 5 bits for a table of that size, and inserting the same key more than 8 times fails. A quotient filter supports merging and doubling, which a cuckoo filter does not, but its query cost grows with load: 4.2 slots per absent query at 75% load and 28 at 90%, where the space advantage over a Bloom filter begins only at rates below about 0.1%. The counting quotient filter's 2.125 metadata bits and rank-and-select lookup are designed to remove that trade-off.
+
+> [!note]- How this was measured
+> The harness sources and outputs are in the `filter-experiments` directory, and [`run.sh`](filter-experiments/run.sh) reproduces every number. It reads `distinct.bin`, the 60,974,808 distinct 64-bit key hashes of the [[algorithms/probabilistic/hyperloglog-count-min|HyperLogLog and Count-Min]] harness in order of first appearance, whose first 5,843,219 entries are the keys of hour 0. Absent keys for every rate are entries 8,000,000 onward, which no build inserts.
+>
+> - **Filters.** [`filters.h`](filter-experiments/filters.h) implements each filter; every hash is `fmix64(x ^ seed)` with a seed from a SplitMix64 stream, reduced to a range by a 128-bit multiply-high. The cuckoo filter takes $i_1$ from the high bits of one hash and the fingerprint from bits 40 and up (low bits for the non-power-of-two variant), with 0 mapped to 1, and $h'$ is `fmix64` of the fingerprint times a constant. The quotient filter stores remainders unsorted within a run, which changes no rate and no cluster length. The xor and binary fuse filters take their three positions from one hash by multiply-high on rotations of it. The ribbon filters sort keys by start with a counting sort and store the solution in interleaved 64-bit column blocks. [`selftest.c`](filter-experiments/selftest.c) checks every filter for false negatives and its rate against the formula on 200,000 random keys.
+> - **Experiments.** [`exp.c`](filter-experiments/exp.c) runs mode F (space and rate, 3 seeds, [`F.txt`](filter-experiments/F.txt)), G (ribbon filters at full scale, [`G.txt`](filter-experiments/G.txt)), L (cuckoo load at the first failure, 10 seeds, [`L.txt`](filter-experiments/L.txt)), Q (quotient filter probes, shifts and clusters on $2^{22}$ slots, 5 seeds, [`Q.txt`](filter-experiments/Q.txt)), X (xor and binary fuse construction against size factor, [`X.txt`](filter-experiments/X.txt)), R (ribbon construction against overhead and width, [`R.txt`](filter-experiments/R.txt)) and J (the figure's six layouts at 4,096 slots, 400 builds per load, [`J.txt`](filter-experiments/J.txt)). [`analyze.py`](filter-experiments/analyze.py) writes [`summary.json`](filter-experiments/summary.json) and the tables quoted above ([`analyze.txt`](filter-experiments/analyze.txt)).
+> - **Timing.** [`speed.c`](filter-experiments/speed.c) pinned to one core with `taskset`, nothing else running, 3 repetitions ([`speed.txt`](filter-experiments/speed.txt)).
+> - **Environment.** gcc 13.3 with `-O2 -march=native` (and `-fopenmp` for `exp.c`), Python 3.13.18, on a 4-core Intel Xeon at 2.10 GHz (48 KiB L1d and 2 MiB L2 per core, 260 MiB L3 reported) with 15 GB of memory.
+> - **The figure.** The figure runs on the integers $0, \dots, n - 1$ as keys with 32-bit arithmetic: hash word $i$ of key $x$ is `fmix32(fmix32(x + s) ^ t_i)` for seeds $s, t_i$. Its outcomes for 126 configurations (cells used, failing key, 2-core size, dependent row) match an independent Python implementation exactly, which also checks peeling against a 2-core computed by repeated scans and ribbon elimination against the GF(2) rank of the dense matrix ([`figure_ref.py`](filter-experiments/figure_ref.py), [`figure-check.json`](filter-experiments/figure-check.json)). Its success rates at 4,096 slots agree with the C harness's runs on the benchmark keys within sampling error.
+
+> [!note]- Potentially interesting ideas
+> - **Semi-sorted cuckoo buckets.** The crossover with the Bloom filter at about 3% that semi-sorting gives was computed from the formula above and not measured; the encoding also changes the cost of a query, which decodes a 12-bit index per bucket.
+> - **Counting quotient filter at 95% load.** Measuring the rank-and-select layout of Pandey et al. at the loads in the cluster table would show how much of the 248 ns query at 90% load it removes.
+> - **The 4-cell binary fuse filter.** Graf and Lemire's 4-cell variant at factor 1.075 would place a peeled filter within 0.08 of the ribbon filter's 1.07 ratio, with a fourth memory access per query.
+> - **Bumped ribbon at full scale.** The overhead of standard ribbon grows with $n$ in the runs above; bumped ribbon removes that growth and would show the space attainable at 5.8 million keys with a width of 64.
+> - **Isolated lookups.** As in the Bloom filter timings, the queries here are independent. A chain of dependent lookups would measure latency, where the three independent reads of an xor filter and the scan of a quotient filter behave differently from their throughput.
+
+## Related notes
+
+- [[algorithms/probabilistic/index|Probabilistic data structures]], the series index, with the notation and the benchmark stream
+- [[algorithms/probabilistic/bloom-filters|Bloom filters and their variants]], for the lower bound, the Bloom rates these filters are compared with and the blocked layouts
+- [[algorithms/probabilistic/hashing-for-sketches|Hashing for sketches]], on the hash families whose independence the analyses above assume
+- [[algorithms/probabilistic/hyperloglog-count-min|HyperLogLog and Count-Min]], whose harness produced the key file used here
+- [[systems/databases/foundations/ch3-storage-and-retrieval#Bloom filters|Bloom filters in LSM storage engines]]
